@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Přihlášení – UHK Grantové soutěže</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/app.css">
+  <style>
+    .step { display:none; }
+    .step.active { display:block; animation:fadeInRight .22s ease forwards; }
+    @keyframes fadeInRight {
+      from { opacity:0; transform:translateX(14px); }
+      to   { opacity:1; transform:translateX(0); }
+    }
+    .step-bar { display:flex; align-items:center; gap:8px; margin-bottom:28px; }
+    .step-bar__dot { width:8px; height:8px; border-radius:50%; background:var(--grey-300); transition:all .2s; flex-shrink:0; }
+    .step-bar__dot.active { background:var(--navy); transform:scale(1.3); }
+    .step-bar__dot.done   { background:var(--gold); }
+    .step-bar__line { flex:1; height:1px; background:var(--grey-300); }
+    .step-bar__label { font-size:12px; color:var(--grey-500); font-weight:500; white-space:nowrap; }
+    .btn-back { display:inline-flex; align-items:center; gap:5px; background:none; border:none; cursor:pointer; font-family:var(--font-sans); font-size:13px; color:var(--grey-500); padding:0; margin-bottom:20px; transition:color .15s; }
+    .btn-back:hover { color:var(--navy); }
+    .auth-summary { display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--grey-100); border-radius:var(--radius-sm); margin-bottom:20px; font-size:13px; color:var(--grey-700); }
+    .auth-summary__avatar { width:28px; height:28px; border-radius:50%; background:var(--navy); color:var(--white); font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .role-list { display:flex; flex-direction:column; gap:9px; }
+    .role-btn { display:flex; align-items:center; gap:14px; padding:13px 16px; border:1.5px solid var(--grey-300); border-radius:var(--radius); cursor:pointer; background:var(--white); font-family:var(--font-sans); width:100%; transition:all .15s; text-align:left; }
+    .role-btn:hover { border-color:var(--navy-500); background:var(--navy-50); transform:translateX(3px); }
+    .role-btn__dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+    .role-btn__info { flex:1; }
+    .role-btn__name { font-size:14px; font-weight:600; color:var(--grey-900); }
+    .role-btn__desc { font-size:12px; color:var(--grey-500); margin-top:1px; }
+    .role-btn__arrow { color:var(--grey-300); font-size:18px; transition:all .15s; }
+    .role-btn:hover .role-btn__arrow { color:var(--navy); transform:translateX(3px); }
+    .role-btn.loading { opacity:.5; cursor:not-allowed; pointer-events:none; }
+    .register-link { text-align:center; margin-top:24px; padding-top:20px; border-top:1px solid var(--grey-300); font-size:13px; color:var(--grey-500); }
+    .register-link a { color:var(--navy-500); font-weight:600; text-decoration:none; cursor:pointer; }
+    .register-link a:hover { text-decoration:underline; }
+    .pwd-strength { height:3px; border-radius:2px; background:var(--grey-300); margin-top:6px; overflow:hidden; }
+    .pwd-strength__bar { height:100%; border-radius:2px; transition:width .3s, background .3s; width:0%; }
+    .pwd-hint { font-size:11px; color:var(--grey-500); margin-top:4px; }
+    .success-box { text-align:center; padding:20px 0; }
+    .success-box__icon { font-size:48px; margin-bottom:16px; animation:popIn .4s cubic-bezier(.34,1.56,.64,1) forwards; }
+    @keyframes popIn { from { transform:scale(0); opacity:0; } to { transform:scale(1); opacity:1; } }
+    .success-box__title { font-family:var(--font-serif); font-size:24px; color:var(--navy); margin-bottom:8px; }
+    .success-box__sub { font-size:14px; color:var(--grey-500); line-height:1.5; }
+  </style>
+</head>
+<body class="login-page">
+<div class="login-layout">
+
+  <!-- Levý panel -->
+  <div class="login-brand">
+    <div class="login-brand__inner">
+      <div class="login-brand__logo">
+        <span class="logo-uhk">UHK</span>
+        <span class="logo-sep"></span>
+        <span class="logo-text">Grantové<br>soutěže</span>
+      </div>
+      <div class="login-brand__tagline">
+        Interní systém pro správu<br>
+        <em>výzkumných grantů</em><br>
+        Univerzity Hradec Králové
+      </div>
+      <div class="login-brand__decoration">
+        <div class="deco-circle deco-circle--1"></div>
+        <div class="deco-circle deco-circle--2"></div>
+        <div class="deco-circle deco-circle--3"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pravý panel -->
+  <div class="login-form-panel">
+    <div class="login-form-wrap">
+
+      <!-- KROK 1 – přihlášení -->
+      <div id="step1" class="step active">
+        <div class="step-bar">
+          <div class="step-bar__dot active"></div>
+          <div class="step-bar__line"></div>
+          <div class="step-bar__dot"></div>
+          <div class="step-bar__line"></div>
+          <div class="step-bar__dot"></div>
+          <span class="step-bar__label">Přihlášení</span>
+        </div>
+        <div class="login-form__header">
+          <h1 class="login-form__title">Vítejte</h1>
+          <p class="login-form__sub">Přihlaste se do systému UHK Grantové soutěže.</p>
+        </div>
+        <div id="err1" class="alert alert--error" style="display:none;">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v3.5M8 11h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span id="err1Text"></span>
+        </div>
+        <div class="field">
+          <label for="email">E-mail</label>
+          <div class="field__input-wrap">
+            <svg class="field__icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M1 5.5l7 4.5 7-4.5" stroke="currentColor" stroke-width="1.4"/></svg>
+            <input type="email" id="email" placeholder="vas.email@uhk.cz" autocomplete="email">
+          </div>
+          <div class="field__error" id="emailErr"></div>
+        </div>
+        <div class="field">
+          <label for="password">Heslo</label>
+          <div class="field__input-wrap">
+            <svg class="field__icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3" y="7" width="10" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M5 7V5a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+            <button type="button" class="field__toggle" onclick="togglePwd('password')">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.4"/></svg>
+            </button>
+          </div>
+          <div class="field__error" id="passwordErr"></div>
+        </div>
+        <button class="btn-login" id="loginBtn" onclick="handleLogin()">
+          <span id="loginBtnText">Přihlásit se →</span>
+          <div class="btn-login__spinner" id="loginSpinner" style="display:none;"></div>
+        </button>
+        <div class="register-link">
+          Nemáte přístup? <a onclick="showRegister()">Požádat o přístup</a>
+        </div>
+      </div>
+
+      <!-- KROK 2 – výběr role -->
+      <div id="step2" class="step">
+        <div class="step-bar">
+          <div class="step-bar__dot done"></div>
+          <div class="step-bar__line"></div>
+          <div class="step-bar__dot active"></div>
+          <div class="step-bar__line"></div>
+          <div class="step-bar__dot"></div>
+          <span class="step-bar__label">Výběr role</span>
+        </div>
+        <button class="btn-back" onclick="goToStep(1)">← Zpět</button>
+        <div class="auth-summary">
+          <div class="auth-summary__avatar" id="avatarLetter">?</div>
+          <div>Přihlášen jako <strong id="summaryEmail">–</strong></div>
+        </div>
+        <div class="login-form__header" style="margin-bottom:16px;">
+          <h2 class="login-form__title" style="font-size:24px;">Vyberte roli</h2>
+          <p class="login-form__sub">Váš účet má přístup do více rolí.</p>
+        </div>
+        <div class="role-list" id="roleList"></div>
+      </div>
+
+      <!-- KROK 3 – registrace -->
+      <div id="step3" class="step">
+        <div class="step-bar">
+          <div class="step-bar__dot done"></div>
+          <div class="step-bar__line"></div>
+          <div class="step-bar__dot done"></div>
+          <div class="step-bar__line"></div>
+          <div class="step-bar__dot active"></div>
+          <span class="step-bar__label">Nový účet</span>
+        </div>
+        <button class="btn-back" onclick="goToStep(1)">← Zpět na přihlášení</button>
+        <div class="login-form__header">
+          <h2 class="login-form__title" style="font-size:26px;">Nový přístup</h2>
+          <p class="login-form__sub">Vyplňte údaje. Účet se vytvoří okamžitě jako <strong>Žadatel / Řešitel</strong>.</p>
+        </div>
+        <div id="err3" class="alert alert--error" style="display:none;">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v3.5M8 11h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span id="err3Text"></span>
+        </div>
+        <div class="alert alert--info" style="margin-bottom:16px;">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M8 7v4M8 5h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span>Účet bude mít roli <strong>Žadatel</strong>. Roli změní administrátor dle potřeby.</span>
+        </div>
+        <div class="field">
+          <label for="regName">Celé jméno <span style="color:var(--red)">*</span></label>
+          <div class="field__input-wrap">
+            <svg class="field__icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M2 14c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            <input type="text" id="regName" placeholder="Mgr. Jana Nováková, Ph.D.">
+          </div>
+          <div class="field__error" id="regNameErr"></div>
+        </div>
+        <div class="field">
+          <label for="regEmail">E-mail (UHK) <span style="color:var(--red)">*</span></label>
+          <div class="field__input-wrap">
+            <svg class="field__icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M1 5.5l7 4.5 7-4.5" stroke="currentColor" stroke-width="1.4"/></svg>
+            <input type="email" id="regEmail" placeholder="jmeno.prijmeni@uhk.cz">
+          </div>
+          <div class="field__error" id="regEmailErr"></div>
+        </div>
+        <div class="field">
+          <label for="regPassword">Heslo <span style="color:var(--red)">*</span></label>
+          <div class="field__input-wrap">
+            <svg class="field__icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3" y="7" width="10" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M5 7V5a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            <input type="password" id="regPassword" placeholder="Minimálně 8 znaků" oninput="checkStrength(this.value)">
+            <button type="button" class="field__toggle" onclick="togglePwd('regPassword')">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.4"/></svg>
+            </button>
+          </div>
+          <div class="pwd-strength"><div class="pwd-strength__bar" id="pwdBar"></div></div>
+          <div class="pwd-hint" id="pwdHint">Min. 8 znaků, 1 velké písmeno, 1 číslo</div>
+          <div class="field__error" id="regPwdErr"></div>
+        </div>
+        <div class="field">
+          <label for="regPassword2">Heslo znovu <span style="color:var(--red)">*</span></label>
+          <div class="field__input-wrap">
+            <svg class="field__icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3" y="7" width="10" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M5 7V5a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            <input type="password" id="regPassword2" placeholder="Zopakujte heslo">
+          </div>
+          <div class="field__error" id="regPwd2Err"></div>
+        </div>
+        <button class="btn-login" id="regBtn" onclick="handleRegister()">
+          <span id="regBtnText">Vytvořit účet →</span>
+          <div class="btn-login__spinner" id="regSpinner" style="display:none;"></div>
+        </button>
+      </div>
+
+      <!-- KROK 4 – úspěch registrace -->
+      <div id="step4" class="step">
+        <div class="success-box">
+          <div class="success-box__icon">🎉</div>
+          <h2 class="success-box__title">Účet vytvořen!</h2>
+          <p class="success-box__sub">
+            Váš účet byl zaregistrován jako <strong>Žadatel / Řešitel</strong>.<br>
+            Nyní se můžete přihlásit.
+          </p>
+        </div>
+        <button class="btn-login" style="margin-top:24px;" onclick="goToStep(1)">
+          Přihlásit se →
+        </button>
+      </div>
+
+      <!-- Footer -->
+      <div class="login-form__footer" id="formFooter">
+        <p>Potíže s přihlášením? Kontaktujte administrátorku:</p>
+        <a href="mailto:hana.tomaskova@uhk.cz">hana.tomaskova@uhk.cz</a>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script>
+  // Přesměruj pokud již přihlášen
+  if (Auth.isLoggedIn()) window.location.href = "pages/dashboard.html";
+
+  // Stav mezi kroky
+  let _email = "", _name = "", _foundRoles = [], _token = "";
+
+  // ── Navigace ────────────────────────────────────────────────
+  function goToStep(n) {
+    document.querySelectorAll(".step").forEach(s => s.classList.remove("active"));
+    document.getElementById("step" + n).classList.add("active");
+    document.getElementById("formFooter").style.display = n >= 3 ? "none" : "block";
+  }
+
+  function showRegister() {
+    const email = document.getElementById("email").value.trim();
+    if (email) document.getElementById("regEmail").value = email;
+    goToStep(3);
+  }
+
+  // ── Helpers ─────────────────────────────────────────────────
+  function togglePwd(id) {
+    const el = document.getElementById(id);
+    el.type = el.type === "password" ? "text" : "password";
+  }
+
+  function checkStrength(pwd) {
+    const bar = document.getElementById("pwdBar");
+    const hint = document.getElementById("pwdHint");
+    let score = 0;
+    if (pwd.length >= 8)          score++;
+    if (/[A-Z]/.test(pwd))        score++;
+    if (/[0-9]/.test(pwd))        score++;
+    if (/[^A-Za-z0-9]/.test(pwd)) score++;
+    const colors = ["#EF4444","#F59E0B","#3B82F6","#22C55E"];
+    const labels = ["Příliš slabé","Slabé","Dobré","Silné ✓"];
+    bar.style.width = (score * 25) + "%";
+    bar.style.background = colors[score - 1] || "#E5E7EB";
+    hint.textContent = score > 0 ? labels[score - 1] : "Min. 8 znaků, 1 velké písmeno, 1 číslo";
+    hint.style.color = colors[score - 1] || "var(--grey-500)";
+  }
+
+  function setBtnLoading(btnId, textId, spinnerId, loading) {
+    document.getElementById(btnId).disabled = loading;
+    document.getElementById(textId).style.opacity = loading ? "0" : "1";
+    document.getElementById(spinnerId).style.display = loading ? "block" : "none";
+  }
+
+  function showErr(boxId, textId, msg) {
+    document.getElementById(boxId).style.display = "flex";
+    document.getElementById(textId).textContent = msg;
+  }
+
+  // ── KROK 1: Přihlášení ──────────────────────────────────────
+  async function handleLogin() {
+    const email    = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+
+    document.getElementById("err1").style.display = "none";
+    document.getElementById("emailErr").textContent = "";
+    document.getElementById("passwordErr").textContent = "";
+
+    if (!email)    { document.getElementById("emailErr").textContent    = "Zadejte e-mail."; return; }
+    if (!password) { document.getElementById("passwordErr").textContent = "Zadejte heslo.";  return; }
+
+    setBtnLoading("loginBtn", "loginBtnText", "loginSpinner", true);
+    try {
+      const result = await Auth.login(email, password);
+      if (!result.success) {
+        showErr("err1", "err1Text", result.message); return;
+      }
+      _email = email;
+      _name  = result.name;
+      _token = result.token;
+      _foundRoles = result.roles;
+
+      if (result.roles.length === 1) {
+        // Jen jedna role → přímé přihlášení
+        Auth.setSession(result.token, email, result.name, result.roles[0]);
+        window.location.href = "pages/dashboard.html";
+      } else {
+        // Více rolí → výběr
+        renderRoles(result.roles, email, result.name);
+        goToStep(2);
+      }
+    } catch {
+      showErr("err1", "err1Text", "Chyba připojení. Zkuste to znovu.");
+    } finally {
+      setBtnLoading("loginBtn", "loginBtnText", "loginSpinner", false);
+    }
+  }
+
+  // ── KROK 2: Výběr role ──────────────────────────────────────
+  const ROLE_META = {
+    ADMIN:     { name:"Správce",       desc:"Plný přístup – správa uživatelů a nastavení",       color:"#1C2E5A" },
+    PROREKTOR: { name:"Prorektor",     desc:"Nejvyšší schvalovací pravomoc",                     color:"#5B21B6" },
+    KOMISAR:   { name:"Člen komise",   desc:"Hodnocení přihlášek",                               color:"#1E6B45" },
+    TESTER:    { name:"Tester",        desc:"Vidí vše, nemůže měnit data",                       color:"#B45309" },
+    ZADATEL:   { name:"Žadatel",       desc:"Podává přihlášky, sleduje stav žádostí",            color:"#1D4ED8" },
+    RESITEL:   { name:"Řešitel",       desc:"Řeší schválený projekt, závěrečné zprávy",          color:"#0369A1" },
+    READONLY:  { name:"Jen čtení",     desc:"Přehled bez možnosti změn",                         color:"#6B7280" },
+  };
+
+  function renderRoles(roles, email, name) {
+    document.getElementById("summaryEmail").textContent = email;
+    document.getElementById("avatarLetter").textContent = (name || email)[0].toUpperCase();
+    document.getElementById("roleList").innerHTML = roles.map(role => {
+      const m = ROLE_META[role] || { name: role, desc: "", color: "#6B7280" };
+      return `
+        <button class="role-btn" onclick="selectRole('${role}')">
+          <div class="role-btn__dot" style="background:${m.color}"></div>
+          <div class="role-btn__info">
+            <div class="role-btn__name">${m.name}</div>
+            <div class="role-btn__desc">${m.desc}</div>
+          </div>
+          <div class="role-btn__arrow">›</div>
+        </button>`;
+    }).join("");
+  }
+
+  function selectRole(role) {
+    document.querySelectorAll(".role-btn").forEach(b => b.classList.add("loading"));
+    Auth.setSession(_token, _email, _name, role);
+    window.location.href = "pages/dashboard.html";
+  }
+
+  // ── KROK 3: Registrace ──────────────────────────────────────
+  async function handleRegister() {
+    const name  = document.getElementById("regName").value.trim();
+    const email = document.getElementById("regEmail").value.trim();
+    const pwd   = document.getElementById("regPassword").value;
+    const pwd2  = document.getElementById("regPassword2").value;
+
+    document.getElementById("err3").style.display = "none";
+    ["regNameErr","regEmailErr","regPwdErr","regPwd2Err"]
+      .forEach(id => document.getElementById(id).textContent = "");
+
+    let ok = true;
+    if (!name)  { document.getElementById("regNameErr").textContent  = "Zadejte jméno."; ok = false; }
+    if (!email) { document.getElementById("regEmailErr").textContent = "Zadejte e-mail."; ok = false; }
+    if (email && !email.toLowerCase().endsWith("@uhk.cz")) {
+      document.getElementById("regEmailErr").textContent = "Musí být UHK adresa (@uhk.cz)."; ok = false;
+    }
+    if (pwd.length < 8 || !/[A-Z]/.test(pwd) || !/[0-9]/.test(pwd)) {
+      document.getElementById("regPwdErr").textContent = "Min. 8 znaků, velké písmeno a číslo."; ok = false;
+    }
+    if (pwd !== pwd2) {
+      document.getElementById("regPwd2Err").textContent = "Hesla se neshodují."; ok = false;
+    }
+    if (!ok) return;
+
+    setBtnLoading("regBtn", "regBtnText", "regSpinner", true);
+    try {
+      const result = await Auth.register(name, email, pwd);
+      if (result.success) {
+        goToStep(4);
+      } else {
+        showErr("err3", "err3Text", result.message || "Registrace se nezdařila.");
+      }
+    } catch {
+      showErr("err3", "err3Text", "Chyba připojení. Zkuste to znovu.");
+    } finally {
+      setBtnLoading("regBtn", "regBtnText", "regSpinner", false);
+    }
+  }
+
+  // ── Enter ────────────────────────────────────────────────────
+  document.addEventListener("keydown", e => {
+    if (e.key !== "Enter") return;
+    if (document.getElementById("step1").classList.contains("active")) handleLogin();
+    if (document.getElementById("step3").classList.contains("active")) handleRegister();
+  });
+</script>
+</body>
+</html>
