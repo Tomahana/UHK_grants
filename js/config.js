@@ -5,7 +5,7 @@
 
 // ── Apps Script Web App URL ────────────────────────────────────
 // Po nasazení Web App v Apps Script sem vlož URL:
-const API_URL = "https://script.google.com/macros/s/AKfycbzncUb_4alPh5Jl5IGIYctr53qEvGSFecYyBfbf6LkBnZMWJ4rhwL4XsZTKSKWPGDBIqw/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbx2z46wbplrnCluJ7TSY0A1H4yI6MpdOIrounEdI_i8MFyEHGHC8n01-1MK89IJZvcsDQ/exec";
 
 // ── Role a jejich vlastnosti ───────────────────────────────────
 const ROLES = {
