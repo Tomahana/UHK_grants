@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Správa uživatelů – UHK Grants</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/app.css">
+  <style>
+    .page-header { background: var(--navy); padding: 32px 0 28px; margin-bottom: 32px; }
+    .page-header__inner { max-width: 1140px; margin: 0 auto; padding: 0 24px; }
+    .page-header__label { font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); margin-bottom: 6px; }
+    .page-header__title { font-family: var(--font-head); font-size: 28px; color: var(--white); letter-spacing: -0.5px; }
+    .page-header__sub { font-size: 14px; color: rgba(255,255,255,.5); margin-top: 4px; }
+
+    .toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    .toolbar input, .toolbar select { max-width: 260px; padding: 9px 14px; border: 1.5px solid var(--border); border-radius: var(--radius); font-family: var(--font-body); font-size: 14px; outline: none; }
+    .toolbar input:focus, .toolbar select:focus { border-color: var(--navy-mid); }
+
+    .table-wrap { overflow-x: auto; border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 32px; }
+    table { width: 100%; border-collapse: collapse; background: var(--white); font-size: 13px; }
+    thead tr { background: var(--navy); }
+    thead th { padding: 11px 16px; text-align: left; color: rgba(255,255,255,.85); font-weight: 600; font-size: 12px; letter-spacing: .3px; white-space: nowrap; }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+    tbody tr:hover { background: var(--off); }
+    tbody td { padding: 11px 16px; vertical-align: middle; }
+    .td-email { font-family: monospace; font-size: 12px; }
+    .td-name { font-weight: 500; }
+
+    .badge { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 700; letter-spacing: .3px; }
+    .badge--active   { background: #D1FAE5; color: #065F46; }
+    .badge--inactive { background: var(--grey-100); color: var(--grey-500); border: 1px solid var(--grey-300); }
+
+    .role-tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; margin: 2px; }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(26,46,90,.5); backdrop-filter: blur(4px); z-index: 200; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--white); border-radius: var(--radius-lg); padding: 32px; max-width: 520px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg); }
+    .modal h3 { font-family: var(--font-head); font-size: 22px; color: var(--navy); margin-bottom: 20px; }
+    .form-row { margin-bottom: 16px; }
+    .form-row label { display: block; font-size: 13px; font-weight: 600; color: var(--grey-700); margin-bottom: 5px; }
+    .form-row input, .form-row select { width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: var(--radius); font-family: var(--font-body); font-size: 14px; outline: none; transition: border-color .15s; }
+    .form-row input:focus, .form-row select:focus { border-color: var(--navy-mid); }
+    .modal-footer { display: flex; gap: 10px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+    .roles-editor { border: 1.5px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-top: 8px; }
+    .role-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--border); background: var(--white); }
+    .role-row:last-child { border-bottom: none; }
+    .role-row select { flex: 1; padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; }
+    .role-row .comp-label { font-size: 12px; font-weight: 600; color: var(--navy); width: 180px; flex-shrink: 0; }
+    .role-row .remove-role { background: none; border: none; cursor: pointer; color: var(--grey-500); font-size: 16px; padding: 2px 6px; border-radius: 4px; transition: all .15s; }
+    .role-row .remove-role:hover { background: var(--red-light); color: var(--red); }
+
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: var(--radius); font-family: var(--font-body); font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all .15s; text-decoration: none; }
+    .btn--navy { background: var(--navy); color: var(--white); }
+    .btn--navy:hover { background: var(--navy-mid); }
+    .btn--outline { background: transparent; color: var(--navy); border: 1.5px solid var(--navy); }
+    .btn--outline:hover { background: var(--navy-lite); }
+    .btn--ghost { background: transparent; color: var(--grey-700); border: 1.5px solid var(--border); }
+    .btn--ghost:hover { background: var(--grey-100); }
+    .btn--sm { padding: 6px 12px; font-size: 13px; }
+    .btn--danger { background: var(--red-light); color: var(--red); border: 1px solid #FECACA; }
+    .btn--danger:hover { background: #FEE2E2; }
+
+    .spinner-inline { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.3); border-top-color: white; border-radius: 50%; animation: spin .6s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); color: white; font-size: 14px; font-weight: 500; padding: 12px 24px; border-radius: 100px; z-index: 9999; transition: transform .3s cubic-bezier(.34,1.56,.64,1); white-space: nowrap; }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    .empty-row td { text-align: center; padding: 48px; color: var(--grey-500); }
+    .loading-row td { text-align: center; padding: 32px; color: var(--grey-500); }
+  </style>
+</head>
+<body class="app-page">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar__inner">
+      <div class="topbar__logo">
+        <img src="../img/uhk-abb-w.png" alt="UHK" style="height:26px;opacity:.9;">
+        <span class="topbar__title">Grantové soutěže</span>
+      </div>
+      <div class="topbar__right">
+        <div class="topbar__user">
+          <div class="user-avatar" id="userAvatar">?</div>
+          <div class="user-info">
+            <div class="user-name" id="userName">–</div>
+            <div class="user-role" id="userRole">–</div>
+          </div>
+        </div>
+        <a href="dashboard.html" class="btn-logout">← Rozcestník</a>
+        <button class="btn-logout" onclick="Auth.logout()">Odhlásit</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- PAGE HEADER -->
+  <div class="page-header">
+    <div class="page-header__inner">
+      <div class="page-header__label">Administrace</div>
+      <h1 class="page-header__title">Správa uživatelů</h1>
+      <p class="page-header__sub">Globální správa přístupů a rolí pro všechny soutěže.</p>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <input type="text" id="searchInput" placeholder="Hledat jméno nebo e-mail…" oninput="filterTable()">
+      <select id="filterActive" onchange="filterTable()">
+        <option value="">Všichni uživatelé</option>
+        <option value="TRUE">Aktivní</option>
+        <option value="FALSE">Deaktivovaní</option>
+      </select>
+      <button class="btn btn--navy" onclick="openAddModal()">+ Přidat uživatele</button>
+      <button class="btn btn--ghost btn--sm" onclick="loadUsers()">↺ Obnovit</button>
+    </div>
+
+    <!-- Tabulka uživatelů -->
+    <div class="table-wrap">
+      <table id="usersTable">
+        <thead>
+          <tr>
+            <th>Jméno</th>
+            <th>E-mail</th>
+            <th>Role v soutěžích</th>
+            <th>Status</th>
+            <th>Přidán</th>
+            <th>Akce</th>
+          </tr>
+        </thead>
+        <tbody id="usersBody">
+          <tr class="loading-row"><td colspan="6">Načítám uživatele…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- MODAL: Přidat / Editovat uživatele -->
+  <div class="modal-overlay" id="userModal">
+    <div class="modal">
+      <h3 id="modalTitle">Přidat uživatele</h3>
+
+      <div class="form-row">
+        <label>Celé jméno *</label>
+        <input type="text" id="fName" placeholder="Mgr. Jana Nováková, Ph.D.">
+      </div>
+      <div class="form-row">
+        <label>E-mail (UHK) *</label>
+        <input type="email" id="fEmail" placeholder="jana.novakova@uhk.cz">
+      </div>
+      <div class="form-row">
+        <label id="fPasswordLabel">Heslo *</label>
+        <input type="text" id="fPassword" placeholder="Minimálně 8 znaků">
+        <div style="font-size:11px;color:var(--grey-500);margin-top:4px;">Při editaci nechte prázdné = heslo se nezmění</div>
+      </div>
+      <div class="form-row">
+        <label>Status</label>
+        <select id="fActive">
+          <option value="TRUE">Aktivní</option>
+          <option value="FALSE">Deaktivovaný</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <label>Role v soutěžích</label>
+        <div class="roles-editor" id="rolesEditor">
+          <!-- Renderováno JS -->
+        </div>
+        <button type="button" onclick="addRoleRow()" style="margin-top:8px;font-size:13px;color:var(--navy);background:none;border:none;cursor:pointer;padding:4px 0;">+ Přidat roli</button>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn--navy" onclick="saveUser()" id="saveBtn">Uložit</button>
+        <button class="btn btn--ghost" onclick="closeModal()">Zrušit</button>
+        <button class="btn btn--danger btn--sm" id="deactivateBtn" onclick="toggleActive()" style="display:none;margin-left:auto;">Deaktivovat</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/auth.js"></script>
+  <script>
+
+    // Ochrana – jen ADMIN
+    const user = Auth.requireLogin(["ADMIN"]);
+    document.getElementById("userName").textContent  = user.name || user.email;
+    document.getElementById("userRole").textContent  = ROLES[user.role]?.label || user.role;
+    document.getElementById("userAvatar").textContent = (user.name || user.email)[0].toUpperCase();
+
+    // Dostupné soutěže
+    const COMPETITIONS = Object.entries(FALLBACK_COMPETITIONS).length
+      ? FALLBACK_COMPETITIONS
+      : [
+          { id: "uhk_connect_2026_v2", name: "UHK Connect 2026" },
+          { id: "uhk_navraty_2026",    name: "OP JAK Návraty" },
+        ];
+
+    const ROLE_OPTIONS = ["ADMIN","PROREKTOR","KOMISAR","TESTER","ZADATEL","RESITEL","READONLY"];
+    const ROLE_COLORS  = {
+      ADMIN:"#1C2E5A", PROREKTOR:"#5B21B6", KOMISAR:"#1E6B45",
+      TESTER:"#B45309", ZADATEL:"#1D4ED8", RESITEL:"#0369A1", READONLY:"#6B7280"
+    };
+    const ROLE_BG = {
+      ADMIN:"#E8EDF8", PROREKTOR:"#EDE9FE", KOMISAR:"#E6F4EE",
+      TESTER:"#FEF3C7", ZADATEL:"#DBEAFE", RESITEL:"#E0F2FE", READONLY:"#F3F4F6"
+    };
+
+    let allUsers = [];
+    let editingEmail = null;
+
+    // ── Načtení uživatelů ──────────────────────────────────────
+    async function loadUsers() {
+      document.getElementById("usersBody").innerHTML =
+        '<tr class="loading-row"><td colspan="6">Načítám uživatele…</td></tr>';
+      try {
+        const session = Auth._getSession();
+        const url = new URL(API_URL);
+        url.searchParams.set("action", "getUsers");
+        url.searchParams.set("token", session.token);
+        const res  = await fetch(url.toString());
+        const data = await res.json();
+        allUsers = data.users || [];
+        renderTable(allUsers);
+      } catch {
+        allUsers = getDemoUsers();
+        renderTable(allUsers);
+      }
+    }
+
+    function renderTable(users) {
+      const body = document.getElementById("usersBody");
+      if (!users.length) {
+        body.innerHTML = '<tr class="empty-row"><td colspan="6">Žádní uživatelé</td></tr>';
+        return;
+      }
+      body.innerHTML = users.map(u => {
+        const roleTags = (u.roles || []).map(r =>
+          `<span class="role-tag" style="background:${ROLE_BG[r.role]||'#F3F4F6'};color:${ROLE_COLORS[r.role]||'#6B7280'};">
+            ${r.competition_short || r.competition_id} · ${ROLES[r.role]?.label || r.role}
+          </span>`
+        ).join("");
+        return `
+          <tr>
+            <td class="td-name">${u.jmeno || "–"}</td>
+            <td class="td-email">${u.email}</td>
+            <td>${roleTags || '<span style="color:var(--grey-500);font-size:12px;">žádná role</span>'}</td>
+            <td><span class="badge badge--${u.active === 'TRUE' || u.active === true ? 'active' : 'inactive'}">
+              ${u.active === 'TRUE' || u.active === true ? 'Aktivní' : 'Deaktivován'}
+            </span></td>
+            <td style="font-size:12px;color:var(--grey-500);">${u.added_at || "–"}</td>
+            <td>
+              <button class="btn btn--ghost btn--sm" onclick='editUser(${JSON.stringify(u)})'>Editovat</button>
+            </td>
+          </tr>`;
+      }).join("");
+    }
+
+    function filterTable() {
+      const q      = document.getElementById("searchInput").value.toLowerCase();
+      const active = document.getElementById("filterActive").value;
+      const filtered = allUsers.filter(u => {
+        const matchText = !q ||
+          (u.email  || "").toLowerCase().includes(q) ||
+          (u.jmeno  || "").toLowerCase().includes(q);
+        const matchActive = !active ||
+          String(u.active).toUpperCase() === active;
+        return matchText && matchActive;
+      });
+      renderTable(filtered);
+    }
+
+    // ── Modal: Přidat ──────────────────────────────────────────
+    function openAddModal() {
+      editingEmail = null;
+      document.getElementById("modalTitle").textContent = "Přidat uživatele";
+      document.getElementById("fName").value     = "";
+      document.getElementById("fEmail").value    = "";
+      document.getElementById("fPassword").value = "";
+      document.getElementById("fActive").value   = "TRUE";
+      document.getElementById("fEmail").disabled = false;
+      document.getElementById("deactivateBtn").style.display = "none";
+      renderRolesEditor([]);
+      document.getElementById("userModal").classList.add("open");
+    }
+
+    // ── Modal: Editovat ────────────────────────────────────────
+    function editUser(u) {
+      editingEmail = u.email;
+      document.getElementById("modalTitle").textContent = "Editovat uživatele";
+      document.getElementById("fName").value     = u.jmeno || "";
+      document.getElementById("fEmail").value    = u.email;
+      document.getElementById("fPassword").value = "";
+      document.getElementById("fActive").value   = String(u.active).toUpperCase() === "TRUE" ? "TRUE" : "FALSE";
+      document.getElementById("fEmail").disabled = true;
+      document.getElementById("deactivateBtn").style.display = "inline-flex";
+      document.getElementById("deactivateBtn").textContent =
+        String(u.active).toUpperCase() === "TRUE" ? "Deaktivovat" : "Aktivovat";
+      renderRolesEditor(u.roles || []);
+      document.getElementById("userModal").classList.add("open");
+    }
+
+    function closeModal() {
+      document.getElementById("userModal").classList.remove("open");
+      editingEmail = null;
+    }
+
+    // ── Editor rolí ────────────────────────────────────────────
+    function renderRolesEditor(roles) {
+      const editor = document.getElementById("rolesEditor");
+      if (!roles.length) {
+        editor.innerHTML = '<div style="padding:12px;font-size:13px;color:var(--grey-500);">Žádné role – klikněte + Přidat roli</div>';
+        return;
+      }
+      editor.innerHTML = roles.map((r, i) => buildRoleRow(r, i)).join("");
+    }
+
+    function buildRoleRow(r, i) {
+      const compOptions = FALLBACK_COMPETITIONS.map(c =>
+        `<option value="${c.id}" ${c.id === r.competition_id ? "selected" : ""}>${c.name}</option>`
+      ).join("");
+      const roleOptions = ROLE_OPTIONS.map(ro =>
+        `<option value="${ro}" ${ro === r.role ? "selected" : ""}>${ROLES[ro]?.label || ro}</option>`
+      ).join("");
+      return `
+        <div class="role-row" id="rr-${i}">
+          <select class="rr-comp" onchange="updateRoleRow(${i})">${compOptions}</select>
+          <select class="rr-role" onchange="updateRoleRow(${i})">${roleOptions}</select>
+          <button class="remove-role" onclick="removeRoleRow(${i})">✕</button>
+        </div>`;
+    }
+
+    function addRoleRow() {
+      const editor = document.getElementById("rolesEditor");
+      const rows   = editor.querySelectorAll(".role-row");
+      const i      = rows.length;
+      const div    = document.createElement("div");
+      div.innerHTML = buildRoleRow({ competition_id: FALLBACK_COMPETITIONS[0]?.id, role: "ZADATEL" }, i);
+      // Odstraň placeholder
+      editor.querySelector("div:not(.role-row)")?.remove();
+      editor.appendChild(div.firstElementChild);
+    }
+
+    function removeRoleRow(i) {
+      document.getElementById("rr-" + i)?.remove();
+      if (!document.getElementById("rolesEditor").querySelector(".role-row")) {
+        renderRolesEditor([]);
+      }
+    }
+
+    function collectRoles() {
+      return [...document.querySelectorAll(".role-row")].map(row => ({
+        competition_id: row.querySelector(".rr-comp").value,
+        role:           row.querySelector(".rr-role").value,
+      }));
+    }
+
+    // ── Uložení uživatele ──────────────────────────────────────
+    async function saveUser() {
+      const name     = document.getElementById("fName").value.trim();
+      const email    = document.getElementById("fEmail").value.trim();
+      const password = document.getElementById("fPassword").value.trim();
+      const active   = document.getElementById("fActive").value;
+      const roles    = collectRoles();
+
+      if (!name)  { showToast("Zadejte jméno.", "err"); return; }
+      if (!email) { showToast("Zadejte e-mail.", "err"); return; }
+      if (!editingEmail && !password) { showToast("Zadejte heslo.", "err"); return; }
+
+      const btn = document.getElementById("saveBtn");
+      btn.innerHTML = '<span class="spinner-inline"></span> Ukládám…';
+      btn.disabled  = true;
+
+      try {
+        const session = Auth._getSession();
+        await fetch(API_URL, {
+          method: "POST",
+          mode:   "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action:       editingEmail ? "updateUser" : "createUser",
+            token:        session.token,
+            email, name, password, active, roles,
+            originalEmail: editingEmail,
+          }),
+        });
+        showToast(editingEmail ? "Uživatel aktualizován." : "Uživatel přidán.");
+        closeModal();
+        setTimeout(loadUsers, 1500);
+      } catch (err) {
+        showToast("Chyba: " + err.message, "err");
+      } finally {
+        btn.innerHTML = "Uložit";
+        btn.disabled  = false;
+      }
+    }
+
+    async function toggleActive() {
+      const u       = allUsers.find(u => u.email === editingEmail);
+      const newVal  = String(u?.active).toUpperCase() === "TRUE" ? "FALSE" : "TRUE";
+      document.getElementById("fActive").value = newVal;
+      await saveUser();
+    }
+
+    // ── Toast ──────────────────────────────────────────────────
+    let tt;
+    function showToast(msg, type = "ok") {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.style.background = type === "err" ? "#991B1B" : "#1E6B45";
+      t.classList.add("show");
+      clearTimeout(tt);
+      tt = setTimeout(() => t.classList.remove("show"), 4000);
+    }
+
+    // ── Demo data ──────────────────────────────────────────────
+    function getDemoUsers() {
+      return [
+        { email:"hana.tomaskova@uhk.cz", jmeno:"doc. Ing. Hana Tomášková, Ph.D.", active:"TRUE", added_at:"2026-03-12",
+          roles:[ {competition_id:"uhk_connect_2026_v2", competition_short:"Connect", role:"ADMIN"},
+                  {competition_id:"uhk_navraty_2026",    competition_short:"Návraty", role:"KOMISAR"} ] },
+        { email:"novak@uhk.cz", jmeno:"Mgr. Jan Novák, Ph.D.", active:"TRUE", added_at:"2026-03-20",
+          roles:[ {competition_id:"uhk_connect_2026_v2", competition_short:"Connect", role:"ZADATEL"} ] },
+      ];
+    }
+
+    // Zavři modal kliknutím mimo
+    document.getElementById("userModal").addEventListener("click", e => {
+      if (e.target === document.getElementById("userModal")) closeModal();
+    });
+
+    loadUsers();
+  </script>
+</body>
+</html>

@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nastavení soutěží – UHK Grants</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/app.css">
+  <style>
+    .page-header { background: var(--navy); padding: 32px 0 28px; margin-bottom: 32px; }
+    .page-header__inner { max-width: 1140px; margin: 0 auto; padding: 0 24px; }
+    .page-header__label { font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); margin-bottom: 6px; }
+    .page-header__title { font-family: var(--font-head); font-size: 28px; color: var(--white); letter-spacing: -0.5px; }
+    .page-header__sub { font-size: 14px; color: rgba(255,255,255,.5); margin-top: 4px; }
+
+    .comp-tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 2px solid var(--border); padding-bottom: 0; }
+    .comp-tab { padding: 10px 20px; border: none; background: none; cursor: pointer; font-family: var(--font-body); font-size: 14px; font-weight: 500; color: var(--grey-500); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .15s; }
+    .comp-tab:hover { color: var(--navy); }
+    .comp-tab.active { color: var(--navy); border-bottom-color: var(--navy); font-weight: 600; }
+
+    .comp-panel { display: none; }
+    .comp-panel.active { display: block; }
+
+    .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+    .config-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow); }
+    .config-card__title { font-family: var(--font-head); font-size: 16px; color: var(--navy); margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+    .config-card__icon { font-size: 18px; }
+
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 12px; font-weight: 600; color: var(--grey-700); margin-bottom: 4px; letter-spacing: .2px; text-transform: uppercase; }
+    .field input, .field select, .field textarea {
+      width: 100%; padding: 9px 12px; border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-family: var(--font-body); font-size: 14px;
+      color: var(--grey-900); background: var(--white); outline: none; transition: border-color .15s;
+    }
+    .field input:focus, .field select:focus { border-color: var(--navy-mid); box-shadow: 0 0 0 3px rgba(47,74,138,.08); }
+    .field select { appearance: none; cursor: pointer; }
+
+    .status-select { font-weight: 600; }
+    .status-open   { color: #065F46; background: #D1FAE5; border-color: #A7F3D0; }
+    .status-running{ color: #92400E; background: #FEF3C7; border-color: #FDE68A; }
+    .status-closed { color: #6B7280; background: #F3F4F6; border-color: #D1D5DB; }
+    .status-draft  { color: #6B7280; background: #F3F4F6; border-color: #D1D5DB; }
+
+    .save-bar { position: sticky; bottom: 0; background: var(--white); border-top: 1px solid var(--border); padding: 16px 0; margin-top: 24px; display: flex; align-items: center; gap: 12px; }
+    .save-bar .saved-msg { font-size: 13px; color: #1E6B45; display: none; }
+    .save-bar .saved-msg.show { display: block; }
+
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border-radius: var(--radius); font-family: var(--font-body); font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all .15s; }
+    .btn--navy { background: var(--navy); color: var(--white); }
+    .btn--navy:hover { background: var(--navy-mid); }
+    .btn--ghost { background: transparent; color: var(--grey-700); border: 1.5px solid var(--border); }
+    .btn--ghost:hover { background: var(--grey-100); }
+
+    .loading-msg { text-align: center; padding: 48px; color: var(--grey-500); }
+    .alert { padding: 12px 16px; border-radius: var(--radius); font-size: 13px; margin-bottom: 16px; }
+    .alert--info { background: var(--navy-50); border: 1px solid var(--navy-100); color: var(--navy); }
+
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); color: white; font-size: 14px; font-weight: 500; padding: 12px 24px; border-radius: 100px; z-index: 9999; transition: transform .3s cubic-bezier(.34,1.56,.64,1); }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body class="app-page">
+
+  <header class="topbar">
+    <div class="topbar__inner">
+      <div class="topbar__logo">
+        <img src="../img/uhk-abb-w.png" alt="UHK" style="height:26px;opacity:.9;">
+        <span class="topbar__title">Grantové soutěže</span>
+      </div>
+      <div class="topbar__right">
+        <div class="topbar__user">
+          <div class="user-avatar" id="userAvatar">?</div>
+          <div class="user-info">
+            <div class="user-name" id="userName">–</div>
+            <div class="user-role" id="userRole">–</div>
+          </div>
+        </div>
+        <a href="dashboard.html" class="btn-logout">← Rozcestník</a>
+        <button class="btn-logout" onclick="Auth.logout()">Odhlásit</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="page-header">
+    <div class="page-header__inner">
+      <div class="page-header__label">Administrace</div>
+      <h1 class="page-header__title">Nastavení soutěží</h1>
+      <p class="page-header__sub">Úprava termínů, alokací a stavů soutěží. Změny se ukládají přímo do Google Sheets.</p>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <div class="alert alert--info">
+      ℹ️ Změny se ukládají do CONFIG listů jednotlivých Sheets souborů. Po uložení se projeví okamžitě v aplikaci.
+    </div>
+
+    <!-- Záložky soutěží -->
+    <div class="comp-tabs" id="compTabs"></div>
+
+    <!-- Panely soutěží -->
+    <div id="compPanels">
+      <div class="loading-msg">Načítám nastavení soutěží…</div>
+    </div>
+
+    <!-- Uložit -->
+    <div class="save-bar">
+      <button class="btn btn--navy" onclick="saveConfig()" id="saveBtn">💾 Uložit změny</button>
+      <button class="btn btn--ghost" onclick="loadConfigs()">↺ Obnovit ze Sheets</button>
+      <span class="saved-msg" id="savedMsg">✓ Uloženo</span>
+    </div>
+
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/auth.js"></script>
+  <script>
+
+    const user = Auth.requireLogin(["ADMIN"]);
+    document.getElementById("userName").textContent  = user.name || user.email;
+    document.getElementById("userRole").textContent  = ROLES[user.role]?.label || user.role;
+    document.getElementById("userAvatar").textContent = (user.name || user.email)[0].toUpperCase();
+
+    let configs = {};  // competitionId → config objekt
+    let activeTab = null;
+
+    // ── Načtení konfigurací ────────────────────────────────────
+    async function loadConfigs() {
+      document.getElementById("compPanels").innerHTML =
+        '<div class="loading-msg">Načítám nastavení soutěží…</div>';
+
+      // Použij demo data nebo API
+      const competitions = FALLBACK_COMPETITIONS;
+
+      // Načti config pro každou soutěž
+      for (const comp of competitions) {
+        try {
+          const session = Auth._getSession();
+          const url = new URL(API_URL);
+          url.searchParams.set("action", "getCompetitionConfig");
+          url.searchParams.set("competitionId", comp.id);
+          url.searchParams.set("token", session.token);
+          const res  = await fetch(url.toString());
+          const data = await res.json();
+          configs[comp.id] = data.config || getDefaultConfig(comp);
+        } catch {
+          configs[comp.id] = getDefaultConfig(comp);
+        }
+      }
+
+      renderTabs(competitions);
+      renderPanels(competitions);
+    }
+
+    function getDefaultConfig(comp) {
+      return {
+        competition_id:           comp.id,
+        competition_name:         comp.name,
+        competition_type:         comp.type,
+        status:                   comp.status || "DRAFT",
+        deadline_applications:    comp.deadline || "",
+        total_allocation_czk:     comp.allocation || "",
+        max_budget_czk:           comp.maxBudget || "",
+        description:              comp.description || "",
+        admin_email:              "hana.tomaskova@uhk.cz",
+        deadline_final_report:    "",
+        deadline_activity_end:    "",
+      };
+    }
+
+    function renderTabs(competitions) {
+      const tabs = document.getElementById("compTabs");
+      tabs.innerHTML = competitions.map((c, i) => `
+        <button class="comp-tab ${i === 0 ? "active" : ""}"
+          id="tab-${c.id}" onclick="switchTab('${c.id}')">
+          ${c.name}
+        </button>`).join("");
+      if (competitions.length) {
+        activeTab = competitions[0].id;
+      }
+    }
+
+    function switchTab(id) {
+      activeTab = id;
+      document.querySelectorAll(".comp-tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".comp-panel").forEach(p => p.classList.remove("active"));
+      document.getElementById("tab-" + id)?.classList.add("active");
+      document.getElementById("panel-" + id)?.classList.add("active");
+    }
+
+    function renderPanels(competitions) {
+      const container = document.getElementById("compPanels");
+      container.innerHTML = competitions.map((comp, i) => {
+        const cfg = configs[comp.id] || {};
+        const statusCss = { OPEN:"open", RUNNING:"running", CLOSED:"closed", DRAFT:"draft" }[cfg.status] || "draft";
+        return `
+          <div class="comp-panel ${i === 0 ? "active" : ""}" id="panel-${comp.id}">
+            <div class="config-grid">
+
+              <!-- Základní info -->
+              <div class="config-card">
+                <div class="config-card__title"><span class="config-card__icon">📋</span>Základní informace</div>
+
+                <div class="field">
+                  <label>Název soutěže</label>
+                  <input type="text" id="${comp.id}__competition_name"
+                    value="${cfg.competition_name || comp.name}">
+                </div>
+                <div class="field">
+                  <label>Popis</label>
+                  <input type="text" id="${comp.id}__description"
+                    value="${cfg.description || comp.description || ""}">
+                </div>
+                <div class="field">
+                  <label>Status soutěže</label>
+                  <select id="${comp.id}__status" class="status-select status-${statusCss}"
+                    onchange="updateStatusStyle(this)">
+                    <option value="DRAFT"   ${cfg.status==="DRAFT"   ?"selected":""}>◌ Příprava</option>
+                    <option value="OPEN"    ${cfg.status==="OPEN"    ?"selected":""}>● Otevřena – přijímají se žádosti</option>
+                    <option value="RUNNING" ${cfg.status==="RUNNING" ?"selected":""}>◐ Probíhá – hodnocení / realizace</option>
+                    <option value="CLOSED"  ${cfg.status==="CLOSED"  ?"selected":""}>○ Ukončena</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>E-mail administrátora</label>
+                  <input type="email" id="${comp.id}__admin_email"
+                    value="${cfg.admin_email || ""}">
+                </div>
+              </div>
+
+              <!-- Finance -->
+              <div class="config-card">
+                <div class="config-card__title"><span class="config-card__icon">💰</span>Finance</div>
+
+                <div class="field">
+                  <label>Celková alokace (Kč)</label>
+                  <input type="number" id="${comp.id}__total_allocation_czk"
+                    value="${cfg.total_allocation_czk || ""}">
+                </div>
+                <div class="field">
+                  <label>Max. podpora na projekt (Kč)</label>
+                  <input type="number" id="${comp.id}__max_budget_czk"
+                    value="${cfg.max_budget_czk || ""}">
+                </div>
+              </div>
+
+              <!-- Termíny -->
+              <div class="config-card" style="grid-column: 1 / -1;">
+                <div class="config-card__title"><span class="config-card__icon">📅</span>Termíny</div>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+                  <div class="field">
+                    <label>Příjem žádostí – uzávěrka</label>
+                    <input type="date" id="${comp.id}__deadline_applications"
+                      value="${cfg.deadline_applications || ""}">
+                  </div>
+                  <div class="field">
+                    <label>Ukončení aktivit</label>
+                    <input type="date" id="${comp.id}__deadline_activity_end"
+                      value="${cfg.deadline_activity_end || ""}">
+                  </div>
+                  <div class="field">
+                    <label>Odevzdání závěrečné zprávy</label>
+                    <input type="date" id="${comp.id}__deadline_final_report"
+                      value="${cfg.deadline_final_report || ""}">
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>`;
+      }).join("");
+    }
+
+    function updateStatusStyle(sel) {
+      sel.className = "status-select status-" +
+        ({ OPEN:"open", RUNNING:"running", CLOSED:"closed", DRAFT:"draft" }[sel.value] || "draft");
+    }
+
+    // ── Uložení konfigurace ────────────────────────────────────
+    async function saveConfig() {
+      if (!activeTab) return;
+
+      const fields = [
+        "competition_name","description","status","admin_email",
+        "total_allocation_czk","max_budget_czk",
+        "deadline_applications","deadline_activity_end","deadline_final_report"
+      ];
+
+      const updates = {};
+      fields.forEach(f => {
+        const el = document.getElementById(activeTab + "__" + f);
+        if (el) updates[f] = el.value;
+      });
+
+      const btn = document.getElementById("saveBtn");
+      btn.textContent = "Ukládám…";
+      btn.disabled = true;
+
+      try {
+        const session = Auth._getSession();
+        await fetch(API_URL, {
+          method: "POST",
+          mode:   "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action:        "updateConfig",
+            token:         session.token,
+            competitionId: activeTab,
+            updates,
+          }),
+        });
+        const msg = document.getElementById("savedMsg");
+        msg.classList.add("show");
+        setTimeout(() => msg.classList.remove("show"), 3000);
+        showToast("Nastavení uloženo do Sheets ✓");
+      } catch (err) {
+        showToast("Chyba při ukládání: " + err.message, "err");
+      } finally {
+        btn.textContent = "💾 Uložit změny";
+        btn.disabled = false;
+      }
+    }
+
+    let tt;
+    function showToast(msg, type = "ok") {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.style.background = type === "err" ? "#991B1B" : "#1E6B45";
+      t.classList.add("show");
+      clearTimeout(tt);
+      tt = setTimeout(() => t.classList.remove("show"), 4000);
+    }
+
+    loadConfigs();
+  </script>
+</body>
+</html>
