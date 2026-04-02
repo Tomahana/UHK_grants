@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hodnocení – UHK Connect</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/app.css">
+</head>
+<body class="app-page">
+
+  <header class="topbar">
+    <div class="topbar__inner">
+      <div class="topbar__logo">
+        <span class="logo-uhk logo-uhk--sm">UHK</span>
+        <span class="topbar__title">Grantové soutěže</span>
+      </div>
+      <div class="topbar__right">
+        <div class="topbar__user">
+          <div class="user-avatar" id="userAvatar">?</div>
+          <div class="user-info">
+            <div class="user-name" id="userName">–</div>
+            <div class="user-role" id="userRole">–</div>
+          </div>
+        </div>
+        <button class="btn-logout" onclick="Auth.logout()">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M6 14H3a1 1 0 01-1-1V3a1 1 0 011-1h3M11 11l3-3-3-3M14 8H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Odhlásit
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <div class="container" style="max-width:600px; padding-top:80px; text-align:center;">
+
+      <div style="font-size:56px; margin-bottom:24px;">🚧</div>
+
+      <h1 style="font-family:'Instrument Serif',serif; font-size:32px; color:var(--navy); margin-bottom:12px; letter-spacing:-1px;">
+        Hodnocení UHK Connect
+      </h1>
+      <p style="color:var(--muted); font-size:16px; line-height:1.6; margin-bottom:32px;">
+        Hodnoticí formulář pro soutěž UHK Connect se připravuje.<br>
+        Bude dostupný v dalším kroku vývoje aplikace.
+      </p>
+
+      <div style="background:var(--navy-50); border:1px solid var(--navy-100); border-radius:12px; padding:20px 24px; margin-bottom:32px; text-align:left;">
+        <div style="font-size:13px; font-weight:600; color:var(--navy); margin-bottom:8px;">Co bude obsahovat:</div>
+        <ul style="font-size:14px; color:var(--muted); line-height:1.8; padding-left:20px;">
+          <li>Výběr přihlášky ze Sheets (APPLICATIONS list)</li>
+          <li>Kritéria: jasnost, kvalita spolupráce, rozpočet, profil žadatele, výstupy</li>
+          <li>Přehledový dashboard pro komisi</li>
+          <li>Export CSV výsledků</li>
+        </ul>
+      </div>
+
+      <a href="dashboard.html" class="btn btn--navy" style="display:inline-flex; align-items:center; gap:8px; padding:13px 28px; background:var(--navy); color:white; border-radius:8px; text-decoration:none; font-weight:500; font-family:'DM Sans',sans-serif;">
+        ← Zpět na rozcestník
+      </a>
+
+    </div>
+  </main>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/auth.js"></script>
+  <script>
+    const user = Auth.requireLogin();
+    document.getElementById("userName").textContent  = user.name || user.email;
+    document.getElementById("userRole").textContent  = ROLES[user.role]?.label || user.role;
+    document.getElementById("userAvatar").textContent = (user.name || user.email)[0].toUpperCase();
+  </script>
+</body>
+</html>
