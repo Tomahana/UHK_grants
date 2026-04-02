@@ -214,7 +214,10 @@
   <!-- TOP BAR -->
   <header class="topbar">
     <div class="topbar__left">
-      <div class="topbar__logo">OP JAK <span>Návraty</span></div>
+      <div class="topbar__logo">
+        <img src="../img/uhk-abb-w.png" alt="UHK" style="height:26px;opacity:.9;margin-right:8px;vertical-align:middle;">
+        OP JAK <span>Návraty</span>
+      </div>
       <div class="topbar__sep"></div>
       <div class="topbar__page">Hodnoticí komise</div>
     </div>
@@ -530,13 +533,18 @@
     }
 
     // ── VÝBĚR PŘIHLÁŠKY ──────────────────────────────────────────
+    // Cache existujících hodnocení aktuálního uživatele
+    let myExistingReviews = {};
+
     function onProjectChange() {
       const sel  = document.getElementById("selProjekt");
       const opt  = sel.options[sel.selectedIndex];
       const info = document.getElementById("projectInfo");
 
       if (!sel.value || !opt.dataset.app) {
-        info.classList.remove("visible"); return;
+        info.classList.remove("visible");
+        hideAlreadyReviewedBanner();
+        return;
       }
 
       const app = JSON.parse(opt.dataset.app);
@@ -545,6 +553,77 @@
       document.getElementById("piFaculty").textContent = app.soucast || app.faculty || "—";
       document.getElementById("piBudget").textContent  = app.rozpocet || app.budget || "—";
       info.classList.add("visible");
+
+      // Zkontroluj zda uživatel již tento projekt hodnotil
+      checkAlreadyReviewed(sel.value);
+    }
+
+    function checkAlreadyReviewed(projectId) {
+      const existing = myExistingReviews[projectId];
+      if (existing) {
+        showAlreadyReviewedBanner(existing);
+      } else {
+        hideAlreadyReviewedBanner();
+      }
+    }
+
+    function showAlreadyReviewedBanner(review) {
+      let banner = document.getElementById("alreadyReviewedBanner");
+      if (!banner) {
+        banner = document.createElement("div");
+        banner.id = "alreadyReviewedBanner";
+        banner.style.cssText = `
+          background:#FEF3C7; border:1.5px solid rgba(196,154,42,.4);
+          border-radius:10px; padding:16px 20px; margin-bottom:20px;
+          display:flex; align-items:flex-start; gap:12px;
+        `;
+        // Vlož před score-display
+        const scoreDisplay = document.querySelector(".score-display");
+        scoreDisplay.parentNode.insertBefore(banner, scoreDisplay);
+      }
+      const score = review.score_total || "—";
+      const rec   = { FUND:"Financovat", REJECT:"Nefinancovat", FUND_REDUCED:"Podmíněně" }[review.recommendation] || review.recommendation || "—";
+      banner.innerHTML = `
+        <span style="font-size:20px;">⚠️</span>
+        <div style="flex:1;">
+          <div style="font-weight:600;font-size:14px;color:#92400E;margin-bottom:4px;">
+            Tento projekt jste již hodnotili
+          </div>
+          <div style="font-size:13px;color:#78350F;line-height:1.5;">
+            Skóre: <strong>${score}/25</strong> · Doporučení: <strong>${rec}</strong>
+            · Odesláno: ${review.submitted_at || "—"}
+          </div>
+          <div style="margin-top:10px;display:flex;gap:8px;">
+            <button onclick="confirmOverwrite()" style="
+              background:#92400E;color:white;border:none;border-radius:6px;
+              padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;
+              font-family:'DM Sans',sans-serif;">
+              Přepsat hodnocení
+            </button>
+            <button onclick="document.getElementById('selProjekt').value='';onProjectChange();" style="
+              background:white;color:#92400E;border:1.5px solid rgba(146,64,14,.3);
+              border-radius:6px;padding:7px 14px;font-size:13px;cursor:pointer;
+              font-family:'DM Sans',sans-serif;">
+              Vybrat jiný projekt
+            </button>
+          </div>
+        </div>`;
+      // Zablokuj tlačítko odeslat
+      document.getElementById("submitBtn").disabled = true;
+      document.getElementById("submitBtn").style.opacity = "0.4";
+    }
+
+    function hideAlreadyReviewedBanner() {
+      const banner = document.getElementById("alreadyReviewedBanner");
+      if (banner) banner.remove();
+      document.getElementById("submitBtn").disabled = false;
+      document.getElementById("submitBtn").style.opacity = "1";
+    }
+
+    function confirmOverwrite() {
+      // Uživatel potvrdil přepsání – povolíme odeslání
+      hideAlreadyReviewedBanner();
+      showToast("Formulář je odemčen. Vyplňte nové hodnocení a odešlete.", "ok");
     }
 
     // ── VÝPOČET PRŮBĚŽNÉHO SKÓRE ─────────────────────────────────
@@ -626,7 +705,11 @@
         document.getElementById("sendingOverlay").classList.remove("show");
         document.getElementById("submitBtn").disabled = false;
         showToast(`Hodnocení projektu ${appId} uloženo. ✓`);
+        // Invaliduj cache a znovu načti přehled
+        delete myExistingReviews[appId];
         resetForm();
+        // Po 2 sekundách obnov dashboard data
+        setTimeout(() => loadDashboard(), 2000);
       } catch (err) {
         document.getElementById("sendingOverlay").classList.remove("show");
         document.getElementById("submitBtn").disabled = false;
@@ -668,6 +751,17 @@
           _app: applications.find(a => (a.project_id||a.id) === (r.project_id||r.application_id)) || {},
         })) : [];
         dashboardData = reviews.length ? reviews : getDemoReviews();
+
+        // Ulož si hodnocení aktuálního uživatele pro kontrolu při výběru projektu
+        myExistingReviews = {};
+        dashboardData.forEach(r => {
+          const email = (r.reviewer_email || "").toLowerCase().trim();
+          if (email === user.email.toLowerCase()) {
+            const pid = r.project_id || r.application_id;
+            if (pid) myExistingReviews[pid] = r;
+          }
+        });
+
       } catch {
         dashboardData = getDemoReviews();
       }
@@ -857,6 +951,8 @@
 
     // ── INIT ──────────────────────────────────────────────────────
     loadApplications();
+    // Načti existující hodnocení na pozadí hned po startu
+    setTimeout(() => loadDashboard(), 1500);
   </script>
 </body>
 </html>
