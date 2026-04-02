@@ -77,7 +77,7 @@ body {
 
 /* Levý panel */
 .login-brand {
-  background: var(--navy);
+  background: #000000;
   position: relative;
   overflow: hidden;
   display: flex;
