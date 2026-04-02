@@ -596,32 +596,35 @@
       document.getElementById("submitBtn").disabled = true;
 
       try {
-        // Odešli hodnocení do Návraty Sheets
         const session = Auth._getSession();
+        const payload = {
+          action:        "submitNavratyReview",
+          token:         session?.token || "",
+          competitionId: "uhk_navraty_2026",
+          projectId:     appId,
+          scores,
+          comments,
+          recommendation: doporuceni,
+          poradi:         document.getElementById("poradi").value,
+        };
+
+        // Apps Script Web App vyžaduje no-cors pro POST z externích domén
         await fetch(API_URL, {
-          method: "POST",
+          method:  "POST",
+          mode:    "no-cors",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "submitNavratyReview",
-            token: session?.token,
-            competitionId: "uhk_navraty_2026",
-            projectId: appId,
-            scores,
-            comments,
-            recommendation: doporuceni,
-            poradi: document.getElementById("poradi").value,
-          }),
+          body:    JSON.stringify(payload),
         });
+
+        // no-cors vždy vrátí opaque response – považujeme za úspěch
         document.getElementById("sendingOverlay").classList.remove("show");
         document.getElementById("submitBtn").disabled = false;
-        showToast(`Hodnocení přihlášky ${appId} uloženo. ✓`);
+        showToast(`Hodnocení projektu ${appId} uloženo. ✓`);
         resetForm();
       } catch (err) {
         document.getElementById("sendingOverlay").classList.remove("show");
         document.getElementById("submitBtn").disabled = false;
-        // Demo mode – simuluj úspěch
-        showToast(`Demo: hodnocení ${appId} bylo simulováno.`);
-        resetForm();
+        showToast(`Chyba při ukládání: ${err.message}`, "err");
       }
     }
 
