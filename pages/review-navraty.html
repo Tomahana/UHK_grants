@@ -207,6 +207,64 @@
       .project-card-right { gap: 8px; }
       .star-rating label { width: 32px; height: 32px; font-size: 12px; }
     }
+
+    /* ── POHLED PROREKTORA ── */
+    .prorektor-view { max-width: 900px; margin: 0 auto; padding: 40px 24px 80px; }
+    .prorektor-eyebrow { font-family: "DM Mono", monospace; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #5B21B6; margin-bottom: 8px; }
+    .prorektor-title { font-family: "DM Serif Display", serif; font-size: 28px; color: var(--ink); margin-bottom: 6px; }
+    .prorektor-desc { color: var(--ink-60); font-size: 14px; margin-bottom: 32px; }
+
+    .project-decision-card { background: white; border: 1.5px solid var(--ink-20); border-radius: 12px; margin-bottom: 24px; overflow: hidden; }
+    .pdc-header { padding: 18px 24px; background: #F5F3FF; border-bottom: 1px solid #DDD6FE; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .pdc-title { font-family: "DM Serif Display", serif; font-size: 18px; color: var(--ink); }
+    .pdc-meta { font-size: 12px; color: var(--ink-60); margin-top: 2px; }
+    .pdc-avg { text-align: center; }
+    .pdc-avg-val { font-family: "DM Serif Display", serif; font-size: 28px; color: #5B21B6; line-height: 1; }
+    .pdc-avg-label { font-family: "DM Mono", monospace; font-size: 10px; text-transform: uppercase; color: #7C3AED; opacity: .7; }
+
+    .pdc-reviews { padding: 16px 24px; border-bottom: 1px solid var(--ink-10); }
+    .pdc-reviews-title { font-family: "DM Mono", monospace; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-60); margin-bottom: 12px; }
+    .pdc-review-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--ink-10); flex-wrap: wrap; }
+    .pdc-review-row:last-child { border-bottom: none; }
+    .pdc-reviewer { font-size: 13px; font-weight: 600; min-width: 160px; }
+    .pdc-scores { display: flex; gap: 6px; flex-wrap: wrap; }
+    .pdc-score-pill { font-family: "DM Mono", monospace; font-size: 10px; background: var(--paper); border: 1px solid var(--ink-20); border-radius: 4px; padding: 2px 7px; color: var(--ink-60); }
+    .pdc-score-pill span { color: var(--ink); font-weight: 500; }
+    .pdc-score-total { font-family: "DM Serif Display", serif; font-size: 18px; color: var(--ink); margin-left: auto; }
+    .pdc-rec-pill { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 100px; }
+    .pdc-comment { font-size: 12px; color: var(--ink-60); font-style: italic; padding: 4px 0 0 0; width: 100%; }
+
+    .pdc-decision { padding: 20px 24px; background: #FAFAFA; }
+    .pdc-decision-title { font-family: "DM Mono", monospace; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-60); margin-bottom: 14px; }
+
+    .decision-btns { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+    .decision-btn { padding: 10px 20px; border-radius: var(--r); border: 2px solid transparent; font-family: "DM Sans", sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: all .15s; }
+    .decision-btn--fund    { background: var(--green-light); color: var(--green); border-color: rgba(42,102,73,.2); }
+    .decision-btn--reduced { background: var(--gold-light);  color: var(--gold);  border-color: rgba(196,154,42,.3); }
+    .decision-btn--reject  { background: var(--accent-light);color: var(--accent);border-color: rgba(181,56,30,.2); }
+    .decision-btn.selected-fund    { background: var(--green);  color: white; border-color: var(--green); }
+    .decision-btn.selected-reduced { background: var(--gold);   color: white; border-color: var(--gold); }
+    .decision-btn.selected-reject  { background: var(--accent); color: white; border-color: var(--accent); }
+
+    .pdc-decision textarea { width: 100%; background: white; border: 1.5px solid var(--ink-20); border-radius: var(--r); font-family: "DM Sans", sans-serif; font-size: 14px; color: var(--ink); padding: 12px 14px; outline: none; resize: vertical; min-height: 80px; transition: border-color .2s; }
+    .pdc-decision textarea:focus { border-color: #7C3AED; }
+
+    .pdc-save-btn { margin-top: 12px; background: #5B21B6; color: white; border: none; border-radius: var(--r); font-family: "DM Sans", sans-serif; font-size: 14px; font-weight: 600; padding: 11px 24px; cursor: pointer; transition: background .2s; }
+    .pdc-save-btn:hover { background: #4C1D95; }
+    .pdc-save-btn:disabled { background: var(--ink-20); cursor: not-allowed; }
+
+    .pdc-saved { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--green); margin-left: 12px; opacity: 0; transition: opacity .3s; }
+    .pdc-saved.show { opacity: 1; }
+
+    .summary-bar { background: white; border: 1.5px solid var(--ink-20); border-radius: 10px; padding: 16px 24px; margin-bottom: 28px; display: flex; gap: 32px; flex-wrap: wrap; }
+    .summary-item { text-align: center; }
+    .summary-val { font-family: "DM Serif Display", serif; font-size: 28px; color: var(--ink); line-height: 1; }
+    .summary-val--green  { color: var(--green); }
+    .summary-val--gold   { color: var(--gold); }
+    .summary-val--red    { color: var(--accent); }
+    .summary-val--purple { color: #5B21B6; }
+    .summary-lbl { font-family: "DM Mono", monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-60); margin-top: 2px; }
+
   </style>
 </head>
 <body>
@@ -222,9 +280,8 @@
       <div class="topbar__page">Hodnoticí komise</div>
     </div>
     <div class="topbar__right">
-      <div class="topbar__nav">
-        <button class="nav-btn active" id="nav-form" onclick="switchTab('form')">Hodnocení</button>
-        <button class="nav-btn" id="nav-dash" onclick="switchTab('dash')">Přehled</button>
+      <div class="topbar__nav" id="topbarNav">
+        <!-- Renderováno JS dle role -->
       </div>
       <div class="topbar__sep"></div>
       <div class="topbar__user">
@@ -461,6 +518,51 @@
     </div>
   </div>
 
+  <!-- ══ TAB: POHLED PROREKTORA ══ -->
+  <div id="tab-prorektor" class="tab-panel">
+    <div class="prorektor-view">
+      <div style="margin-bottom:20px;">
+        <img src="../img/logo-eu-msmt.png" alt="Spolufinancováno Evropskou unií | MŠMT"
+          style="max-width:280px;width:100%;opacity:.85;">
+      </div>
+      <div class="prorektor-eyebrow">Rozhodnutí prorektora · OP JAK Návraty 2026</div>
+      <h1 class="prorektor-title">Schvalování projektů</h1>
+      <p class="prorektor-desc">Souhrn hodnocení komise. Pro každý projekt uveďte rozhodnutí a zdůvodnění.</p>
+
+      <!-- Souhrnná statistika -->
+      <div class="summary-bar" id="prSummaryBar" style="display:none;">
+        <div class="summary-item">
+          <div class="summary-val" id="prStatTotal">—</div>
+          <div class="summary-lbl">Projektů celkem</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-val summary-val--green" id="prStatFund">—</div>
+          <div class="summary-lbl">Podpořit</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-val summary-val--gold" id="prStatReduced">—</div>
+          <div class="summary-lbl">Krátit</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-val summary-val--red" id="prStatReject">—</div>
+          <div class="summary-lbl">Nepodpořit</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-val summary-val--purple" id="prStatPending">—</div>
+          <div class="summary-lbl">Čeká na rozhodnutí</div>
+        </div>
+      </div>
+
+      <!-- Projekty -->
+      <div id="prProjectsList">
+        <div style="text-align:center;padding:48px;color:var(--ink-60);">
+          <div style="width:32px;height:32px;border:2px solid var(--ink-20);border-top-color:#5B21B6;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px;"></div>
+          <p>Načítám hodnocení komise…</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Overlay -->
   <div class="sending-overlay" id="sendingOverlay">
     <div class="sending-spinner"></div>
@@ -478,23 +580,42 @@
     // ── Ochrana stránky – jen komisař, admin, prorektor, tester ──
     const ALLOWED = ["KOMISAR","ADMIN","PROREKTOR","TESTER"];
     const user = Auth.requireLogin(ALLOWED);
+    const IS_PROREKTOR = user.role === "PROREKTOR";
 
     // Zobraz info o uživateli
     document.getElementById("topbarName").textContent = user.name || user.email;
     document.getElementById("topbarRole").textContent = ROLES[user.role]?.label || user.role;
 
+    // Renderuj navigaci podle role
+    (function renderNav() {
+      const nav = document.getElementById("topbarNav");
+      if (IS_PROREKTOR) {
+        nav.innerHTML = `
+          <button class="nav-btn active" id="nav-prorektor" onclick="switchTab('prorektor')">Schvalování</button>`;
+        // Skryj komisařský formulář, zobraz prorektor view
+        document.getElementById("tab-form").classList.remove("active");
+        document.getElementById("tab-prorektor").classList.add("active");
+      } else {
+        nav.innerHTML = `
+          <button class="nav-btn active" id="nav-form" onclick="switchTab('form')">Hodnocení</button>
+          <button class="nav-btn" id="nav-dash" onclick="switchTab('dash')">Přehled</button>`;
+      }
+    })();
+
     // Stav
     let applications = [];   // seznam přihlášek ze Sheets
     let dashboardData = [];  // hodnocení pro dashboard
     let totalApps = 0;       // celkový počet přihlášek pro progress
+    let prDecisions = {};    // rozhodnutí Prorektora: projectId → {decision, note}
 
     // ── TABS ─────────────────────────────────────────────────────
     function switchTab(tab) {
       document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
       document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
-      document.getElementById("tab-" + tab).classList.add("active");
-      document.getElementById("nav-" + tab).classList.add("active");
+      document.getElementById("tab-" + tab)?.classList.add("active");
+      document.getElementById("nav-" + tab)?.classList.add("active");
       if (tab === "dash") loadDashboard();
+      if (tab === "prorektor") loadProrektor();
     }
 
     // ── NAČTI PŘIHLÁŠKY ZE SHEETS ────────────────────────────────
@@ -949,10 +1070,199 @@
       ];
     }
 
+
+    // ══════════════════════════════════════════════════════════════
+    // POHLED PROREKTORA
+    // ══════════════════════════════════════════════════════════════
+
+    async function loadProrektor() {
+      // Načti hodnocení (stejná data jako dashboard)
+      if (!dashboardData.length) await loadDashboard();
+      renderProrektor();
+    }
+
+    function renderProrektor() {
+      const REC_LABEL = {
+        FUND:"Financovat", REJECT:"Nefinancovat", FUND_REDUCED:"Podmíněně financovat"
+      };
+
+      // Seskup hodnocení podle projektu
+      const grouped = {};
+      dashboardData.forEach(r => {
+        const pid = r.project_id || r.application_id;
+        if (!grouped[pid]) {
+          grouped[pid] = {
+            reviews: [],
+            app: applications.find(a => (a.project_id||a.id) === pid) || {}
+          };
+        }
+        grouped[pid].reviews.push(r);
+      });
+
+      // Přidej projekty bez hodnocení
+      applications.forEach(a => {
+        const pid = a.project_id || a.id;
+        if (!grouped[pid]) grouped[pid] = { reviews: [], app: a };
+      });
+
+      const sorted = Object.entries(grouped).map(([pid, {reviews, app}]) => {
+        const sc  = reviews.map(r => parseFloat(r.score_total||0)).filter(s => !isNaN(s) && s > 0);
+        const avg = sc.length ? (sc.reduce((a,b)=>a+b,0)/sc.length).toFixed(1) : "—";
+        return { pid, reviews, app, avg: parseFloat(avg)||0, avgStr: avg };
+      }).sort((a,b) => b.avg - a.avg);
+
+      // Souhrnná statistika
+      const decisions = Object.values(prDecisions);
+      document.getElementById("prStatTotal").textContent   = sorted.length;
+      document.getElementById("prStatFund").textContent    = decisions.filter(d=>d==="FUND").length;
+      document.getElementById("prStatReduced").textContent = decisions.filter(d=>d==="FUND_REDUCED").length;
+      document.getElementById("prStatReject").textContent  = decisions.filter(d=>d==="REJECT").length;
+      document.getElementById("prStatPending").textContent = sorted.length - decisions.length;
+      document.getElementById("prSummaryBar").style.display = "flex";
+
+      document.getElementById("prProjectsList").innerHTML = sorted.map(({pid, reviews, app, avgStr}) => {
+        const name    = app.resitel || app.project_name || pid;
+        const faculty = app.soucast || "";
+        const budget  = app.rozpocet || "";
+        const dec     = prDecisions[pid]?.decision || "";
+        const note    = prDecisions[pid]?.note     || "";
+
+        // Hodnocení komise
+        const reviewsHtml = reviews.length ? reviews.map(r => {
+          const total = parseFloat(r.score_total||0);
+          const rec   = r.recommendation || "";
+          const recCss = rec==="FUND"?"rec-fin":rec==="REJECT"?"rec-nefin":rec==="FUND_REDUCED"?"rec-pod":"rec-ceka";
+          return `
+            <div class="pdc-review-row">
+              <span class="pdc-reviewer">${r.reviewer_email||"—"}</span>
+              <div class="pdc-scores">
+                <span class="pdc-score-pill">K1 <span>${r.score_clarity||"—"}</span></span>
+                <span class="pdc-score-pill">K2 <span>${r.score_quality||"—"}</span></span>
+                <span class="pdc-score-pill">K3 <span>${r.score_budget||"—"}</span></span>
+                <span class="pdc-score-pill">K4 <span>${r.score_profile||"—"}</span></span>
+                <span class="pdc-score-pill">K5 <span>${r.score_outputs||"—"}</span></span>
+              </div>
+              ${rec ? `<span class="rec-pill ${recCss}" style="margin-left:auto;">${REC_LABEL[rec]||rec}</span>` : ""}
+              <span class="pdc-score-total">${total||"—"}<span style="font-size:13px;color:var(--ink-60);">/25</span></span>
+              ${r.comment_public ? `<span class="pdc-comment">"${r.comment_public}"</span>` : ""}
+            </div>`;
+        }).join("") : `<p style="font-size:13px;color:var(--ink-60);padding:8px 0;">Komise dosud nehodnotila.</p>`;
+
+        // Tlačítka rozhodnutí
+        const selFund    = dec==="FUND"         ? "selected-fund"    : "";
+        const selReduced = dec==="FUND_REDUCED"  ? "selected-reduced" : "";
+        const selReject  = dec==="REJECT"        ? "selected-reject"  : "";
+
+        return `
+          <div class="project-decision-card" id="pdc-${pid}">
+            <div class="pdc-header">
+              <div>
+                <div class="pdc-title">${name}</div>
+                <div class="pdc-meta">${pid}${faculty ? " · " + faculty : ""}${budget ? " · " + budget : ""}</div>
+              </div>
+              <div class="pdc-avg">
+                <div class="pdc-avg-val">${avgStr}</div>
+                <div class="pdc-avg-label">průměr komise / 25</div>
+              </div>
+            </div>
+
+            <div class="pdc-reviews">
+              <div class="pdc-reviews-title">Hodnocení komise (${reviews.length})</div>
+              ${reviewsHtml}
+            </div>
+
+            <div class="pdc-decision">
+              <div class="pdc-decision-title">Rozhodnutí prorektora</div>
+              <div class="decision-btns">
+                <button class="decision-btn decision-btn--fund ${selFund}"
+                  onclick="selectDecision('${pid}','FUND',this)">✓ Podpořit</button>
+                <button class="decision-btn decision-btn--reduced ${selReduced}"
+                  onclick="selectDecision('${pid}','FUND_REDUCED',this)">~ Krátit</button>
+                <button class="decision-btn decision-btn--reject ${selReject}"
+                  onclick="selectDecision('${pid}','REJECT',this)">✗ Nepodpořit</button>
+              </div>
+              <textarea id="pr-note-${pid}" placeholder="Popis rozhodnutí / poznámka pro žadatele…"
+                onchange="prDecisions['${pid}'] = prDecisions['${pid}'] || {}; prDecisions['${pid}'].note = this.value;"
+              >${note}</textarea>
+              <div style="display:flex;align-items:center;margin-top:10px;">
+                <button class="pdc-save-btn" onclick="saveDecision('${pid}')">
+                  Uložit rozhodnutí
+                </button>
+                <span class="pdc-saved" id="pr-saved-${pid}">✓ Uloženo</span>
+              </div>
+            </div>
+          </div>`;
+      }).join("");
+    }
+
+    function selectDecision(pid, decision, btn) {
+      // Odznač ostatní tlačítka ve stejné skupině
+      const card = document.getElementById("pdc-" + pid);
+      card.querySelectorAll(".decision-btn").forEach(b => {
+        b.className = b.className.replace(/selected-\w+/g, "").trim();
+      });
+      // Označ vybrané
+      const cls = {FUND:"selected-fund", FUND_REDUCED:"selected-reduced", REJECT:"selected-reject"}[decision];
+      btn.classList.add(cls);
+      // Ulož do cache
+      if (!prDecisions[pid]) prDecisions[pid] = {};
+      prDecisions[pid].decision = decision;
+      prDecisions[pid].note = document.getElementById("pr-note-" + pid)?.value || "";
+      // Obnov statistiku
+      renderProrektorStats();
+    }
+
+    function renderProrektorStats() {
+      const decisions = Object.values(prDecisions).map(d => d.decision).filter(Boolean);
+      const total = applications.length || Object.keys(prDecisions).length;
+      document.getElementById("prStatFund").textContent    = decisions.filter(d=>d==="FUND").length;
+      document.getElementById("prStatReduced").textContent = decisions.filter(d=>d==="FUND_REDUCED").length;
+      document.getElementById("prStatReject").textContent  = decisions.filter(d=>d==="REJECT").length;
+      document.getElementById("prStatPending").textContent = total - decisions.length;
+    }
+
+    async function saveDecision(pid) {
+      const dec  = prDecisions[pid];
+      if (!dec?.decision) { showToast("Vyberte rozhodnutí.", "err"); return; }
+      const note = document.getElementById("pr-note-" + pid)?.value || "";
+
+      const btn = document.querySelector(`#pdc-${pid} .pdc-save-btn`);
+      btn.disabled = true; btn.textContent = "Ukládám…";
+
+      try {
+        const session = Auth._getSession();
+        await fetch(API_URL, {
+          method: "POST", mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action:        "saveProrekorDecision",
+            token:         session?.token || "",
+            competitionId: "uhk_navraty_2026",
+            projectId:     pid,
+            decision:      dec.decision,
+            note,
+          }),
+        });
+        // no-cors = vždy úspěch
+        prDecisions[pid].note = note;
+        const saved = document.getElementById("pr-saved-" + pid);
+        saved.classList.add("show");
+        setTimeout(() => saved.classList.remove("show"), 3000);
+      } catch (err) {
+        showToast("Chyba: " + err.message, "err");
+      } finally {
+        btn.disabled = false; btn.textContent = "Uložit rozhodnutí";
+      }
+    }
+
     // ── INIT ──────────────────────────────────────────────────────
-    loadApplications();
-    // Načti existující hodnocení na pozadí hned po startu
-    setTimeout(() => loadDashboard(), 1500);
+    if (IS_PROREKTOR) {
+      // Prorektor: načti projekty i hodnocení
+      loadApplications().then(() => loadDashboard().then(() => renderProrektor()));
+    } else {
+      loadApplications();
+      setTimeout(() => loadDashboard(), 1500);
+    }
   </script>
 </body>
 </html>
