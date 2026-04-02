@@ -442,6 +442,9 @@ body {
 .comp-card--closed  { border-left: 4px solid var(--grey-300); }
 .comp-card--draft   { border-left: 4px solid var(--grey-300); }
 
+/* OP JAK Návraty – speciální typ karty */
+.comp-card__type--navraty { color: #5B21B6; }
+
 .comp-card__header {
   display: flex; align-items: center; gap: 8px;
   padding: 14px 20px 0;
