@@ -26,6 +26,9 @@
             <div class="user-role" id="userRole">–</div>
           </div>
         </div>
+        <button class="btn-logout" onclick="switchRole()" title="Přepnout roli" style="margin-right:4px;">
+          ⇄ Role
+        </button>
         <button class="btn-logout" onclick="Auth.logout()" title="Odhlásit se">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M6 14H3a1 1 0 01-1-1V3a1 1 0 011-1h3M11 11l3-3-3-3M14 8H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -299,8 +302,96 @@
       NAVRATY_CARD,
     ];
 
+
+    // ── Přepnutí role ──────────────────────────────────────────
+    function switchRole() {
+      // Načti všechny role uživatele ze session tokenu
+      const session = Auth._getSession();
+      if (!session) return;
+
+      // Dekóduj token abychom dostali všechny role
+      let allRoles = [session.role];
+      try {
+        const decoded = atob(session.token.replace("demo_", ""));
+        const parts   = decoded.split("|");
+        if (parts[1]) allRoles = parts[1].split(",");
+      } catch {
+        // demo token - roles z demo dat
+        allRoles = [session.role];
+      }
+
+      document.getElementById("modalUserEmail").textContent = session.email;
+
+      const ROLE_META = {
+        ADMIN:     { name:"Správce",     color:"#1C2E5A", bg:"#E8EDF8" },
+        PROREKTOR: { name:"Prorektor",   color:"#5B21B6", bg:"#EDE9FE" },
+        KOMISAR:   { name:"Člen komise", color:"#1E6B45", bg:"#E6F4EE" },
+        TESTER:    { name:"Tester",      color:"#B45309", bg:"#FEF3C7" },
+        ZADATEL:   { name:"Žadatel",     color:"#1D4ED8", bg:"#DBEAFE" },
+        RESITEL:   { name:"Řešitel",     color:"#0369A1", bg:"#E0F2FE" },
+        READONLY:  { name:"Jen čtení",   color:"#6B7280", bg:"#F3F4F6" },
+      };
+
+      const opts = document.getElementById("roleOptions");
+      opts.innerHTML = allRoles.map(role => {
+        const m = ROLE_META[role] || { name: role, color:"#6B7280", bg:"#F3F4F6" };
+        const isActive = role === session.role;
+        return `
+          <button onclick="selectNewRole('${role}')" style="
+            display:flex;align-items:center;gap:12px;
+            padding:12px 16px;border-radius:8px;cursor:pointer;
+            background:${isActive ? m.bg : 'var(--grey-100)'};
+            border:1.5px solid ${isActive ? m.color : 'var(--grey-300)'};
+            font-family:var(--font-body);width:100%;text-align:left;
+            transition:all .15s;
+          ">
+            <div style="width:10px;height:10px;border-radius:50%;background:${m.color};flex-shrink:0;"></div>
+            <div>
+              <div style="font-size:14px;font-weight:600;color:${m.color};">${m.name}</div>
+              ${isActive ? '<div style="font-size:11px;color:var(--grey-500);">Aktuální role</div>' : ''}
+            </div>
+          </button>`;
+      }).join("");
+
+      document.getElementById("roleModal").style.display = "flex";
+    }
+
+    function selectNewRole(role) {
+      const session = Auth._getSession();
+      Auth.setSession(session.token, session.email, session.name, role);
+      closeRoleModal();
+      // Obnov stránku s novou rolí
+      window.location.reload();
+    }
+
+    function closeRoleModal() {
+      document.getElementById("roleModal").style.display = "none";
+    }
+
+    // Zavření modalu kliknutím mimo
+    document.getElementById("roleModal")?.addEventListener("click", e => {
+      if (e.target === document.getElementById("roleModal")) closeRoleModal();
+    });
     // ── Spusť ──────────────────────────────────────────────────
     loadCompetitions();
   </script>
+
+  <!-- Modal: přepnutí role -->
+  <div id="roleModal" style="display:none;position:fixed;inset:0;background:rgba(26,46,90,.5);
+    backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center;">
+    <div style="background:var(--white);border-radius:var(--radius-lg);padding:32px;
+      max-width:400px;width:90%;box-shadow:var(--shadow-lg);">
+      <h3 style="font-family:var(--font-head);font-size:20px;color:var(--navy);margin-bottom:8px;">
+        Přepnout roli
+      </h3>
+      <p style="font-size:13px;color:var(--grey-500);margin-bottom:20px;">
+        Přihlášen jako: <strong id="modalUserEmail">—</strong>
+      </p>
+      <div id="roleOptions" style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;"></div>
+      <button class="btn btn--outline" onclick="closeRoleModal()" style="width:100%;padding:10px;border-radius:8px;border:1.5px solid var(--grey-300);background:transparent;cursor:pointer;font-family:var(--font-body);font-size:14px;">
+        Zrušit
+      </button>
+    </div>
+  </div>
 </body>
 </html>
