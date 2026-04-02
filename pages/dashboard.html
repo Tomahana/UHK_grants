@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rozcestník – UHK Grantové soutěže</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/app.css">
+</head>
+<body class="app-page">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="topbar__inner">
+      <div class="topbar__logo">
+        <span class="logo-uhk logo-uhk--sm">UHK</span>
+        <span class="topbar__title">Grantové soutěže</span>
+      </div>
+      <div class="topbar__right">
+        <div class="topbar__user" id="topbarUser">
+          <div class="user-avatar" id="userAvatar">?</div>
+          <div class="user-info">
+            <div class="user-name" id="userName">–</div>
+            <div class="user-role" id="userRole">–</div>
+          </div>
+        </div>
+        <button class="btn-logout" onclick="Auth.logout()" title="Odhlásit se">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M6 14H3a1 1 0 01-1-1V3a1 1 0 011-1h3M11 11l3-3-3-3M14 8H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Odhlásit
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="main-content">
+    <div class="container">
+
+      <!-- Uvítání -->
+      <div class="dashboard-header">
+        <div class="dashboard-header__text">
+          <div class="dashboard-header__greeting" id="greeting">Dobré ráno</div>
+          <h1 class="dashboard-header__name" id="welcomeName">–</h1>
+          <p class="dashboard-header__sub">
+            Vyberte soutěž, do které chcete vstoupit.
+          </p>
+        </div>
+        <div class="dashboard-header__badge" id="roleBadge">–</div>
+      </div>
+
+      <!-- Zpráva o načítání / chybě -->
+      <div id="dashboardMsg" class="alert alert--info" style="display:none;">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M8 7v4M8 5h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <span id="dashboardMsgText">Načítám soutěže…</span>
+      </div>
+
+      <!-- Karty soutěží -->
+      <div class="competitions-grid" id="competitionsGrid">
+        <!-- Renderováno JavaScriptem -->
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+      </div>
+
+      <!-- Sekce pro admin: přehled systému -->
+      <div id="adminSection" style="display:none;">
+        <div class="section-divider">
+          <span>Administrace systému</span>
+        </div>
+        <div class="admin-tiles">
+          <a href="admin-users.html" class="admin-tile">
+            <div class="admin-tile__icon">👥</div>
+            <div class="admin-tile__label">Správa uživatelů</div>
+            <div class="admin-tile__sub">USERS list · role · hesla</div>
+          </a>
+          <a href="admin-competitions.html" class="admin-tile">
+            <div class="admin-tile__icon">⚙️</div>
+            <div class="admin-tile__label">Nastavení soutěží</div>
+            <div class="admin-tile__sub">CONFIG · termíny · alokace</div>
+          </a>
+          <a href="audit.html" class="admin-tile">
+            <div class="admin-tile__icon">🔍</div>
+            <div class="admin-tile__label">Audit log</div>
+            <div class="admin-tile__sub">Historie změn a akcí</div>
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/api.js"></script>
+  <script>
+    // ── Ochrana stránky ────────────────────────────────────────
+    const user = Auth.requireLogin(); // přesměruje na login.html pokud není session
+
+    // ── Zobraz info o uživateli ────────────────────────────────
+    document.getElementById("userName").textContent    = user.name || user.email;
+    document.getElementById("userRole").textContent    = ROLES[user.role]?.label || user.role;
+    document.getElementById("userAvatar").textContent  = (user.name || user.email)[0].toUpperCase();
+    document.getElementById("welcomeName").textContent = user.name?.split(" ")[0] || user.email;
+    document.getElementById("roleBadge").textContent   = ROLES[user.role]?.label || user.role;
+    document.getElementById("roleBadge").className     = `dashboard-header__badge role-badge--${user.role.toLowerCase()}`;
+
+    // Pozdrav podle hodiny
+    const h = new Date().getHours();
+    document.getElementById("greeting").textContent =
+      h < 12 ? "Dobré ráno," : h < 18 ? "Dobré odpoledne," : "Dobrý večer,";
+
+    // Admin sekce
+    if (["ADMIN", "TESTER"].includes(user.role)) {
+      document.getElementById("adminSection").style.display = "block";
+    }
+
+    // ── Načti soutěže ──────────────────────────────────────────
+    async function loadCompetitions() {
+      const grid = document.getElementById("competitionsGrid");
+      try {
+        const competitions = await API.getCompetitions();
+        renderCompetitions(competitions);
+      } catch (err) {
+        // Demo fallback
+        renderCompetitions(DEMO_COMPETITIONS);
+      }
+    }
+
+    function renderCompetitions(list) {
+      const grid = document.getElementById("competitionsGrid");
+      grid.innerHTML = "";
+
+      if (!list.length) {
+        grid.innerHTML = `<div class="empty-state">
+          <div class="empty-state__icon">📭</div>
+          <div class="empty-state__text">Žádné aktivní soutěže</div>
+        </div>`;
+        return;
+      }
+
+      list.forEach((comp, i) => {
+        const card = buildCompetitionCard(comp, user.role);
+        card.style.animationDelay = (i * 0.08) + "s";
+        grid.appendChild(card);
+      });
+    }
+
+    function buildCompetitionCard(comp, role) {
+      const card = document.createElement("div");
+      card.className = `comp-card comp-card--${comp.status.toLowerCase()} fade-in`;
+
+      const statusInfo = COMP_STATUSES[comp.status] || { label: comp.status, icon: "●" };
+      const actions    = getActionsForRole(role, comp);
+
+      card.innerHTML = `
+        <div class="comp-card__header">
+          <div class="comp-card__status-dot status-dot--${comp.status.toLowerCase()}"></div>
+          <span class="comp-card__status-label">${statusInfo.icon} ${statusInfo.label}</span>
+        </div>
+        <div class="comp-card__body">
+          <div class="comp-card__type">${comp.type === "UHK_CONNECT" ? "UHK Connect" : "UHK ReGa"}</div>
+          <h2 class="comp-card__name">${comp.name}</h2>
+          <p class="comp-card__desc">${comp.description || ""}</p>
+
+          <div class="comp-card__meta">
+            ${comp.deadline ? `
+              <div class="meta-item">
+                <span class="meta-label">Uzávěrka</span>
+                <span class="meta-val ${isNear(comp.deadline) ? "meta-val--warn" : ""}">
+                  ${formatDate(comp.deadline)}
+                </span>
+              </div>` : ""}
+            ${comp.allocation ? `
+              <div class="meta-item">
+                <span class="meta-label">Alokace</span>
+                <span class="meta-val">${formatCZK(comp.allocation)}</span>
+              </div>` : ""}
+            ${comp.applicationsCount !== undefined ? `
+              <div class="meta-item">
+                <span class="meta-label">Přihlášky</span>
+                <span class="meta-val">${comp.applicationsCount}</span>
+              </div>` : ""}
+          </div>
+        </div>
+        <div class="comp-card__actions">
+          ${actions.map(a => `
+            <a href="${a.href}" class="comp-action comp-action--${a.style}">
+              ${a.icon} ${a.label}
+            </a>`).join("")}
+        </div>`;
+
+      return card;
+    }
+
+    // Akce dle role a stavu soutěže
+    function getActionsForRole(role, comp) {
+      const id = comp.id;
+      const isOpen   = comp.status === "OPEN";
+      const isActive = ["OPEN", "RUNNING"].includes(comp.status);
+
+      const actionMap = {
+        ADMIN: [
+          { label: "Administrace",  href: `admin.html?c=${id}`,  style: "primary", icon: "⚙️" },
+          { label: "Hodnocení",     href: `review.html?c=${id}`, style: "secondary", icon: "⭐" },
+          { label: "Přihlášky",    href: `applications.html?c=${id}`, style: "ghost", icon: "📋" },
+        ],
+        PROREKTOR: [
+          { label: "Schvalování",  href: `approve.html?c=${id}`, style: "primary", icon: "✅" },
+          { label: "Přehled",      href: `overview.html?c=${id}`, style: "ghost", icon: "📊" },
+        ],
+        KOMISAR: [
+          { label: "Hodnotit",     href: `review.html?c=${id}`,  style: "primary", icon: "⭐" },
+          { label: "Moje hodnocení", href: `my-reviews.html?c=${id}`, style: "ghost", icon: "📋" },
+        ],
+        TESTER: [
+          { label: "Celý systém",  href: `admin.html?c=${id}`,   style: "primary", icon: "🔍" },
+        ],
+        ZADATEL: isOpen ? [
+          { label: "Podat přihlášku", href: `apply.html?c=${id}`, style: "primary", icon: "📝" },
+          { label: "Moje žádosti",    href: `my-applications.html?c=${id}`, style: "ghost", icon: "📁" },
+        ] : [
+          { label: "Moje žádosti",  href: `my-applications.html?c=${id}`, style: "ghost", icon: "📁" },
+        ],
+        READONLY: [
+          { label: "Přehled",      href: `overview.html?c=${id}`, style: "ghost", icon: "👁" },
+        ],
+      };
+
+      return actionMap[role] || [
+        { label: "Vstoupit", href: `overview.html?c=${id}`, style: "ghost", icon: "→" }
+      ];
+    }
+
+    // ── Utility ────────────────────────────────────────────────
+    function formatDate(str) {
+      if (!str) return "–";
+      return new Date(str).toLocaleDateString("cs-CZ", {
+        day: "numeric", month: "long", year: "numeric"
+      });
+    }
+    function formatCZK(n) {
+      return Number(n).toLocaleString("cs-CZ") + " Kč";
+    }
+    function isNear(dateStr, days = 14) {
+      const diff = (new Date(dateStr) - new Date()) / 86400000;
+      return diff >= 0 && diff <= days;
+    }
+
+    // ── Demo data ──────────────────────────────────────────────
+    const DEMO_COMPETITIONS = [
+      {
+        id: "uhk_connect_2026_v2",
+        name: "UHK Connect – výzva č. 2",
+        type: "UHK_CONNECT",
+        status: "OPEN",
+        description: "Krátké projekty pro síťování, mobilitu a navázání spolupráce.",
+        deadline: "2026-10-14",
+        allocation: 800000,
+        applicationsCount: 12,
+      },
+      {
+        id: "uhk_rega_2026_v1",
+        name: "UHK ReGa – výzva č. 1",
+        type: "UHK_REGA",
+        status: "RUNNING",
+        description: "Podpora dopracování a znovupodání nezafinancovaných projektů.",
+        deadline: "2026-11-30",
+        allocation: 2000000,
+        applicationsCount: 8,
+      },
+    ];
+
+    // ── Spusť ──────────────────────────────────────────────────
+    loadCompetitions();
+  </script>
+</body>
+</html>
