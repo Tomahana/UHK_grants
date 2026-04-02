@@ -160,7 +160,12 @@
           <span class="comp-card__status-label">${statusInfo.icon} ${statusInfo.label}</span>
         </div>
         <div class="comp-card__body">
-          <div class="comp-card__type">${comp.type === "UHK_CONNECT" ? "UHK Connect" : "UHK ReGa"}</div>
+          <div class="comp-card__type">${
+            comp.type === "UHK_CONNECT" ? "UHK Connect" :
+            comp.type === "UHK_REGA"    ? "UHK ReGa" :
+            comp.type === "OP_JAK_NAVRATY" ? "OP JAK Návraty" :
+            comp.type
+          }</div>
           <h2 class="comp-card__name">${comp.name}</h2>
           <p class="comp-card__desc">${comp.description || ""}</p>
 
@@ -200,31 +205,43 @@
       const isOpen   = comp.status === "OPEN";
       const isActive = ["OPEN", "RUNNING"].includes(comp.status);
 
+      // Odkaz na hodnoticí formulář – závisí na typu soutěže
+      const reviewHref = comp.type === "OP_JAK_NAVRATY"
+        ? "review-navraty.html"
+        : `review.html?c=${id}`;
+
       const actionMap = {
         ADMIN: [
-          { label: "Administrace",  href: `admin.html?c=${id}`,  style: "primary", icon: "⚙️" },
-          { label: "Hodnocení",     href: `review.html?c=${id}`, style: "secondary", icon: "⭐" },
-          { label: "Přihlášky",    href: `applications.html?c=${id}`, style: "ghost", icon: "📋" },
+          { label: "Administrace",  href: `admin.html?c=${id}`,       style: "primary",   icon: "⚙️" },
+          { label: "Hodnocení",     href: reviewHref,                  style: "secondary", icon: "⭐" },
+          { label: "Přihlášky",    href: `applications.html?c=${id}`, style: "ghost",     icon: "📋" },
         ],
-        PROREKTOR: [
-          { label: "Schvalování",  href: `approve.html?c=${id}`, style: "primary", icon: "✅" },
-          { label: "Přehled",      href: `overview.html?c=${id}`, style: "ghost", icon: "📊" },
+        PROREKTOR: comp.type === "OP_JAK_NAVRATY" ? [
+          { label: "Hodnocení komise", href: reviewHref,               style: "primary",   icon: "⭐" },
+          { label: "Schvalování",      href: `approve.html?c=${id}`,   style: "secondary", icon: "✅" },
+        ] : [
+          { label: "Schvalování",  href: `approve.html?c=${id}`,      style: "primary",   icon: "✅" },
+          { label: "Přehled",      href: `overview.html?c=${id}`,     style: "ghost",     icon: "📊" },
         ],
         KOMISAR: [
-          { label: "Hodnotit",     href: `review.html?c=${id}`,  style: "primary", icon: "⭐" },
-          { label: "Moje hodnocení", href: `my-reviews.html?c=${id}`, style: "ghost", icon: "📋" },
+          { label: "Hodnotit",       href: reviewHref,                 style: "primary",   icon: "⭐" },
+          { label: "Přehled výsledků", href: reviewHref + "#dash",     style: "ghost",     icon: "📊" },
         ],
         TESTER: [
-          { label: "Celý systém",  href: `admin.html?c=${id}`,   style: "primary", icon: "🔍" },
+          { label: "Hodnocení",     href: reviewHref,                  style: "primary",   icon: "⭐" },
+          { label: "Celý systém",   href: `admin.html?c=${id}`,       style: "ghost",     icon: "🔍" },
         ],
         ZADATEL: isOpen ? [
-          { label: "Podat přihlášku", href: `apply.html?c=${id}`, style: "primary", icon: "📝" },
+          { label: "Podat přihlášku", href: `apply.html?c=${id}`,     style: "primary",   icon: "📝" },
           { label: "Moje žádosti",    href: `my-applications.html?c=${id}`, style: "ghost", icon: "📁" },
         ] : [
           { label: "Moje žádosti",  href: `my-applications.html?c=${id}`, style: "ghost", icon: "📁" },
         ],
+        RESITEL: [
+          { label: "Moje přihlášky", href: `my-applications.html?c=${id}`, style: "primary", icon: "📁" },
+        ],
         READONLY: [
-          { label: "Přehled",      href: `overview.html?c=${id}`, style: "ghost", icon: "👁" },
+          { label: "Přehled",      href: `overview.html?c=${id}`,     style: "ghost",     icon: "👁" },
         ],
       };
 
@@ -269,6 +286,16 @@
         deadline: "2026-11-30",
         allocation: 2000000,
         applicationsCount: 8,
+      },
+      {
+        id: "uhk_navraty_2026",
+        name: "OP JAK Návraty – IGA komise",
+        type: "OP_JAK_NAVRATY",
+        status: "RUNNING",
+        description: "Hodnocení projektů v rámci UHK: Return – Research – Restart. Reg. č. CZ.02.01.01/00/24_037/0013855.",
+        deadline: "2026-06-30",
+        allocation: 40156893,
+        applicationsCount: 7,
       },
     ];
 
