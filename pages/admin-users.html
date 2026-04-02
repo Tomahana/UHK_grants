@@ -196,12 +196,12 @@
     document.getElementById("userAvatar").textContent = (user.name || user.email)[0].toUpperCase();
 
     // Dostupné soutěže
-    const COMPETITIONS = Object.entries(FALLBACK_COMPETITIONS).length
-      ? FALLBACK_COMPETITIONS
-      : [
-          { id: "uhk_connect_2026_v2", name: "UHK Connect 2026" },
-          { id: "uhk_navraty_2026",    name: "OP JAK Návraty" },
-        ];
+    const COMPETITIONS = [
+      { id: "uhk_connect_2026_v2", name: "UHK Connect 2026" },
+      { id: "uhk_navraty_2026",    name: "OP JAK Návraty" },
+      { id: "uhk_rega_2026_v1",    name: "UHK ReGa 2026" },
+      { id: "uhk_prestige_2026",   name: "UHK Prestige 2026" },
+    ];
 
     const ROLE_OPTIONS = ["ADMIN","PROREKTOR","KOMISAR","TESTER","ZADATEL","RESITEL","READONLY"];
     const ROLE_COLORS  = {
@@ -224,12 +224,17 @@
         const session = Auth._getSession();
         const url = new URL(API_URL);
         url.searchParams.set("action", "getUsers");
-        url.searchParams.set("token", session.token);
+        url.searchParams.set("token", session?.token || "");
         const res  = await fetch(url.toString());
         const data = await res.json();
-        allUsers = data.users || [];
+        if (data.success && data.users) {
+          allUsers = data.users;
+        } else {
+          throw new Error(data.message || "API error");
+        }
         renderTable(allUsers);
-      } catch {
+      } catch (err) {
+        console.warn("loadUsers fallback:", err.message);
         allUsers = getDemoUsers();
         renderTable(allUsers);
       }
@@ -323,7 +328,7 @@
     }
 
     function buildRoleRow(r, i) {
-      const compOptions = FALLBACK_COMPETITIONS.map(c =>
+      const compOptions = COMPETITIONS.map(c =>
         `<option value="${c.id}" ${c.id === r.competition_id ? "selected" : ""}>${c.name}</option>`
       ).join("");
       const roleOptions = ROLE_OPTIONS.map(ro =>

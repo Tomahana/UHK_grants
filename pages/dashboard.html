@@ -77,17 +77,12 @@
           <a href="admin-users.html" class="admin-tile">
             <div class="admin-tile__icon">👥</div>
             <div class="admin-tile__label">Správa uživatelů</div>
-            <div class="admin-tile__sub">USERS list · role · hesla</div>
+            <div class="admin-tile__sub">USERS · role · hesla</div>
           </a>
           <a href="admin-competitions.html" class="admin-tile">
             <div class="admin-tile__icon">⚙️</div>
             <div class="admin-tile__label">Nastavení soutěží</div>
             <div class="admin-tile__sub">CONFIG · termíny · alokace</div>
-          </a>
-          <a href="audit.html" class="admin-tile">
-            <div class="admin-tile__icon">🔍</div>
-            <div class="admin-tile__label">Audit log</div>
-            <div class="admin-tile__sub">Historie změn a akcí</div>
           </a>
         </div>
       </div>
@@ -222,17 +217,15 @@
         : `review-connect.html?c=${id}`;  // bude doplněno
 
       const actionMap = {
-        ADMIN: [
-          { label: "Administrace",  href: `admin.html?c=${id}`,       style: "primary",   icon: "⚙️" },
-          { label: "Hodnocení",     href: reviewHref,                  style: "secondary", icon: "⭐" },
-          { label: "Přihlášky",    href: `applications.html?c=${id}`, style: "ghost",     icon: "📋" },
-        ],
-        PROREKTOR: comp.type === "OP_JAK_NAVRATY" ? [
-          { label: "Hodnocení komise", href: reviewHref,               style: "primary",   icon: "⭐" },
-          { label: "Schvalování",      href: `approve.html?c=${id}`,   style: "secondary", icon: "✅" },
+        ADMIN: comp.type === "OP_JAK_NAVRATY" ? [
+          { label: "Hodnocení komise", href: reviewHref,                style: "primary",   icon: "⭐" },
+          { label: "Nastavení",        href: `admin-competitions.html`, style: "ghost",     icon: "⚙️" },
         ] : [
-          { label: "Schvalování",  href: `approve.html?c=${id}`,      style: "primary",   icon: "✅" },
-          { label: "Přehled",      href: `overview.html?c=${id}`,     style: "ghost",     icon: "📊" },
+          { label: "Nastavení",     href: `admin-competitions.html`,   style: "primary",   icon: "⚙️" },
+          { label: "Hodnocení",     href: reviewHref,                  style: "secondary", icon: "⭐" },
+        ],
+        PROREKTOR: [
+          { label: "Hodnocení",    href: reviewHref,                   style: "primary",   icon: "⭐" },
         ],
         KOMISAR: [
           { label: "Hodnotit",       href: reviewHref,                 style: "primary",   icon: "⭐" },
@@ -240,19 +233,18 @@
         ],
         TESTER: [
           { label: "Hodnocení",     href: reviewHref,                  style: "primary",   icon: "⭐" },
-          { label: "Celý systém",   href: `admin.html?c=${id}`,       style: "ghost",     icon: "🔍" },
+          { label: "Nastavení",     href: `admin-competitions.html`,   style: "ghost",     icon: "🔍" },
         ],
         ZADATEL: isOpen ? [
-          { label: "Podat přihlášku", href: `apply.html?c=${id}`,     style: "primary",   icon: "📝" },
-          { label: "Moje žádosti",    href: `my-applications.html?c=${id}`, style: "ghost", icon: "📁" },
+          { label: "Podat přihlášku", href: `apply-connect.html?c=${id}`, style: "primary", icon: "📝" },
         ] : [
-          { label: "Moje žádosti",  href: `my-applications.html?c=${id}`, style: "ghost", icon: "📁" },
+          { label: "Soutěž probíhá", href: "#", style: "ghost", icon: "📋" },
         ],
         RESITEL: [
-          { label: "Moje přihlášky", href: `my-applications.html?c=${id}`, style: "primary", icon: "📁" },
+          { label: "Moje přihlášky", href: `apply-connect.html?c=${id}`, style: "primary", icon: "📁" },
         ],
         READONLY: [
-          { label: "Přehled",      href: `overview.html?c=${id}`,     style: "ghost",     icon: "👁" },
+          { label: "Hodnocení",    href: reviewHref,                   style: "ghost",     icon: "👁" },
         ],
       };
 
