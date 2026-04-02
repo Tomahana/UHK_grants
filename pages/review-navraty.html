@@ -237,9 +237,15 @@
   <div id="tab-form" class="tab-panel active">
     <div class="page">
 
+      <div style="margin-bottom:20px;">
+        <img src="../img/logo-eu-msmt.png" alt="Spolufinancováno Evropskou unií | MŠMT"
+          style="max-width:280px;width:100%;opacity:.85;">
+      </div>
       <div class="page-eyebrow">Hodnoticí formulář · OP JAK Návraty 2026</div>
       <h1 class="page-title">Hodnocení projektu</h1>
-      <p class="page-desc">Ohodnoťte projekt na stupnici 1–5. Hodnocení se uloží do sdílené databáze Návraty.</p>
+      <p class="page-desc">Hodnocení projektů v rámci UHK: Return – Research – Restart<br>
+        <span style="font-size:12px;color:var(--ink-60);">reg. č. CZ.02.01.01/00/24_037/0013855 · OP Jan Amos Komenský</span>
+      </p>
 
       <!-- Načítání přihlášek -->
       <div id="loadingApps" class="alert alert--info">
@@ -648,8 +654,18 @@
         // Přidej _app referenci pro každé hodnocení
         const reviews = Array.isArray(data) ? data.map(r => ({
           ...r,
-          application_id: r.project_id, // mapuj pro kompatibilitu s renderDashboard
-          _app: applications.find(a => (a.project_id||a.id) === r.project_id) || {},
+          // Mapuj názvy sloupců ze Sheets na názvy které dashboard očekává
+          application_id: r.project_id || r.application_id,
+          reviewer_email: r.reviewer_email || r.hodnotitel || "—",
+          score_clarity:  r.score_clarity  || r.k1 || r.K1 || "—",
+          score_quality:  r.score_quality  || r.k2 || r.K2 || "—",
+          score_budget:   r.score_budget   || r.k3 || r.K3 || "—",
+          score_profile:  r.score_profile  || r.k4 || r.K4 || "—",
+          score_outputs:  r.score_outputs  || r.k5 || r.K5 || "—",
+          score_total:    r.score_total    || r.skore || r.score || 0,
+          recommendation: r.recommendation || r.doporuceni || "",
+          comment_public: r.comment_public || r.zduvodneni || "",
+          _app: applications.find(a => (a.project_id||a.id) === (r.project_id||r.application_id)) || {},
         })) : [];
         dashboardData = reviews.length ? reviews : getDemoReviews();
       } catch {
@@ -666,7 +682,7 @@
       document.getElementById("statTotal").textContent    = total;
       document.getElementById("statProjects").textContent = appIds.length;
 
-      const scores = reviews.map(r => parseFloat(r.score_total || 0) / 5).filter(s => !isNaN(s));
+      const scores = reviews.map(r => parseFloat(r.score_total || 0) / 25 * 5).filter(s => !isNaN(s));
       document.getElementById("statAvg").textContent = scores.length
         ? (scores.reduce((a,b) => a+b, 0) / scores.length).toFixed(2) : "—";
 
@@ -716,7 +732,7 @@
 
       const sorted = Object.entries(grouped)
         .map(([id, {reviews: rev, app}]) => {
-          const sc  = rev.map(r => parseFloat(r.score_total||0)/5).filter(s => !isNaN(s));
+          const sc  = rev.map(r => parseFloat(r.score_total||0)/25).filter(s => !isNaN(s));
           const avg = sc.length ? sc.reduce((a,b)=>a+b,0)/sc.length : 0;
           const rc  = {};
           rev.forEach(r => { if (r.recommendation) rc[r.recommendation] = (rc[r.recommendation]||0)+1; });
@@ -732,8 +748,8 @@
           const rankClass = rank <= 3 ? ` rank-${rank}` : "";
           const recCss = rec === "FUND" ? "rec-fin" : rec === "REJECT" ? "rec-nefin" : rec === "FUND_REDUCED" ? "rec-pod" : "rec-ceka";
           const recLabel = { FUND:"Financovat", REJECT:"Nefinancovat", FUND_REDUCED:"Podmíněně" }[rec] || (rev.length ? "Různá" : "Čeká");
-          const name    = app.applicant_name || app.name || id;
-          const faculty = app.faculty || "";
+          const name    = app.resitel || app.applicant_name || app.name || id;
+          const faculty = app.soucast || app.faculty || "";
           const revHtml = rev.map(r => `
             <div class="review-item">
               <div class="review-header">
