@@ -207,50 +207,85 @@
 
     // Akce dle role a stavu soutěže
     function getActionsForRole(role, comp) {
-      const id = comp.id;
-      const isOpen   = comp.status === "OPEN";
-      const isActive = ["OPEN", "RUNNING"].includes(comp.status);
+      const id     = comp.id;
+      const isOpen = comp.status === "OPEN";
+      const type   = comp.type;
 
-      // Odkaz na hodnoticí formulář – závisí na typu soutěže
-      const reviewHref = comp.type === "OP_JAK_NAVRATY"
+      // Odkaz na hodnoticí formulář
+      const reviewHref = type === "OP_JAK_NAVRATY"
         ? "review-navraty.html"
-        : `review-connect.html?c=${id}`;  // bude doplněno
+        : "review-navraty.html";   // TODO: obecný review.html pro Connect/ReGa/Prestige
+
+      // Odkaz na podání přihlášky dle soutěže
+      const applyHref =
+        type === "UHK_CONNECT"    ? `apply-connect.html` :
+        type === "UHK_REGA"       ? `apply-rega.html` :
+        type === "UHK_PRESTIGE"   ? `apply-prestige.html` :
+        null; // Návraty nemají přihlášku přes web
+
+      // Přihlášky (pouze ne-Návraty soutěže)
+      const applyActions = applyHref && isOpen ? [
+        { label: "Podat přihlášku", href: applyHref, style: "primary", icon: "📝" },
+      ] : applyHref ? [
+        { label: "Moje přihlášky",  href: applyHref, style: "ghost",   icon: "📁" },
+      ] : [];
 
       const actionMap = {
-        ADMIN: comp.type === "OP_JAK_NAVRATY" ? [
-          { label: "Hodnocení komise", href: reviewHref,                style: "primary",   icon: "⭐" },
-          { label: "Nastavení",        href: `admin-competitions.html`, style: "ghost",     icon: "⚙️" },
+        ADMIN: type === "OP_JAK_NAVRATY" ? [
+          { label: "Hodnocení komise", href: reviewHref,               style: "primary",   icon: "⭐" },
+          { label: "Správa uživatelů", href: "admin-users.html",       style: "ghost",     icon: "👥" },
+          { label: "Nastavení",        href: "admin-competitions.html", style: "ghost",     icon: "⚙️" },
         ] : [
-          { label: "Nastavení",     href: `admin-competitions.html`,   style: "primary",   icon: "⚙️" },
-          { label: "Hodnocení",     href: reviewHref,                  style: "secondary", icon: "⭐" },
+          ...applyActions,
+          { label: "Přihlášky",    href: applyHref || "#",             style: "secondary", icon: "📋" },
+          { label: "Hodnocení",    href: reviewHref,                    style: "ghost",     icon: "⭐" },
+          { label: "Nastavení",    href: "admin-competitions.html",     style: "ghost",     icon: "⚙️" },
         ],
+
         PROREKTOR: [
-          { label: "Hodnocení",    href: reviewHref,                   style: "primary",   icon: "⭐" },
+          { label: "Schvalování",  href: reviewHref,                    style: "primary",   icon: "✅" },
         ],
-        KOMISAR: [
-          { label: "Hodnotit",       href: reviewHref,                 style: "primary",   icon: "⭐" },
-          { label: "Přehled výsledků", href: reviewHref + "#dash",     style: "ghost",     icon: "📊" },
-        ],
-        TESTER: [
-          { label: "Hodnocení",     href: reviewHref,                  style: "primary",   icon: "⭐" },
-          { label: "Nastavení",     href: `admin-competitions.html`,   style: "ghost",     icon: "🔍" },
-        ],
-        ZADATEL: isOpen ? [
-          { label: "Podat přihlášku", href: `apply-connect.html?c=${id}`, style: "primary", icon: "📝" },
+
+        KOMISAR: type === "OP_JAK_NAVRATY" ? [
+          { label: "Hodnotit",     href: reviewHref,                    style: "primary",   icon: "⭐" },
+          { label: "Přehled",      href: reviewHref,                    style: "ghost",     icon: "📊" },
         ] : [
-          { label: "Soutěž probíhá", href: "#", style: "ghost", icon: "📋" },
+          { label: "Hodnotit",     href: reviewHref,                    style: "primary",   icon: "⭐" },
         ],
-        RESITEL: [
-          { label: "Moje přihlášky", href: `apply-connect.html?c=${id}`, style: "primary", icon: "📁" },
+
+        TESTER: [
+          ...applyActions,
+          { label: "Hodnocení",    href: reviewHref,                    style: "secondary", icon: "⭐" },
+          { label: "Nastavení",    href: "admin-competitions.html",     style: "ghost",     icon: "⚙️" },
+          { label: "Správa už.",   href: "admin-users.html",            style: "ghost",     icon: "👥" },
         ],
+
+        ZADATEL: applyHref ? (isOpen ? [
+          { label: "Podat přihlášku", href: applyHref,                  style: "primary",   icon: "📝" },
+          { label: "Moje přihlášky",  href: applyHref,                  style: "ghost",     icon: "📁" },
+        ] : [
+          { label: "Moje přihlášky",  href: applyHref,                  style: "ghost",     icon: "📁" },
+        ]) : [
+          { label: "Soutěž nepřijímá přihlášky", href: "#",            style: "ghost",     icon: "📋" },
+        ],
+
+        RESITEL: applyHref ? [
+          { label: "Moje přihlášky",  href: applyHref,                  style: "primary",   icon: "📁" },
+          { label: "Zprávy",          href: "my-projects.html",         style: "ghost",     icon: "📄" },
+        ] : [
+          { label: "Moje projekty",   href: "my-projects.html",         style: "primary",   icon: "📁" },
+        ],
+
         READONLY: [
-          { label: "Hodnocení",    href: reviewHref,                   style: "ghost",     icon: "👁" },
+          { label: "Přehled",      href: reviewHref,                    style: "ghost",     icon: "👁" },
         ],
       };
 
-      return actionMap[role] || [
-        { label: "Vstoupit", href: `overview.html?c=${id}`, style: "ghost", icon: "→" }
-      ];
+      return actionMap[role] || (applyHref ? [
+        { label: "Vstoupit",  href: applyHref,  style: "primary", icon: "→" },
+      ] : [
+        { label: "Hodnocení", href: reviewHref, style: "ghost",   icon: "→" },
+      ]);
     }
 
     // ── Utility ────────────────────────────────────────────────
