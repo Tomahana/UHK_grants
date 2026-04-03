@@ -418,7 +418,7 @@
           <label class="field-label">Součást UHK <span class="field-required">*</span></label>
           <select id="f-faculty" onchange="fc('faculty',this.value)">
             <option value="">— Vyberte —</option>
-            ${["PřF","PdF","FF","FIM","FVZ","REKTORÁT"].map(o => `<option value="${o}" ${v("faculty")===o?"selected":""}>${o}</option>`).join("")}
+            ${["PřF","PdF","FF","FIM","REKTORÁT"].map(o => `<option value="${o}" ${v("faculty")===o?"selected":""}>${o}</option>`).join("")}
           </select>
           <div class="field-error" id="err-faculty">Toto pole je povinné.</div>
         </div>
