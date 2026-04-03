@@ -5,7 +5,8 @@
 
 // ── Apps Script Web App URL ────────────────────────────────────
 // Po nasazení Web App v Apps Script sem vlož URL:
-const API_URL = "https://script.google.com/macros/s/AKfycbx2z46wbplrnCluJ7TSY0A1H4yI6MpdOIrounEdI_i8MFyEHGHC8n01-1MK89IJZvcsDQ/exec";
+// !! Po deployi Apps Script z Gmail účtu uhk.granty@gmail.com sem vlož novou URL !!
+const API_URL = "https://script.google.com/macros/s/AKfycbxR6KGcrbi6pIkbtCaNOeFIXoS2fG1-QSnexYGSawciopu_FE6qrP4ZwognL3LpGjOE/exec";
 
 // ── Role a jejich vlastnosti ───────────────────────────────────
 const ROLES = {
@@ -38,6 +39,12 @@ const ROLES = {
     description: "Podává přihlášky, sleduje stav svých žádostí",
     color:       "#1D4ED8",
     bg:          "#DBEAFE",
+  },
+  RESITEL: {
+    label:       "Řešitel",
+    description: "Aktivní řešitel podpořeného projektu – podává zprávy",
+    color:       "#0369A1",
+    bg:          "#E0F2FE",
   },
   READONLY: {
     label:       "Jen čtení",
@@ -98,11 +105,31 @@ const FALLBACK_COMPETITIONS = [
     id:          "uhk_rega_2026_v1",
     name:        "UHK ReGa – výzva č. 1",
     type:        "UHK_REGA",
-    status:      "RUNNING",
+    status:      "OPEN",
     description: "Podpora dopracování a znovupodání nezafinancovaných projektů GA ČR.",
-    deadline:    "2026-11-30",
+    deadline:    "2026-04-01",
     allocation:  2000000,
     maxBudget:   500000,
+  },
+  {
+    id:          "uhk_navraty_2026",
+    name:        "OP JAK Návraty – IGA komise",
+    type:        "OP_JAK_NAVRATY",
+    status:      "RUNNING",
+    description: "Hodnocení projektů v rámci UHK: Return – Research – Restart.",
+    deadline:    "2026-06-30",
+    allocation:  40156893,
+    maxBudget:   0,
+  },
+  {
+    id:          "uhk_prestige_2026",
+    name:        "UHK Prestige 2026",
+    type:        "UHK_PRESTIGE",
+    status:      "OPEN",
+    description: "Prestižní granty Univerzity Hradec Králové.",
+    deadline:    "",
+    allocation:  0,
+    maxBudget:   0,
   },
 ];
 
@@ -139,3 +166,11 @@ function statusPill(status, type = "app") {
     background:${s.bg};
   ">${s.label}</span>`;
 }
+
+// ── Spreadsheet IDs (informativní – používají se jen v Apps Script) ─
+// Všechny Sheets jsou pod Gmail účtem: uhk.granty@gmail.com
+// Connect:  1maDTXF8xKCpSY0LfeNcRyLo1KtulgipEIwQaIGb3Su0
+// ReGa:     1VU3c_gwxjbuZuNQ5_B1iqlbGzOgLwtUXUAI-E2dt6EA
+// Návraty:  1E8hRFVkVt3WuhGcSrhz9E0P9Pvz7udoT1IGMnNH8ADc
+// Prestige: 1qmx2gFETaYJVdZmhkGUvdGdukARlQZXnepVPYJSuemk
+// Users:    17bf7fHOu-tdza7UXzahwWyIAwwuk0BcpC39KGiG-64g
