@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Přihláška – UHK ReGa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #1C2E5A; --navy-mid: #2F4A8A; --navy-lite: #E8EDF8;
+      --gold: #C49A2A; --gold-lite: #FDF6E3;
+      --green: #1E6B45; --green-lite: #E6F4EE;
+      --red: #991B1B; --red-lite: #FEF2F2;
+      --purple: #5B21B6; --purple-lite: #EDE9FE;
+      --border: #E2E0D8; --muted: #6B6A63;
+      --bg: #F8F7F4; --white: #FFFFFF;
+      --r: 8px; --r-lg: 12px;
+      --shadow: 0 1px 3px rgba(0,0,0,.06);
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--navy); min-height: 100vh; font-size: 15px; line-height: 1.6; }
+
+    .topbar { background: var(--navy); height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 100; }
+    .topbar__logo { display: flex; align-items: center; gap: 10px; }
+    .topbar__logo img { height: 26px; opacity: .9; }
+    .topbar__title { font-size: 14px; font-weight: 500; color: rgba(255,255,255,.8); }
+    .topbar__right { display: flex; align-items: center; gap: 10px; }
+    .topbar__user { font-size: 13px; color: rgba(255,255,255,.5); }
+    .topbar__user strong { color: rgba(255,255,255,.85); font-weight: 500; }
+    .btn-back { background: none; border: 1px solid rgba(255,255,255,.2); color: rgba(255,255,255,.6); font-family: 'DM Mono', monospace; font-size: 11px; padding: 5px 12px; border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; transition: all .15s; }
+    .btn-back:hover { color: white; border-color: rgba(255,255,255,.4); }
+
+    /* REGA BANNER – specifický pro ReGa */
+    .rega-banner { background: var(--purple); padding: 12px 24px; display: flex; align-items: center; gap: 12px; }
+    .rega-banner-inner { max-width: 860px; margin: 0 auto; width: 100%; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .rega-banner-icon { width: 32px; height: 32px; background: rgba(255,255,255,.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 16px; }
+    .rega-banner-text { font-size: 13px; color: rgba(255,255,255,.9); line-height: 1.4; }
+    .rega-banner-text strong { color: white; }
+    .rega-deadline { margin-left: auto; font-family: 'DM Mono', monospace; font-size: 12px; color: rgba(255,255,255,.7); background: rgba(255,255,255,.1); padding: 4px 10px; border-radius: 4px; white-space: nowrap; }
+
+    /* PROGRESS */
+    .progress-wrap { background: white; border-bottom: 1px solid var(--border); }
+    .progress-inner { max-width: 860px; margin: 0 auto; display: flex; align-items: stretch; }
+    .progress-step { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 12px 6px; position: relative; cursor: pointer; border-bottom: 3px solid transparent; transition: all .2s; }
+    .progress-step:hover { background: var(--navy-lite); }
+    .progress-step.active { border-bottom-color: var(--purple); }
+    .progress-step.done { border-bottom-color: var(--green); }
+    .progress-dot { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border); background: white; display: flex; align-items: center; justify-content: center; font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; color: var(--muted); margin-bottom: 4px; transition: all .2s; }
+    .progress-step.done .progress-dot { background: var(--green); border-color: var(--green); color: white; }
+    .progress-step.active .progress-dot { background: var(--purple); border-color: var(--purple); color: white; }
+    .progress-label { font-size: 11px; color: var(--muted); text-align: center; font-weight: 500; }
+    .progress-step.active .progress-label { color: var(--purple); font-weight: 600; }
+    .progress-step.done .progress-label { color: var(--green); }
+
+    /* LAYOUT */
+    .app-layout { max-width: 860px; margin: 0 auto; padding: 28px 24px 80px; display: grid; grid-template-columns: 1fr 260px; gap: 20px; align-items: start; }
+    @media (max-width: 700px) { .app-layout { grid-template-columns: 1fr; } .sidebar { display: none; } }
+
+    /* FORM PANEL */
+    .form-panel { background: white; border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow); overflow: hidden; }
+    .section-header { background: var(--purple-lite); border-bottom: 1px solid #D4C8F8; padding: 16px 24px; }
+    .section-header h2 { font-size: 16px; font-weight: 600; color: var(--purple); }
+    .section-header p { font-size: 13px; color: #7C3AED; opacity: .8; margin-top: 2px; }
+    .form-body { padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+
+    /* FIELDS */
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field-label { font-size: 13px; font-weight: 500; color: var(--navy); display: flex; align-items: center; gap: 4px; }
+    .field-required { color: #C41E1E; font-size: 14px; line-height: 1; }
+    .field-help { font-size: 12px; color: var(--muted); line-height: 1.4; }
+    .field input[type="text"], .field input[type="email"],
+    .field input[type="number"], .field input[type="date"],
+    .field select, .field textarea {
+      width: 100%; padding: 10px 12px; border: 1.5px solid var(--border);
+      border-radius: var(--r); font-family: 'DM Sans', sans-serif; font-size: 14px;
+      color: var(--navy); background: white; outline: none; transition: border-color .15s, box-shadow .15s;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus {
+      border-color: var(--purple); box-shadow: 0 0 0 3px rgba(91,33,182,.1);
+    }
+    .field input.error, .field select.error, .field textarea.error { border-color: var(--red); }
+    .field textarea { min-height: 100px; resize: vertical; line-height: 1.5; }
+    .field select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%231C2E5A' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; cursor: pointer; }
+    .field-error { font-size: 12px; color: var(--red); display: none; }
+    .field-error.show { display: block; }
+
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 500px) { .row-2 { grid-template-columns: 1fr; } }
+
+    /* RADIO */
+    .radio-group { display: flex; flex-direction: column; gap: 8px; }
+    .radio-option { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: var(--r); cursor: pointer; transition: all .15s; }
+    .radio-option:hover { border-color: var(--purple); background: var(--purple-lite); }
+    .radio-option input[type="radio"] { accent-color: var(--purple); width: 16px; height: 16px; cursor: pointer; flex-shrink: 0; margin-top: 2px; }
+    .radio-option.selected { border-color: var(--purple); background: var(--purple-lite); }
+    .radio-label { font-size: 14px; color: var(--navy); line-height: 1.4; }
+    .radio-sublabel { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    /* CHECKBOX */
+    .checkbox-wrap { display: flex; align-items: flex-start; gap: 10px; padding: 14px; border: 1.5px solid var(--border); border-radius: var(--r); }
+    .checkbox-wrap input[type="checkbox"] { accent-color: var(--purple); width: 18px; height: 18px; cursor: pointer; flex-shrink: 0; margin-top: 2px; }
+    .checkbox-label { font-size: 13px; color: var(--navy); line-height: 1.5; }
+
+    /* FILE UPLOAD */
+    .file-zone { border: 2px dashed var(--border); border-radius: var(--r); padding: 20px; text-align: center; cursor: pointer; transition: all .15s; }
+    .file-zone:hover { border-color: var(--purple); background: var(--purple-lite); }
+    .file-zone-text { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+    .file-zone-hint { font-size: 11px; color: var(--muted); }
+    .file-zone input[type="file"] { display: none; }
+    .file-selected { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--green-lite); border: 1px solid #A7F3D0; border-radius: var(--r); margin-top: 8px; font-size: 13px; color: var(--green); }
+    .file-remove { margin-left: auto; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; padding: 0 4px; }
+
+    /* SECTION DIVIDER */
+    .section-divider { display: flex; align-items: center; gap: 12px; }
+    .section-divider-line { flex: 1; height: 1px; background: var(--border); }
+    .section-divider-label { font-size: 11px; font-weight: 600; color: var(--purple); letter-spacing: .06em; text-transform: uppercase; background: var(--purple-lite); padding: 3px 12px; border-radius: 100px; border: 1px solid #C4B5FD; white-space: nowrap; }
+
+    /* ALERT BOX */
+    .alert-box { padding: 12px 16px; border-radius: var(--r); font-size: 13px; line-height: 1.5; display: flex; gap: 10px; align-items: flex-start; }
+    .alert-box--info { background: #EFF6FF; border: 1px solid #BFDBFE; color: #1E40AF; }
+    .alert-box--warn { background: var(--gold-lite); border: 1px solid #FDE68A; color: #92400E; }
+    .alert-box--success { background: var(--green-lite); border: 1px solid #A7F3D0; color: var(--green); }
+    .alert-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+    /* BUDGET */
+    .budget-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 500px) { .budget-grid { grid-template-columns: 1fr; } }
+    .budget-item { border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
+    .budget-item-label { padding: 8px 12px; background: var(--bg); border-bottom: 1px solid var(--border); font-size: 12px; font-weight: 500; color: var(--navy); }
+    .budget-item input { width: 100%; border: none; padding: 8px 12px; font-family: 'DM Mono', monospace; font-size: 14px; color: var(--navy); background: white; outline: none; text-align: right; }
+    .budget-item input:focus { background: var(--purple-lite); }
+    .budget-total-row { grid-column: 1 / -1; border: 1.5px solid var(--purple); border-radius: var(--r); overflow: hidden; }
+    .budget-total-row .budget-item-label { background: var(--purple-lite); color: var(--purple); font-weight: 600; }
+    .budget-total-display { padding: 10px 12px; font-family: 'DM Mono', monospace; font-size: 18px; font-weight: 600; color: var(--purple); text-align: right; }
+
+    /* FOOTER */
+    .form-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #FAFAF8; flex-wrap: wrap; }
+    .save-status { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; font-family: 'DM Mono', monospace; }
+    .save-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); flex-shrink: 0; }
+    .save-dot.saving { background: var(--gold); animation: pulse .8s infinite; }
+    .save-dot.saved { background: var(--green); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .footer-btns { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border-radius: var(--r); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all .15s; }
+    .btn-primary { background: var(--purple); color: white; }
+    .btn-primary:hover { background: #4C1D95; }
+    .btn-primary:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+    .btn-secondary { background: white; color: var(--navy); border: 1.5px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--navy); background: var(--navy-lite); }
+    .btn-ghost { background: transparent; color: var(--muted); font-size: 13px; padding: 8px 12px; border: none; cursor: pointer; }
+    .btn-ghost:hover { color: var(--navy); }
+
+    /* SIDEBAR */
+    .sidebar { display: flex; flex-direction: column; gap: 14px; }
+    .sidebar-card { background: white; border: 1px solid var(--border); border-radius: var(--r-lg); padding: 16px; box-shadow: var(--shadow); }
+    .sidebar-card h3 { font-size: 12px; font-weight: 600; color: var(--navy); margin-bottom: 10px; text-transform: uppercase; letter-spacing: .05em; }
+    .info-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+    .info-row:last-child { border-bottom: none; }
+    .info-key { color: var(--muted); }
+    .info-val { color: var(--navy); font-weight: 500; text-align: right; }
+    .checklist-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 12px; color: var(--muted); }
+    .checklist-item.done { color: var(--green); }
+    .check-circle { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 9px; }
+    .checklist-item.done .check-circle { background: var(--green); border-color: var(--green); color: white; }
+    .budget-big { font-size: 20px; font-weight: 600; color: var(--purple); font-family: 'DM Mono', monospace; }
+    .budget-limit-text { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .budget-bar-wrap { height: 5px; background: var(--border); border-radius: 3px; margin-top: 8px; }
+    .budget-bar { height: 5px; border-radius: 3px; background: var(--purple); transition: width .3s; }
+    .budget-bar.over { background: var(--red); }
+
+    /* SPINNER */
+    .spinner { width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--purple); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 12px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-state { padding: 48px 24px; text-align: center; color: var(--muted); }
+
+    .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px); color: white; font-size: 14px; font-weight: 500; padding: 12px 24px; border-radius: 100px; z-index: 9999; transition: transform .3s cubic-bezier(.34,1.56,.64,1); white-space: nowrap; }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar__logo">
+    <img src="../img/uhk-abb-w.png" alt="UHK">
+    <span class="topbar__title">UHK ReGa 2026 – Přihláška</span>
+  </div>
+  <div class="topbar__right">
+    <div class="topbar__user">Přihlášen: <strong id="topbarName">—</strong></div>
+    <a href="dashboard.html" class="btn-back">← Rozcestník</a>
+  </div>
+</header>
+
+<!-- ReGa info banner -->
+<div class="rega-banner">
+  <div class="rega-banner-inner">
+    <div class="rega-banner-icon">R</div>
+    <div class="rega-banner-text">
+      <strong>Interní soutěž UHK ReGa</strong> – podpora dopracování a znovupodání nezafinancovaných projektů GA ČR.
+      Max. podpora 500 000 Kč · Doba řešení 7,5 měsíce (15. 4. – 30. 11. 2026)
+    </div>
+    <div class="rega-deadline">Uzávěrka: 1. 4. 2026 · 8:00</div>
+  </div>
+</div>
+
+<!-- Progress bar -->
+<div class="progress-wrap">
+  <div class="progress-inner" id="progressBar"></div>
+</div>
+
+<div class="app-layout">
+  <div>
+    <div class="form-panel" id="formPanel">
+      <div class="loading-state" id="loadingState">
+        <div class="spinner"></div>
+        <p>Načítám formulář…</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>Stav přihlášky</h3>
+      <div class="info-row"><span class="info-key">Soutěž</span><span class="info-val">UHK ReGa 2026</span></div>
+      <div class="info-row"><span class="info-key">Uzávěrka</span><span class="info-val" style="color:var(--red);">1. 4. 2026</span></div>
+      <div class="info-row"><span class="info-key">Max. podpora</span><span class="info-val">500 000 Kč</span></div>
+      <div class="info-row"><span class="info-key">Doba řešení</span><span class="info-val">7,5 měsíce</span></div>
+      <div class="info-row"><span class="info-key">Uloženo</span><span class="info-val" id="lastSaved">—</span></div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>Požadovaná podpora</h3>
+      <div class="budget-big" id="budgetDisplay">0 Kč</div>
+      <div class="budget-limit-text">z max. 500 000 Kč</div>
+      <div class="budget-bar-wrap">
+        <div class="budget-bar" id="budgetBar" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>Kontrolní seznam</h3>
+      <div id="checklist"></div>
+    </div>
+
+    <div class="sidebar-card" style="background:var(--purple-lite);border-color:#C4B5FD;">
+      <h3 style="color:var(--purple);">Podmínka způsobilosti</h3>
+      <p style="font-size:12px;color:#5B21B6;line-height:1.5;">Přihláška musí obsahovat posudky z hodnocení. Bez posudků je formálně nezpůsobilá.</p>
+    </div>
+
+    <div class="sidebar-card" style="background:var(--gold-lite);border-color:#FDE68A;">
+      <h3 style="color:#92400E;">Kontakt</h3>
+      <p style="font-size:12px;color:#92400E;line-height:1.5;">Ing. Jana Kukáková<br>
+        <a href="mailto:jana.kukakova@uhk.cz" style="color:#92400E;">jana.kukakova@uhk.cz</a><br>
+        +420 703 150 087</p>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="../js/config.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+
+  const user = Auth.requireLogin(["ZADATEL","RESITEL","ADMIN","TESTER"]);
+  document.getElementById("topbarName").textContent = user.name || user.email;
+
+  const COMPETITION_ID = "uhk_rega_2026_v1";
+  const MAX_BUDGET     = 500000;
+
+  let formData    = {};
+  let draftId     = null;
+  let saveTimer   = null;
+  let isDirty     = false;
+  let currentStep = 0;
+  let uploadedFiles = {}; // název souboru per field_id
+
+  const STEPS = [
+    { id: "basic",      label: "Projekt",       icon: "1" },
+    { id: "team",       label: "Tým",           icon: "2" },
+    { id: "revision",   label: "Dopracování",   icon: "3" },
+    { id: "budget",     label: "Rozpočet",      icon: "4" },
+    { id: "attachments",label: "Přílohy",       icon: "5" },
+  ];
+
+  // ── Progress ──────────────────────────────────────────────
+  function renderProgress() {
+    document.getElementById("progressBar").innerHTML = STEPS.map((s, i) => `
+      <div class="progress-step ${i < currentStep ? "done" : i === currentStep ? "active" : ""}"
+        onclick="goToStep(${i})" title="${s.label}">
+        <div class="progress-dot">${i < currentStep ? "✓" : i + 1}</div>
+        <div class="progress-label">${s.label}</div>
+      </div>`).join("");
+  }
+
+  function goToStep(i) {
+    if (i > currentStep && !validateStep()) return;
+    saveDraftSilent();
+    currentStep = i;
+    renderProgress();
+    renderStep();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function nextStep() {
+    if (!validateStep()) return;
+    saveDraftSilent();
+    currentStep++;
+    renderProgress();
+    renderStep();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function prevStep() {
+    saveDraftSilent();
+    currentStep--;
+    renderProgress();
+    renderStep();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // ── Render kroku ──────────────────────────────────────────
+  function renderStep() {
+    const steps = {
+      basic:       renderBasic,
+      team:        renderTeam,
+      revision:    renderRevision,
+      budget:      renderBudget,
+      attachments: renderAttachments,
+    };
+    steps[STEPS[currentStep].id]();
+    updateChecklist();
+  }
+
+  function wrapPanel(title, subtitle, bodyHtml) {
+    const isLast  = currentStep === STEPS.length - 1;
+    const isFirst = currentStep === 0;
+    document.getElementById("formPanel").innerHTML = `
+      <div class="section-header">
+        <h2>${title}</h2>
+        <p>${subtitle}</p>
+      </div>
+      <div class="form-body">${bodyHtml}</div>
+      <div class="form-footer">
+        <div class="save-status">
+          <div class="save-dot" id="saveDot"></div>
+          <span id="saveStatusText">Neuloženo</span>
+        </div>
+        <div class="footer-btns">
+          ${!isFirst ? `<button class="btn btn-secondary" onclick="prevStep()">← Zpět</button>` : ""}
+          <button class="btn-ghost btn" onclick="saveDraftManual()">💾 Uložit rozdělaný</button>
+          ${!isLast
+            ? `<button class="btn btn-primary" onclick="nextStep()">Pokračovat →</button>`
+            : `<button class="btn btn-primary" id="submitBtn" onclick="submitApplication()">Odeslat přihlášku →</button>`}
+        </div>
+      </div>`;
+  }
+
+  // ── KROK 1: Projekt ───────────────────────────────────────
+  function renderBasic() {
+    wrapPanel("Základní informace o projektu", "Krok 1 z 5 · Identifikace původního projektu", `
+      <div class="alert-box alert-box--info">
+        <span class="alert-icon">ℹ</span>
+        <span>Žadatelem může být zaměstnanec nebo student UHK, který byl v původním projektu jako <strong>hlavní nebo vedlejší řešitel za UHK</strong>.</span>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Název původního projektu <span class="field-required">*</span></label>
+        <div class="field-help">Uveďte přesný název tak jak byl podán do GA ČR</div>
+        <input type="text" id="f-project_title" value="${v("project_title")}"
+          placeholder="Název projektu podaného do GA ČR"
+          onchange="fc('project_title',this.value)" required>
+        <div class="field-error" id="err-project_title">Toto pole je povinné.</div>
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label class="field-label">Cílová externí soutěž <span class="field-required">*</span></label>
+          <select id="f-original_agency" onchange="fc('original_agency',this.value)">
+            <option value="">— Vyberte —</option>
+            ${["GA ČR","TAČR","MŠMT","Jiný"].map(o => `<option value="${o}" ${v("original_agency")===o?"selected":""}>${o}</option>`).join("")}
+          </select>
+          <div class="field-error" id="err-original_agency">Toto pole je povinné.</div>
+        </div>
+        <div class="field">
+          <label class="field-label">Označení výzvy <span class="field-required">*</span></label>
+          <input type="text" id="f-original_call" value="${v("original_call")}"
+            placeholder="např. GA ČR 25-XXXXX"
+            onchange="fc('original_call',this.value)">
+          <div class="field-error" id="err-original_call">Toto pole je povinné.</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Datum původního podání <span class="field-required">*</span></label>
+        <input type="date" id="f-submission_date" value="${v("submission_date")}"
+          onchange="fc('submission_date',this.value)" style="max-width:200px;">
+        <div class="field-error" id="err-submission_date">Toto pole je povinné.</div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Role žadatele v projektu <span class="field-required">*</span></label>
+        <div class="radio-group">
+          ${[["Hlavní řešitel (PI)","Principal Investigator – odpovídá za celý projekt"],
+             ["Spoluřešitel","Vedlejší řešitel / Co-Investigator za UHK"]].map(([val, sub]) => `
+            <label class="radio-option ${v("applicant_role")===val?"selected":""}">
+              <input type="radio" name="applicant_role" value="${val}" ${v("applicant_role")===val?"checked":""}
+                onchange="onRadio('applicant_role',this)">
+              <div><div class="radio-label">${val}</div><div class="radio-sublabel">${sub}</div></div>
+            </label>`).join("")}
+        </div>
+        <div class="field-error" id="err-applicant_role">Vyberte roli.</div>
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label class="field-label">Součást UHK <span class="field-required">*</span></label>
+          <select id="f-faculty" onchange="fc('faculty',this.value)">
+            <option value="">— Vyberte —</option>
+            ${["PřF","PdF","FF","FIM","FVZ","REKTORÁT"].map(o => `<option value="${o}" ${v("faculty")===o?"selected":""}>${o}</option>`).join("")}
+          </select>
+          <div class="field-error" id="err-faculty">Toto pole je povinné.</div>
+        </div>
+        <div class="field">
+          <label class="field-label">Katedra / pracoviště <span class="field-required">*</span></label>
+          <input type="text" id="f-department" value="${v("department")}"
+            placeholder="Katedra informatiky"
+            onchange="fc('department',this.value)">
+          <div class="field-error" id="err-department">Toto pole je povinné.</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Abstrakt projektu <span class="field-required">*</span></label>
+        <div class="field-help">Max. 500 slov – stručný vědecký popis projektu</div>
+        <textarea id="f-project_abstract" placeholder="Vědecký abstrakt původního projektu…"
+          onchange="fc('project_abstract',this.value)" style="min-height:120px;">${v("project_abstract")}</textarea>
+        <div class="field-error" id="err-project_abstract">Toto pole je povinné.</div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Vědní oblast <span class="field-required">*</span></label>
+        <select id="f-research_area" onchange="fc('research_area',this.value)">
+          <option value="">— Vyberte —</option>
+          ${["Přírodní vědy","Technické vědy","Lékařské vědy","Společenské vědy","Humanitní vědy"]
+            .map(o => `<option value="${o}" ${v("research_area")===o?"selected":""}>${o}</option>`).join("")}
+        </select>
+        <div class="field-error" id="err-research_area">Toto pole je povinné.</div>
+      </div>
+    `);
+  }
+
+  // ── KROK 2: Tým ──────────────────────────────────────────
+  function renderTeam() {
+    wrapPanel("Řešitelský tým", "Krok 2 z 5 · Složení týmu a partneři", `
+      <div class="alert-box alert-box--warn">
+        <span class="alert-icon">!</span>
+        <span>Pokud je žadatelem student, musí být zároveň v <strong>pracovním poměru s UHK</strong> v rozsahu umožňujícím splnění podmínek soutěže.</span>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Členové týmu</label>
+        <div class="field-help">Uveďte všechny členy řešitelského týmu – jméno, pracoviště, role v projektu. Jeden člen na řádek.</div>
+        <textarea id="f-team_members" placeholder="Mgr. Jana Nováková, Ph.D. – PřF UHK – spoluřešitelka&#10;Ing. Petr Malý – FIM UHK – výzkumný pracovník"
+          onchange="fc('team_members',this.value)" style="min-height:140px;">${v("team_members")}</textarea>
+      </div>
+
+      <div class="section-divider">
+        <div class="section-divider-line"></div>
+        <div class="section-divider-label">Cílová výzva pro znovupodání</div>
+        <div class="section-divider-line"></div>
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label class="field-label">Cílová výzva <span class="field-required">*</span></label>
+          <div class="field-help">První výzva umožňující opakované podání</div>
+          <input type="text" id="f-resubmission_call" value="${v("resubmission_call")}"
+            placeholder="např. GA ČR 2027 – standardní projekty"
+            onchange="fc('resubmission_call',this.value)">
+          <div class="field-error" id="err-resubmission_call">Toto pole je povinné.</div>
+        </div>
+        <div class="field">
+          <label class="field-label">Předpokládaný termín podání <span class="field-required">*</span></label>
+          <input type="date" id="f-resubmission_date" value="${v("resubmission_date")}"
+            onchange="fc('resubmission_date',this.value)">
+          <div class="field-error" id="err-resubmission_date">Toto pole je povinné.</div>
+        </div>
+      </div>
+
+      <div class="alert-box alert-box--success">
+        <span class="alert-icon">✓</span>
+        <span>Projekt musí být znovupodán nejpozději do <strong>31. 3. 2027</strong>. Doba řešení se neprodlužuje jen z důvodu pozdějšího termínu výzvy.</span>
+      </div>
+    `);
+  }
+
+  // ── KROK 3: Dopracování ───────────────────────────────────
+  function renderRevision() {
+    wrapPanel("Plán dopracování", "Krok 3 z 5 · Reakce na posudky, plánované úpravy", `
+      <div class="alert-box alert-box--info">
+        <span class="alert-icon">ℹ</span>
+        <span>Popište konkrétní úpravy v reakci na připomínky hodnotitelů. <strong>Max. 1 strana.</strong> Čerpání musí směřovat k dopracování a znovupodání, nikoli k nahrazení externího financování.</span>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Popis plánovaných úprav <span class="field-required">*</span></label>
+        <div class="field-help">Reagujte konkrétně na připomínky z posudků – co přesně změníte a proč</div>
+        <textarea id="f-revision_plan"
+          placeholder="1. Metodologie: Posudek P1 upozornil na nedostatečné zdůvodnění výběru metody X. Plánujeme doplnit…&#10;2. Výzkumný design: …&#10;3. Rozpočet: …"
+          onchange="fc('revision_plan',this.value)" style="min-height:200px;">${v("revision_plan")}</textarea>
+        <div style="display:flex;justify-content:flex-end;margin-top:4px;">
+          <span id="charCount" style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">0 znaků</span>
+        </div>
+        <div class="field-error" id="err-revision_plan">Toto pole je povinné.</div>
+      </div>
+    `);
+
+    // Počítadlo znaků
+    const ta = document.getElementById("f-revision_plan");
+    if (ta) {
+      const updateCount = () => {
+        const len = ta.value.length;
+        document.getElementById("charCount").textContent = len.toLocaleString("cs-CZ") + " znaků";
+        document.getElementById("charCount").style.color = len > 5000 ? "var(--red)" : "var(--muted)";
+      };
+      ta.addEventListener("input", updateCount);
+      updateCount();
+    }
+  }
+
+  // ── KROK 4: Rozpočet ─────────────────────────────────────
+  function renderBudget() {
+    wrapPanel("Rozpočet interní podpory", "Krok 4 z 5 · Způsobilé náklady dle přílohy č. 1 výzvy", `
+      <div class="alert-box alert-box--warn">
+        <span class="alert-icon">!</span>
+        <span>Způsobilé: osobní náklady (DPP/DPČ), materiál, cestovní náklady, publikační a konferenční poplatky, jazyková korektura. <strong>Nezpůsobilé:</strong> reprezentace, investice, náklady mimo dobu řešení (před 15. 4. nebo po 30. 11. 2026).</span>
+      </div>
+
+      <div class="budget-grid">
+        ${[
+          ["budget_personnel_pi",    "A. Osobní náklady – řešitel (Kč)", "DPP/DPČ za vědeckou a odbornou práci", true],
+          ["budget_personnel_admin", "B. Osobní náklady – administrativa (Kč)", "Max. 5 000 Kč/měsíc", false],
+          ["budget_material",        "C. Materiální náklady (Kč)", "Kancelářský materiál, literatura, drobný majetek", false],
+          ["budget_travel",          "D. Cestovní náklady (Kč)", "Doprava, ubytování, stravné", false],
+          ["budget_other",           "E. Ostatní služby (Kč)", "APC, konference, korektura, konzultace", false],
+        ].map(([id, label, hint]) => `
+          <div class="budget-item">
+            <div class="budget-item-label">${label}</div>
+            <div class="field-help" style="padding:4px 12px;font-size:11px;">${hint}</div>
+            <input type="number" id="f-${id}" min="0" value="${v(id)||""}"
+              placeholder="0" oninput="onBudgetInput()">
+          </div>`).join("")}
+        <div class="budget-item budget-total-row">
+          <div class="budget-item-label">Celková požadovaná podpora (Kč)</div>
+          <div class="budget-total-display" id="budgetTotalDisplay">0 Kč</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Odůvodnění rozpočtu <span class="field-required">*</span></label>
+        <div class="field-help">Vazba jednotlivých položek na realizaci projektu a jeho znovupodání</div>
+        <textarea id="f-budget_justification"
+          placeholder="A. Osobní náklady: DPP pro řešitele v rozsahu X hodin/měsíc na přepracování metodologie (sekce 2.1 návrhu)…"
+          onchange="fc('budget_justification',this.value)">${v("budget_justification")}</textarea>
+        <div class="field-error" id="err-budget_justification">Toto pole je povinné.</div>
+      </div>
+    `);
+
+    onBudgetInput();
+  }
+
+  function onBudgetInput() {
+    const fields = ["budget_personnel_pi","budget_personnel_admin","budget_material","budget_travel","budget_other"];
+    let total = 0;
+    fields.forEach(id => {
+      const el = document.getElementById("f-" + id);
+      if (el) { const v = parseFloat(el.value)||0; total += v; formData[id] = el.value; }
+    });
+    formData["budget_total"] = String(total);
+    const disp = document.getElementById("budgetTotalDisplay");
+    if (disp) disp.textContent = total.toLocaleString("cs-CZ") + " Kč";
+    // Sidebar
+    document.getElementById("budgetDisplay").textContent = total.toLocaleString("cs-CZ") + " Kč";
+    const pct = Math.min(100, Math.round(total / MAX_BUDGET * 100));
+    const bar = document.getElementById("budgetBar");
+    bar.style.width = pct + "%";
+    bar.classList.toggle("over", total > MAX_BUDGET);
+    isDirty = true;
+    scheduleAutoSave();
+  }
+
+  // ── KROK 5: Přílohy ──────────────────────────────────────
+  function renderAttachments() {
+    const attachments = [
+      { id: "attach_original", label: "Původní návrh projektu", help: "Původní verze podaná do GA ČR – dokument z GRIS nebo eAplikace", accept: ".pdf", required: true },
+      { id: "attach_reviews",  label: "Posudky z hodnocení + vyrozumění", help: "Všechny posudky + vyrozumění o výsledku hodnocení. Bez tohoto dokumentu je přihláška formálně nezpůsobilá.", accept: ".pdf", required: true },
+      { id: "attach_budget",   label: "Vzor rozpočtu interní podpory (příloha č. 2)", help: "Vyplněná šablona rozpočtu dle přílohy č. 2 výzvy", accept: ".pdf,.xlsx,.xls", required: true },
+    ];
+
+    const attachHtml = attachments.map(a => `
+      <div class="field">
+        <label class="field-label">${a.label} ${a.required?'<span class="field-required">*</span>':""}</label>
+        <div class="field-help">${a.help}</div>
+        <div class="file-zone" onclick="document.getElementById('f-${a.id}').click()">
+          <div class="file-zone-text">Klikněte pro výběr souboru nebo přetáhněte</div>
+          <div class="file-zone-hint">Přijímané formáty: ${a.accept}</div>
+          <input type="file" id="f-${a.id}" accept="${a.accept}"
+            onchange="onFile('${a.id}',this)">
+        </div>
+        ${uploadedFiles[a.id] ? `
+          <div class="file-selected">
+            <span>✓</span>
+            <span>${uploadedFiles[a.id]}</span>
+            <button class="file-remove" onclick="removeFile('${a.id}')">✕</button>
+          </div>` : ""}
+        <div class="field-error" id="err-${a.id}">Nahrajte prosím tento soubor.</div>
+      </div>`).join("");
+
+    wrapPanel("Povinné přílohy", "Krok 5 z 5 · Nahrajte všechny povinné dokumenty", `
+      <div class="alert-box alert-box--info">
+        <span class="alert-icon">ℹ</span>
+        <span>Soubory budou přiloženy k přihlášce. Maximální velikost jednoho souboru: 25 MB. Přihlášky bez posudků jsou <strong>automaticky vyřazeny</strong>.</span>
+      </div>
+
+      ${attachHtml}
+
+      <div class="section-divider">
+        <div class="section-divider-line"></div>
+        <div class="section-divider-label">Prohlášení</div>
+        <div class="section-divider-line"></div>
+      </div>
+
+      <div class="field">
+        <div class="checkbox-wrap">
+          <input type="checkbox" id="f-declaration" ${v("declaration")==="true"?"checked":""}
+            onchange="fc('declaration',this.checked?'true':'')">
+          <label class="checkbox-label" for="f-declaration">
+            Souhlasím s podmínkami soutěže UHK ReGa (Pokyn prorektorky č. 05/2026) a potvrzuji, že všechny uvedené informace jsou pravdivé a úplné. Beru na vědomí, že návrh projektu, jehož hodnocení v jakékoli externí soutěži dosud probíhá, nemohu přihlásit do UHK ReGa. <span class="field-required">*</span>
+          </label>
+        </div>
+        <div class="field-error" id="err-declaration">Potvrďte prosím prohlášení.</div>
+      </div>
+    `);
+  }
+
+  // ── Pomocné funkce ────────────────────────────────────────
+  function v(id) { return formData[id] || ""; }
+
+  function fc(id, val) {
+    formData[id] = val;
+    isDirty = true;
+    scheduleAutoSave();
+    updateChecklist();
+    const err = document.getElementById("err-" + id);
+    if (err) err.classList.remove("show");
+    const inp = document.getElementById("f-" + id);
+    if (inp) inp.classList.remove("error");
+  }
+
+  function onRadio(id, input) {
+    fc(id, input.value);
+    document.querySelectorAll(`input[name="${id}"]`).forEach(r => {
+      r.closest(".radio-option")?.classList.toggle("selected", r === input);
+    });
+  }
+
+  function onFile(id, input) {
+    if (input.files[0]) {
+      uploadedFiles[id] = input.files[0].name;
+      formData[id]      = input.files[0].name;
+      isDirty = true;
+      updateChecklist();
+      renderStep(); // rerender pro zobrazení file-selected
+    }
+  }
+
+  function removeFile(id) {
+    delete uploadedFiles[id];
+    delete formData[id];
+    isDirty = true;
+    updateChecklist();
+    renderStep();
+  }
+
+  // ── Validace ─────────────────────────────────────────────
+  const REQUIRED_PER_STEP = {
+    basic:       ["project_title","original_agency","original_call","submission_date","applicant_role","faculty","department","project_abstract","research_area"],
+    team:        ["resubmission_call","resubmission_date"],
+    revision:    ["revision_plan"],
+    budget:      ["budget_justification"],
+    attachments: ["attach_original","attach_reviews","attach_budget","declaration"],
+  };
+
+  function validateStep() {
+    const stepId  = STEPS[currentStep].id;
+    const reqFields = REQUIRED_PER_STEP[stepId] || [];
+    let ok = true;
+    reqFields.forEach(id => {
+      const val = formData[id] || "";
+      if (!val || val.trim() === "") {
+        const err = document.getElementById("err-" + id);
+        if (err) err.classList.add("show");
+        const inp = document.getElementById("f-" + id);
+        if (inp) inp.classList.add("error");
+        ok = false;
+      }
+    });
+    if (!ok) showToast("Vyplňte prosím všechna povinná pole.", "err");
+    return ok;
+  }
+
+  // ── Checklist ─────────────────────────────────────────────
+  function updateChecklist() {
+    const checks = [
+      { label: "Název projektu",        done: !!v("project_title") },
+      { label: "Cílová soutěž",         done: !!v("original_agency") },
+      { label: "Role žadatele",         done: !!v("applicant_role") },
+      { label: "Abstrakt",              done: !!v("project_abstract") },
+      { label: "Cílová výzva (resubm.)",done: !!v("resubmission_call") },
+      { label: "Plán dopracování",      done: !!v("revision_plan") },
+      { label: "Odůvodnění rozpočtu",   done: !!v("budget_justification") },
+      { label: "Původní návrh (PDF)",   done: !!uploadedFiles["attach_original"] },
+      { label: "Posudky (PDF)",         done: !!uploadedFiles["attach_reviews"] },
+      { label: "Vzor rozpočtu",         done: !!uploadedFiles["attach_budget"] },
+      { label: "Prohlášení",            done: v("declaration") === "true" },
+    ];
+    document.getElementById("checklist").innerHTML = checks.map(c => `
+      <div class="checklist-item ${c.done?"done":""}">
+        <div class="check-circle">${c.done?"✓":""}</div>
+        <span>${c.label}</span>
+      </div>`).join("");
+  }
+
+  // ── Auto-save ──────────────────────────────────────────────
+  function scheduleAutoSave() {
+    clearTimeout(saveTimer);
+    const dot = document.getElementById("saveDot");
+    if (dot) dot.className = "save-dot saving";
+    saveTimer = setTimeout(saveDraftSilent, 30000);
+  }
+
+  async function saveDraftSilent() { if (isDirty) await saveDraft(false); }
+  async function saveDraftManual() { await saveDraft(true); }
+
+  async function saveDraft(showMsg) {
+    try {
+      const session = Auth._getSession();
+      await fetch(API_URL, {
+        method: "POST", mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "saveDraft", token: session?.token || "",
+          competitionId: COMPETITION_ID, draftId, formData,
+          applicantEmail: user.email,
+        }),
+      });
+      isDirty = false;
+      const now = new Date().toLocaleTimeString("cs-CZ", { hour:"2-digit", minute:"2-digit" });
+      document.getElementById("lastSaved").textContent = now;
+      const dot = document.getElementById("saveDot");
+      if (dot) dot.className = "save-dot saved";
+      const txt = document.getElementById("saveStatusText");
+      if (txt) txt.textContent = "Uloženo " + now;
+      if (showMsg) showToast("Draft uložen ✓");
+    } catch {
+      if (showMsg) showToast("Ukládání selhalo.", "err");
+    }
+  }
+
+  // ── Odeslání ──────────────────────────────────────────────
+  async function submitApplication() {
+    if (!validateStep()) return;
+    if (v("declaration") !== "true") { showToast("Potvrďte prohlášení žadatele.", "err"); return; }
+
+    const btn = document.getElementById("submitBtn");
+    btn.disabled = true; btn.textContent = "Odesílám…";
+
+    try {
+      const session = Auth._getSession();
+      await fetch(API_URL, {
+        method: "POST", mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "submitApplication", token: session?.token || "",
+          competitionId: COMPETITION_ID, draftId, formData,
+          applicantEmail: user.email, applicantName: user.name || user.email,
+        }),
+      });
+
+      document.getElementById("formPanel").innerHTML = `
+        <div style="padding:48px 32px;text-align:center;">
+          <div style="font-size:48px;margin-bottom:16px;">✅</div>
+          <h2 style="font-size:22px;color:var(--navy);margin-bottom:8px;">Přihláška odeslána!</h2>
+          <p style="font-size:14px;color:var(--muted);margin-bottom:8px;">
+            Vaše přihláška do UHK ReGa 2026 byla úspěšně podána.</p>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:24px;">
+            Výsledky hodnocení budou zveřejněny do 13. 4. 2026.<br>
+            Kontakt: <a href="mailto:jana.kukakova@uhk.cz" style="color:var(--purple);">jana.kukakova@uhk.cz</a>
+          </p>
+          <a href="dashboard.html" class="btn btn-primary" style="background:var(--purple);">← Zpět na rozcestník</a>
+        </div>`;
+      showToast("Přihláška úspěšně odeslána! ✓");
+    } catch {
+      btn.disabled = false; btn.textContent = "Odeslat přihlášku →";
+      showToast("Chyba při odesílání – zkuste znovu.", "err");
+    }
+  }
+
+  // ── Toast ─────────────────────────────────────────────────
+  let tt;
+  function showToast(msg, type = "ok") {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.style.background = type === "err" ? "#991B1B" : "#1E6B45";
+    t.classList.add("show");
+    clearTimeout(tt);
+    tt = setTimeout(() => t.classList.remove("show"), 4000);
+  }
+
+  // ── INIT ─────────────────────────────────────────────────
+  document.getElementById("loadingState").style.display = "none";
+  renderProgress();
+  renderStep();
+  updateChecklist();
+
+  // Načti draft
+  (async () => {
+    try {
+      const session = Auth._getSession();
+      const url = new URL(API_URL);
+      url.searchParams.set("action", "getDraft");
+      url.searchParams.set("competitionId", COMPETITION_ID);
+      url.searchParams.set("applicantEmail", user.email);
+      url.searchParams.set("token", session?.token || "");
+      const res  = await fetch(url.toString());
+      const data = await res.json();
+      if (data.draft?.formData) {
+        formData = data.draft.formData;
+        draftId  = data.draft.id;
+        renderStep();
+        updateChecklist();
+        showToast("Načten uložený draft.");
+      }
+    } catch {}
+  })();
+
+</script>
+</body>
+</html>
