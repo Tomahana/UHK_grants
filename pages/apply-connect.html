@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Přihláška – UHK Connect</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #1C2E5A; --navy-mid: #2F4A8A; --navy-lite: #E8EDF8;
+      --gold: #C49A2A; --gold-lite: #FDF6E3;
+      --green: #1E6B45; --green-lite: #E6F4EE;
+      --red: #991B1B; --red-lite: #FEF2F2;
+      --border: #E2E0D8; --muted: #6B6A63;
+      --bg: #F8F7F4; --white: #FFFFFF;
+      --r: 8px; --r-lg: 12px;
+      --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--navy); min-height: 100vh; font-size: 15px; line-height: 1.6; }
+
+    /* TOPBAR */
+    .topbar { background: var(--navy); height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 100; }
+    .topbar__logo { display: flex; align-items: center; gap: 10px; }
+    .topbar__logo img { height: 26px; opacity: .9; }
+    .topbar__title { font-size: 14px; font-weight: 500; color: rgba(255,255,255,.8); }
+    .topbar__right { display: flex; align-items: center; gap: 10px; }
+    .topbar__user { font-size: 13px; color: rgba(255,255,255,.5); }
+    .topbar__user strong { color: rgba(255,255,255,.85); font-weight: 500; }
+    .btn-back { background: none; border: 1px solid rgba(255,255,255,.2); color: rgba(255,255,255,.6); font-family: 'DM Mono', monospace; font-size: 11px; padding: 5px 12px; border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; transition: all .15s; }
+    .btn-back:hover { color: white; border-color: rgba(255,255,255,.4); }
+
+    /* PROGRESS BAR */
+    .progress-wrap { background: white; border-bottom: 1px solid var(--border); padding: 0 24px; }
+    .progress-inner { max-width: 860px; margin: 0 auto; display: flex; align-items: center; gap: 0; }
+    .progress-step { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 12px 8px; position: relative; cursor: pointer; }
+    .progress-step::after { content: ''; position: absolute; right: 0; top: 50%; width: 1px; height: 24px; background: var(--border); transform: translateY(-50%); }
+    .progress-step:last-child::after { display: none; }
+    .progress-dot { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border); background: white; display: flex; align-items: center; justify-content: center; font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; color: var(--muted); margin-bottom: 4px; transition: all .2s; }
+    .progress-step.done .progress-dot { background: var(--green); border-color: var(--green); color: white; }
+    .progress-step.active .progress-dot { background: var(--navy); border-color: var(--navy); color: white; }
+    .progress-label { font-size: 11px; color: var(--muted); text-align: center; font-weight: 500; }
+    .progress-step.active .progress-label { color: var(--navy); }
+    .progress-step.done .progress-label { color: var(--green); }
+
+    /* LAYOUT */
+    .app-layout { max-width: 860px; margin: 0 auto; padding: 32px 24px 80px; display: grid; grid-template-columns: 1fr 280px; gap: 24px; align-items: start; }
+    @media (max-width: 700px) { .app-layout { grid-template-columns: 1fr; } .sidebar { display: none; } }
+
+    /* FORM PANEL */
+    .form-panel { background: white; border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow); overflow: hidden; }
+    .section-header { background: var(--navy-lite); border-bottom: 1px solid #D0D8EE; padding: 16px 24px; }
+    .section-header h2 { font-size: 15px; font-weight: 600; color: var(--navy); }
+    .section-header p { font-size: 13px; color: #4A5A8A; margin-top: 2px; }
+    .form-body { padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+
+    /* FIELD */
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field-label { font-size: 13px; font-weight: 500; color: var(--navy); display: flex; align-items: center; gap: 4px; }
+    .field-required { color: #C41E1E; font-size: 14px; line-height: 1; }
+    .field-help { font-size: 12px; color: var(--muted); }
+    .field input[type="text"], .field input[type="email"], .field input[type="number"], .field input[type="date"],
+    .field select, .field textarea {
+      width: 100%; padding: 10px 12px; border: 1.5px solid var(--border);
+      border-radius: var(--r); font-family: 'DM Sans', sans-serif; font-size: 14px;
+      color: var(--navy); background: white; outline: none; transition: border-color .15s, box-shadow .15s;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus {
+      border-color: var(--navy-mid); box-shadow: 0 0 0 3px rgba(47,74,138,.1);
+    }
+    .field input.error, .field select.error, .field textarea.error { border-color: var(--red); }
+    .field textarea { min-height: 96px; resize: vertical; line-height: 1.5; }
+    .field select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%231C2E5A' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; cursor: pointer; }
+    .field-error { font-size: 12px; color: var(--red); display: none; }
+    .field-error.show { display: block; }
+
+    /* RADIO GROUP */
+    .radio-group { display: flex; flex-direction: column; gap: 8px; }
+    .radio-option { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: var(--r); cursor: pointer; transition: all .15s; }
+    .radio-option:hover { border-color: var(--navy-mid); background: var(--navy-lite); }
+    .radio-option input[type="radio"] { accent-color: var(--navy); width: 16px; height: 16px; cursor: pointer; flex-shrink: 0; }
+    .radio-option.selected { border-color: var(--navy); background: var(--navy-lite); }
+    .radio-label { font-size: 14px; color: var(--navy); line-height: 1.3; }
+
+    /* CHECKBOX */
+    .checkbox-wrap { display: flex; align-items: flex-start; gap: 10px; padding: 14px; border: 1.5px solid var(--border); border-radius: var(--r); }
+    .checkbox-wrap input[type="checkbox"] { accent-color: var(--navy); width: 18px; height: 18px; cursor: pointer; flex-shrink: 0; margin-top: 1px; }
+    .checkbox-label { font-size: 13px; color: var(--navy); line-height: 1.5; }
+
+    /* FILE */
+    .file-zone { border: 2px dashed var(--border); border-radius: var(--r); padding: 20px; text-align: center; cursor: pointer; transition: all .15s; }
+    .file-zone:hover { border-color: var(--navy-mid); background: var(--navy-lite); }
+    .file-zone-icon { font-size: 24px; margin-bottom: 6px; }
+    .file-zone-text { font-size: 13px; color: var(--muted); }
+    .file-zone-hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .file-zone input[type="file"] { display: none; }
+    .file-selected { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--green-lite); border-radius: var(--r); margin-top: 8px; font-size: 13px; color: var(--green); }
+
+    /* BUDGET TABLE */
+    .budget-table { border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
+    .budget-row { display: grid; grid-template-columns: 1fr 140px; align-items: center; border-bottom: 1px solid var(--border); }
+    .budget-row:last-child { border-bottom: none; background: var(--navy-lite); }
+    .budget-label { padding: 10px 14px; font-size: 13px; color: var(--navy); }
+    .budget-label.total { font-weight: 600; }
+    .budget-input { border: none; border-left: 1px solid var(--border); padding: 10px 12px; font-family: 'DM Mono', monospace; font-size: 13px; text-align: right; color: var(--navy); background: transparent; width: 100%; outline: none; }
+    .budget-input:focus { background: var(--navy-lite); }
+    .budget-total-val { padding: 10px 12px; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 600; color: var(--navy); text-align: right; border-left: 1px solid var(--border); }
+
+    /* SECTION DIVIDER */
+    .section-divider { display: flex; align-items: center; gap: 12px; padding: 4px 0; }
+    .section-divider-line { flex: 1; height: 1px; background: var(--border); }
+    .section-divider-label { font-size: 12px; font-weight: 600; color: var(--navy); letter-spacing: .05em; text-transform: uppercase; background: var(--navy-lite); padding: 4px 12px; border-radius: 100px; border: 1px solid #D0D8EE; white-space: nowrap; }
+
+    /* BUTTONS */
+    .form-footer { padding: 20px 24px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #FAFAF8; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border-radius: var(--r); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all .15s; text-decoration: none; }
+    .btn-primary { background: var(--navy); color: white; }
+    .btn-primary:hover { background: var(--navy-mid); }
+    .btn-primary:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+    .btn-secondary { background: white; color: var(--navy); border: 1.5px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--navy); background: var(--navy-lite); }
+    .btn-ghost { background: transparent; color: var(--muted); font-size: 13px; padding: 8px 12px; }
+    .btn-ghost:hover { color: var(--navy); }
+
+    /* SAVE STATUS */
+    .save-status { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; font-family: 'DM Mono', monospace; }
+    .save-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); }
+    .save-dot.saving { background: var(--gold); animation: pulse .8s infinite; }
+    .save-dot.saved { background: var(--green); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    /* SIDEBAR */
+    .sidebar { display: flex; flex-direction: column; gap: 16px; }
+    .sidebar-card { background: white; border: 1px solid var(--border); border-radius: var(--r-lg); padding: 18px; box-shadow: var(--shadow); }
+    .sidebar-card h3 { font-size: 13px; font-weight: 600; color: var(--navy); margin-bottom: 10px; }
+    .sidebar-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+    .sidebar-item:last-child { border-bottom: none; }
+    .sidebar-key { color: var(--muted); }
+    .sidebar-val { color: var(--navy); font-weight: 500; text-align: right; }
+    .checklist-item { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 12px; color: var(--muted); }
+    .checklist-item.done { color: var(--green); }
+    .checklist-dot { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 9px; }
+    .checklist-item.done .checklist-dot { background: var(--green); border-color: var(--green); color: white; }
+    .budget-summary { font-size: 22px; font-weight: 600; color: var(--navy); font-family: 'DM Mono', monospace; margin-bottom: 4px; }
+    .budget-limit { font-size: 12px; color: var(--muted); }
+    .budget-bar-wrap { height: 6px; background: var(--border); border-radius: 3px; margin-top: 10px; }
+    .budget-bar { height: 6px; border-radius: 3px; background: var(--navy); transition: width .3s; }
+    .budget-bar.over { background: var(--red); }
+
+    /* LOADING */
+    .loading-state { padding: 48px 24px; text-align: center; color: var(--muted); }
+    .spinner { width: 28px; height: 28px; border: 2px solid var(--border); border-top-color: var(--navy); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 12px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* TOAST */
+    .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px); color: white; font-size: 14px; font-weight: 500; padding: 12px 24px; border-radius: 100px; z-index: 9999; transition: transform .3s cubic-bezier(.34,1.56,.64,1); white-space: nowrap; }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 100px; font-size: 11px; font-weight: 600; }
+    .badge-draft { background: #E6F1FB; color: #0C447C; }
+    .badge-submitted { background: var(--green-lite); color: var(--green); }
+  </style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar__logo">
+      <img src="../img/uhk-abb-w.png" alt="UHK">
+      <span class="topbar__title">UHK Connect 2026 – Přihláška</span>
+    </div>
+    <div class="topbar__right">
+      <div class="topbar__user">Přihlášen: <strong id="topbarName">—</strong></div>
+      <a href="dashboard.html" class="btn-back">← Rozcestník</a>
+    </div>
+  </header>
+
+  <!-- Progress -->
+  <div class="progress-wrap">
+    <div class="progress-inner" id="progressBar"></div>
+  </div>
+
+  <div class="app-layout">
+    <!-- Hlavní formulář -->
+    <div>
+      <div class="form-panel" id="formPanel">
+        <div class="loading-state" id="loadingState">
+          <div class="spinner"></div>
+          <p>Načítám formulář…</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-card">
+        <h3>Stav přihlášky</h3>
+        <div style="margin-bottom:12px;">
+          <span class="badge badge-draft" id="statusBadge">DRAFT</span>
+        </div>
+        <div class="sidebar-item">
+          <span class="sidebar-key">Soutěž</span>
+          <span class="sidebar-val">UHK Connect 2026</span>
+        </div>
+        <div class="sidebar-item">
+          <span class="sidebar-key">Uzávěrka</span>
+          <span class="sidebar-val">14. 10. 2026</span>
+        </div>
+        <div class="sidebar-item">
+          <span class="sidebar-key">Max. podpora</span>
+          <span class="sidebar-val">80 000 Kč</span>
+        </div>
+        <div class="sidebar-item">
+          <span class="sidebar-key">Uloženo</span>
+          <span class="sidebar-val" id="lastSaved">—</span>
+        </div>
+      </div>
+
+      <div class="sidebar-card">
+        <h3>Rozpočet</h3>
+        <div class="budget-summary" id="budgetDisplay">0 Kč</div>
+        <div class="budget-limit">z max. 80 000 Kč</div>
+        <div class="budget-bar-wrap">
+          <div class="budget-bar" id="budgetBar" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div class="sidebar-card">
+        <h3>Kontrolní seznam</h3>
+        <div id="checklist"></div>
+      </div>
+
+      <div class="sidebar-card" style="background:var(--gold-lite);border-color:#E8D88A;">
+        <h3 style="color:#7A5A10;">Potřebujete pomoc?</h3>
+        <p style="font-size:12px;color:#7A5A10;line-height:1.5;">Ing. Veronika Hrůzová<br>
+          <a href="mailto:veronika.hruzova@uhk.cz" style="color:#7A5A10;">veronika.hruzova@uhk.cz</a><br>
+          +420 777 147 670</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/auth.js"></script>
+  <script>
+
+    const user = Auth.requireLogin(["ZADATEL","RESITEL","ADMIN","TESTER"]);
+    document.getElementById("topbarName").textContent = user.name || user.email;
+
+    const COMPETITION_ID = "uhk_connect_2026_v2";
+    const MAX_BUDGET = 80000;
+
+    // Stav formuláře
+    let formFields  = [];
+    let formData    = {};
+    let draftId     = null;
+    let saveTimer   = null;
+    let isDirty     = false;
+    let currentSection = 0;
+
+    const STEPS = [
+      { label: "Základní info",  fields: ["section_basic","project_title","faculty","department","applicant_type","phd_year"] },
+      { label: "Aktivita",       fields: ["section_activity","activity_type","activity_goal","partner_institution","partner_country","partner_contact","activity_start","activity_end"] },
+      { label: "Výstup",         fields: ["section_output","expected_output","output_description"] },
+      { label: "Rozpočet",       fields: ["section_budget","budget_travel","budget_accommodation","budget_meals","budget_local","budget_fee","budget_publication","budget_total","budget_justification"] },
+      { label: "Přílohy",        fields: ["section_attachments","attach_invitation","attach_budget_template","declaration"] },
+    ];
+
+    // ── Načtení FORM_FIELDS ze Sheets ─────────────────────────
+    async function loadFormFields() {
+      try {
+        const session = Auth._getSession();
+        const url = new URL(API_URL);
+        url.searchParams.set("action", "getFormFields");
+        url.searchParams.set("competitionId", COMPETITION_ID);
+        url.searchParams.set("token", session?.token || "");
+        const res  = await fetch(url.toString());
+        const data = await res.json();
+        formFields = data.fields || [];
+        if (!formFields.length) formFields = getFallbackFields();
+      } catch {
+        formFields = getFallbackFields();
+      }
+      renderProgress();
+      renderSection(currentSection);
+      loadDraft();
+    }
+
+    // ── Progress bar ────────────────────────────────────────────
+    function renderProgress() {
+      document.getElementById("progressBar").innerHTML = STEPS.map((s, i) => `
+        <div class="progress-step ${i < currentSection ? "done" : i === currentSection ? "active" : ""}"
+          onclick="goToSection(${i})">
+          <div class="progress-dot">${i < currentSection ? "✓" : i + 1}</div>
+          <div class="progress-label">${s.label}</div>
+        </div>`).join("");
+    }
+
+    function goToSection(i) {
+      if (i > currentSection) {
+        if (!validateSection()) return;
+      }
+      saveDraftSilent();
+      currentSection = i;
+      renderProgress();
+      renderSection(currentSection);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    // ── Render sekce ────────────────────────────────────────────
+    function renderSection(idx) {
+      const step   = STEPS[idx];
+      const fields = formFields.filter(f => step.fields.includes(f.field_id));
+      const panel  = document.getElementById("formPanel");
+
+      let html = `
+        <div class="section-header">
+          <h2>${step.label}</h2>
+          <p>Krok ${idx + 1} z ${STEPS.length}</p>
+        </div>
+        <div class="form-body" id="formBody">`;
+
+      fields.forEach(f => {
+        html += renderField(f);
+      });
+
+      html += `</div>
+        <div class="form-footer">
+          <div class="save-status">
+            <div class="save-dot" id="saveDot"></div>
+            <span id="saveStatusText">Neuloženo</span>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            ${idx > 0 ? `<button class="btn btn-secondary" onclick="prevSection()">← Zpět</button>` : ""}
+            <button class="btn btn-ghost" onclick="saveDraftManual()">💾 Uložit rozdělaný</button>
+            ${idx < STEPS.length - 1
+              ? `<button class="btn btn-primary" onclick="nextSection()">Pokračovat →</button>`
+              : `<button class="btn btn-primary" id="submitBtn" onclick="submitApplication()">Odeslat přihlášku →</button>`}
+          </div>
+        </div>`;
+
+      panel.innerHTML = html;
+      restoreValues(fields);
+      bindEvents(fields);
+      updateChecklist();
+    }
+
+    function renderField(f) {
+      if (f.field_type === "section_header") {
+        return `<div class="section-divider">
+          <div class="section-divider-line"></div>
+          <div class="section-divider-label">${f.field_label}</div>
+          <div class="section-divider-line"></div>
+        </div>`;
+      }
+
+      const req = f.required === "TRUE" || f.required === true;
+      const val = formData[f.field_id] || "";
+      let input = "";
+
+      if (f.field_type === "textarea") {
+        input = `<textarea id="f-${f.field_id}" placeholder="${f.placeholder||""}" ${req?"required":""}
+          onchange="onFieldChange('${f.field_id}',this.value)">${val}</textarea>`;
+
+      } else if (f.field_type === "select") {
+        const opts = (f.options||"").split(";").filter(Boolean);
+        input = `<select id="f-${f.field_id}" ${req?"required":""}
+          onchange="onFieldChange('${f.field_id}',this.value)">
+          <option value="">— Vyberte —</option>
+          ${opts.map(o => `<option value="${o}" ${val===o?"selected":""}>${o}</option>`).join("")}
+        </select>`;
+
+      } else if (f.field_type === "radio") {
+        const opts = (f.options||"").split(";").filter(Boolean);
+        input = `<div class="radio-group">
+          ${opts.map((o,i) => `
+            <label class="radio-option ${val===o?"selected":""}">
+              <input type="radio" name="${f.field_id}" value="${o}" ${val===o?"checked":""}
+                onchange="onRadioChange('${f.field_id}',this)">
+              <span class="radio-label">${o}</span>
+            </label>`).join("")}
+        </div>`;
+
+      } else if (f.field_type === "checkbox") {
+        return `<div class="field">
+          <div class="checkbox-wrap">
+            <input type="checkbox" id="f-${f.field_id}" ${val==="true"?"checked":""}
+              onchange="onFieldChange('${f.field_id}',this.checked?'true':'')">
+            <label class="checkbox-label" for="f-${f.field_id}">${f.help_text || f.field_label} ${req?'<span style="color:var(--red)">*</span>':""}</label>
+          </div>
+          <div class="field-error" id="err-${f.field_id}">Toto pole je povinné.</div>
+        </div>`;
+
+      } else if (f.field_type === "file") {
+        const accept = f.options ? f.options.split(",").map(e=>"."+e.trim()).join(",") : "*";
+        return `<div class="field">
+          <label class="field-label">${f.field_label} ${req?'<span class="field-required">*</span>':""}</label>
+          ${f.help_text ? `<div class="field-help">${f.help_text}</div>` : ""}
+          <div class="file-zone" onclick="document.getElementById('f-${f.field_id}').click()">
+            <div class="file-zone-icon">📎</div>
+            <div class="file-zone-text">Klikněte pro výběr souboru</div>
+            <div class="file-zone-hint">Formát: ${f.options||"jakýkoli"}</div>
+            <input type="file" id="f-${f.field_id}" accept="${accept}"
+              onchange="onFileChange('${f.field_id}',this)">
+          </div>
+          <div id="file-info-${f.field_id}" style="display:none;" class="file-selected">
+            <span>✓</span> <span id="file-name-${f.field_id}"></span>
+          </div>
+          <div class="field-error" id="err-${f.field_id}">Nahrajte prosím soubor.</div>
+        </div>`;
+
+      } else {
+        // text, email, number, date
+        input = `<input type="${f.field_type}" id="f-${f.field_id}"
+          placeholder="${f.placeholder||""}" value="${val}" ${req?"required":""}
+          onchange="onFieldChange('${f.field_id}',this.value)"
+          ${f.field_type==="number"?"min='0'":""}>`;
+      }
+
+      return `<div class="field">
+        <label class="field-label" for="f-${f.field_id}">
+          ${f.field_label} ${req?'<span class="field-required">*</span>':""}
+        </label>
+        ${f.help_text ? `<div class="field-help">${f.help_text}</div>` : ""}
+        ${input}
+        <div class="field-error" id="err-${f.field_id}">Toto pole je povinné.</div>
+      </div>`;
+    }
+
+    function restoreValues(fields) {
+      // Hodnoty jsou již vloženy v renderField přes value="..." – jen pro jistotu radio
+      fields.filter(f => f.field_type === "radio").forEach(f => {
+        if (formData[f.field_id]) {
+          document.querySelectorAll(`input[name="${f.field_id}"]`).forEach(r => {
+            r.closest(".radio-option")?.classList.toggle("selected", r.value === formData[f.field_id]);
+          });
+        }
+      });
+    }
+
+    function bindEvents(fields) {
+      // Budget fields – live výpočet
+      const budgetFields = ["budget_travel","budget_accommodation","budget_meals","budget_local","budget_fee","budget_publication"];
+      budgetFields.forEach(id => {
+        const el = document.getElementById("f-" + id);
+        if (el) el.addEventListener("input", updateBudget);
+      });
+    }
+
+    // ── Změna hodnoty ──────────────────────────────────────────
+    function onFieldChange(id, val) {
+      formData[id] = val;
+      isDirty = true;
+      scheduleAutoSave();
+      updateBudget();
+      updateChecklist();
+      clearError(id);
+    }
+
+    function onRadioChange(id, input) {
+      formData[id] = input.value;
+      document.querySelectorAll(`input[name="${id}"]`).forEach(r => {
+        r.closest(".radio-option")?.classList.toggle("selected", r === input);
+      });
+      isDirty = true;
+      scheduleAutoSave();
+      clearError(id);
+    }
+
+    function onFileChange(id, input) {
+      if (input.files[0]) {
+        formData[id] = input.files[0].name;
+        document.getElementById("file-info-" + id).style.display = "flex";
+        document.getElementById("file-name-" + id).textContent = input.files[0].name;
+        isDirty = true;
+        updateChecklist();
+        clearError(id);
+      }
+    }
+
+    function clearError(id) {
+      const el = document.getElementById("err-" + id);
+      if (el) el.classList.remove("show");
+      const inp = document.getElementById("f-" + id);
+      if (inp) inp.classList.remove("error");
+    }
+
+    // ── Validace ────────────────────────────────────────────────
+    function validateSection() {
+      const step   = STEPS[currentSection];
+      const fields = formFields.filter(f =>
+        step.fields.includes(f.field_id) &&
+        (f.required === "TRUE" || f.required === true) &&
+        f.field_type !== "section_header"
+      );
+      let ok = true;
+      fields.forEach(f => {
+        const val = formData[f.field_id] || "";
+        if (!val || val.trim() === "") {
+          const errEl = document.getElementById("err-" + f.field_id);
+          if (errEl) errEl.classList.add("show");
+          const inp = document.getElementById("f-" + f.field_id);
+          if (inp) inp.classList.add("error");
+          ok = false;
+        }
+      });
+      if (!ok) showToast("Vyplňte prosím všechna povinná pole.", "err");
+      return ok;
+    }
+
+    // ── Navigace ────────────────────────────────────────────────
+    function nextSection() {
+      if (!validateSection()) return;
+      saveDraftSilent();
+      currentSection++;
+      renderProgress();
+      renderSection(currentSection);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function prevSection() {
+      saveDraftSilent();
+      currentSection--;
+      renderProgress();
+      renderSection(currentSection);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    // ── Rozpočet ────────────────────────────────────────────────
+    function updateBudget() {
+      const budgetFields = ["budget_travel","budget_accommodation","budget_meals","budget_local","budget_fee","budget_publication"];
+      let total = 0;
+      budgetFields.forEach(id => {
+        const el = document.getElementById("f-" + id);
+        if (el) {
+          const v = parseFloat(el.value) || 0;
+          formData[id] = el.value;
+          total += v;
+        }
+      });
+      // Aktualizuj budget_total pole
+      const totalEl = document.getElementById("f-budget_total");
+      if (totalEl) { totalEl.value = total || ""; formData["budget_total"] = String(total || ""); }
+
+      // Sidebar
+      document.getElementById("budgetDisplay").textContent = total.toLocaleString("cs-CZ") + " Kč";
+      const pct = Math.min(100, Math.round(total / MAX_BUDGET * 100));
+      const bar = document.getElementById("budgetBar");
+      bar.style.width = pct + "%";
+      bar.classList.toggle("over", total > MAX_BUDGET);
+    }
+
+    // ── Checklist ────────────────────────────────────────────────
+    function updateChecklist() {
+      const checks = [
+        { label: "Název projektu",    done: !!formData.project_title },
+        { label: "Typ žadatele",      done: !!formData.applicant_type },
+        { label: "Cíl aktivity",      done: !!formData.activity_goal },
+        { label: "Partnerská instituce", done: !!formData.partner_institution },
+        { label: "Termíny aktivity",  done: !!(formData.activity_start && formData.activity_end) },
+        { label: "Výstup spolupráce", done: !!formData.expected_output },
+        { label: "Celkový rozpočet",  done: !!(formData.budget_total && parseFloat(formData.budget_total) > 0) },
+        { label: "Přílohy nahrány",   done: !!(formData.attach_invitation) },
+        { label: "Prohlášení",        done: formData.declaration === "true" },
+      ];
+      document.getElementById("checklist").innerHTML = checks.map(c => `
+        <div class="checklist-item ${c.done?"done":""}">
+          <div class="checklist-dot">${c.done?"✓":""}</div>
+          <span>${c.label}</span>
+        </div>`).join("");
+    }
+
+    // ── Ukládání draftu ─────────────────────────────────────────
+    function scheduleAutoSave() {
+      clearTimeout(saveTimer);
+      const dot = document.getElementById("saveDot");
+      if (dot) { dot.className = "save-dot saving"; }
+      document.getElementById("saveStatusText").textContent = "Neuloženo…";
+      saveTimer = setTimeout(saveDraftSilent, 30000); // auto-save po 30s nečinnosti
+    }
+
+    async function saveDraftSilent() {
+      if (!isDirty) return;
+      await saveDraft(false);
+    }
+
+    async function saveDraftManual() {
+      await saveDraft(true);
+    }
+
+    async function saveDraft(showMessage) {
+      try {
+        const session = Auth._getSession();
+        await fetch(API_URL, {
+          method: "POST", mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "saveDraft",
+            token:  session?.token || "",
+            competitionId: COMPETITION_ID,
+            draftId,
+            formData,
+            applicantEmail: user.email,
+          }),
+        });
+        isDirty = false;
+        const now = new Date().toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" });
+        document.getElementById("lastSaved").textContent = now;
+        const dot = document.getElementById("saveDot");
+        if (dot) dot.className = "save-dot saved";
+        document.getElementById("saveStatusText").textContent = "Uloženo " + now;
+        if (showMessage) showToast("Draft uložen ✓");
+      } catch {
+        if (showMessage) showToast("Ukládání selhalo – zkuste znovu.", "err");
+      }
+    }
+
+    async function loadDraft() {
+      try {
+        const session = Auth._getSession();
+        const url = new URL(API_URL);
+        url.searchParams.set("action", "getDraft");
+        url.searchParams.set("competitionId", COMPETITION_ID);
+        url.searchParams.set("applicantEmail", user.email);
+        url.searchParams.set("token", session?.token || "");
+        const res  = await fetch(url.toString());
+        const data = await res.json();
+        if (data.draft) {
+          formData = data.draft.formData || {};
+          draftId  = data.draft.id;
+          renderSection(currentSection);
+          updateBudget();
+          updateChecklist();
+          showToast("Načten uložený draft.");
+        }
+      } catch {}
+    }
+
+    // ── Odeslání přihlášky ──────────────────────────────────────
+    async function submitApplication() {
+      // Validuj poslední sekci
+      if (!validateSection()) return;
+
+      // Zkontroluj povinné checkbox
+      if (formData.declaration !== "true") {
+        showToast("Potvrďte prosím prohlášení žadatele.", "err"); return;
+      }
+
+      const btn = document.getElementById("submitBtn");
+      btn.disabled = true; btn.textContent = "Odesílám…";
+
+      try {
+        const session = Auth._getSession();
+        await fetch(API_URL, {
+          method: "POST", mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "submitApplication",
+            token:  session?.token || "",
+            competitionId: COMPETITION_ID,
+            draftId,
+            formData,
+            applicantEmail: user.email,
+            applicantName:  user.name || user.email,
+          }),
+        });
+
+        // Úspěch
+        document.getElementById("formPanel").innerHTML = `
+          <div style="padding:48px 32px;text-align:center;">
+            <div style="font-size:48px;margin-bottom:16px;">✅</div>
+            <h2 style="font-family:'DM Sans',sans-serif;font-size:22px;color:var(--navy);margin-bottom:8px;">Přihláška odeslána!</h2>
+            <p style="font-size:14px;color:var(--muted);margin-bottom:24px;">Vaše přihláška do soutěže UHK Connect 2026 byla úspěšně podána.<br>
+            O dalším postupu Vás informujeme e-mailem.</p>
+            <a href="dashboard.html" class="btn btn-primary">← Zpět na rozcestník</a>
+          </div>`;
+        document.getElementById("statusBadge").textContent = "SUBMITTED";
+        document.getElementById("statusBadge").className = "badge badge-submitted";
+        showToast("Přihláška úspěšně odeslána! ✓");
+      } catch {
+        btn.disabled = false; btn.textContent = "Odeslat přihlášku →";
+        showToast("Chyba při odesílání – zkuste znovu.", "err");
+      }
+    }
+
+    // ── Toast ────────────────────────────────────────────────────
+    let toastTimer2;
+    function showToast(msg, type = "ok") {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.style.background = type === "err" ? "#991B1B" : "#1E6B45";
+      t.classList.add("show");
+      clearTimeout(toastTimer2);
+      toastTimer2 = setTimeout(() => t.classList.remove("show"), 4000);
+    }
+
+    // ── Fallback FORM_FIELDS (pokud API selže) ──────────────────
+    function getFallbackFields() {
+      return [
+        { field_id:"section_basic",      field_label:"Základní informace", field_type:"section_header" },
+        { field_id:"project_title",      field_label:"Název projektu / aktivity", field_type:"text",     required:"TRUE",  placeholder:"Výstižný název", help_text:"" },
+        { field_id:"faculty",            field_label:"Součást UHK",        field_type:"select",    required:"TRUE",  options:"PřF;PdF;FF;FIM;FVZ;REKTORÁT" },
+        { field_id:"department",         field_label:"Katedra / pracoviště",field_type:"text",     required:"TRUE",  placeholder:"" },
+        { field_id:"applicant_type",     field_label:"Typ žadatele",       field_type:"radio",     required:"TRUE",  options:"Junior/early-career researcher (do 7 let od Ph.D.);Student doktorského studia" },
+        { field_id:"section_activity",   field_label:"Popis aktivity",     field_type:"section_header" },
+        { field_id:"activity_type",      field_label:"Typ aktivity",       field_type:"select",    required:"TRUE",  options:"Mobilita (výjezd);Pracovní setkání;Konference;Workshop;Školení;Konzultace;Jiné" },
+        { field_id:"activity_goal",      field_label:"Cíl aktivity",       field_type:"textarea",  required:"TRUE",  placeholder:"Popište konkrétní cíl a přínos aktivity", help_text:"Prokazatelné navázání či rozvoj spolupráce" },
+        { field_id:"partner_institution",field_label:"Partnerská instituce",field_type:"text",    required:"TRUE",  placeholder:"Název instituce / organizace" },
+        { field_id:"partner_country",    field_label:"Země",               field_type:"text",     required:"TRUE" },
+        { field_id:"partner_contact",    field_label:"Kontaktní osoba",    field_type:"text",     required:"FALSE", placeholder:"Jméno a pozice" },
+        { field_id:"activity_start",     field_label:"Začátek aktivity",   field_type:"date",     required:"TRUE",  help_text:"Nejpozději 1. 11. 2026" },
+        { field_id:"activity_end",       field_label:"Konec aktivity",     field_type:"date",     required:"TRUE",  help_text:"Nejpozději 15. 11. 2026" },
+        { field_id:"section_output",     field_label:"Výstup spolupráce",  field_type:"section_header" },
+        { field_id:"expected_output",    field_label:"Očekávaný výstup",   field_type:"select",    required:"TRUE",  options:"Rozpracovaný článek;Letter of Intent / MoU;Protokol z konzultace;Draft výzkumného designu;Plán navazující mobility;Projektová ideová skica;Jiné" },
+        { field_id:"output_description", field_label:"Popis výstupu",      field_type:"textarea",  required:"TRUE" },
+        { field_id:"section_budget",     field_label:"Rozpočet",           field_type:"section_header" },
+        { field_id:"budget_travel",      field_label:"Jízdné (Kč)",        field_type:"number",    required:"FALSE", help_text:"Vlak, letadlo, auto dle interních předpisů" },
+        { field_id:"budget_accommodation",field_label:"Ubytování (Kč)",   field_type:"number",    required:"FALSE" },
+        { field_id:"budget_meals",       field_label:"Stravné (Kč)",       field_type:"number",    required:"FALSE" },
+        { field_id:"budget_local",       field_label:"Místní doprava (Kč)",field_type:"number",    required:"FALSE" },
+        { field_id:"budget_fee",         field_label:"Konferenční poplatek (Kč)",field_type:"number",required:"FALSE" },
+        { field_id:"budget_publication", field_label:"Publikační náklady (Kč)",field_type:"number",required:"FALSE" },
+        { field_id:"budget_total",       field_label:"Celková podpora (Kč)",field_type:"number",   required:"TRUE",  help_text:"Max. 80 000 Kč" },
+        { field_id:"budget_justification",field_label:"Odůvodnění rozpočtu",field_type:"textarea", required:"TRUE" },
+        { field_id:"section_attachments",field_label:"Přílohy",            field_type:"section_header" },
+        { field_id:"attach_invitation",  field_label:"Doklad o spolupráci",field_type:"file",      required:"TRUE",  options:"pdf", help_text:"Pozvání, LoI, potvrzení e-mailu nebo registrace" },
+        { field_id:"attach_budget_template",field_label:"Rozpočet dle šablony",field_type:"file", required:"TRUE",  options:"pdf,xlsx", help_text:"Příloha č. 1 výzvy" },
+        { field_id:"declaration",        field_label:"Prohlášení žadatele",field_type:"checkbox",  required:"TRUE",  help_text:"Souhlasím s podmínkami Soutěže UHK Connect a potvrzuji správnost údajů." },
+      ];
+    }
+
+    // ── SPUŠTĚNÍ ─────────────────────────────────────────────────
+    loadFormFields();
+  </script>
+</body>
+</html>
