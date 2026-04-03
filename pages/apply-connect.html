@@ -264,7 +264,7 @@
       { label: "Aktivita",       fields: ["section_activity","activity_type","activity_goal","partner_institution","partner_country","partner_contact","activity_start","activity_end"] },
       { label: "Výstup",         fields: ["section_output","expected_output","output_description"] },
       { label: "Rozpočet",       fields: ["section_budget","budget_travel","budget_accommodation","budget_meals","budget_local","budget_fee","budget_publication","budget_total","budget_justification"] },
-      { label: "Přílohy",        fields: ["section_attachments","attach_invitation","attach_budget_template","declaration"] },
+      { label: "Přílohy",        fields: ["section_attachments","attach_invitation","declaration"] },
     ];
 
     // ── Načtení FORM_FIELDS ze Sheets ─────────────────────────
@@ -321,9 +321,17 @@
         </div>
         <div class="form-body" id="formBody">`;
 
-      fields.forEach(f => {
-        html += renderField(f);
-      });
+      // Speciální render pro krok Rozpočet
+      if (step.label === "Rozpočet") {
+        html += renderBudgetTable();
+        fields.filter(f => f.field_id === "budget_justification" || f.field_type === "section_header").forEach(f => {
+          html += renderField(f);
+        });
+      } else {
+        fields.forEach(f => {
+          html += renderField(f);
+        });
+      }
 
       html += `</div>
         <div class="form-footer">
@@ -448,6 +456,95 @@
       });
     }
 
+
+    // ── Inline rozpočtová tabulka ─────────────────────────────────
+    function renderBudgetTable() {
+      const items = [
+        { id: "budget_travel",         label: "Jízdné",                          help: "Vlak, letadlo, auto dle interních předpisů UHK", required: false },
+        { id: "budget_accommodation",  label: "Ubytování",                       help: "Dle interních předpisů UHK", required: false },
+        { id: "budget_meals",          label: "Stravné",                         help: "Dle kalkulačky tuzemského nebo zahraničního stravného UHK 2026", required: false },
+        { id: "budget_local",          label: "Místní doprava",                  help: "MHD, taxi v místě aktivity", required: false },
+        { id: "budget_fee",            label: "Poplatek za konferenci / workshop / školení", help: "Registrační poplatek akce", required: false },
+        { id: "budget_publication",    label: "Publikační náklady",              help: "APC, page charges – v přímé vazbě na výstup spolupráce", required: false },
+        { id: "budget_personnel",      label: "Osobní náklady (DPP)",            help: "Pouze výjimečně – např. DPP pro studenta doktorského studia dle interních předpisů UHK. Vyžaduje zdůvodnění.", required: false, note: "výjimečně" },
+      ];
+
+      const rows = items.map(it => `
+        <tr>
+          <td style="padding:10px 14px;font-size:13px;color:var(--navy);border-bottom:1px solid var(--border);">
+            <div style="display:flex;align-items:center;gap:8px;">
+              ${it.label}
+              ${it.note ? `<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;background:#FEF3C7;color:#92400E;white-space:nowrap;">${it.note}</span>` : ""}
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;">${it.help}</div>
+          </td>
+          <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);width:140px;">
+            <input type="number" id="f-${it.id}" min="0" step="1"
+              value="${formData[it.id]||""}"
+              placeholder="0"
+              oninput="onBudgetInput()"
+              style="width:100%;border:none;padding:10px 12px;font-family:'DM Mono',monospace;font-size:13px;text-align:right;color:var(--navy);background:transparent;outline:none;">
+          </td>
+          <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);padding:10px 12px;font-size:11px;color:var(--muted);width:40px;text-align:center;">Kč</td>
+        </tr>`).join("");
+
+      return `
+        <div class="field">
+          <label class="field-label">Rozpočet přihlášky</label>
+          <div class="field-help">Vyplňte pouze položky které budete čerpat. Součet se počítá automaticky.</div>
+          <div style="padding:10px 14px;background:#FEF3C7;border:1px solid #FDE68A;border-radius:var(--r);font-size:12px;color:#92400E;margin-top:4px;margin-bottom:8px;">
+            ⚠ Osobní náklady se <strong>nepředpokládají</strong> – jsou možné pouze výjimečně (např. DPP pro studenta DSP). Soutěž <strong>není určena</strong> pro formální cestování bez odborného dopadu.
+          </div>
+          <div style="border:1.5px solid var(--border);border-radius:var(--r);overflow:hidden;margin-top:4px;">
+            <table style="width:100%;border-collapse:collapse;">
+              <thead>
+                <tr style="background:var(--navy-lite);">
+                  <th style="padding:10px 14px;text-align:left;font-size:12px;font-weight:600;color:var(--navy);border-bottom:1px solid var(--border);">Položka</th>
+                  <th colspan="2" style="padding:10px 14px;text-align:right;font-size:12px;font-weight:600;color:var(--navy);border-bottom:1px solid var(--border);">Požadovaná částka</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+              <tfoot>
+                <tr style="background:var(--navy-lite);">
+                  <td style="padding:12px 14px;font-size:14px;font-weight:600;color:var(--navy);">Celkem</td>
+                  <td colspan="2" style="padding:12px 14px;text-align:right;font-family:'DM Mono',monospace;font-size:16px;font-weight:600;color:var(--navy);border-left:1px solid var(--border);">
+                    <span id="budgetTableTotal">0</span> Kč
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <div id="budgetWarn" style="display:none;margin-top:8px;padding:8px 12px;background:var(--red-lite);border-radius:var(--r);font-size:12px;color:var(--red);">
+            ⚠ Celková podpora překračuje maximum 80 000 Kč
+          </div>
+        </div>`;
+    }
+
+    function onBudgetInput() {
+      const fields = ["budget_travel","budget_accommodation","budget_meals","budget_local","budget_fee","budget_publication","budget_personnel"];
+      let total = 0;
+      fields.forEach(id => {
+        const el = document.getElementById("f-" + id);
+        if (el) { const v = parseFloat(el.value)||0; total += v; formData[id] = el.value; }
+      });
+      formData["budget_total"] = String(total);
+      isDirty = true;
+
+      // Tabulka
+      const tt = document.getElementById("budgetTableTotal");
+      if (tt) tt.textContent = total.toLocaleString("cs-CZ");
+      const warn = document.getElementById("budgetWarn");
+      if (warn) warn.style.display = total > 80000 ? "block" : "none";
+
+      // Sidebar
+      document.getElementById("budgetDisplay").textContent = total.toLocaleString("cs-CZ") + " Kč";
+      const pct = Math.min(100, Math.round(total / 80000 * 100));
+      const bar = document.getElementById("budgetBar");
+      bar.style.width = pct + "%";
+      bar.classList.toggle("over", total > 80000);
+      scheduleAutoSave();
+    }
+
     // ── Změna hodnoty ──────────────────────────────────────────
     function onFieldChange(id, val) {
       formData[id] = val;
@@ -561,7 +658,8 @@
         { label: "Termíny aktivity",  done: !!(formData.activity_start && formData.activity_end) },
         { label: "Výstup spolupráce", done: !!formData.expected_output },
         { label: "Celkový rozpočet",  done: !!(formData.budget_total && parseFloat(formData.budget_total) > 0) },
-        { label: "Přílohy nahrány",   done: !!(formData.attach_invitation) },
+        { label: "Odůvodnění rozpočtu",done: !!(formData.budget_justification) },
+        { label: "Příloha – spolupráce",done: !!(formData.attach_invitation) },
         { label: "Prohlášení",        done: formData.declaration === "true" },
       ];
       document.getElementById("checklist").innerHTML = checks.map(c => `
@@ -725,7 +823,8 @@
         { field_id:"budget_justification",field_label:"Odůvodnění rozpočtu",field_type:"textarea", required:"TRUE" },
         { field_id:"section_attachments",field_label:"Přílohy",            field_type:"section_header" },
         { field_id:"attach_invitation",  field_label:"Doklad o spolupráci",field_type:"file",      required:"TRUE",  options:"pdf", help_text:"Pozvání, LoI, potvrzení e-mailu nebo registrace" },
-        { field_id:"attach_budget_template",field_label:"Rozpočet dle šablony",field_type:"file", required:"TRUE",  options:"pdf,xlsx", help_text:"Příloha č. 1 výzvy" },
+
+        { field_id:"budget_justification",field_label:"Odůvodnění rozpočtu", field_type:"textarea",  required:"TRUE",  placeholder:"Jízdné: letenka Praha–Londýn zpátečně dle ceníku ČSA přibližně 8 000 Kč…", help_text:"Vazba jednotlivých položek na plánovanou aktivitu" },
         { field_id:"declaration",        field_label:"Prohlášení žadatele",field_type:"checkbox",  required:"TRUE",  help_text:"Souhlasím s podmínkami Soutěže UHK Connect a potvrzuji správnost údajů." },
       ];
     }
