@@ -895,12 +895,13 @@
           // Mapuj názvy sloupců ze Sheets na názvy které dashboard očekává
           application_id: r.project_id || r.application_id,
           reviewer_email: r.reviewer_email || r.hodnotitel || "—",
-          score_clarity:  r.score_clarity  || r.k1 || r.K1 || "—",
-          score_quality:  r.score_quality  || r.k2 || r.K2 || "—",
-          score_budget:   r.score_budget   || r.k3 || r.K3 || "—",
-          score_profile:  r.score_profile  || r.k4 || r.K4 || "—",
-          score_outputs:  r.score_outputs  || r.k5 || r.K5 || "—",
-          score_total:    r.score_total    || r.skore || r.score || 0,
+          reviewer_name:  r.reviewer_name  || r.reviewer_email || r.hodnotitel || "—",
+          score_clarity:  r.score_clarity  || r.k1 || r.K1 || 0,
+          score_quality:  r.score_quality  || r.k2 || r.K2 || 0,
+          score_budget:   r.score_budget   || r.k3 || r.K3 || 0,
+          score_profile:  r.score_profile  || r.k4 || r.K4 || 0,
+          score_outputs:  r.score_outputs  || r.k5 || r.K5 || 0,
+          score_total:    Number(r.score_total || r.skore || r.score || 0),
           recommendation: r.recommendation || r.doporuceni || "",
           comment_public: r.comment_public || r.zduvodneni || "",
           _app: applications.find(a => (a.project_id||a.id) === (r.project_id||r.application_id)) || {},
@@ -950,7 +951,9 @@
       if (["ADMIN","TESTER","PROREKTOR"].includes(user.role)) {
         document.getElementById("progressSection").style.display = "block";
         document.getElementById("progressGrid").innerHTML = members.map(m => {
-          const count = [...new Set(reviews.filter(r => r.reviewer_email === m).map(r => r.application_id))].length;
+          const memberRevs = reviews.filter(r => r.reviewer_email === m);
+          const count = [...new Set(memberRevs.map(r => r.application_id))].length;
+          const memberName = memberRevs[0]?.reviewer_name || m;
           const pct   = totalApps > 0 ? Math.round(count / totalApps * 100) : 0;
           return `
             <div class="progress-card">
@@ -1003,7 +1006,7 @@
           const revHtml = rev.map(r => `
             <div class="review-item">
               <div class="review-header">
-                <span class="review-author">${r.reviewer_email}</span>
+                <span class="review-author">${r.reviewer_name || r.reviewer_email}</span>
                 <div class="review-scores">
                   <span class="review-score-pill">K1 <span>${r.score_clarity||"—"}</span></span>
                   <span class="review-score-pill">K2 <span>${r.score_quality||"—"}</span></span>
