@@ -655,9 +655,9 @@
         const res  = await fetch(url.toString());
         const data = await res.json();
         applications = data.success && data.projects ? data.projects : [];
-        if (!applications.length) applications = getDemoApplications();
+        if (!applications.length) applications = []; // žádná demo data
       } catch {
-        applications = getDemoApplications();
+        applications = []; // žádná demo data
       }
 
       totalApps = applications.length;
