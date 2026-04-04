@@ -647,7 +647,9 @@
       apps.forEach(a => {
         const opt = document.createElement("option");
         opt.value = a.project_id || a.id;
-        opt.textContent = `${a.project_id} | ${a.resitel || a.name} | ${a.soucast || ""}`;
+        const name = a.project_name || a.name || a.project_id;
+        const short = name.length > 60 ? name.substring(0, 60) + "…" : name;
+        opt.textContent = `${a.project_id} | ${a.soucast || ""} | ${short}`;
         opt.dataset.app = JSON.stringify(a);
         sel.appendChild(opt);
       });
@@ -670,9 +672,18 @@
 
       const app = JSON.parse(opt.dataset.app);
       document.getElementById("piId").textContent      = app.project_id || app.id || "—";
-      document.getElementById("piName").textContent    = app.resitel || app.name || "—";
+      document.getElementById("piName").textContent    = app.project_name || app.name || "—";
+      document.getElementById("piResitel").textContent = app.resitel || "—";
       document.getElementById("piFaculty").textContent = app.soucast || app.faculty || "—";
-      document.getElementById("piBudget").textContent  = app.rozpocet || app.budget || "—";
+      document.getElementById("piBudget").textContent  = (app.rozpocet || app.budget || "—") + " Kč";
+      document.getElementById("piOblast").textContent  = app.vedni_oblast || "—";
+      // Anotace a tým
+      const anotEl = document.getElementById("piAnotace");
+      if (anotEl) anotEl.textContent = app.anotace || "—";
+      const teamEl = document.getElementById("piTeam");
+      if (teamEl) teamEl.textContent = app.team || "—";
+      const vystEl = document.getElementById("piVystupy");
+      if (vystEl) vystEl.textContent = app.vystupy || "—";
       info.classList.add("visible");
 
       // Zkontroluj zda uživatel již tento projekt hodnotil
