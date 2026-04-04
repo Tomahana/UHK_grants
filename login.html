@@ -357,7 +357,7 @@
 
   function selectRole(role) {
     document.querySelectorAll(".role-btn").forEach(b => b.classList.add("loading"));
-    Auth.setSession(_token, _email, _name, role);
+    Auth.setSession(_token, _email, _name, role, _foundRoles);
     window.location.href = "pages/dashboard.html";
   }
 
