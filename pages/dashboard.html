@@ -358,20 +358,10 @@
 
     // ── Přepnutí role ──────────────────────────────────────────
     function switchRole() {
-      // Načti všechny role uživatele ze session tokenu
       const session = Auth._getSession();
       if (!session) return;
-
-      // Dekóduj token abychom dostali všechny role
-      let allRoles = [session.role];
-      try {
-        const decoded = atob(session.token.replace("demo_", ""));
-        const parts   = decoded.split("|");
-        if (parts[1]) allRoles = parts[1].split(",");
-      } catch {
-        // demo token - roles z demo dat
-        allRoles = [session.role];
-      }
+      // Čti allRoles přímo ze session (uloženo při přihlášení)
+      let allRoles = session.allRoles || [session.role];
 
       document.getElementById("modalUserEmail").textContent = session.email;
 

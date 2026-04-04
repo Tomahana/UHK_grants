@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UHK Prestige – přihláška</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'DM Sans', sans-serif; background: #F8F7F4; color: #1C2E5A; margin: 0; min-height: 100vh; display: flex; flex-direction: column; }
+    .topbar { background: #1C2E5A; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; }
+    .topbar img { height: 26px; opacity: .9; }
+    .topbar-title { font-size: 14px; font-weight: 500; color: rgba(255,255,255,.8); }
+    .btn-back { background: none; border: 1px solid rgba(255,255,255,.2); color: rgba(255,255,255,.6); font-family: 'DM Mono', monospace; font-size: 11px; padding: 5px 12px; border-radius: 4px; cursor: pointer; text-decoration: none; }
+    .content { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
+    .card { background: white; border: 1px solid #E2E0D8; border-radius: 12px; padding: 48px; max-width: 560px; width: 100%; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+    .icon { font-size: 48px; margin-bottom: 20px; }
+    h1 { font-size: 22px; font-weight: 500; margin-bottom: 12px; }
+    p { font-size: 14px; color: #6B6A63; line-height: 1.6; margin-bottom: 8px; }
+    .badge { display: inline-block; background: #EDE9FE; color: #5B21B6; font-size: 12px; font-weight: 600; padding: 4px 14px; border-radius: 100px; margin-bottom: 24px; }
+    .info-box { background: #F8F7F4; border: 1px solid #E2E0D8; border-radius: 8px; padding: 16px; margin: 24px 0; text-align: left; }
+    .info-box h3 { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #1C2E5A; }
+    .info-row { font-size: 13px; color: #6B6A63; padding: 4px 0; display: flex; gap: 8px; }
+    .info-row strong { color: #1C2E5A; min-width: 140px; }
+    .btn-home { display: inline-block; background: #1C2E5A; color: white; padding: 11px 24px; border-radius: 8px; font-size: 14px; font-weight: 500; text-decoration: none; margin-top: 8px; }
+    .contact { margin-top: 24px; font-size: 12px; color: #6B6A63; }
+    .contact a { color: #1C2E5A; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <img src="../img/uhk-abb-w.png" alt="UHK">
+      <span class="topbar-title">UHK Prestige 2026</span>
+    </div>
+    <a href="dashboard.html" class="btn-back">← Rozcestník</a>
+  </header>
+
+  <div class="content">
+    <div class="card">
+      <div class="icon">🏆</div>
+      <span class="badge">Výzva se připravuje</span>
+      <h1>UHK Prestige 2026</h1>
+      <p>Přihláška do soutěže UHK Prestige bude dostupná po vyhlášení výzvy.</p>
+      <p>Sledujte webové stránky UHK v sekci <strong>Interní celouniverzitní projekty</strong>.</p>
+
+      <div class="info-box">
+        <h3>Předpokládané parametry</h3>
+        <div class="info-row"><strong>Typ soutěže:</strong> Prestižní granty UHK</div>
+        <div class="info-row"><strong>Stav výzvy:</strong> Příprava – výzva dosud nebyla vyhlášena</div>
+        <div class="info-row"><strong>Správce soutěže:</strong> Oddělení vědy a transferu znalostí</div>
+        <div class="info-row"><strong>Kontakt:</strong> <a href="mailto:ovtz@uhk.cz">ovtz@uhk.cz</a></div>
+      </div>
+
+      <a href="dashboard.html" class="btn-home">← Zpět na rozcestník</a>
+
+      <div class="contact">
+        Otázky: <a href="mailto:veronika.hruzova@uhk.cz">veronika.hruzova@uhk.cz</a> · +420 777 147 670
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/auth.js"></script>
+  <script>
+    Auth.requireLogin();
+  </script>
+</body>
+</html>
