@@ -321,12 +321,37 @@
         <select class="project-select" id="selProjekt" onchange="onProjectChange()">
           <option value="">— Vyberte přihlášku —</option>
         </select>
-        <div class="project-info" id="projectInfo">
-          <div class="project-info-row">
+        <div class="project-info" id="projectInfo" style="margin-top:12px;">
+          <!-- Základní info – kompaktní řádek -->
+          <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px;padding:10px 14px;background:#F8F7F4;border-radius:6px;border:1px solid var(--ink-10);">
             <div><span class="pi-label">ID</span><span class="pi-val" id="piId">—</span></div>
-            <div><span class="pi-label">Žadatel</span><span class="pi-val" id="piName">—</span></div>
-            <div><span class="pi-label">Pracoviště</span><span class="pi-val" id="piFaculty">—</span></div>
-            <div><span class="pi-label">Požadovaný rozpočet</span><span class="pi-val" id="piBudget">—</span></div>
+            <div><span class="pi-label">Součást</span><span class="pi-val" id="piFaculty">—</span></div>
+            <div><span class="pi-label">Vědní oblast</span><span class="pi-val" id="piOblast">—</span></div>
+            <div><span class="pi-label">Rozpočet</span><span class="pi-val" id="piBudget" style="font-weight:600;color:#1C2E5A;">—</span></div>
+          </div>
+          <!-- Název a řešitel -->
+          <div style="margin-bottom:8px;">
+            <span class="pi-label">Název projektu</span>
+            <div id="piName" style="font-size:14px;font-weight:600;color:#1C2E5A;line-height:1.4;margin-top:2px;">—</div>
+          </div>
+          <div style="margin-bottom:10px;">
+            <span class="pi-label">Hlavní řešitel</span>
+            <div id="piResitel" style="font-size:13px;color:#1C2E5A;margin-top:2px;">—</div>
+          </div>
+          <!-- Anotace – klíčová pro hodnocení -->
+          <div style="margin-bottom:8px;padding:10px 14px;background:#EFF6FF;border-left:3px solid #185FA5;border-radius:0 6px 6px 0;">
+            <span class="pi-label" style="color:#185FA5;">Anotace projektu</span>
+            <div id="piAnotace" style="font-size:12px;color:#1C2E5A;margin-top:4px;line-height:1.6;">—</div>
+          </div>
+          <!-- Výstupy -->
+          <div style="margin-bottom:8px;padding:10px 14px;background:#E6F4EE;border-left:3px solid #1E6B45;border-radius:0 6px 6px 0;">
+            <span class="pi-label" style="color:#1E6B45;">Předpokládané výstupy</span>
+            <div id="piVystupy" style="font-size:12px;color:#1C2E5A;margin-top:4px;line-height:1.6;">—</div>
+          </div>
+          <!-- Tým -->
+          <div style="padding:10px 14px;background:#F8F7F4;border-radius:6px;border:1px solid var(--ink-10);">
+            <span class="pi-label">Řešitelský tým</span>
+            <div id="piTeam" style="font-size:12px;color:#6B6A63;margin-top:4px;line-height:1.6;">—</div>
           </div>
         </div>
       </div>
@@ -671,19 +696,17 @@
       }
 
       const app = JSON.parse(opt.dataset.app);
-      document.getElementById("piId").textContent      = app.project_id || app.id || "—";
-      document.getElementById("piName").textContent    = app.project_name || app.name || "—";
-      document.getElementById("piResitel").textContent = app.resitel || "—";
-      document.getElementById("piFaculty").textContent = app.soucast || app.faculty || "—";
-      document.getElementById("piBudget").textContent  = (app.rozpocet || app.budget || "—") + " Kč";
-      document.getElementById("piOblast").textContent  = app.vedni_oblast || "—";
-      // Anotace a tým
-      const anotEl = document.getElementById("piAnotace");
-      if (anotEl) anotEl.textContent = app.anotace || "—";
-      const teamEl = document.getElementById("piTeam");
-      if (teamEl) teamEl.textContent = app.team || "—";
-      const vystEl = document.getElementById("piVystupy");
-      if (vystEl) vystEl.textContent = app.vystupy || "—";
+      const f = id => document.getElementById(id);
+      const sv = (id, val) => { const el = f(id); if (el) el.textContent = val || "—"; };
+      sv("piId",      app.project_id || app.id);
+      sv("piName",    app.project_name || app.name);
+      sv("piResitel", app.resitel);
+      sv("piFaculty", app.soucast || app.faculty);
+      sv("piOblast",  app.vedni_oblast);
+      sv("piBudget",  app.rozpocet ? Number(app.rozpocet.replace(/\s/g,"")).toLocaleString("cs-CZ") + " Kč" : (app.rozpocet || "—"));
+      sv("piAnotace", app.anotace);
+      sv("piVystupy", app.vystupy);
+      sv("piTeam",    app.team);
       info.classList.add("visible");
 
       // Zkontroluj zda uživatel již tento projekt hodnotil
@@ -882,7 +905,7 @@
           comment_public: r.comment_public || r.zduvodneni || "",
           _app: applications.find(a => (a.project_id||a.id) === (r.project_id||r.application_id)) || {},
         })) : [];
-        dashboardData = reviews.length ? reviews : getDemoReviews();
+        dashboardData = reviews.length ? reviews : [];
 
         // Ulož si hodnocení aktuálního uživatele pro kontrolu při výběru projektu
         myExistingReviews = {};
@@ -894,8 +917,9 @@
           }
         });
 
-      } catch {
-        dashboardData = getDemoReviews();
+      } catch (err) {
+        console.warn("Chyba načítání hodnocení:", err.message);
+        dashboardData = [];
       }
 
       renderDashboard(dashboardData);
