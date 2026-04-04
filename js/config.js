@@ -5,8 +5,8 @@
 
 // ── Apps Script Web App URL ────────────────────────────────────
 // Po nasazení Web App v Apps Script sem vlož URL:
-// !! Po deployi Apps Script z Gmail účtu uhk.granty@gmail.com sem vlož novou URL !!
-const API_URL = "https://script.google.com/macros/s/DOPLNIT_PO_DEPLOYI_Z_GMAIL_UCTU/exec";
+// Apps Script Web App – Gmail účet uhk.granty@gmail.com
+const API_URL = "https://script.google.com/macros/s/AKfycbyqwthk3rMxMSDQkaKCnwef5GsPBu4C40810zOhZUHEARhVbYb-vqbUMzlY5LfsQkNU/exec";
 
 // ── Role a jejich vlastnosti ───────────────────────────────────
 const ROLES = {
