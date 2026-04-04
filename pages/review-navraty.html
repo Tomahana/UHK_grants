@@ -664,6 +664,35 @@
       renderAppSelector(applications);
       document.getElementById("loadingApps").style.display = "none";
       document.getElementById("selectorCard").style.display = "block";
+
+      // Načti vlastní hodnocení hned po načtení projektů
+      await loadMyReviews();
+    }
+
+    async function loadMyReviews() {
+      try {
+        const session = Auth._getSession();
+        const url = new URL(API_URL);
+        url.searchParams.set("action", "getNavratyReviews");
+        url.searchParams.set("competitionId", "uhk_navraty_2026");
+        url.searchParams.set("token", session?.token || "");
+        const res  = await fetch(url.toString());
+        const data = await res.json();
+        const all  = data.reviews || data || [];
+        myExistingReviews = {};
+        all.forEach(r => {
+          const email = String(r.reviewer_email || "").toLowerCase().trim();
+          if (email === user.email.toLowerCase()) {
+            const pid = r.project_id || r.application_id;
+            if (pid) myExistingReviews[pid] = r;
+          }
+        });
+        // Obnov select pokud je projekt vybrán
+        const selVal = document.getElementById("selProjekt")?.value;
+        if (selVal) checkAlreadyReviewed(selVal);
+      } catch(e) {
+        console.warn("Nepodařilo se načíst vlastní hodnocení:", e.message);
+      }
     }
 
     function renderAppSelector(apps) {
@@ -862,7 +891,15 @@
         document.getElementById("submitBtn").disabled = false;
         showToast(`Hodnocení projektu ${appId} uloženo. ✓`);
         // Invaliduj cache a znovu načti přehled
-        delete myExistingReviews[appId];
+        // Aktualizuj lokální cache hodnocení
+        myExistingReviews[appId] = {
+          reviewer_email: user.email,
+          reviewer_name: Auth._getSession()?.name || user.email,
+          project_id: appId,
+          score_total: Object.values(scores).reduce((a,b)=>a+b,0),
+          recommendation: doporuceni,
+          submitted_at: new Date().toLocaleString("cs-CZ"),
+        };
         resetForm();
         // Po 2 sekundách obnov dashboard data
         setTimeout(() => loadDashboard(), 2000);
