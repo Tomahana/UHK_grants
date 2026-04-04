@@ -160,6 +160,14 @@
     .badge { display: inline-block; padding: 3px 10px; border-radius: 100px; font-size: 11px; font-weight: 600; }
     .badge-draft { background: #E6F1FB; color: #0C447C; }
     .badge-submitted { background: var(--green-lite); color: var(--green); }
+
+    .vyzva-list { list-style: none; padding: 0; margin: 0; font-size: 12px; line-height: 1.45; color: var(--navy); }
+    .vyzva-list li { padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .vyzva-list li:last-child { border-bottom: none; }
+    .vyzva-list strong { display: block; font-size: 12px; margin-bottom: 2px; }
+    .vyzva-list .vyzva-date { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--navy-mid); }
+    .vyzva-list .vyzva-note { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .vyzva-footnote { font-size: 11px; color: var(--muted); margin-top: 12px; line-height: 1.4; }
   </style>
 </head>
 <body>
@@ -203,8 +211,8 @@
           <span class="sidebar-val">UHK Connect 2026</span>
         </div>
         <div class="sidebar-item">
-          <span class="sidebar-key">Uzávěrka</span>
-          <span class="sidebar-val">14. 10. 2026</span>
+          <span class="sidebar-key">Uzávěrka přihlášek</span>
+          <span class="sidebar-val" id="sidebarDeadlineApply">14. 10. 2026</span>
         </div>
         <div class="sidebar-item">
           <span class="sidebar-key">Max. podpora</span>
@@ -214,6 +222,15 @@
           <span class="sidebar-key">Uloženo</span>
           <span class="sidebar-val" id="lastSaved">—</span>
         </div>
+        <p class="vyzva-footnote" style="margin-top:12px;margin-bottom:0;">
+          Koncept se ukládá <strong>automaticky po 30 s</strong> nečinnosti; ručně použijte „Uložit draft“.
+        </p>
+      </div>
+
+      <div class="sidebar-card">
+        <h3>Termíny výzvy</h3>
+        <ul class="vyzva-list" id="connectVyzvaList"></ul>
+        <p class="vyzva-footnote">Údaje odpovídají zadání soutěže UHK Connect (výzva č. 2); pro závazné znění použijte oficiální dokument na webu UHK / pokyny OVĚTZ.</p>
       </div>
 
       <div class="sidebar-card">
@@ -250,6 +267,70 @@
 
     const COMPETITION_ID = "uhk_connect_2026_v2";
     const MAX_BUDGET = 80000;
+
+    /** Milníky dle výzvy UHK Connect (synchronizováno s poli formuláře a config). */
+    const CONNECT_VYZVA = {
+      DEADLINE_APPLY_ISO: "2026-10-14",
+      ACTIVITY_START_MAX_ISO: "2026-11-01",
+      ACTIVITY_END_MAX_ISO: "2026-11-15",
+      milestones: [
+        { title: "Příjem přihlášek", dateLabel: "do 14. 10. 2026", note: "elektronicky, uzávěrka dle výzvy (obvykle konec dne)" },
+        { title: "Formální kontrola", dateLabel: "říjen 2026", note: "bezprostředně po uzávěrce přihlášek" },
+        { title: "Hodnocení a rozhodnutí", dateLabel: "říjen – listopad 2026", note: "dle harmonogramu OVĚTZ" },
+        { title: "Začátek podporované aktivity", dateLabel: "nejpozději 1. 11. 2026", note: "datum zahájení uvedené v přihlášce" },
+        { title: "Konec podporované aktivity", dateLabel: "nejpozději 15. 11. 2026", note: "datum ukončení uvedené v přihlášce" },
+        { title: "Závěrečná zpráva / vyúčtování", dateLabel: "dle pokynů po schválení", note: "termín v grantové dokumentaci / výzvě" },
+      ],
+    };
+
+    function formatCsDateFromIso(iso) {
+      if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
+      const [y, m, d] = iso.split("-").map(Number);
+      return `${d}. ${m}. ${y}`;
+    }
+
+    function renderConnectVyzvaSidebar() {
+      const ul = document.getElementById("connectVyzvaList");
+      if (!ul) return;
+      ul.innerHTML = CONNECT_VYZVA.milestones.map((m) => `
+        <li>
+          <strong>${m.title}</strong>
+          <div class="vyzva-date">${m.dateLabel}</div>
+          ${m.note ? `<div class="vyzva-note">${m.note}</div>` : ""}
+        </li>
+      `).join("");
+      const sd = document.getElementById("sidebarDeadlineApply");
+      if (sd) sd.textContent = formatCsDateFromIso(CONNECT_VYZVA.DEADLINE_APPLY_ISO);
+    }
+
+    function applyActivityDateConstraints() {
+      const startEl = document.getElementById("f-activity_start");
+      const endEl = document.getElementById("f-activity_end");
+      if (startEl) {
+        startEl.min = "2026-01-01";
+        startEl.max = CONNECT_VYZVA.ACTIVITY_START_MAX_ISO;
+      }
+      if (endEl) {
+        endEl.min = formData.activity_start || "2026-01-01";
+        endEl.max = CONNECT_VYZVA.ACTIVITY_END_MAX_ISO;
+      }
+    }
+
+    function validateActivityDatesForSubmit() {
+      const s = (formData.activity_start || "").trim();
+      const e = (formData.activity_end || "").trim();
+      if (!s || !e) return { ok: true };
+      if (e < s) {
+        return { ok: false, message: "Konec aktivity musí být ve stejný den nebo po začátku." };
+      }
+      if (s > CONNECT_VYZVA.ACTIVITY_START_MAX_ISO) {
+        return { ok: false, message: `Začátek aktivity musí být nejpozději ${formatCsDateFromIso(CONNECT_VYZVA.ACTIVITY_START_MAX_ISO)} (dle výzvy).` };
+      }
+      if (e > CONNECT_VYZVA.ACTIVITY_END_MAX_ISO) {
+        return { ok: false, message: `Konec aktivity musí být nejpozději ${formatCsDateFromIso(CONNECT_VYZVA.ACTIVITY_END_MAX_ISO)} (dle výzvy).` };
+      }
+      return { ok: true };
+    }
 
     // Stav formuláře
     let formFields  = [];
@@ -294,8 +375,8 @@
         { field_id:"partner_country",      field_label:"Země",                         field_type:"text",     required:"TRUE" },
         { field_id:"partner_contact",      field_label:"Kontaktní osoba u partnera",   field_type:"text",     required:"FALSE", placeholder:"Jméno a pozice" },
         { field_id:"cooperation_history",  field_label:"Dosavadní kontakty s partnerem", field_type:"textarea", required:"FALSE", placeholder:"Popište předchozí kontakty, sdílené publikace, projekty…", help_text:"Pokud jde o zcela nový kontakt, uveďte jak byl navázán" },
-        { field_id:"activity_start",       field_label:"Plánovaný začátek aktivity",   field_type:"date",     required:"TRUE",  help_text:"Nejpozději 1. 11. 2026" },
-        { field_id:"activity_end",         field_label:"Plánovaný konec aktivity",     field_type:"date",     required:"TRUE",  help_text:"Nejpozději 15. 11. 2026" },
+        { field_id:"activity_start",       field_label:"Plánovaný začátek aktivity",   field_type:"date",     required:"TRUE",  help_text:"Dle výzvy: nejpozději 1. 11. 2026 (viz Termíny výzvy vpravo)." },
+        { field_id:"activity_end",         field_label:"Plánovaný konec aktivity",     field_type:"date",     required:"TRUE",  help_text:"Dle výzvy: nejpozději 15. 11. 2026; konec ≥ začátek." },
         { field_id:"section_output",       field_label:"Výstup spolupráce",            field_type:"section_header" },
         { field_id:"expected_output",      field_label:"Očekávaný výstup",             field_type:"select",   required:"TRUE",  options:"Rozpracovaný článek;Letter of Intent / MoU;Protokol z konzultace;Draft výzkumného designu;Plán navazující mobility;Projektová ideová skica;Jiné" },
         { field_id:"output_description",   field_label:"Popis výstupu",               field_type:"textarea", required:"TRUE",  placeholder:"Konkrétně popište výstup spolupráce…" },
@@ -367,7 +448,7 @@
           </div>
           <div style="display:flex;gap:8px;align-items:center;">
             ${idx > 0 ? `<button class="btn btn-secondary" onclick="prevSection()">← Zpět</button>` : ""}
-            <button class="btn btn-ghost" onclick="saveDraftManual()">💾 Uložit rozdělaný</button>
+            <button type="button" class="btn btn-ghost" onclick="saveDraftManual()" title="Uloží rozpracovanou přihlášku jako koncept (draft) na server.">Uložit draft</button>
             ${idx < STEPS.length - 1
               ? `<button class="btn btn-primary" onclick="nextSection()">Pokračovat →</button>`
               : `<button class="btn btn-primary" id="submitBtn" onclick="submitApplication()">Odeslat přihlášku →</button>`}
@@ -377,6 +458,7 @@
       panel.innerHTML = html;
       restoreValues(fields);
       bindEvents(fields);
+      applyActivityDateConstraints();
       updateChecklist();
     }
 
@@ -445,7 +527,7 @@
         </div>`;
 
       } else {
-        // text, email, number, date
+        // text, email, number, date (min/max u dat aktivit doplní applyActivityDateConstraints po vykreslení)
         input = `<input type="${f.field_type}" id="f-${f.field_id}"
           placeholder="${f.placeholder||""}" value="${val}" ${req?"required":""}
           onchange="onFieldChange('${f.field_id}',this.value)"
@@ -588,6 +670,7 @@
       updateBudget();
       updateChecklist();
       clearError(id);
+      if (id === "activity_start") applyActivityDateConstraints();
     }
 
     function onRadioChange(id, input) {
@@ -638,6 +721,13 @@
         }
       });
       if (!ok) showToast("Vyplňte prosím všechna povinná pole.", "err");
+      if (ok && step.fields.includes("activity_start")) {
+        const vd = validateActivityDatesForSubmit();
+        if (!vd.ok) {
+          showToast(vd.message, "err");
+          return false;
+        }
+      }
       return ok;
     }
 
@@ -710,7 +800,7 @@
       const dot = document.getElementById("saveDot");
       if (dot) { dot.className = "save-dot saving"; }
       document.getElementById("saveStatusText").textContent = "Neuloženo…";
-      saveTimer = setTimeout(saveDraftSilent, 30000); // auto-save po 30s nečinnosti
+      saveTimer = setTimeout(saveDraftSilent, 30000); // pravidelné auto-ukládání draftu po 30 s nečinnosti
     }
 
     async function saveDraftSilent() {
@@ -743,7 +833,7 @@
         const dot = document.getElementById("saveDot");
         if (dot) dot.className = "save-dot saved";
         document.getElementById("saveStatusText").textContent = "Uloženo " + now;
-        if (showMessage) showToast("Draft uložen ✓");
+        if (showMessage) showToast("Koncept (draft) uložen ✓");
       } catch {
         if (showMessage) showToast("Ukládání selhalo – zkuste znovu.", "err");
       }
@@ -774,6 +864,12 @@
     async function submitApplication() {
       // Validuj poslední sekci
       if (!validateSection()) return;
+
+      const vd = validateActivityDatesForSubmit();
+      if (!vd.ok) {
+        showToast(vd.message, "err");
+        return;
+      }
 
       // Zkontroluj povinné checkbox
       if (formData.declaration !== "true") {
@@ -831,6 +927,7 @@
 
 
     // ── SPUŠTĚNÍ ─────────────────────────────────────────────────
+    renderConnectVyzvaSidebar();
     loadFormFields();
   </script>
 </body>
