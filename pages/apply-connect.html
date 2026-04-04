@@ -261,8 +261,8 @@
 
     const STEPS = [
       { label: "Základní info",  fields: ["section_basic","project_title","faculty","department","applicant_type","phd_year"] },
-      { label: "Aktivita",       fields: ["section_activity","activity_type","activity_goal","partner_institution","partner_country","partner_contact","activity_start","activity_end"] },
-      { label: "Výstup",         fields: ["section_output","expected_output","output_description"] },
+      { label: "Profil & aktivita", fields: ["section_profile","research_focus","recent_outputs","section_activity","activity_type","activity_goal","partner_institution","partner_country","partner_contact","cooperation_history","activity_start","activity_end"] },
+      { label: "Výstup",         fields: ["section_output","expected_output","output_description","output_impact"] },
       { label: "Rozpočet",       fields: ["section_budget","budget_travel","budget_accommodation","budget_meals","budget_local","budget_fee","budget_publication","budget_total","budget_justification"] },
       { label: "Přílohy",        fields: ["section_attachments","attach_invitation","declaration"] },
     ];
@@ -324,9 +324,7 @@
       // Speciální render pro krok Rozpočet
       if (step.label === "Rozpočet") {
         html += renderBudgetTable();
-        fields.filter(f => f.field_id === "budget_justification" || f.field_type === "section_header").forEach(f => {
-          html += renderField(f);
-        });
+        // budget_justification je součástí renderBudgetTable - neopakovat!
       } else {
         fields.forEach(f => {
           html += renderField(f);
@@ -517,6 +515,15 @@
           <div id="budgetWarn" style="display:none;margin-top:8px;padding:8px 12px;background:var(--red-lite);border-radius:var(--r);font-size:12px;color:var(--red);">
             ⚠ Celková podpora překračuje maximum 80 000 Kč
           </div>
+        </div>
+        <div class="field" style="margin-top:16px;">
+          <label class="field-label">Odůvodnění rozpočtu <span class="field-required">*</span></label>
+          <div class="field-help">Vazba jednotlivých položek na plánovanou aktivitu</div>
+          <textarea id="f-budget_justification"
+            placeholder="Jízdné: letenka Praha–Londýn zpátečně dle ceníku ČSA přibližně 8 000 Kč…"
+            onchange="onFieldChange('budget_justification',this.value)"
+            style="min-height:90px;">${formData['budget_justification']||""}</textarea>
+          <div class="field-error" id="err-budget_justification">Toto pole je povinné.</div>
         </div>`;
     }
 
@@ -801,6 +808,10 @@
         { field_id:"faculty",            field_label:"Součást UHK",        field_type:"select",    required:"TRUE",  options:"PřF;PdF;FF;FIM;REKTORÁT" },
         { field_id:"department",         field_label:"Katedra / pracoviště",field_type:"text",     required:"TRUE",  placeholder:"" },
         { field_id:"applicant_type",     field_label:"Typ žadatele",       field_type:"radio",     required:"TRUE",  options:"Junior/early-career researcher (do 7 let od Ph.D.);Student doktorského studia" },
+        { field_id:"section_profile",    field_label:"Odborný profil žadatele", field_type:"section_header" },
+        { field_id:"research_focus",     field_label:"Výzkumné zaměření", field_type:"textarea",  required:"TRUE",  placeholder:"Stručně popište svůj výzkum a odborné zaměření (3–5 vět)…", help_text:"Hodnotitelé posuzují relevanci žadatele pro navrhovanou spolupráci" },
+        { field_id:"recent_outputs",     field_label:"Vybrané výstupy (posledních 5 let)", field_type:"textarea", required:"FALSE", placeholder:"Např: Novák J. (2024) Název článku. Journal…
+Grant GA ČR č. 24-XXXXX (2024–2026)…", help_text:"Publikace, projekty, ocenění relevantní k tématu aktivity" },
         { field_id:"section_activity",   field_label:"Popis aktivity",     field_type:"section_header" },
         { field_id:"activity_type",      field_label:"Typ aktivity",       field_type:"select",    required:"TRUE",  options:"Mobilita (výjezd);Pracovní setkání;Konference;Workshop;Školení;Konzultace;Jiné" },
         { field_id:"activity_goal",      field_label:"Cíl aktivity",       field_type:"textarea",  required:"TRUE",  placeholder:"Popište konkrétní cíl a přínos aktivity", help_text:"Prokazatelné navázání či rozvoj spolupráce" },
@@ -811,7 +822,8 @@
         { field_id:"activity_end",       field_label:"Konec aktivity",     field_type:"date",     required:"TRUE",  help_text:"Nejpozději 15. 11. 2026" },
         { field_id:"section_output",     field_label:"Výstup spolupráce",  field_type:"section_header" },
         { field_id:"expected_output",    field_label:"Očekávaný výstup",   field_type:"select",    required:"TRUE",  options:"Rozpracovaný článek;Letter of Intent / MoU;Protokol z konzultace;Draft výzkumného designu;Plán navazující mobility;Projektová ideová skica;Jiné" },
-        { field_id:"output_description", field_label:"Popis výstupu",      field_type:"textarea",  required:"TRUE" },
+        { field_id:"output_description", field_label:"Popis výstupu",      field_type:"textarea",  required:"TRUE",  placeholder:"Konkrétně popište co bude výstupem spolupráce…" },
+        { field_id:"output_impact",      field_label:"Přínos pro výzkum na UHK", field_type:"textarea", required:"TRUE",  placeholder:"Jak výstup přispěje k rozvoji výzkumu na UHK? Plánujete navazující projekt, publikaci, grant?", help_text:"Hodnotitelé posuzují udržitelnost a přínos aktivity" },
         { field_id:"section_budget",     field_label:"Rozpočet",           field_type:"section_header" },
         { field_id:"budget_travel",      field_label:"Jízdné (Kč)",        field_type:"number",    required:"FALSE", help_text:"Vlak, letadlo, auto dle interních předpisů" },
         { field_id:"budget_accommodation",field_label:"Ubytování (Kč)",   field_type:"number",    required:"FALSE" },
