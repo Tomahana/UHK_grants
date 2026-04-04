@@ -48,8 +48,10 @@ const Auth = {
   },
 
   // ── Uloží session po výběru role ───────────────────────────
-  setSession(token, email, name, role) {
-    const session = { token, email, name, role, loginAt: Date.now() };
+  setSession(token, email, name, role, allRoles = null) {
+    const existing = this._getSession();
+    const roles = allRoles || existing?.allRoles || [role];
+    const session = { token, email, name, role, allRoles: roles, loginAt: Date.now() };
     sessionStorage.setItem(this.SESSION_KEY, JSON.stringify(session));
   },
 
@@ -93,6 +95,8 @@ const Auth = {
       return null;
     }
     const user = this.getUser();
+    // ADMIN a TESTER mají přístup všude
+    if (user.role === "ADMIN" || user.role === "TESTER") return user;
     // Kontrola konkrétní role pokud je požadována
     if (allowedRoles && !allowedRoles.includes(user.role)) {
       alert(`Přístup odepřen. Tato stránka vyžaduje roli: ${allowedRoles.join(" nebo ")}.`);
