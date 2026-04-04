@@ -219,7 +219,7 @@
       // Odkaz na hodnoticí formulář
       const reviewHref = type === "OP_JAK_NAVRATY"
         ? "review-navraty.html"
-        : "review-navraty.html";   // TODO: obecný review.html pro Connect/ReGa/Prestige
+        : `review-connect.html?c=${id}`;
 
       // Odkaz na podání přihlášky dle soutěže
       const applyHref =
@@ -241,10 +241,10 @@
           { label: "Správa uživatelů", href: "admin-users.html",       style: "ghost",     icon: "👥" },
           { label: "Nastavení",        href: "admin-competitions.html", style: "ghost",     icon: "⚙️" },
         ] : [
-          ...applyActions,
-          { label: "Přihlášky",    href: applyHref || "#",             style: "secondary", icon: "📋" },
-          { label: "Hodnocení",    href: reviewHref,                    style: "ghost",     icon: "⭐" },
-          { label: "Nastavení",    href: "admin-competitions.html",     style: "ghost",     icon: "⚙️" },
+          { label: "Podat přihlášku", href: applyHref || "#",          style: "primary",   icon: "📝" },
+          { label: "Správa přihlášek",href: "coordinator.html",         style: "secondary", icon: "📋" },
+          { label: "Hodnocení",       href: reviewHref,                 style: "ghost",     icon: "⭐" },
+          { label: "Nastavení",       href: "admin-competitions.html",  style: "ghost",     icon: "⚙️" },
         ],
 
         PROREKTOR: [
@@ -259,10 +259,10 @@
         ],
 
         TESTER: [
-          ...applyActions,
-          { label: "Hodnocení",    href: reviewHref,                    style: "secondary", icon: "⭐" },
-          { label: "Nastavení",    href: "admin-competitions.html",     style: "ghost",     icon: "⚙️" },
-          { label: "Správa už.",   href: "admin-users.html",            style: "ghost",     icon: "👥" },
+          { label: "Podat přihlášku", href: applyHref || "#",          style: "primary",   icon: "📝" },
+          { label: "Správa přihlášek",href: "coordinator.html",         style: "secondary", icon: "📋" },
+          { label: "Hodnocení",       href: reviewHref,                 style: "ghost",     icon: "⭐" },
+          { label: "Nastavení",       href: "admin-competitions.html",  style: "ghost",     icon: "⚙️" },
         ],
 
         ZADATEL: applyHref ? (isOpen ? [
