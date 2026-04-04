@@ -255,7 +255,8 @@ async function loadData(){
     u.searchParams.set("competitionId",CID);
     u.searchParams.set("token",s?.token||"");
     const d=(await (await fetch(u.toString())).json());
-    apps=(d.applications||[]).filter(a=>["IN_REVIEW","TO_REVIEW","APPROVED","SUBMITTED"].includes(a.status))
+    const rawList = Array.isArray(d) ? d : (d.applications || []);
+    apps=rawList.filter(a=>["IN_REVIEW","TO_REVIEW","APPROVED","SUBMITTED"].includes(a.status))
       .map(a=>{try{a._f=JSON.parse(a.form_data_json||"{}")}catch{a._f={}}return a});
   }catch{apps=demoApps()}
   try{
