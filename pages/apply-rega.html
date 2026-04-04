@@ -828,6 +828,7 @@
   // Načti draft
   (async () => {
     try {
+      const jumpFinalize = new URLSearchParams(location.search).get("finalize") === "1";
       const session = Auth._getSession();
       const url = new URL(API_URL);
       url.searchParams.set("action", "getDraft");
@@ -839,9 +840,17 @@
       if (data.draft?.formData) {
         formData = data.draft.formData;
         draftId  = data.draft.id || data.draft.application_id || null;
+        if (jumpFinalize) currentStep = STEPS.length - 1;
+        renderProgress();
         renderStep();
         updateChecklist();
         showToast("Načten uložený draft.");
+        if (jumpFinalize) window.scrollTo({ top: 0, behavior: "smooth" });
+      } else if (jumpFinalize) {
+        currentStep = STEPS.length - 1;
+        renderProgress();
+        renderStep();
+        window.scrollTo({ top: 0, behavior: "smooth" });
       }
     } catch {}
   })();

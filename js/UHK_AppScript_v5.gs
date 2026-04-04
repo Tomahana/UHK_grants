@@ -479,14 +479,17 @@ function getApplicationStatus(applicationId, token) {
 function getApplications(competitionId, token, filters) {
   const auth  = requireAuth(token);
   const sheet = getSpreadsheet(competitionId).getSheetByName(SHEETS.APPLICATIONS);
-  if (!sheet) return [];
+  if (!sheet) return { applications: [] };
   let rows = sheetToObjects(sheet);
-  // Žadatel vidí jen své přihlášky
-  if (auth.roles.join(",") === "ZADATEL")
-    rows = rows.filter(r => r.applicant_email === auth.email);
+  // Žadatel vidí jen své přihlášky (čistý ZADATEL bez dalších rolí)
+  if (auth.roles.join(",") === "ZADATEL") {
+    const me = String(auth.email || "").toLowerCase();
+    rows = rows.filter(r =>
+      String(r.applicant_email || "").toLowerCase() === me);
+  }
   if (filters && filters.statusFilter)
     rows = rows.filter(r => r.status === filters.statusFilter);
-  return rows;
+  return { applications: rows };
 }
 
 function changeStatus(body) {
@@ -1284,6 +1287,8 @@ function getDraft(competitionId, applicantEmail, token) {
   } catch {
     draft.formData = {};
   }
+  // Frontend očekává draft.id (v listu je application_id)
+  draft.id = draft.application_id || draft.id;
   return { success: true, draft };
 }
 

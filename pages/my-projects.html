@@ -1,803 +1,468 @@
-/**
- * ============================================================
- *  UHK Grant Manager – Apps Script Backend (FINÁLNÍ VERZE)
- *  Verze: 3.0 | 2026
- *
- *  NASAZENÍ:
- *  1. Vlož celý tento soubor do Apps Script editoru
- *  2. Deploy → New deployment → Web App
- *     - Execute as: Me
- *     - Who has access: Anyone
- *  3. Zkopíruj URL a vlož do js/config.js jako API_URL
- * ============================================================
- */
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Moje projekty – UHK Granty</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--navy:#1C2E5A;--navy-mid:#2F4A8A;--navy-lite:#E8EDF8;--green:#1E6B45;--green-lite:#E6F4EE;--red:#991B1B;--red-lite:#FEF2F2;--gold:#C49A2A;--gold-lite:#FDF6E3;--purple:#5B21B6;--purple-lite:#EDE9FE;--border:#E2E0D8;--muted:#6B6A63;--bg:#F8F7F4;--r:8px;--r-lg:12px}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--navy);font-size:15px;min-height:100vh}
+    .topbar{background:var(--navy);height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:100}
+    .topbar img{height:26px;opacity:.9}
+    .tt{font-size:14px;font-weight:500;color:rgba(255,255,255,.8);margin-left:10px}
+    .tu{font-size:13px;color:rgba(255,255,255,.5)}
+    .tu strong{color:rgba(255,255,255,.85);font-weight:500}
+    .btn-back{background:none;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.6);font-family:'DM Mono',monospace;font-size:11px;padding:5px 12px;border-radius:4px;cursor:pointer;text-decoration:none}
+    .page{max-width:900px;margin:0 auto;padding:28px 24px 80px}
+    .page-title{font-size:22px;font-weight:500;color:var(--navy);margin-bottom:4px}
+    .page-sub{font-size:13px;color:var(--muted);margin-bottom:24px}
+    /* PROJEKT KARTA */
+    .proj-card{background:white;border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+    .proj-header{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+    .proj-title{font-size:16px;font-weight:500;color:var(--navy);margin-bottom:4px}
+    .proj-meta{font-size:12px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap}
+    .proj-body{padding:20px}
+    /* WORKFLOW TIMELINE */
+    .timeline{display:flex;align-items:center;gap:0;margin-bottom:20px;overflow-x:auto;padding-bottom:4px}
+    .tl-step{display:flex;flex-direction:column;align-items:center;min-width:90px}
+    .tl-dot{width:32px;height:32px;border-radius:50%;border:2px solid var(--border);background:white;display:flex;align-items:center;justify-content:center;font-size:13px;z-index:1;position:relative;flex-shrink:0}
+    .tl-dot.done{background:var(--green);border-color:var(--green);color:white}
+    .tl-dot.active{background:var(--navy);border-color:var(--navy);color:white}
+    .tl-dot.reject{background:var(--red-lite);border-color:#FECACA;color:var(--red)}
+    .tl-label{font-size:11px;color:var(--muted);margin-top:6px;text-align:center;line-height:1.3;max-width:80px}
+    .tl-label.active{color:var(--navy);font-weight:600}
+    .tl-label.done{color:var(--green)}
+    .tl-connector{flex:1;height:2px;background:var(--border);min-width:20px}
+    .tl-connector.done{background:var(--green)}
+    /* SEKCE */
+    .section{margin-bottom:20px}
+    .section-title{font-size:12px;font-weight:600;color:var(--navy);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+    .section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+    /* INFO GRID */
+    .info-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+    .info-item{background:var(--bg);border-radius:var(--r);padding:10px 12px}
+    .info-key{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
+    .info-val{font-size:13px;color:var(--navy);font-weight:500}
+    /* ZPRÁVY */
+    .report-item{border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:10px}
+    .report-header{padding:10px 14px;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .report-title{font-size:13px;font-weight:500;color:var(--navy)}
+    .report-date{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace}
+    .report-body{padding:14px}
+    /* FORMULÁŘ ZPRÁVY */
+    .report-form{background:var(--navy-lite);border:1px solid #D0D8EE;border-radius:var(--r);padding:16px;margin-top:12px}
+    .form-field{margin-bottom:14px}
+    .form-label{font-size:13px;font-weight:500;color:var(--navy);display:block;margin-bottom:6px}
+    .form-help{font-size:12px;color:var(--muted);margin-bottom:6px}
+    .form-input{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:13px;color:var(--navy);outline:none;background:white}
+    .form-input:focus{border-color:var(--navy-mid);box-shadow:0 0 0 3px rgba(47,74,138,.08)}
+    textarea.form-input{resize:vertical;min-height:80px;line-height:1.5}
+    /* BADGE */
+    .badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap}
+    .badge-draft{background:#F3F4F6;color:#6B7280}
+    .badge-submitted{background:var(--navy-lite);color:var(--navy-mid)}
+    .badge-to_review{background:var(--gold-lite);color:var(--gold)}
+    .badge-in_review{background:#FFF7ED;color:#C2410C}
+    .badge-approved{background:var(--green-lite);color:var(--green)}
+    .badge-rejected{background:var(--red-lite);color:var(--red)}
+    /* BTN */
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;border:none;transition:all .15s}
+    .btn-n{background:var(--navy);color:white}
+    .btn-n:hover{background:var(--navy-mid)}
+    .btn-n:disabled{background:var(--border);color:var(--muted);cursor:not-allowed}
+    .btn-o{background:white;color:var(--navy);border:1.5px solid var(--border)}
+    .btn-o:hover{border-color:var(--navy)}
+    .btn-sm{padding:6px 14px;font-size:12px}
+    /* EMPTY */
+    .empty-state{padding:48px;text-align:center;color:var(--muted);background:white;border:1px solid var(--border);border-radius:var(--r-lg)}
+    .empty-icon{font-size:40px;margin-bottom:16px}
+    .spin{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--navy);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);color:white;font-size:14px;font-weight:500;padding:12px 24px;border-radius:100px;z-index:9999;transition:transform .3s cubic-bezier(.34,1.56,.64,1);white-space:nowrap}
+    .toast.show{transform:translateX(-50%) translateY(0)}
+    /* ALERT */
+    .alert{padding:12px 16px;border-radius:var(--r);font-size:13px;line-height:1.5;margin-bottom:16px;display:flex;gap:10px}
+    .alert-info{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E40AF}
+    .alert-success{background:var(--green-lite);border:1px solid #A7F3D0;color:var(--green)}
+    .alert-warn{background:var(--gold-lite);border:1px solid #FDE68A;color:#92400E}
+    /* Koncepty – přehled nahoře */
+    .drafts-panel{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);padding:20px 22px;margin-bottom:28px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+    .drafts-panel--empty{background:var(--bg);border-style:dashed}
+    .drafts-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+    .drafts-title{font-size:15px;font-weight:600;color:var(--navy);letter-spacing:.02em}
+    .drafts-count{font-size:12px;font-weight:600;color:var(--muted);background:var(--bg);padding:4px 10px;border-radius:999px}
+    .drafts-lead{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:16px;max-width:52rem}
+    .drafts-empty-hint{font-size:13px;color:var(--muted);line-height:1.5;margin:0}
+    .draft-list{display:flex;flex-direction:column;gap:10px}
+    .draft-row{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:14px;padding:14px 16px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);border-left:4px solid var(--navy-mid)}
+    .draft-row__title{font-size:14px;font-weight:600;color:var(--navy);margin-bottom:6px}
+    .draft-row__meta{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:10px 14px}
+    .draft-row__meta .mono{font-family:'DM Mono',monospace;font-size:11px}
+    .draft-row__actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    .section-follow{margin-top:8px;margin-bottom:6px;font-size:13px;font-weight:600;color:var(--navy);letter-spacing:.04em;text-transform:uppercase}
+  </style>
+</head>
+<body>
+<header class="topbar">
+  <div style="display:flex;align-items:center;">
+    <img src="../img/uhk-abb-w.png" alt="UHK">
+    <span class="tt">Moje projekty</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span class="tu">Přihlášen: <strong id="topbarName">—</strong></span>
+    <a href="dashboard.html" class="btn-back">← Rozcestník</a>
+  </div>
+</header>
 
-// ============================================================
-// KONFIGURACE – uprav před nasazením
-// ============================================================
+<div class="page">
+  <div class="page-title">Moje přihlášky a projekty</div>
+  <div class="page-sub" id="pageSub">Načítám vaše projekty…</div>
 
-// ID tvého Google Sheets souboru
-// (z URL: docs.google.com/spreadsheets/d/ >>> ID <<< /edit)
-const GLOBAL_SPREADSHEET_ID = "1gglqq0IRVP1GETHRWEKRQOHywHBQO8MOrNK8-vrNrdI";
+  <div id="content"><div style="text-align:center;padding:48px;"><span class="spin"></span></div></div>
+</div>
 
-// Mapování soutěží na Spreadsheet ID
-// Pokud máš jen jeden soubor pro obě, dej stejné ID
-const SPREADSHEET_IDS = {
-  "uhk_connect_2026_v2": "1gglqq0IRVP1GETHRWEKRQOHywHBQO8MOrNK8-vrNrdI",
-  // "uhk_rega_2026_v1": "DOPLNIT_AZ_BUDE_DRUHY_SPREADSHEET",
+<div class="toast" id="toast"></div>
+<script src="../js/config.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+const user = Auth.requireLogin(["ZADATEL","RESITEL","ADMIN","TESTER"]);
+document.getElementById("topbarName").textContent = user.name||user.email;
+
+const COMP_IDS = ["uhk_connect_2026_v2","uhk_rega_2026_v1","uhk_prestige_2026"];
+const COMP_NAMES = {
+  "uhk_connect_2026_v2":"UHK Connect – výzva č. 2",
+  "uhk_rega_2026_v1":"UHK ReGa – výzva č. 1",
+  "uhk_prestige_2026":"UHK Prestige 2026",
+};
+const STATUS = {
+  DRAFT:{label:"Koncept",cls:"badge-draft"},
+  SUBMITTED:{label:"Podáno",cls:"badge-submitted"},
+  TO_REVIEW:{label:"Ke kontrole",cls:"badge-to_review"},
+  IN_REVIEW:{label:"V hodnocení",cls:"badge-in_review"},
+  APPROVED:{label:"Schváleno",cls:"badge-approved"},
+  REJECTED:{label:"Zamítnuto",cls:"badge-rejected"},
 };
 
-// Přesné názvy listů – musí odpovídat záložkám v Sheets
-const SHEETS = {
-  USERS        : "👥 USERS",
-  CONFIG       : "📋 CONFIG",
-  FORM_FIELDS  : "📝 FORM_FIELDS",
-  APPLICATIONS : "📥 APPLICATIONS",
-  REVIEWS      : "⭐ REVIEWS",
-  AUDIT        : "🔍 AUDIT_LOG",
-};
+// Workflow kroky pro zobrazení
+const WF_STEPS = [
+  {key:"DRAFT",     label:"Koncept"},
+  {key:"SUBMITTED", label:"Podáno"},
+  {key:"TO_REVIEW", label:"Formální kontrola"},
+  {key:"IN_REVIEW", label:"Hodnocení komise"},
+  {key:"APPROVED",  label:"Schváleno"},
+];
+const WF_ORDER = WF_STEPS.map(s=>s.key);
 
-// Záhlaví je na řádku 4, data začínají od řádku 5
-const HEADER_ROW = 4;
+let allProjects = [];
+let openReportForms = {};
 
-// Tajný klíč pro podepisování tokenů – změň na vlastní řetězec
-const TOKEN_SECRET = "UHK_GRANT_SECRET_2026_HT";
-
-
-// ============================================================
-// CORS – každá odpověď musí mít správný MIME type
-// ============================================================
-function corsResponse(data) {
-  return ContentService
-    .createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
+/** Odkaz na formulář přihlášky podle competition_id */
+function applyPageHref(competitionId) {
+  const id = String(competitionId || "");
+  if (id.includes("connect")) return "apply-connect.html";
+  if (id.includes("rega")) return "apply-rega.html";
+  if (id.includes("prestige")) return "apply-prestige.html";
+  return "dashboard.html";
+}
+function applyFinalizeHref(competitionId) {
+  const base = applyPageHref(competitionId);
+  if (base === "dashboard.html") return base;
+  const sep = base.includes("?") ? "&" : "?";
+  return base + sep + "finalize=1";
 }
 
+function escapeHtml(s) {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
 
-// ============================================================
-// GET ROUTER
-// ============================================================
-function doGet(e) {
-  const p = e.parameter || {};
-  try {
-    switch (p.action) {
-      case "login":
-        return corsResponse(handleLogin(p.email, p.password));
-      case "verifyToken":
-        return corsResponse(verifyToken(p.token));
-      case "getCompetitions":
-        return corsResponse(getCompetitions(p.token));
-      case "getFormFields":
-        return corsResponse(getFormFields(p.competitionId, p.token));
-      case "getApplicationStatus":
-        return corsResponse(getApplicationStatus(p.applicationId, p.token));
-      case "getApplications":
-        return corsResponse(getApplications(p.competitionId, p.token, p));
-      case "getReviews":
-        return corsResponse(getReviews(p.competitionId, p.applicationId, p.token));
-      case "ping":
-        return corsResponse({ success: true, message: "UHK Grant Manager API běží." });
-      default:
-        return corsResponse({ error: "Neznámá akce: " + (p.action || "–") });
-    }
-  } catch (err) {
-    logError("doGet", err);
-    return corsResponse({ error: err.message });
+function formatUpdatedAt(p) {
+  const u = p.updated_at || p.created_at || "";
+  if (!u) return "—";
+  return String(u).replace("T", " ").substring(0, 16);
+}
+
+function renderDraftsPanel(drafts) {
+  if (!drafts.length) {
+    return `<div class="drafts-panel drafts-panel--empty">
+      <div class="drafts-head">
+        <h2 class="drafts-title">Rozpracované přihlášky (koncepty)</h2>
+      </div>
+      <p class="drafts-empty-hint">Zatím nemáte uložený koncept. Na rozcestníku zvolte soutěž a začněte vyplňovat přihlášku – koncept se ukládá automaticky i ručně tlačítkem „Uložit draft“.</p>
+    </div>`;
   }
+  const rows = drafts.map((p) => {
+    const f = p._f || {};
+    const title = (f.project_title && String(f.project_title).trim()) || "(bez názvu – doplníte ve formuláři)";
+    const cname = COMP_NAMES[p.competition_id] || p.competition_id;
+    const hrefEdit = applyPageHref(p.competition_id);
+    const hrefFin = applyFinalizeHref(p.competition_id);
+    const appId = p.application_id || "";
+    return `<div class="draft-row">
+      <div class="draft-row__main">
+        <div class="draft-row__title">${escapeHtml(title)}</div>
+        <div class="draft-row__meta">
+          <span>${escapeHtml(cname)}</span>
+          <span class="mono">${escapeHtml(appId)}</span>
+          <span>Naposledy: ${escapeHtml(formatUpdatedAt(p))}</span>
+        </div>
+      </div>
+      <div class="draft-row__actions">
+        <a class="btn btn-n btn-sm" href="${hrefEdit}">Otevřít a doplnit</a>
+        <a class="btn btn-o btn-sm" href="${hrefFin}">Přejít k podání</a>
+      </div>
+    </div>`;
+  }).join("");
+  return `<div class="drafts-panel">
+    <div class="drafts-head">
+      <h2 class="drafts-title">Rozpracované přihlášky (koncepty)</h2>
+      <span class="drafts-count">${drafts.length} ${drafts.length === 1 ? "koncept" : "konceptů"}</span>
+    </div>
+    <p class="drafts-lead">Pokračujte v úpravách nebo zvolte <strong>Přejít k podání</strong> – otevře se poslední krok. Pro závazné odeslání stiskněte <strong>Odeslat přihlášku</strong>.</p>
+    <div class="draft-list">${rows}</div>
+  </div>`;
 }
 
 
-// ============================================================
-// POST ROUTER
-// ============================================================
-function doPost(e) {
-  let body = {};
+async function loadProjects() {
+  const all = [];
+  for (const cid of COMP_IDS) {
+    try {
+      if (API_URL.includes("DOPLNIT")) { all.push(...getDemoProjects()); break; }
+      const s=Auth._getSession(), u=new URL(API_URL);
+      u.searchParams.set("action","getApplications");
+      u.searchParams.set("competitionId",cid);
+      u.searchParams.set("token",s?.token||"");
+      const d=await (await fetch(u.toString())).json();
+      const list = Array.isArray(d) ? d : (d.applications || []);
+      const mine=list.filter(a=>
+        a.applicant_email?.toLowerCase()===user.email?.toLowerCase()
+      ).map(a=>{try{a._f=JSON.parse(a.form_data_json||"{}")}catch{a._f={}}; a.competition_id=cid; return a});
+      all.push(...mine);
+    } catch { all.push(...getDemoProjects()); break; }
+  }
+  allProjects = all;
+  render();
+  const draftN = all.filter((p) => String(p.status || "").toUpperCase() === "DRAFT").length;
+  document.getElementById("pageSub").textContent =
+    all.length + " záznamů" +
+    (draftN ? " (" + draftN + " " + (draftN === 1 ? "koncept" : "konceptů") + ")" : "") +
+    " · " + (user.name || user.email);
+}
+
+function render() {
+  const el = document.getElementById("content");
+  if (!allProjects.length) {
+    el.innerHTML = `${renderDraftsPanel([])}
+    <div class="empty-state" style="margin-top:20px;">
+      <div class="empty-icon">📭</div>
+      <div style="font-size:16px;font-weight:500;margin-bottom:8px;">Žádné podané přihlášky</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:20px;">Až některou přihlášku odešlete, zobrazí se zde její stav v řízení.</div>
+      <a href="dashboard.html" class="btn btn-n">← Zpět na rozcestník</a>
+    </div>`;
+    return;
+  }
+  const drafts = allProjects.filter((p) => String(p.status || "").toUpperCase() === "DRAFT");
+  const rest = allProjects.filter((p) => String(p.status || "").toUpperCase() !== "DRAFT");
+  let html = renderDraftsPanel(drafts);
+  if (rest.length) {
+    html += `<div class="section-follow">Podané přihlášky a projekty</div>`;
+    html += rest.map((p) => renderProject(p)).join("");
+  } else if (drafts.length) {
+    html += `<p class="page-sub" style="margin-top:4px;">Po odeslání přihlášky se zde objeví průběh zpracování (formální kontrola, hodnocení…).</p>`;
+  }
+  el.innerHTML = html;
+}
+
+function renderProject(p) {
+  const f       = p._f || {};
+  const status  = p.status || "DRAFT";
+  const st      = STATUS[status] || {label:status,cls:"badge-draft"};
+  const cname   = COMP_NAMES[p.competition_id] || p.competition_id;
+  const budget  = f.budget_total ? Number(f.budget_total).toLocaleString("cs-CZ")+" Kč" : "—";
+  const isRej   = status === "REJECTED";
+  const isApp   = status === "APPROVED";
+
+  // Timeline
+  const curIdx = WF_ORDER.indexOf(status);
+  const timeline = WF_STEPS.map((s,i) => {
+    const done   = i < curIdx && !isRej;
+    const active = i === curIdx && !isRej;
+    return `${i>0?`<div class="tl-connector ${done?"done":""}"></div>`:""}
+      <div class="tl-step">
+        <div class="tl-dot ${done?"done":active?"active":""}">
+          ${done?"✓":active?"●":i+1}
+        </div>
+        <div class="tl-label ${done?"done":active?"active":""}">${s.label}</div>
+      </div>`;
+  }).join("");
+
+  // Zprávy
+  const reports = (p._reports||[]).map(r => `
+    <div class="report-item">
+      <div class="report-header">
+        <div class="report-title">${r.type||"Zpráva"}</div>
+        <span class="report-date">${r.date||""}</span>
+      </div>
+      <div class="report-body" style="font-size:13px;color:var(--muted);">${r.note||"—"}</div>
+    </div>`).join("");
+
+  // Alert dle stavu
+  const alert = isApp
+    ? `<div class="alert alert-success">✓ Projekt byl schválen. Po zahájení aktivity nezapomeňte podat závěrečnou zprávu.</div>`
+    : isRej
+    ? `<div class="alert" style="background:var(--red-lite);border:1px solid #FECACA;color:var(--red);">✕ Přihláška nebyla podpořena. ${p.note||""}</div>`
+    : status==="IN_REVIEW"
+    ? `<div class="alert alert-info">⭐ Vaše přihláška je právě hodnocena komisí. Výsledky obdržíte e-mailem.</div>`
+    : status==="SUBMITTED"
+    ? `<div class="alert alert-info">ℹ Přihláška byla podána a čeká na formální kontrolu koordinátorky.</div>`
+    : "";
+
+  // Formulář závěrečné zprávy
+  const reportForm = isApp && openReportForms[p.application_id] ? `
+    <div class="report-form">
+      <div style="font-size:14px;font-weight:500;color:var(--navy);margin-bottom:12px;">Závěrečná zpráva</div>
+      <div class="form-field">
+        <label class="form-label">Co bylo realizováno a s kým spolupráce proběhla?</label>
+        <textarea class="form-input" id="rep-summary-${p.application_id}" placeholder="Popis realizované aktivity…"></textarea>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Identifikace výstupu</label>
+        <div class="form-help">Doložte výstup (LoI, draft článku, protokol apod.) – přiložte soubor nebo uveďte odkaz</div>
+        <input class="form-input" id="rep-output-${p.application_id}" type="text" placeholder="Název výstupu nebo odkaz…">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Stav čerpání nákladů</label>
+        <textarea class="form-input" id="rep-budget-${p.application_id}" placeholder="Přehled skutečně čerpaných nákladů a odchylky od plánu…" style="min-height:60px;"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px;">
+        <button class="btn btn-o btn-sm" onclick="closeReportForm('${p.application_id}')">Zrušit</button>
+        <button class="btn btn-n btn-sm" onclick="submitReport('${p.application_id}','${p.competition_id}')">Odeslat zprávu</button>
+      </div>
+    </div>` : "";
+
+  return `<div class="proj-card" id="card-${p.application_id}">
+    <div class="proj-header">
+      <div>
+        <div class="proj-title">${f.project_title||p.application_id}</div>
+        <div class="proj-meta">
+          <span>${cname}</span>
+          <span>${p.application_id}</span>
+          <span>${f.faculty||"—"} · ${f.department||"—"}</span>
+          ${p.submitted_at?`<span>Podáno: ${String(p.submitted_at).substring(0,10)}</span>`:""}
+        </div>
+      </div>
+      <span class="badge ${st.cls}">${st.label}</span>
+    </div>
+    <div class="proj-body">
+      ${alert}
+
+      <div class="section">
+        <div class="section-title">Průběh přihlášky</div>
+        ${isRej
+          ? `<div style="display:flex;align-items:center;gap:8px;color:var(--red);font-size:13px;">✕ Přihláška nebyla podpořena</div>`
+          : `<div class="timeline">${timeline}</div>`}
+      </div>
+
+      <div class="section">
+        <div class="section-title">Přehled projektu</div>
+        <div class="info-grid">
+          <div class="info-item"><div class="info-key">Typ aktivity</div><div class="info-val">${f.activity_type||"—"}</div></div>
+          <div class="info-item"><div class="info-key">Partner</div><div class="info-val">${f.partner_institution||"—"}</div></div>
+          <div class="info-item"><div class="info-key">Termín</div><div class="info-val">${f.activity_start||"?"} – ${f.activity_end||"?"}</div></div>
+          <div class="info-item"><div class="info-key">Rozpočet</div><div class="info-val">${budget}</div></div>
+          <div class="info-item"><div class="info-key">Výstup</div><div class="info-val">${f.expected_output||"—"}</div></div>
+        </div>
+      </div>
+
+      ${reports ? `<div class="section"><div class="section-title">Podané zprávy</div>${reports}</div>` : ""}
+
+      ${reportForm}
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">
+        ${status==="DRAFT" ? `<a href="${applyPageHref(p.competition_id)}" class="btn btn-n btn-sm">✏ Upravit přihlášku</a>` : ""}
+        ${isApp && !openReportForms[p.application_id] ? `<button class="btn btn-n btn-sm" onclick="openReportForm('${p.application_id}')">📄 Podat závěrečnou zprávu</button>` : ""}
+      </div>
+    </div>
+  </div>`;
+}
+
+function openReportForm(id) {
+  openReportForms[id] = true;
+  render();
+  document.getElementById("rep-summary-"+id)?.focus();
+}
+
+function closeReportForm(id) {
+  delete openReportForms[id];
+  render();
+}
+
+async function submitReport(appId, compId) {
+  const summary = document.getElementById("rep-summary-"+appId)?.value||"";
+  const output  = document.getElementById("rep-output-"+appId)?.value||"";
+  const budget  = document.getElementById("rep-budget-"+appId)?.value||"";
+  if (!summary) { showToast("Vyplňte popis realizace.", "err"); return; }
+
   try {
-    body = JSON.parse(e.postData.contents || "{}");
+    await fetch(API_URL, {
+      method:"POST", mode:"no-cors",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        action:"submitFinalReport",
+        token: Auth._getSession()?.token||"",
+        competitionId: compId,
+        applicationId: appId,
+        report: {summary, output, budget, submittedAt: new Date().toISOString()},
+        applicantEmail: user.email,
+      }),
+    });
+    closeReportForm(appId);
+    showToast("Závěrečná zpráva odeslána ✓");
   } catch {
-    return corsResponse({ error: "Neplatný JSON v těle požadavku." });
-  }
-  try {
-    switch (body.action) {
-      case "register":
-        return corsResponse(registerUser(body));
-      case "submitApplication":
-        return corsResponse(submitApplication(body));
-      case "changeStatus":
-        return corsResponse(changeStatus(body));
-      case "submitReview":
-        return corsResponse(submitReview(body));
-      default:
-        return corsResponse({ error: "Neznámá POST akce: " + (body.action || "–") });
-    }
-  } catch (err) {
-    logError("doPost:" + body.action, err);
-    return corsResponse({ error: err.message });
+    showToast("Chyba při odesílání.", "err");
   }
 }
 
-
-// ============================================================
-// PŘIHLÁŠENÍ
-// Vrací: { success, token, email, name, roles: ["ADMIN",...] }
-// ============================================================
-function handleLogin(email, password) {
-  if (!email || !password)
-    return { success: false, message: "Zadejte e-mail a heslo." };
-
-  const ss    = SpreadsheetApp.openById(GLOBAL_SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(SHEETS.USERS);
-  if (!sheet)
-    return { success: false, message: "List USERS nebyl nalezen. Zkontroluj název záložky." };
-
-  const data    = sheet.getDataRange().getValues();
-  const headers = data[HEADER_ROW - 1]; // řádek 4 = index 3
-
-  // Dynamicky namapuj sloupce podle názvu záhlaví
-  const COL = {};
-  headers.forEach((h, i) => {
-    if (h) COL[String(h).trim().toLowerCase()] = i;
-  });
-
-  // Najdi indexy potřebných sloupců
-  const emailCol = COL["email"]         ?? 0;
-  const pwdCol   = COL["password_hash"] ?? COL["password"] ?? -1;
-  const roleCol  = COL["role"]          ?? -1;
-  const nameCol  = COL["jméno"]         ?? COL["name"]  ?? COL["jmeno"] ?? -1;
-  const actCol   = COL["active"]        ?? -1;
-
-  if (pwdCol < 0)
-    return { success: false, message: "Chybí sloupec 'password_hash' v listu USERS." };
-  if (roleCol < 0)
-    return { success: false, message: "Chybí sloupec 'role' v listu USERS." };
-
-  const emailNorm = email.toLowerCase().trim();
-
-  // Najdi VŠECHNY řádky kde sedí e-mail
-  const matchingRows = [];
-  for (let i = HEADER_ROW; i < data.length; i++) {
-    const row      = data[i];
-    const rowEmail = String(row[emailCol] || "").toLowerCase().trim();
-    if (!rowEmail || rowEmail !== emailNorm) continue;
-
-    const rowPwd    = String(row[pwdCol]  || "").trim();
-    const rowActive = row[actCol];
-    const rowRole   = String(row[roleCol] || "").trim();
-    const rowName   = nameCol >= 0 ? String(row[nameCol] || "").trim() : "";
-
-    // Zkontroluj heslo (kontrolujeme u prvního nalezeného řádku)
-    if (matchingRows.length === 0 && rowPwd !== password)
-      return { success: false, message: "Nesprávné heslo." };
-
-    // Zkontroluj aktivaci
-    if (rowActive === false || String(rowActive).toUpperCase() === "FALSE")
-      return { success: false, message: "Účet je deaktivován. Kontaktujte administrátora." };
-
-    if (rowRole) matchingRows.push({ role: rowRole, name: rowName });
-  }
-
-  if (matchingRows.length === 0)
-    return { success: false, message: "Uživatel s tímto e-mailem nebyl nalezen." };
-
-  // Sestav výsledek
-  const roles = matchingRows.map(r => r.role);
-  const name  = matchingRows[0].name || emailNorm;
-  const token = generateToken(emailNorm, roles.join(","));
-
-  writeAudit(ss, "LOGIN", emailNorm, "", roles.join(","),
-    "Přihlášení, " + roles.length + " role(í)");
-
-  return { success: true, token, email: emailNorm, name, roles };
+let _tt;
+function showToast(msg,type="ok") {
+  const t=document.getElementById("toast");t.textContent=msg;
+  t.style.background=type==="err"?"#991B1B":"#1E6B45";t.classList.add("show");
+  clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove("show"),4000);
 }
 
-
-// ============================================================
-// REGISTRACE NOVÉHO UŽIVATELE
-// Role: vždy ZADATEL, active: TRUE, okamžitě aktivní
-// ============================================================
-function registerUser(body) {
-  const { name, email, password } = body;
-
-  // Validace
-  if (!name || !email || !password)
-    return { success: false, message: "Vyplňte všechna pole." };
-  if (!email.toLowerCase().endsWith("@uhk.cz"))
-    return { success: false, message: "E-mail musí být UHK adresa (@uhk.cz)." };
-  if (password.length < 8)
-    return { success: false, message: "Heslo musí mít alespoň 8 znaků." };
-  if (!/[A-Z]/.test(password))
-    return { success: false, message: "Heslo musí obsahovat alespoň jedno velké písmeno." };
-  if (!/[0-9]/.test(password))
-    return { success: false, message: "Heslo musí obsahovat alespoň jedno číslo." };
-
-  const ss    = SpreadsheetApp.openById(GLOBAL_SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(SHEETS.USERS);
-  if (!sheet)
-    return { success: false, message: "List USERS nebyl nalezen." };
-
-  const data    = sheet.getDataRange().getValues();
-  const headers = data[HEADER_ROW - 1];
-
-  const COL = {};
-  headers.forEach((h, i) => { if (h) COL[String(h).trim().toLowerCase()] = i; });
-
-  const emailNorm = email.toLowerCase().trim();
-  const emailCol  = COL["email"] ?? 0;
-
-  // Zkontroluj duplicitu
-  for (let i = HEADER_ROW; i < data.length; i++) {
-    const existing = String(data[i][emailCol] || "").toLowerCase().trim();
-    if (existing === emailNorm)
-      return { success: false, message: "Tento e-mail je již registrován. Přihlaste se." };
-  }
-
-  // Připrav nový řádek – vyplní jen sloupce které existují v záhlaví
-  const newRow = new Array(headers.length).fill("");
-  const set = (colNames, val) => {
-    for (const col of colNames) {
-      if (COL[col] !== undefined) { newRow[COL[col]] = val; break; }
-    }
-  };
-
-  set(["email"],                         emailNorm);
-  set(["password_hash", "password"],     password);
-  set(["role"],                          "ZADATEL");
-  set(["active"],                        "TRUE");
-  set(["jméno", "name", "jmeno"],        name.trim());
-  set(["added_at"],                      formatDate(new Date()));
-  set(["added_by"],                      "self-registration");
-  set(["note"],                          "Registrován přes webový formulář");
-
-  sheet.appendRow(newRow);
-  writeAudit(ss, "USER_REGISTERED", emailNorm, "", "ZADATEL", name.trim());
-
-  return { success: true, message: "Účet byl vytvořen. Nyní se můžete přihlásit." };
+function getDemoProjects() {
+  return [{
+    application_id:"APP-260320-DEMO1",competition_id:"uhk_connect_2026_v2",
+    applicant_email:user.email,applicant_name:user.name,
+    status:"IN_REVIEW",submitted_at:"2026-03-20 10:15",note:"",
+    form_data_json:JSON.stringify({
+      project_title:"Síťování s ETH Zürich – ML výzkum",faculty:"FIM",department:"Katedra informatiky",
+      activity_type:"Mobilita (výjezd)",partner_institution:"ETH Zürich",partner_country:"Švýcarsko",
+      activity_start:"2026-06-01",activity_end:"2026-06-14",
+      expected_output:"Rozpracovaný článek",budget_total:"57400",
+    }),
+    _reports:[{type:"Průběžná informace",date:"2026-04-01",note:"Aktivita proběhne dle plánu."}],
+  },{
+    application_id:"APP-260301-DEMO4",competition_id:"uhk_connect_2026_v2",
+    applicant_email:user.email,applicant_name:user.name,
+    status:"APPROVED",submitted_at:"2026-03-01 09:00",note:"Schváleno prorektorkou.",
+    form_data_json:JSON.stringify({
+      project_title:"Bilaterální výzkum – Universität Heidelberg",faculty:"PdF",department:"Katedra pedagogiky",
+      activity_type:"Pracovní setkání",partner_institution:"Universität Heidelberg",partner_country:"Německo",
+      activity_start:"2026-03-10",activity_end:"2026-03-13",
+      expected_output:"Plán navazující mobility",budget_total:"24000",
+    }),
+    _reports:[],
+  }].map(a=>{try{a._f=JSON.parse(a.form_data_json)}catch{a._f={}}return a});
 }
 
-
-// ============================================================
-// TOKEN – generování a ověření
-// Formát (base64): email|roles|timestamp|checksum
-// ============================================================
-function generateToken(email, roles) {
-  const ts  = Date.now().toString();
-  const raw = email + "|" + roles + "|" + ts;
-  const sum = computeChecksum(raw);
-  return Utilities.base64Encode(raw + "|" + sum);
-}
-
-function verifyToken(token) {
-  if (!token) return { valid: false, reason: "Chybí token." };
-  try {
-    const decoded = Utilities.newBlob(
-      Utilities.base64Decode(token)
-    ).getDataAsString();
-    const parts = decoded.split("|");
-    if (parts.length < 4) return { valid: false, reason: "Neplatný formát tokenu." };
-
-    const checksum   = parts[parts.length - 1];
-    const rest       = parts.slice(0, -1);
-    const raw        = rest.join("|");
-    const email      = rest[0];
-    const rolesStr   = rest[1];
-    const timestamp  = rest[2];
-
-    if (computeChecksum(raw) !== checksum)
-      return { valid: false, reason: "Neplatný podpis tokenu." };
-
-    // Max stáří 8 hodin
-    if (Date.now() - Number(timestamp) > 8 * 60 * 60 * 1000)
-      return { valid: false, reason: "Token vypršel. Přihlaste se znovu." };
-
-    return { valid: true, email, roles: rolesStr.split(",") };
-  } catch (err) {
-    return { valid: false, reason: "Chyba dekódování tokenu." };
-  }
-}
-
-function computeChecksum(raw) {
-  return Utilities.computeDigest(
-    Utilities.DigestAlgorithm.SHA_256,
-    raw + TOKEN_SECRET
-  ).slice(0, 8)
-   .map(b => (b & 0xff).toString(16).padStart(2, "0"))
-   .join("");
-}
-
-// Ověř token a vrať { email, role } nebo vyhoď chybu
-function requireAuth(token, allowedRoles) {
-  const v = verifyToken(token);
-  if (!v.valid) throw new Error("Nepřihlášen: " + v.reason);
-  // Pokud je předána konkrétní role v tokenu (z frontend session)
-  // allowedRoles je volitelný seznam povolených rolí
-  return v;
-}
-
-
-// ============================================================
-// SOUTĚŽE – načte seznam z CONFIG listů
-// ============================================================
-function getCompetitions(token) {
-  requireAuth(token);
-  const result = [];
-
-  Object.entries(SPREADSHEET_IDS).forEach(([compId, ssId]) => {
-    try {
-      const ss    = SpreadsheetApp.openById(ssId);
-      const sheet = ss.getSheetByName(SHEETS.CONFIG);
-      if (!sheet) return;
-
-      // CONFIG má záhlaví key/value v sloupcích B/C od řádku 5
-      const data  = sheet.getDataRange().getValues();
-      const cfg   = {};
-      data.forEach(row => {
-        if (row[1]) cfg[String(row[1]).trim()] = row[2];
-      });
-
-      // Počet přihlášek
-      let appCount = 0;
-      const appSheet = ss.getSheetByName(SHEETS.APPLICATIONS);
-      if (appSheet) {
-        appCount = Math.max(0, appSheet.getLastRow() - HEADER_ROW);
-      }
-
-      result.push({
-        id:                compId,
-        name:              cfg["competition_name"]        || compId,
-        type:              cfg["competition_type"]        || "UHK_CONNECT",
-        status:            cfg["status"]                  || "DRAFT",
-        description:       cfg["description"]             || "",
-        deadline:          cfg["deadline_applications"]   || "",
-        allocation:        Number(cfg["total_allocation_czk"]) || 0,
-        maxBudget:         Number(cfg["max_budget_czk"])        || 0,
-        applicationsCount: appCount,
-      });
-    } catch (err) {
-      logError("getCompetitions:" + compId, err);
-    }
-  });
-
-  return result;
-}
-
-
-// ============================================================
-// FORM FIELDS – definice formuláře přihlášky
-// ============================================================
-function getFormFields(competitionId, token) {
-  requireAuth(token);
-  const ss    = getSpreadsheet(competitionId);
-  const sheet = ss.getSheetByName(SHEETS.FORM_FIELDS);
-  if (!sheet) return { success: false, message: "List FORM_FIELDS nenalezen." };
-
-  const rows   = sheetToObjects(sheet);
-  const fields = rows
-    .filter(r => r.active === true || String(r.active).toUpperCase() === "TRUE")
-    .map(r => ({
-      field_id        : r.field_id,
-      section         : r.section,
-      section_order   : Number(r.section_order)  || 0,
-      field_order     : Number(r.field_order)    || 0,
-      label_cs        : r.label_cs,
-      type            : r.type,
-      required        : r.required === true || String(r.required).toUpperCase() === "TRUE",
-      active          : true,
-      placeholder     : r.placeholder  || "",
-      help_text       : r.help_text    || "",
-      options         : r.options      || "",
-      max_length      : r.max_length   || "",
-      depends_on_field: r.depends_on_field || "",
-      depends_on_value: r.depends_on_value || "",
-      internal_only   : r.internal_only === true || String(r.internal_only).toUpperCase() === "TRUE",
-    }));
-
-  return { success: true, competitionId, fields };
-}
-
-
-// ============================================================
-// PŘIHLÁŠKY
-// ============================================================
-
-// Načte stav přihlášky podle ID
-function getApplicationStatus(applicationId, token) {
-  requireAuth(token);
-  for (const [compId, ssId] of Object.entries(SPREADSHEET_IDS)) {
-    try {
-      const ss   = SpreadsheetApp.openById(ssId);
-      const rows = sheetToObjects(ss.getSheetByName(SHEETS.APPLICATIONS));
-      const found = rows.find(r => r.application_id === applicationId);
-      if (found) return { success: true, application: found, competition: compId };
-    } catch (e) {}
-  }
-  return { success: false, message: "Přihláška nenalezena." };
-}
-
-// Seznam přihlášek (admin/komisař vidí vše, žadatel jen své)
-function getApplications(competitionId, token, filters) {
-  const auth = requireAuth(token);
-  const ss   = getSpreadsheet(competitionId);
-  const sheet = ss.getSheetByName(SHEETS.APPLICATIONS);
-  if (!sheet) return { applications: [] };
-
-  let rows = sheetToObjects(sheet);
-
-  // Žadatel vidí jen své
-  if (auth.roles && auth.roles.includes("ZADATEL") && auth.roles.length === 1) {
-    const me = String(auth.email || "").toLowerCase();
-    rows = rows.filter(r =>
-      String(r.applicant_email || "").toLowerCase() === me);
-  }
-  // Filtr statusu
-  if (filters && filters.statusFilter) {
-    rows = rows.filter(r => r.status === filters.statusFilter);
-  }
-
-  return { applications: rows };
-}
-
-// Uložení přihlášky
-function submitApplication(body) {
-  const auth = requireAuth(body.token);
-  const ss   = getSpreadsheet(body.competitionId);
-  const sheet = ss.getSheetByName(SHEETS.APPLICATIONS);
-  if (!sheet) throw new Error("List APPLICATIONS nenalezen.");
-
-  const now   = new Date();
-  const appId = generateAppId();
-
-  // Systémové sloupce + data formuláře
-  const fieldValues = Object.values(body.fields || {});
-  sheet.appendRow([
-    appId,                                      // application_id
-    body.competitionId,                         // competition_id
-    body.fields.applicant_email || auth.email,  // applicant_email
-    formatDate(now),                            // submitted_at
-    formatDate(now),                            // updated_at
-    body.status || "SUBMITTED",                 // status
-    "", "", "", "",                             // status_changed_by/at, budget, notes
-    ...fieldValues,                             // pole formuláře
-  ]);
-
-  writeAudit(ss, "APPLICATION_SUBMIT", appId, "", body.status, auth.email);
-  return { success: true, applicationId: appId };
-}
-
-// Změna statusu přihlášky
-function changeStatus(body) {
-  const auth = requireAuth(body.token);
-
-  // Kontrola oprávnění
-  const allowed = ["ADMIN", "PROREKTOR", "KOMISAR", "TESTER"];
-  const userRoles = auth.roles || [];
-  if (!userRoles.some(r => allowed.includes(r)))
-    throw new Error("Nedostatečná oprávnění pro změnu statusu.");
-
-  const ss    = getSpreadsheet(body.competitionId);
-  const sheet = ss.getSheetByName(SHEETS.APPLICATIONS);
-  if (!sheet) throw new Error("List APPLICATIONS nenalezen.");
-
-  const data = sheet.getDataRange().getValues();
-  const headers = data[HEADER_ROW - 1];
-  const COL = {};
-  headers.forEach((h, i) => { if (h) COL[String(h).trim()] = i; });
-
-  for (let i = HEADER_ROW; i < data.length; i++) {
-    if (data[i][COL["application_id"] ?? 0] !== body.applicationId) continue;
-
-    const oldStatus = data[i][COL["status"] ?? 5];
-    const rowNum    = i + 1;
-
-    sheet.getRange(rowNum, (COL["status"]           ?? 5)  + 1).setValue(body.newStatus);
-    sheet.getRange(rowNum, (COL["status_changed_by"] ?? 6) + 1).setValue(auth.email);
-    sheet.getRange(rowNum, (COL["status_changed_at"] ?? 7) + 1).setValue(formatDate(new Date()));
-    sheet.getRange(rowNum, (COL["updated_at"]        ?? 4) + 1).setValue(formatDate(new Date()));
-    if (body.note && COL["internal_notes"] !== undefined) {
-      sheet.getRange(rowNum, COL["internal_notes"] + 1).setValue(body.note);
-    }
-
-    writeAudit(ss, "STATUS_CHANGE", body.applicationId,
-      oldStatus, body.newStatus, body.note || "");
-    return { success: true, oldStatus, newStatus: body.newStatus };
-  }
-
-  throw new Error("Přihláška nenalezena: " + body.applicationId);
-}
-
-
-// ============================================================
-// HODNOCENÍ
-// ============================================================
-
-// Uložení hodnocení komisaře
-function submitReview(body) {
-  const auth = requireAuth(body.token);
-  const allowed = ["ADMIN", "KOMISAR", "PROREKTOR"];
-  if (!auth.roles.some(r => allowed.includes(r)))
-    throw new Error("Nedostatečná oprávnění pro hodnocení.");
-
-  const ss    = getSpreadsheet(body.competitionId);
-  const sheet = ss.getSheetByName(SHEETS.REVIEWS);
-  if (!sheet) throw new Error("List REVIEWS nenalezen.");
-
-  const scores = body.scores || {};
-  const total  = ["clarity","quality","budget","profile","outputs"]
-    .reduce((s, k) => s + (Number(scores[k]) || 0), 0);
-
-  sheet.appendRow([
-    Utilities.getUuid(),
-    body.applicationId,
-    auth.email,
-    formatDate(new Date()),
-    scores.clarity  || 0,
-    scores.quality  || 0,
-    scores.budget   || 0,
-    scores.profile  || 0,
-    scores.outputs  || 0,
-    total,
-    (body.comments || {}).public   || "",
-    (body.comments || {}).internal || "",
-    body.recommendation || "",
-    scores.conflict ? "TRUE" : "FALSE",
-  ]);
-
-  writeAudit(ss, "REVIEW_SUBMITTED", body.applicationId,
-    "", body.recommendation, `${auth.email}, ${total}/25 bodů`);
-  return { success: true, total };
-}
-
-// Načtení hodnocení pro přihlášku
-function getReviews(competitionId, applicationId, token) {
-  const auth = requireAuth(token);
-  const allowed = ["ADMIN", "PROREKTOR", "KOMISAR", "TESTER", "READONLY"];
-  if (!auth.roles.some(r => allowed.includes(r)))
-    throw new Error("Nedostatečná oprávnění.");
-
-  const ss   = getSpreadsheet(competitionId);
-  const rows = sheetToObjects(ss.getSheetByName(SHEETS.REVIEWS));
-  return rows.filter(r => r.application_id === applicationId);
-}
-
-
-// ============================================================
-// POMOCNÉ FUNKCE
-// ============================================================
-
-// Vrátí Spreadsheet podle competition_id
-function getSpreadsheet(competitionId) {
-  const id = SPREADSHEET_IDS[competitionId];
-  if (!id) throw new Error("Neznámé competition_id: " + competitionId);
-  return SpreadsheetApp.openById(id);
-}
-
-// Převede list na pole objektů (záhlaví = klíče)
-function sheetToObjects(sheet) {
-  if (!sheet) return [];
-  const data = sheet.getDataRange().getValues();
-  if (data.length <= HEADER_ROW) return [];
-  const headers = data[HEADER_ROW - 1];
-  return data.slice(HEADER_ROW)
-    .map(row => {
-      const obj = {};
-      headers.forEach((h, i) => { if (h) obj[String(h).trim()] = row[i]; });
-      return obj;
-    })
-    .filter(o => Object.values(o).some(v => v !== "" && v !== null && v !== undefined));
-}
-
-// Generuje ID přihlášky
-function generateAppId() {
-  const date = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyMMdd");
-  const rand  = Math.random().toString(36).slice(2, 7).toUpperCase();
-  return "APP-" + date + "-" + rand;
-}
-
-// Formátuje datum
-function formatDate(date) {
-  return Utilities.formatDate(
-    date instanceof Date ? date : new Date(date),
-    Session.getScriptTimeZone(),
-    "yyyy-MM-dd HH:mm:ss"
-  );
-}
-
-// Zapíše do AUDIT_LOG
-function writeAudit(ss, action, targetId, oldVal, newVal, note) {
-  try {
-    const sheet = ss.getSheetByName(SHEETS.AUDIT);
-    if (!sheet) return;
-    sheet.appendRow([
-      formatDate(new Date()),
-      Session.getActiveUser().getEmail() || "webapp",
-      action,
-      targetId  || "",
-      oldVal    || "",
-      newVal    || "",
-      note      || "",
-    ]);
-  } catch (e) {
-    // Audit není kritický – neblokuje hlavní operaci
-  }
-}
-
-// Loguje chyby do konzole Apps Script
-function logError(context, err) {
-  console.error("[UHK Grant] " + context + ": " + err.message);
-}
-
-
-// ============================================================
-// MENU V SHEETS – spusť po otevření souboru
-// ============================================================
-function onOpen() {
-  SpreadsheetApp.getUi()
-    .createMenu("🎓 UHK Grant Manager")
-    .addItem("✅ Ověřit nastavení", "checkSetup")
-    .addItem("📊 Spustit report hodnocení", "sendReviewReport")
-    .addSeparator()
-    .addItem("⚙️ Instalovat triggery", "installTriggers")
-    .addToUi();
-}
-
-// Zkontroluje, zda jsou všechny listy správně nastaveny
-function checkSetup() {
-  const ss      = SpreadsheetApp.openById(GLOBAL_SPREADSHEET_ID);
-  const missing = [];
-  Object.values(SHEETS).forEach(name => {
-    if (!ss.getSheetByName(name)) missing.push(name);
-  });
-
-  if (missing.length === 0) {
-    SpreadsheetApp.getUi().alert(
-      "✅ Vše v pořádku!\n\n" +
-      "Všechny listy jsou správně nastaveny.\n" +
-      "Spreadsheet ID: " + GLOBAL_SPREADSHEET_ID
-    );
-  } else {
-    SpreadsheetApp.getUi().alert(
-      "⚠️ Chybějící listy:\n\n" +
-      missing.join("\n") +
-      "\n\nVytvoř tyto listy v Google Sheets " +
-      "a ujisti se, že název záložky přesně odpovídá (včetně emoji)."
-    );
-  }
-}
-
-// Instalace triggerů
-function installTriggers() {
-  ScriptApp.getProjectTriggers().forEach(t => ScriptApp.deleteTrigger(t));
-  const ss = SpreadsheetApp.openById(GLOBAL_SPREADSHEET_ID);
-  ScriptApp.newTrigger("onEditHandler").forSpreadsheet(ss).onEdit().create();
-  ScriptApp.newTrigger("sendReviewReport").timeBased().atHour(8).everyDays(1).create();
-  SpreadsheetApp.getUi().alert("✅ Triggery nainstalovány.");
-}
-
-// Trigger při editaci – zápis do AUDIT_LOG při změně statusu
-function onEditHandler(e) {
-  if (!e || !e.range) return;
-  const sheet = e.range.getSheet();
-  const row   = e.range.getRow();
-  const col   = e.range.getColumn();
-  if (row <= HEADER_ROW) return;
-  if (sheet.getName() !== SHEETS.APPLICATIONS) return;
-
-  // Sloupec 6 = status
-  if (col === 6 && e.value !== e.oldValue) {
-    const ss    = SpreadsheetApp.openById(GLOBAL_SPREADSHEET_ID);
-    const appId = sheet.getRange(row, 1).getValue();
-    writeAudit(ss, "STATUS_CHANGE_SHEET", appId, e.oldValue || "", e.value || "",
-      "Změněno přímo v Sheets");
-
-    // Pošli e-mail žadateli pokud máme jeho adresu
-    const emailCell = sheet.getRange(row, 3).getValue();
-    if (emailCell && e.value) {
-      sendStatusEmail(emailCell, appId, e.value,
-        sheet.getRange(row, 11).getValue()); // sloupec K = project_title
-    }
-  }
-}
-
-// Odešle e-mail žadateli při změně statusu
-function sendStatusEmail(toEmail, appId, newStatus, projectTitle) {
-  const subjects = {
-    SUBMITTED:    "[UHK Connect] Přihláška přijata – " + appId,
-    FORMAL_CHECK: "[UHK Connect] Formální kontrola – " + appId,
-    IN_REVIEW:    "[UHK Connect] Předáno k hodnocení – " + appId,
-    APPROVED:     "[UHK Connect] 🎉 Přihláška schválena – " + appId,
-    REJECTED:     "[UHK Connect] Výsledek hodnocení – " + appId,
-    WITHDRAWN:    "[UHK Connect] Přihláška stažena – " + appId,
-  };
-  const subject = subjects[newStatus];
-  if (!subject) return;
-
-  const statusTexts = {
-    SUBMITTED:    "Vaše přihláška byla úspěšně přijata a čeká na formální kontrolu.",
-    FORMAL_CHECK: "Probíhá formální kontrola Vaší přihlášky.",
-    IN_REVIEW:    "Vaše přihláška byla předána hodnoticímu panelu.",
-    APPROVED:     "Gratulujeme! Vaše přihláška byla schválena k financování.",
-    REJECTED:     "Vaše přihláška nebyla v tomto kole podpořena. Komentář hodnoticího panelu Vám bude zaslán administrátorkou.",
-    WITHDRAWN:    "Vaše přihláška byla stažena ze soutěže.",
-  };
-
-  const body =
-    "Vážená/ý žadateli,\n\n" +
-    statusTexts[newStatus] + "\n\n" +
-    "ID přihlášky: " + appId + "\n" +
-    "Projekt: " + (projectTitle || "–") + "\n\n" +
-    "V případě dotazů kontaktujte administrátorku:\n" +
-    "hana.tomaskova@uhk.cz\n\n" +
-    "S pozdravem,\n" +
-    "Oddělení vědy a transferu znalostí\n" +
-    "Univerzita Hradec Králové";
-
-  try {
-    GmailApp.sendEmail(toEmail, subject, body, {
-      name: "UHK – Grantové soutěže",
-      replyTo: "hana.tomaskova@uhk.cz",
-    });
-  } catch (err) {
-    logError("sendStatusEmail", err);
-  }
-}
-
-// Denní souhrnný report hodnocení
-function sendReviewReport() {
-  const ss       = SpreadsheetApp.openById(GLOBAL_SPREADSHEET_ID);
-  const revSheet = ss.getSheetByName(SHEETS.REVIEWS);
-  const appSheet = ss.getSheetByName(SHEETS.APPLICATIONS);
-  if (!revSheet || !appSheet) return;
-
-  const reviews = sheetToObjects(revSheet);
-  const apps    = sheetToObjects(appSheet);
-  if (!reviews.length) return;
-
-  // Seskup hodnocení podle přihlášky
-  const grouped = {};
-  reviews.forEach(r => {
-    const id = r.application_id;
-    if (!grouped[id]) grouped[id] = [];
-    grouped[id].push(r);
-  });
-
-  // Mapa přihlášek
-  const appMap = {};
-  apps.forEach(a => { appMap[a.application_id] = a; });
-
-  const now = formatDate(new Date());
-  let report = "UHK Connect – Souhrnný report hodnocení\n";
-  report += "Vygenerováno: " + now + "\n";
-  report += "=".repeat(50) + "\n\n";
-
-  // Seřaď podle průměrného skóre
-  const ranked = Object.entries(grouped)
-    .map(([id, revs]) => {
-      const avg = revs.reduce((s, r) => s + (Number(r.score_total) || 0), 0) / revs.length;
-      return { id, revs, avg };
-    })
-    .sort((a, b) => b.avg - a.avg);
-
-  ranked.forEach(({ id, revs, avg }, idx) => {
-    const app = appMap[id] || {};
-    report += "#" + (idx + 1) + " " + id + "\n";
-    report += "   Projekt: " + (app.project_title || "–") + "\n";
-    report += "   Žadatel: " + (app.applicant_name || "–") + "\n";
-    report += "   Průměrné skóre: " + avg.toFixed(1) + " / 25\n";
-    report += "   Hodnocení: " + revs.length + "×\n";
-    revs.forEach(r => {
-      report += "   ↳ " + r.reviewer_email + ": " + r.score_total +
-        " bodů, " + r.recommendation + "\n";
-    });
-    report += "\n";
-  });
-
-  try {
-    GmailApp.sendEmail(
-      "hana.tomaskova@uhk.cz",
-      "[UHK Connect] Report hodnocení – " + now,
-      report,
-      { name: "UHK Grant Manager" }
-    );
-  } catch (err) {
-    logError("sendReviewReport", err);
-  }
-}
+loadProjects();
+</script>
+</body>
+</html>

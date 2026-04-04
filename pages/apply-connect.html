@@ -352,9 +352,16 @@
     async function loadFormFields() {
       // Vždy používej lokální definici – API je jen pro případné budoucí rozšíření
       formFields = getLocalFields();
+      const jumpFinalize = new URLSearchParams(location.search).get("finalize") === "1";
       renderProgress();
       renderSection(currentSection);
-      loadDraft();
+      await loadDraft();
+      if (jumpFinalize) {
+        currentSection = STEPS.length - 1;
+        renderProgress();
+        renderSection(currentSection);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
     }
 
     function getLocalFields() {
@@ -928,7 +935,7 @@
 
     // ── SPUŠTĚNÍ ─────────────────────────────────────────────────
     renderConnectVyzvaSidebar();
-    loadFormFields();
+    void loadFormFields();
   </script>
 </body>
 </html>
