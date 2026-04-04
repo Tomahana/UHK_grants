@@ -418,20 +418,22 @@ function getApplications(competitionId, token, filters) {
   const auth = requireAuth(token);
   const ss   = getSpreadsheet(competitionId);
   const sheet = ss.getSheetByName(SHEETS.APPLICATIONS);
-  if (!sheet) return [];
+  if (!sheet) return { applications: [] };
 
   let rows = sheetToObjects(sheet);
 
   // Žadatel vidí jen své
   if (auth.roles && auth.roles.includes("ZADATEL") && auth.roles.length === 1) {
-    rows = rows.filter(r => r.applicant_email === auth.email);
+    const me = String(auth.email || "").toLowerCase();
+    rows = rows.filter(r =>
+      String(r.applicant_email || "").toLowerCase() === me);
   }
   // Filtr statusu
   if (filters && filters.statusFilter) {
     rows = rows.filter(r => r.status === filters.statusFilter);
   }
 
-  return rows;
+  return { applications: rows };
 }
 
 // Uložení přihlášky
