@@ -851,7 +851,7 @@
         const data = await res.json();
         if (data.draft) {
           formData = data.draft.formData || {};
-          draftId  = data.draft.id;
+          draftId  = data.draft.id || data.draft.application_id || null;
           renderSection(currentSection);
           updateBudget();
           updateChecklist();
