@@ -267,24 +267,52 @@
       { label: "Přílohy",        fields: ["section_attachments","attach_invitation","declaration"] },
     ];
 
-    // ── Načtení FORM_FIELDS ze Sheets ─────────────────────────
+    // ── Pole formuláře – definována lokálně, nezávisle na API ─
     async function loadFormFields() {
-      try {
-        const session = Auth._getSession();
-        const url = new URL(API_URL);
-        url.searchParams.set("action", "getFormFields");
-        url.searchParams.set("competitionId", COMPETITION_ID);
-        url.searchParams.set("token", session?.token || "");
-        const res  = await fetch(url.toString());
-        const data = await res.json();
-        formFields = data.fields || [];
-        if (!formFields.length) formFields = getFallbackFields();
-      } catch {
-        formFields = getFallbackFields();
-      }
+      // Vždy používej lokální definici – API je jen pro případné budoucí rozšíření
+      formFields = getLocalFields();
       renderProgress();
       renderSection(currentSection);
       loadDraft();
+    }
+
+    function getLocalFields() {
+      return [
+        { field_id:"section_basic",       field_label:"Základní informace",           field_type:"section_header" },
+        { field_id:"project_title",        field_label:"Název projektu / aktivity",    field_type:"text",     required:"TRUE",  placeholder:"Výstižný název mobility nebo síťovací aktivity" },
+        { field_id:"faculty",              field_label:"Součást UHK",                  field_type:"select",   required:"TRUE",  options:"PřF;PdF;FF;FIM;REKTORÁT" },
+        { field_id:"department",           field_label:"Katedra / pracoviště",         field_type:"text",     required:"TRUE" },
+        { field_id:"applicant_type",       field_label:"Typ žadatele",                 field_type:"radio",    required:"TRUE",  options:"Junior/early-career researcher (do 7 let od Ph.D.);Student doktorského studia" },
+        { field_id:"phd_year",             field_label:"Rok získání Ph.D.",            field_type:"number",   required:"FALSE", placeholder:"např. 2020", help_text:"Povinné pro akademické pracovníky" },
+        { field_id:"section_profile",      field_label:"Odborný profil žadatele",      field_type:"section_header" },
+        { field_id:"research_focus",       field_label:"Výzkumné zaměření",            field_type:"textarea", required:"TRUE",  placeholder:"Stručně popište svůj výzkum a odborné zaměření (3–5 vět)…", help_text:"Hodnotitelé posuzují relevanci žadatele pro navrhovanou spolupráci" },
+        { field_id:"recent_outputs",       field_label:"Vybrané výstupy (posledních 5 let)", field_type:"textarea", required:"FALSE", placeholder:"Např: Novák J. (2024) Název článku, Journal…\nGrant GA ČR č. 24-XXXXX (2024–2026)…" },
+        { field_id:"section_activity",     field_label:"Popis aktivity",               field_type:"section_header" },
+        { field_id:"activity_type",        field_label:"Typ aktivity",                 field_type:"select",   required:"TRUE",  options:"Mobilita (výjezd);Pracovní setkání;Konference;Workshop;Školení;Konzultace;Jiné" },
+        { field_id:"activity_goal",        field_label:"Cíl aktivity",                 field_type:"textarea", required:"TRUE",  placeholder:"Popište konkrétní cíl a přínos aktivity", help_text:"Prokazatelné navázání či rozvoj spolupráce" },
+        { field_id:"partner_institution",  field_label:"Partnerská instituce",         field_type:"text",     required:"TRUE",  placeholder:"Název instituce / organizace" },
+        { field_id:"partner_country",      field_label:"Země",                         field_type:"text",     required:"TRUE" },
+        { field_id:"partner_contact",      field_label:"Kontaktní osoba u partnera",   field_type:"text",     required:"FALSE", placeholder:"Jméno a pozice" },
+        { field_id:"cooperation_history",  field_label:"Dosavadní kontakty s partnerem", field_type:"textarea", required:"FALSE", placeholder:"Popište předchozí kontakty, sdílené publikace, projekty…", help_text:"Pokud jde o zcela nový kontakt, uveďte jak byl navázán" },
+        { field_id:"activity_start",       field_label:"Plánovaný začátek aktivity",   field_type:"date",     required:"TRUE",  help_text:"Nejpozději 1. 11. 2026" },
+        { field_id:"activity_end",         field_label:"Plánovaný konec aktivity",     field_type:"date",     required:"TRUE",  help_text:"Nejpozději 15. 11. 2026" },
+        { field_id:"section_output",       field_label:"Výstup spolupráce",            field_type:"section_header" },
+        { field_id:"expected_output",      field_label:"Očekávaný výstup",             field_type:"select",   required:"TRUE",  options:"Rozpracovaný článek;Letter of Intent / MoU;Protokol z konzultace;Draft výzkumného designu;Plán navazující mobility;Projektová ideová skica;Jiné" },
+        { field_id:"output_description",   field_label:"Popis výstupu",               field_type:"textarea", required:"TRUE",  placeholder:"Konkrétně popište výstup spolupráce…" },
+        { field_id:"output_impact",        field_label:"Přínos pro výzkum na UHK",    field_type:"textarea", required:"TRUE",  placeholder:"Jak výstup přispěje k rozvoji výzkumu na UHK? Plánujete navazující projekt, publikaci, grant?", help_text:"Hodnotitelé posuzují udržitelnost a přínos aktivity" },
+        { field_id:"section_budget",       field_label:"Rozpočet",                     field_type:"section_header" },
+        { field_id:"budget_travel",        field_label:"Jízdné (Kč)",                 field_type:"number",   required:"FALSE", help_text:"Vlak, letadlo, auto dle interních předpisů UHK" },
+        { field_id:"budget_accommodation", field_label:"Ubytování (Kč)",              field_type:"number",   required:"FALSE" },
+        { field_id:"budget_meals",         field_label:"Stravné (Kč)",                field_type:"number",   required:"FALSE", help_text:"Dle kalkulačky stravného UHK 2026" },
+        { field_id:"budget_local",         field_label:"Místní doprava (Kč)",         field_type:"number",   required:"FALSE" },
+        { field_id:"budget_fee",           field_label:"Konferenční / workshop poplatek (Kč)", field_type:"number", required:"FALSE" },
+        { field_id:"budget_publication",   field_label:"Publikační náklady (Kč)",     field_type:"number",   required:"FALSE" },
+        { field_id:"budget_personnel",     field_label:"Osobní náklady – DPP (Kč)",  field_type:"number",   required:"FALSE", help_text:"Pouze výjimečně – student DSP dle předpisů UHK" },
+        { field_id:"budget_total",         field_label:"Celková podpora (Kč)",        field_type:"number",   required:"TRUE",  help_text:"Max. 80 000 Kč" },
+        { field_id:"section_attachments",  field_label:"Přílohy",                     field_type:"section_header" },
+        { field_id:"attach_invitation",    field_label:"Doklad o spolupráci",         field_type:"file",     required:"TRUE",  options:"pdf", help_text:"Pozvání, LoI, potvrzení e-mailu nebo registrace" },
+        { field_id:"declaration",          field_label:"Prohlášení žadatele",         field_type:"checkbox", required:"TRUE",  help_text:"Souhlasím s podmínkami Soutěže UHK Connect a potvrzuji správnost údajů." },
+      ];
     }
 
     // ── Progress bar ────────────────────────────────────────────
@@ -800,46 +828,7 @@
       toastTimer2 = setTimeout(() => t.classList.remove("show"), 4000);
     }
 
-    // ── Fallback FORM_FIELDS (pokud API selže) ──────────────────
-    function getFallbackFields() {
-      return [
-        { field_id:"section_basic",      field_label:"Základní informace", field_type:"section_header" },
-        { field_id:"project_title",      field_label:"Název projektu / aktivity", field_type:"text",     required:"TRUE",  placeholder:"Výstižný název", help_text:"" },
-        { field_id:"faculty",            field_label:"Součást UHK",        field_type:"select",    required:"TRUE",  options:"PřF;PdF;FF;FIM;REKTORÁT" },
-        { field_id:"department",         field_label:"Katedra / pracoviště",field_type:"text",     required:"TRUE",  placeholder:"" },
-        { field_id:"applicant_type",     field_label:"Typ žadatele",       field_type:"radio",     required:"TRUE",  options:"Junior/early-career researcher (do 7 let od Ph.D.);Student doktorského studia" },
-        { field_id:"section_profile",    field_label:"Odborný profil žadatele", field_type:"section_header" },
-        { field_id:"research_focus",     field_label:"Výzkumné zaměření", field_type:"textarea",  required:"TRUE",  placeholder:"Stručně popište svůj výzkum a odborné zaměření (3–5 vět)…", help_text:"Hodnotitelé posuzují relevanci žadatele pro navrhovanou spolupráci" },
-        { field_id:"recent_outputs",     field_label:"Vybrané výstupy (posledních 5 let)", field_type:"textarea", required:"FALSE", placeholder:"Např: Novák J. (2024) Název článku. Journal…
-Grant GA ČR č. 24-XXXXX (2024–2026)…", help_text:"Publikace, projekty, ocenění relevantní k tématu aktivity" },
-        { field_id:"section_activity",   field_label:"Popis aktivity",     field_type:"section_header" },
-        { field_id:"activity_type",      field_label:"Typ aktivity",       field_type:"select",    required:"TRUE",  options:"Mobilita (výjezd);Pracovní setkání;Konference;Workshop;Školení;Konzultace;Jiné" },
-        { field_id:"activity_goal",      field_label:"Cíl aktivity",       field_type:"textarea",  required:"TRUE",  placeholder:"Popište konkrétní cíl a přínos aktivity", help_text:"Prokazatelné navázání či rozvoj spolupráce" },
-        { field_id:"partner_institution",field_label:"Partnerská instituce",field_type:"text",    required:"TRUE",  placeholder:"Název instituce / organizace" },
-        { field_id:"partner_country",    field_label:"Země",               field_type:"text",     required:"TRUE" },
-        { field_id:"partner_contact",    field_label:"Kontaktní osoba",    field_type:"text",     required:"FALSE", placeholder:"Jméno a pozice" },
-        { field_id:"activity_start",     field_label:"Začátek aktivity",   field_type:"date",     required:"TRUE",  help_text:"Nejpozději 1. 11. 2026" },
-        { field_id:"activity_end",       field_label:"Konec aktivity",     field_type:"date",     required:"TRUE",  help_text:"Nejpozději 15. 11. 2026" },
-        { field_id:"section_output",     field_label:"Výstup spolupráce",  field_type:"section_header" },
-        { field_id:"expected_output",    field_label:"Očekávaný výstup",   field_type:"select",    required:"TRUE",  options:"Rozpracovaný článek;Letter of Intent / MoU;Protokol z konzultace;Draft výzkumného designu;Plán navazující mobility;Projektová ideová skica;Jiné" },
-        { field_id:"output_description", field_label:"Popis výstupu",      field_type:"textarea",  required:"TRUE",  placeholder:"Konkrétně popište co bude výstupem spolupráce…" },
-        { field_id:"output_impact",      field_label:"Přínos pro výzkum na UHK", field_type:"textarea", required:"TRUE",  placeholder:"Jak výstup přispěje k rozvoji výzkumu na UHK? Plánujete navazující projekt, publikaci, grant?", help_text:"Hodnotitelé posuzují udržitelnost a přínos aktivity" },
-        { field_id:"section_budget",     field_label:"Rozpočet",           field_type:"section_header" },
-        { field_id:"budget_travel",      field_label:"Jízdné (Kč)",        field_type:"number",    required:"FALSE", help_text:"Vlak, letadlo, auto dle interních předpisů" },
-        { field_id:"budget_accommodation",field_label:"Ubytování (Kč)",   field_type:"number",    required:"FALSE" },
-        { field_id:"budget_meals",       field_label:"Stravné (Kč)",       field_type:"number",    required:"FALSE" },
-        { field_id:"budget_local",       field_label:"Místní doprava (Kč)",field_type:"number",    required:"FALSE" },
-        { field_id:"budget_fee",         field_label:"Konferenční poplatek (Kč)",field_type:"number",required:"FALSE" },
-        { field_id:"budget_publication", field_label:"Publikační náklady (Kč)",field_type:"number",required:"FALSE" },
-        { field_id:"budget_total",       field_label:"Celková podpora (Kč)",field_type:"number",   required:"TRUE",  help_text:"Max. 80 000 Kč" },
-        { field_id:"budget_justification",field_label:"Odůvodnění rozpočtu",field_type:"textarea", required:"TRUE" },
-        { field_id:"section_attachments",field_label:"Přílohy",            field_type:"section_header" },
-        { field_id:"attach_invitation",  field_label:"Doklad o spolupráci",field_type:"file",      required:"TRUE",  options:"pdf", help_text:"Pozvání, LoI, potvrzení e-mailu nebo registrace" },
 
-        { field_id:"budget_justification",field_label:"Odůvodnění rozpočtu", field_type:"textarea",  required:"TRUE",  placeholder:"Jízdné: letenka Praha–Londýn zpátečně dle ceníku ČSA přibližně 8 000 Kč…", help_text:"Vazba jednotlivých položek na plánovanou aktivitu" },
-        { field_id:"declaration",        field_label:"Prohlášení žadatele",field_type:"checkbox",  required:"TRUE",  help_text:"Souhlasím s podmínkami Soutěže UHK Connect a potvrzuji správnost údajů." },
-      ];
-    }
 
     // ── SPUŠTĚNÍ ─────────────────────────────────────────────────
     loadFormFields();
