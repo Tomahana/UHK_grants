@@ -229,8 +229,20 @@ function renderDraftsPanel(drafts) {
 }
 
 
+/** E-mail žadatele z řádku API (různé názvy sloupců v Sheets). */
+function applicantEmailOf(a) {
+  const v = a.applicant_email ?? a.applicantEmail ?? a["Applicant email"] ?? a["E-mail žadatele"] ?? a.email;
+  return String(v || "").toLowerCase().trim();
+}
+
+function normStatus(s) {
+  return String(s == null ? "" : s).trim().toUpperCase();
+}
+
 async function loadProjects() {
   const all = [];
+  const myEmail = String(user.email || "").toLowerCase().trim();
+  let apiError = "";
   for (const cid of COMP_IDS) {
     try {
       if (API_URL.includes("DOPLNIT")) { all.push(...getDemoProjects()); break; }
@@ -238,17 +250,23 @@ async function loadProjects() {
       u.searchParams.set("action","getApplications");
       u.searchParams.set("competitionId",cid);
       u.searchParams.set("token",s?.token||"");
-      const d=await (await fetch(u.toString())).json();
+      const res = await fetch(u.toString());
+      const d = await res.json();
+      if (d.error) { apiError = d.error; continue; }
       const list = Array.isArray(d) ? d : (d.applications || []);
-      const mine=list.filter(a=>
-        a.applicant_email?.toLowerCase()===user.email?.toLowerCase()
-      ).map(a=>{try{a._f=JSON.parse(a.form_data_json||"{}")}catch{a._f={}}; a.competition_id=cid; return a});
+      const mine=list.filter(a => applicantEmailOf(a) === myEmail && applicantEmailOf(a))
+        .map(a=>{try{a._f=JSON.parse(a.form_data_json||"{}")}catch{a._f={}}; a.competition_id=cid; return a});
       all.push(...mine);
-    } catch { all.push(...getDemoProjects()); break; }
+    } catch (e) { apiError = apiError || String(e.message||e); all.push(...getDemoProjects()); break; }
+  }
+  if (apiError && !all.length) {
+    document.getElementById("pageSub").textContent = "Chyba API: " + apiError;
+    document.getElementById("content").innerHTML = '<div class="empty-state"><p style="font-size:14px;">Nelze načíst přihlášky. Zkuste se znovu přihlásit nebo zkontrolujte nasazení skriptu.</p><p style="font-size:12px;color:var(--muted);margin-top:8px;">' + escapeHtml(apiError) + '</p><a href="dashboard.html" class="btn btn-n" style="margin-top:16px;">← Rozcestník</a></div>';
+    return;
   }
   allProjects = all;
   render();
-  const draftN = all.filter((p) => String(p.status || "").toUpperCase() === "DRAFT").length;
+  const draftN = all.filter((p) => normStatus(p.status) === "DRAFT").length;
   document.getElementById("pageSub").textContent =
     all.length + " záznamů" +
     (draftN ? " (" + draftN + " " + (draftN === 1 ? "koncept" : "konceptů") + ")" : "") +
@@ -267,8 +285,8 @@ function render() {
     </div>`;
     return;
   }
-  const drafts = allProjects.filter((p) => String(p.status || "").toUpperCase() === "DRAFT");
-  const rest = allProjects.filter((p) => String(p.status || "").toUpperCase() !== "DRAFT");
+  const drafts = allProjects.filter((p) => normStatus(p.status) === "DRAFT");
+  const rest = allProjects.filter((p) => normStatus(p.status) !== "DRAFT");
   let html = renderDraftsPanel(drafts);
   if (rest.length) {
     html += `<div class="section-follow">Podané přihlášky a projekty</div>`;
@@ -281,7 +299,7 @@ function render() {
 
 function renderProject(p) {
   const f       = p._f || {};
-  const status  = p.status || "DRAFT";
+  const status  = normStatus(p.status) || "DRAFT";
   const st      = STATUS[status] || {label:status,cls:"badge-draft"};
   const cname   = COMP_NAMES[p.competition_id] || p.competition_id;
   const budget  = f.budget_total ? Number(f.budget_total).toLocaleString("cs-CZ")+" Kč" : "—";
@@ -438,6 +456,15 @@ function showToast(msg,type="ok") {
 
 function getDemoProjects() {
   return [{
+    application_id:"APP-260405-DEMO-DR",competition_id:"uhk_connect_2026_v2",
+    applicant_email:user.email,applicant_name:user.name,
+    status:"DRAFT",submitted_at:"",note:"",
+    updated_at:"2026-04-05 14:30:00",
+    form_data_json:JSON.stringify({
+      project_title:"Ukázkový koncept (demo režim)",faculty:"PřF",department:"—",
+    }),
+    _reports:[],
+  },{
     application_id:"APP-260320-DEMO1",competition_id:"uhk_connect_2026_v2",
     applicant_email:user.email,applicant_name:user.name,
     status:"IN_REVIEW",submitted_at:"2026-03-20 10:15",note:"",

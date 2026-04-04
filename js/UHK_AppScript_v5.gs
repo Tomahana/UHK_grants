@@ -357,7 +357,11 @@ function verifyToken(token) {
     const age = Date.now() - Number(parts[2]);
     if (age > 8 * 3600 * 1000) return { valid: false, reason: "Token vypršel." };
 
-    return { valid: true, email: parts[0], roles: parts[1].split(",") };
+    return {
+      valid: true,
+      email: parts[0],
+      roles: parts[1].split(",").map(function (x) { return String(x).trim(); }).filter(Boolean),
+    };
   } catch {
     return { valid: false, reason: "Chyba dekódování." };
   }
@@ -481,14 +485,40 @@ function getApplications(competitionId, token, filters) {
   const sheet = getSpreadsheet(competitionId).getSheetByName(SHEETS.APPLICATIONS);
   if (!sheet) return { applications: [] };
   let rows = sheetToObjects(sheet);
-  // Žadatel vidí jen své přihlášky (čistý ZADATEL bez dalších rolí)
-  if (auth.roles.join(",") === "ZADATEL") {
-    const me = String(auth.email || "").toLowerCase();
-    rows = rows.filter(r =>
-      String(r.applicant_email || "").toLowerCase() === me);
+
+  // Sjednoť e-mail a status (Sheets / JSON někdy vrací jiné klíče nebo mezery)
+  rows = rows.map(function (r) {
+    var em =
+      r.applicant_email ||
+      r.applicantEmail ||
+      r["Applicant email"] ||
+      r["E-mail žadatele"] ||
+      r.email ||
+      "";
+    var st = String(r.status != null ? r.status : "").trim().toUpperCase();
+    var out = {};
+    for (var k in r) if (Object.prototype.hasOwnProperty.call(r, k)) out[k] = r[k];
+    out.applicant_email = String(em).trim();
+    out.status = st;
+    return out;
+  });
+
+  // Kdo nevidí celý seznam soutěže → jen vlastní řádky (Moje přihlášky)
+  var rolesU = (auth.roles || []).map(function (x) { return String(x).trim().toUpperCase(); });
+  var privileged = rolesU.some(function (role) {
+    return ["ADMIN", "PROREKTOR", "KOMISAR", "KOMISAŘ", "TESTER", "READONLY"].indexOf(role) >= 0;
+  });
+  if (!privileged) {
+    var me = String(auth.email || "").toLowerCase().trim();
+    rows = rows.filter(function (r) {
+      return String(r.applicant_email || "").toLowerCase().trim() === me;
+    });
   }
+
   if (filters && filters.statusFilter)
-    rows = rows.filter(r => r.status === filters.statusFilter);
+    rows = rows.filter(function (r) {
+      return String(r.status || "").trim() === String(filters.statusFilter).trim();
+    });
   return { applications: rows };
 }
 
