@@ -92,6 +92,17 @@ const APP_STATUSES = {
 // ── Soutěže (fallback pokud API nedostupné) ───────────────────
 const FALLBACK_COMPETITIONS = [
   {
+    id:          "uhk_navraty_2026",
+    name:        "OP JAK Návraty 2026",
+    type:        "OP_JAK_NAVRATY",
+    status:      "RUNNING",
+    description: "Hodnocení projektů OP JAK Návraty – IGA komise UHK.",
+    deadline:    "2026-06-30",
+    allocation:  40156893,
+    maxBudget:   0,
+    applicationsCount: 7,
+  },
+  {
     id:          "uhk_connect_2026_v2",
     name:        "UHK Connect – výzva č. 2",
     type:        "UHK_CONNECT",
@@ -112,21 +123,11 @@ const FALLBACK_COMPETITIONS = [
     maxBudget:   500000,
   },
   {
-    id:          "uhk_navraty_2026",
-    name:        "OP JAK Návraty – IGA komise",
-    type:        "OP_JAK_NAVRATY",
-    status:      "RUNNING",
-    description: "Hodnocení projektů v rámci UHK: Return – Research – Restart.",
-    deadline:    "2026-06-30",
-    allocation:  40156893,
-    maxBudget:   0,
-  },
-  {
     id:          "uhk_prestige_2026",
     name:        "UHK Prestige 2026",
     type:        "UHK_PRESTIGE",
-    status:      "OPEN",
-    description: "Prestižní granty Univerzity Hradec Králové.",
+    status:      "DRAFT",
+    description: "Prestižní granty Univerzity Hradec Králové – připravuje se.",
     deadline:    "",
     allocation:  0,
     maxBudget:   0,
@@ -170,7 +171,7 @@ function statusPill(status, type = "app") {
 // ── Spreadsheet IDs (informativní – používají se jen v Apps Script) ─
 // Všechny Sheets jsou pod Gmail účtem: uhk.granty@gmail.com
 // Connect:  1maDTXF8xKCpSY0LfeNcRyLo1KtulgipEIwQaIGb3Su0
-// ReGa:     1VU3c_gwxjbuZuNQ5_B1iqlbGzOgLwtUXUAI-E2dt6EA
-// Návraty:  1E8hRFVkVt3WuhGcSrhz9E0P9Pvz7udoT1IGMnNH8ADc
+// Návraty:  1VU3c_gwxjbuZuNQ5_B1iqlbGzOgLwtUXUAI-E2dt6EA
+// ReGa:     1E8hRFVkVt3WuhGcSrhz9E0P9Pvz7udoT1IGMnNH8ADc
 // Prestige: 1qmx2gFETaYJVdZmhkGUvdGdukARlQZXnepVPYJSuemk
 // Users:    17bf7fHOu-tdza7UXzahwWyIAwwuk0BcpC39KGiG-64g
