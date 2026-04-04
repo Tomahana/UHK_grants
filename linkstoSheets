@@ -12,7 +12,8 @@ Apps Script (jedna Web App URL pro celou aplikaci):
   • URL vlož do js/config.js → API_URL.
 
 Návraty – listy v sheetu „Návraty“:
-  • 📝 PROJECTS – záhlaví na řádku 4; sloupce mimo jiné: project_id, project_name, resitel, soucast, rozpocet, vedni_oblast, anotace, vystupy, team, status (ACTIVE/INACTIVE).
+  • PROJECTS – název záložky: 📝 PROJECTS nebo PROJECTS / Projects. Záhlaví může být na 1. řádku (doporučeno) nebo na řádku 4; první sloupec musí být project_id.
+  • Sloupce: project_id, project_name, resitel, email, soucast, vedni_oblast, rozpocet, status, anotace, vystupy, team (status INACTIVE = skryté v app).
   • ⭐ REVIEWS – záhlaví řádek 4; pořadí sloupců musí odpovídat appendRow v submitNavratyReview / saveProrekorDecision (review_id, project_id, reviewer_email, submitted_at, K1–K5, score_total, poradi, recommendation, comment_public, comment_internal).
 
 Connect – list 📥 APPLICATIONS:

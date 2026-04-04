@@ -771,34 +771,68 @@ function writeAudit(ss, action, targetId, oldVal, newVal, note) {
     ]);
   } catch (e) { /* audit není kritický */ }
 }
+
+/** Najde řádek záhlaví v listu PROJECTS (často 1. řádek; skript jinak používá HEADER_ROW = 4). */
+function findProjectsHeaderRowIndex(data) {
+  const maxScan = Math.min(30, data.length);
+  for (let r = 0; r < maxScan; r++) {
+    const row = data[r];
+    if (!row || !row.length) continue;
+    const first = String(row[0] || "").trim().toLowerCase();
+    if (first === "project_id" || first === "id") return r;
+  }
+  return HEADER_ROW - 1;
+}
+
+function getProjectsSheet_(ss) {
+  const candidates = ["📝 PROJECTS", "PROJECTS", "Projects", "projects", "PROJEKTY", "Projekty"];
+  for (let i = 0; i < candidates.length; i++) {
+    const sh = ss.getSheetByName(candidates[i]);
+    if (sh) return sh;
+  }
+  return null;
+}
+
+/** Hodnota buňky jako text (čísla z Sheets, datumy). */
+function cellToString_(val) {
+  if (val === null || val === undefined) return "";
+  if (val instanceof Date)
+    return Utilities.formatDate(val, Session.getScriptTimeZone(), "yyyy-MM-dd");
+  return String(val).trim();
+}
+
 function getProjects(competitionId, token) {
   const auth = requireAuth(token);
   if (!auth.roles.some(r => ["ADMIN", "KOMISAR", "PROREKTOR", "TESTER", "READONLY"].includes(r)))
     throw new Error("Nedostatečná oprávnění pro seznam projektů Návraty.");
 
   const ss    = getSpreadsheet(competitionId);
-  const sheet = ss.getSheetByName("📝 PROJECTS");
-  if (!sheet) return { success: false, message: "List '📝 PROJECTS' nenalezen." };
+  const sheet = getProjectsSheet_(ss);
+  if (!sheet) return { success: false, message: "List PROJECTS nenalezen (zkuste název 📝 PROJECTS nebo PROJECTS)." };
   const data    = sheet.getDataRange().getValues();
-  const headers = data[HEADER_ROW - 1];
+  if (!data.length) return { success: true, projects: [] };
+
+  const hdrIdx  = findProjectsHeaderRowIndex(data);
+  const headers = data[hdrIdx];
   const COL     = mapColumns(headers);
   const projects = [];
-  for (let i = HEADER_ROW; i < data.length; i++) {
+  for (let i = hdrIdx + 1; i < data.length; i++) {
     const row    = data[i];
-    const id     = String(row[findCol(COL,"project_id","id")]   || "").trim();
-    const status = String(row[findCol(COL,"status")]            || "ACTIVE").trim();
+    const id     = cellToString_(row[findCol(COL, "project_id", "id")]);
+    const status = cellToString_(row[findCol(COL, "status")]) || "ACTIVE";
     if (!id) continue;
-    if (status === "INACTIVE") continue;
+    if (String(status).toUpperCase() === "INACTIVE") continue;
     projects.push({
       project_id  : id,
-      project_name: String(row[findCol(COL,"project_name","name","nazev")] || "").trim(),
-      resitel     : String(row[findCol(COL,"resitel","řešitel","solver")]   || "").trim(),
-      soucast     : String(row[findCol(COL,"soucast","součást","faculty")]  || "").trim(),
-      rozpocet    : String(row[findCol(COL,"rozpocet","rozpočet","budget")] || "").trim(),
-      vedni_oblast: String(row[findCol(COL,"vedni_oblast","vědní_oblast","vedna_oblast","scientific_field")] || "").trim(),
-      anotace     : String(row[findCol(COL,"anotace","annotation","abstract")] || "").trim(),
-      vystupy     : String(row[findCol(COL,"vystupy","výstupy","outputs","expected_outputs")] || "").trim(),
-      team        : String(row[findCol(COL,"team","tým","resitelsky_tym","řešitelský_tým")] || "").trim(),
+      project_name: cellToString_(row[findCol(COL, "project_name", "name", "nazev")]),
+      resitel     : cellToString_(row[findCol(COL, "resitel", "řešitel", "solver")]),
+      email       : cellToString_(row[findCol(COL, "email", "e_mail", "e-mail", "resitel_email")]),
+      soucast     : cellToString_(row[findCol(COL, "soucast", "součást", "faculty")]),
+      rozpocet    : cellToString_(row[findCol(COL, "rozpocet", "rozpočet", "budget")]),
+      vedni_oblast: cellToString_(row[findCol(COL, "vedni_oblast", "vědní_oblast", "vedna_oblast", "scientific_field")]),
+      anotace     : cellToString_(row[findCol(COL, "anotace", "annotation", "abstract")]),
+      vystupy     : cellToString_(row[findCol(COL, "vystupy", "výstupy", "outputs", "expected_outputs")]),
+      team        : cellToString_(row[findCol(COL, "team", "tým", "resitelsky_tym", "řešitelský_tým")]),
       status,
     });
   }

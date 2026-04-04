@@ -338,6 +338,10 @@
             <span class="pi-label">Hlavní řešitel</span>
             <div id="piResitel" style="font-size:13px;color:#1C2E5A;margin-top:2px;">—</div>
           </div>
+          <div style="margin-bottom:10px;">
+            <span class="pi-label">E-mail řešitele</span>
+            <div id="piEmail" style="font-size:13px;color:#1C2E5A;margin-top:2px;">—</div>
+          </div>
           <!-- Anotace – klíčová pro hodnocení -->
           <div style="margin-bottom:8px;padding:10px 14px;background:#EFF6FF;border-left:3px solid #185FA5;border-radius:0 6px 6px 0;">
             <span class="pi-label" style="color:#185FA5;">Anotace projektu</span>
@@ -629,6 +633,8 @@
 
     // Stav
     let applications = [];   // seznam přihlášek ze Sheets
+    /** @type {Record<string, Record<string, unknown>>} – celé objekty projektu (nelze dávat do data-* na option, je to ořezáváno) */
+    let projectsById = {};
     let dashboardData = [];  // hodnocení pro dashboard
     let totalApps = 0;       // celkový počet přihlášek pro progress
     let prDecisions = {};    // rozhodnutí Prorektora: projectId → {decision, note}
@@ -705,17 +711,27 @@
     }
 
     function renderAppSelector(apps) {
+      projectsById = {};
       const sel = document.getElementById("selProjekt");
       sel.innerHTML = '<option value="">— Vyberte projekt —</option>';
       apps.forEach(a => {
+        const pid = String(a.project_id || a.id || "").trim();
+        if (pid) projectsById[pid] = a;
         const opt = document.createElement("option");
-        opt.value = a.project_id || a.id;
+        opt.value = pid;
         const name = a.project_name || a.name || a.project_id;
         const short = name.length > 60 ? name.substring(0, 60) + "…" : name;
         opt.textContent = `${a.project_id} | ${a.soucast || ""} | ${short}`;
-        opt.dataset.app = JSON.stringify(a);
         sel.appendChild(opt);
       });
+    }
+
+    function formatProjectBudget(val) {
+      if (val === undefined || val === null || val === "") return "—";
+      const s = String(val).replace(/\s/g, "").replace(/\u00a0/g, "").replace(",", ".");
+      const n = Number(s);
+      if (!Number.isNaN(n) && s !== "") return n.toLocaleString("cs-CZ") + " Kč";
+      return String(val);
     }
 
     // ── VÝBĚR PŘIHLÁŠKY ──────────────────────────────────────────
@@ -724,24 +740,30 @@
 
     function onProjectChange() {
       const sel  = document.getElementById("selProjekt");
-      const opt  = sel.options[sel.selectedIndex];
       const info = document.getElementById("projectInfo");
 
-      if (!sel.value || !opt.dataset.app) {
+      if (!sel.value) {
         info.classList.remove("visible");
         hideAlreadyReviewedBanner();
         return;
       }
 
-      const app = JSON.parse(opt.dataset.app);
+      const app = projectsById[sel.value];
+      if (!app) {
+        info.classList.remove("visible");
+        hideAlreadyReviewedBanner();
+        return;
+      }
+
       const f = id => document.getElementById(id);
-      const sv = (id, val) => { const el = f(id); if (el) el.textContent = val || "—"; };
+      const sv = (id, val) => { const el = f(id); if (el) el.textContent = (val !== undefined && val !== null && String(val).trim() !== "") ? String(val) : "—"; };
       sv("piId",      app.project_id || app.id);
       sv("piName",    app.project_name || app.name);
       sv("piResitel", app.resitel);
+      sv("piEmail",   app.email);
       sv("piFaculty", app.soucast || app.faculty);
       sv("piOblast",  app.vedni_oblast);
-      sv("piBudget",  app.rozpocet ? Number(app.rozpocet.replace(/\s/g,"")).toLocaleString("cs-CZ") + " Kč" : (app.rozpocet || "—"));
+      sv("piBudget",  formatProjectBudget(app.rozpocet));
       sv("piAnotace", app.anotace);
       sv("piVystupy", app.vystupy);
       sv("piTeam",    app.team);
