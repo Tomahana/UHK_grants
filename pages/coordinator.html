@@ -314,8 +314,9 @@
         url.searchParams.set("token", session?.token || "");
         const res  = await fetch(url.toString());
         const data = await res.json();
-        if (data.applications) {
-          data.applications.forEach(a => {
+        const appsList = Array.isArray(data) ? data : (data.applications || []);
+        if (appsList.length) {
+          appsList.forEach(a => {
             // Parsuj form_data_json
             try { a._form = JSON.parse(a.form_data_json || "{}"); } catch { a._form = {}; }
             a.competition_id = compId;
