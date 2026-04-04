@@ -121,6 +121,11 @@
     }
 
     // ── Načti soutěže ──────────────────────────────────────────
+    function getDashboardVisibility() {
+      try { return JSON.parse(localStorage.getItem("uhk_dashboard_visibility") || "{}"); }
+      catch { return {}; }
+    }
+
     async function loadCompetitions() {
       let competitions = [];
       try {
@@ -139,10 +144,25 @@
       const hasNavraty = competitions.some(c => c.id === "uhk_navraty_2026");
       if (!hasNavraty) competitions.push(NAVRATY_CARD);
 
-      renderCompetitions(competitions);
+      // Filtruj podle viditelnosti – admin vidí vše, ostatní jen povolené
+      const vis  = getDashboardVisibility();
+      const role = user.role;
+      const isAdmin = ["ADMIN","TESTER"].includes(role);
+
+      competitions = competitions.map(c => {
+        const visible = vis[c.id] !== undefined ? vis[c.id] : true;
+        return { ...c, _visible: visible };
+      });
+
+      // Neadmini vidí jen viditelné soutěže
+      if (!isAdmin) {
+        competitions = competitions.filter(c => c._visible);
+      }
+
+      renderCompetitions(competitions, isAdmin);
     }
 
-    function renderCompetitions(list) {
+    function renderCompetitions(list, isAdmin) {
       const grid = document.getElementById("competitionsGrid");
       grid.innerHTML = "";
 
@@ -157,6 +177,15 @@
       list.forEach((comp, i) => {
         const card = buildCompetitionCard(comp, user.role);
         card.style.animationDelay = (i * 0.08) + "s";
+        // Admin badge pro skryté soutěže
+        if (isAdmin && comp._visible === false) {
+          const badge = document.createElement("div");
+          badge.style.cssText = "position:absolute;top:10px;right:10px;background:#6B7280;color:white;font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;letter-spacing:.05em;";
+          badge.textContent = "SKRYTO";
+          card.style.position = "relative";
+          card.style.opacity = "0.65";
+          card.appendChild(badge);
+        }
         grid.appendChild(card);
       });
     }
