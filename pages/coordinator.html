@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Koordinátorka – UHK Granty</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #1C2E5A; --navy-mid: #2F4A8A; --navy-lite: #E8EDF8;
+      --gold: #C49A2A; --gold-lite: #FDF6E3;
+      --green: #1E6B45; --green-lite: #E6F4EE;
+      --red: #991B1B; --red-lite: #FEF2F2;
+      --purple: #5B21B6; --purple-lite: #EDE9FE;
+      --amber: #B45309; --amber-lite: #FEF3C7;
+      --border: #E2E0D8; --muted: #6B6A63;
+      --bg: #F8F7F4; --white: #FFFFFF;
+      --r: 8px; --r-lg: 12px;
+      --shadow: 0 1px 3px rgba(0,0,0,.06);
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--navy); min-height: 100vh; font-size: 15px; }
+
+    /* TOPBAR */
+    .topbar { background: var(--navy); height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 100; }
+    .topbar__left { display: flex; align-items: center; gap: 12px; }
+    .topbar__logo img { height: 26px; opacity: .9; }
+    .topbar__title { font-size: 14px; font-weight: 500; color: rgba(255,255,255,.8); }
+    .topbar__right { display: flex; align-items: center; gap: 10px; }
+    .topbar__user { font-size: 13px; color: rgba(255,255,255,.5); }
+    .topbar__user strong { color: rgba(255,255,255,.85); font-weight: 500; }
+    .btn-back { background: none; border: 1px solid rgba(255,255,255,.2); color: rgba(255,255,255,.6); font-family: 'DM Mono', monospace; font-size: 11px; padding: 5px 12px; border-radius: 4px; cursor: pointer; text-decoration: none; transition: all .15s; }
+    .btn-back:hover { color: white; border-color: rgba(255,255,255,.4); }
+
+    /* LAYOUT */
+    .page { max-width: 1200px; margin: 0 auto; padding: 28px 24px 80px; }
+
+    /* HEADER */
+    .page-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+    .page-title { font-size: 22px; font-weight: 500; color: var(--navy); }
+    .page-sub { font-size: 13px; color: var(--muted); margin-top: 3px; }
+
+    /* FILTRY */
+    .filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; align-items: center; }
+    .filter-select { padding: 8px 12px; border: 1.5px solid var(--border); border-radius: var(--r); font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--navy); background: white; outline: none; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%231C2E5A' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 30px; }
+    .filter-select:focus { border-color: var(--navy-mid); }
+    .search-input { padding: 8px 14px; border: 1.5px solid var(--border); border-radius: var(--r); font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--navy); outline: none; min-width: 220px; }
+    .search-input:focus { border-color: var(--navy-mid); }
+    .filter-count { font-size: 12px; color: var(--muted); margin-left: auto; font-family: 'DM Mono', monospace; }
+
+    /* STATS */
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .stat-card { background: white; border: 1px solid var(--border); border-radius: var(--r-lg); padding: 14px 16px; cursor: pointer; transition: border-color .15s; }
+    .stat-card:hover { border-color: var(--navy-mid); }
+    .stat-card.active { border-color: var(--navy); background: var(--navy-lite); }
+    .stat-num { font-size: 28px; font-weight: 500; font-family: 'DM Mono', monospace; color: var(--navy); line-height: 1; }
+    .stat-label { font-size: 11px; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: .05em; }
+    .stat-card.active .stat-label { color: var(--navy-mid); }
+
+    /* TABULKA */
+    .table-wrap { background: white; border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow); overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead tr { background: var(--navy); }
+    thead th { padding: 11px 16px; text-align: left; color: rgba(255,255,255,.85); font-weight: 500; font-size: 12px; letter-spacing: .3px; white-space: nowrap; cursor: pointer; user-select: none; }
+    thead th:hover { background: var(--navy-mid); }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; cursor: pointer; }
+    tbody tr:hover { background: var(--navy-lite); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody td { padding: 11px 16px; vertical-align: middle; }
+    .td-id { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
+    .td-name { font-weight: 500; }
+    .td-date { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
+    .td-actions { display: flex; gap: 6px; }
+
+    /* BADGES */
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+    .badge-draft        { background: #F3F4F6; color: #6B7280; border: 1px solid #D1D5DB; }
+    .badge-submitted    { background: var(--navy-lite); color: var(--navy-mid); border: 1px solid #B5C4E8; }
+    .badge-formal_check { background: var(--purple-lite); color: var(--purple); border: 1px solid #C4B5FD; }
+    .badge-to_review    { background: var(--amber-lite); color: var(--amber); border: 1px solid #FDE68A; }
+    .badge-in_review    { background: #FFF7ED; color: #C2410C; border: 1px solid #FED7AA; }
+    .badge-approved     { background: var(--green-lite); color: var(--green); border: 1px solid #A7F3D0; }
+    .badge-rejected     { background: var(--red-lite); color: var(--red); border: 1px solid #FECACA; }
+
+    /* TLAČÍTKA V TABULCE */
+    .btn-sm { padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: white; color: var(--navy); font-family: 'DM Sans', sans-serif; transition: all .15s; white-space: nowrap; }
+    .btn-sm:hover { border-color: var(--navy); background: var(--navy-lite); }
+    .btn-sm-primary { background: var(--navy); color: white; border-color: var(--navy); }
+    .btn-sm-primary:hover { background: var(--navy-mid); }
+    .btn-sm-green { background: var(--green-lite); color: var(--green); border-color: #A7F3D0; }
+    .btn-sm-green:hover { background: var(--green); color: white; }
+    .btn-sm-red { background: var(--red-lite); color: var(--red); border-color: #FECACA; }
+    .btn-sm-red:hover { background: var(--red); color: white; }
+    .btn-sm-amber { background: var(--amber-lite); color: var(--amber); border-color: #FDE68A; }
+    .btn-sm-amber:hover { background: var(--amber); color: white; }
+
+    /* MODAL */
+    .modal-bg { display: none; position: fixed; inset: 0; background: rgba(28,46,90,.5); backdrop-filter: blur(3px); z-index: 200; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; }
+    .modal-bg.open { display: flex; }
+    .modal { background: white; border-radius: var(--r-lg); width: 100%; max-width: 720px; box-shadow: 0 20px 60px rgba(0,0,0,.2); }
+    .modal-header { padding: 20px 24px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+    .modal-title { font-size: 17px; font-weight: 500; color: var(--navy); }
+    .modal-sub { font-size: 12px; color: var(--muted); margin-top: 3px; font-family: 'DM Mono', monospace; }
+    .modal-close { background: none; border: none; font-size: 20px; color: var(--muted); cursor: pointer; padding: 4px; line-height: 1; }
+    .modal-close:hover { color: var(--navy); }
+    .modal-body { padding: 20px 24px; max-height: 60vh; overflow-y: auto; }
+    .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+
+    /* DETAIL PŘIHLÁŠKY */
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    @media (max-width: 500px) { .detail-grid { grid-template-columns: 1fr; } }
+    .detail-field { display: flex; flex-direction: column; gap: 3px; }
+    .detail-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+    .detail-value { font-size: 13px; color: var(--navy); }
+    .detail-divider { font-size: 11px; font-weight: 600; color: var(--navy); text-transform: uppercase; letter-spacing: .08em; padding: 12px 0 8px; border-bottom: 1px solid var(--border); margin-bottom: 12px; grid-column: 1 / -1; }
+
+    /* WORKFLOW AKCE */
+    .workflow-section { background: var(--navy-lite); border: 1px solid #D0D8EE; border-radius: var(--r); padding: 16px; margin-bottom: 16px; }
+    .workflow-title { font-size: 12px; font-weight: 600; color: var(--navy); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 12px; }
+    .workflow-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+    .workflow-btn { display: flex; flex-direction: column; align-items: center; padding: 10px 16px; border-radius: var(--r); border: 1.5px solid; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .15s; min-width: 120px; }
+    .workflow-btn-icon { font-size: 18px; margin-bottom: 4px; }
+    .workflow-btn-label { font-size: 12px; font-weight: 600; }
+    .workflow-btn-sub { font-size: 11px; opacity: .7; margin-top: 2px; }
+
+    .wf-approve { background: var(--green-lite); color: var(--green); border-color: #A7F3D0; }
+    .wf-approve:hover { background: var(--green); color: white; border-color: var(--green); }
+    .wf-return  { background: var(--amber-lite); color: var(--amber); border-color: #FDE68A; }
+    .wf-return:hover  { background: var(--amber); color: white; border-color: var(--amber); }
+    .wf-reject  { background: var(--red-lite);   color: var(--red);   border-color: #FECACA; }
+    .wf-reject:hover  { background: var(--red);   color: white; border-color: var(--red); }
+    .wf-review  { background: var(--purple-lite); color: var(--purple); border-color: #C4B5FD; }
+    .wf-review:hover  { background: var(--purple); color: white; border-color: var(--purple); }
+
+    /* POZNÁMKA */
+    .note-area { width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: var(--r); font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--navy); resize: vertical; min-height: 80px; outline: none; }
+    .note-area:focus { border-color: var(--navy-mid); }
+
+    /* EMPTY / LOADING */
+    .empty-state { padding: 48px; text-align: center; color: var(--muted); }
+    .empty-icon { font-size: 32px; margin-bottom: 12px; }
+    .loading-row td { text-align: center; padding: 32px; color: var(--muted); }
+    .spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--navy); border-radius: 50%; animation: spin .7s linear infinite; display: inline-block; margin-right: 8px; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* TOAST */
+    .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px); color: white; font-size: 14px; font-weight: 500; padding: 12px 24px; border-radius: 100px; z-index: 9999; transition: transform .3s cubic-bezier(.34,1.56,.64,1); white-space: nowrap; }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: var(--r); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all .15s; }
+    .btn-navy { background: var(--navy); color: white; }
+    .btn-navy:hover { background: var(--navy-mid); }
+    .btn-outline { background: white; color: var(--navy); border: 1.5px solid var(--border); }
+    .btn-outline:hover { border-color: var(--navy); }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar__left">
+    <img src="../img/uhk-abb-w.png" alt="UHK" style="height:26px;opacity:.9;">
+    <span class="topbar__title">Koordinátorka – správa přihlášek</span>
+  </div>
+  <div class="topbar__right">
+    <span class="topbar__user">Přihlášena: <strong id="topbarName">—</strong></span>
+    <a href="dashboard.html" class="btn-back">← Rozcestník</a>
+  </div>
+</header>
+
+<div class="page">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">Správa přihlášek</div>
+      <div class="page-sub" id="pageSub">Načítám přihlášky…</div>
+    </div>
+    <button class="btn btn-outline" onclick="loadAll()">↺ Obnovit</button>
+  </div>
+
+  <!-- Statistiky -->
+  <div class="stats-row" id="statsRow">
+    <div class="stat-card active" onclick="filterByStatus('all')">
+      <div class="stat-num" id="statAll">—</div>
+      <div class="stat-label">Celkem</div>
+    </div>
+    <div class="stat-card" onclick="filterByStatus('SUBMITTED')">
+      <div class="stat-num" id="statSubmitted">—</div>
+      <div class="stat-label">Ke kontrole</div>
+    </div>
+    <div class="stat-card" onclick="filterByStatus('TO_REVIEW')">
+      <div class="stat-num" id="statToReview">—</div>
+      <div class="stat-label">To review</div>
+    </div>
+    <div class="stat-card" onclick="filterByStatus('IN_REVIEW')">
+      <div class="stat-num" id="statInReview">—</div>
+      <div class="stat-label">V hodnocení</div>
+    </div>
+    <div class="stat-card" onclick="filterByStatus('APPROVED')">
+      <div class="stat-num" id="statApproved">—</div>
+      <div class="stat-label">Schváleno</div>
+    </div>
+    <div class="stat-card" onclick="filterByStatus('DRAFT')">
+      <div class="stat-num" id="statDraft">—</div>
+      <div class="stat-label">Rozpracované</div>
+    </div>
+  </div>
+
+  <!-- Filtry -->
+  <div class="filters">
+    <input class="search-input" id="searchInput" type="text"
+      placeholder="Hledat žadatele, projekt, ID…" oninput="applyFilters()">
+    <select class="filter-select" id="compFilter" onchange="applyFilters()">
+      <option value="">Všechny soutěže</option>
+      <option value="uhk_connect_2026_v2">UHK Connect</option>
+      <option value="uhk_rega_2026_v1">UHK ReGa</option>
+      <option value="uhk_navraty_2026">OP JAK Návraty</option>
+      <option value="uhk_prestige_2026">UHK Prestige</option>
+    </select>
+    <select class="filter-select" id="facultyFilter" onchange="applyFilters()">
+      <option value="">Všechny součásti</option>
+      <option>PřF</option><option>PdF</option>
+      <option>FF</option><option>FIM</option><option>REKTORÁT</option>
+    </select>
+    <span class="filter-count" id="filterCount"></span>
+  </div>
+
+  <!-- Tabulka -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th onclick="sortBy('application_id')">ID ↕</th>
+          <th onclick="sortBy('competition_id')">Soutěž ↕</th>
+          <th onclick="sortBy('applicant_name')">Žadatel ↕</th>
+          <th>Projekt</th>
+          <th onclick="sortBy('faculty')">Součást ↕</th>
+          <th onclick="sortBy('status')">Stav ↕</th>
+          <th onclick="sortBy('submitted_at')">Podáno ↕</th>
+          <th>Akce</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <tr class="loading-row">
+          <td colspan="8"><span class="spinner"></span>Načítám přihlášky…</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- MODAL: Detail přihlášky -->
+<div class="modal-bg" id="detailModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modalTitle">—</div>
+        <div class="modal-sub" id="modalSub">—</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer" id="modalFooter"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="../js/config.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+
+  const user = Auth.requireLogin(["ADMIN","TESTER"]);
+  document.getElementById("topbarName").textContent = user.name || user.email;
+
+  const COMP_NAMES = {
+    "uhk_connect_2026_v2": "Connect",
+    "uhk_rega_2026_v1":    "ReGa",
+    "uhk_navraty_2026":    "Návraty",
+    "uhk_prestige_2026":   "Prestige",
+  };
+
+  const STATUS_FLOW = {
+    DRAFT:        { next: ["SUBMITTED"],                    label: "Koncept" },
+    SUBMITTED:    { next: ["TO_REVIEW","DRAFT","REJECTED"], label: "Podáno" },
+    TO_REVIEW:    { next: ["IN_REVIEW","DRAFT"],            label: "To review" },
+    IN_REVIEW:    { next: ["APPROVED","DRAFT"],             label: "V hodnocení" },
+    APPROVED:     { next: [],                               label: "Schváleno" },
+    REJECTED:     { next: [],                               label: "Zamítnuto" },
+  };
+
+  let allApps    = [];
+  let filtered   = [];
+  let activeStatus = "all";
+  let sortCol    = "submitted_at";
+  let sortDir    = -1;
+  let currentApp = null;
+
+  // ── Načtení přihlášek ─────────────────────────────────────
+  async function loadAll() {
+    document.getElementById("tableBody").innerHTML =
+      '<tr class="loading-row"><td colspan="8"><span class="spinner"></span>Načítám…</td></tr>';
+
+    const competitions = ["uhk_connect_2026_v2","uhk_rega_2026_v1","uhk_prestige_2026"];
+    const all = [];
+
+    for (const compId of competitions) {
+      try {
+        const session = Auth._getSession();
+        const url = new URL(API_URL);
+        url.searchParams.set("action", "getApplications");
+        url.searchParams.set("competitionId", compId);
+        url.searchParams.set("token", session?.token || "");
+        const res  = await fetch(url.toString());
+        const data = await res.json();
+        if (data.applications) {
+          data.applications.forEach(a => {
+            // Parsuj form_data_json
+            try { a._form = JSON.parse(a.form_data_json || "{}"); } catch { a._form = {}; }
+            a.competition_id = compId;
+            a.faculty = a._form.faculty || "—";
+            a.project_title = a._form.project_title || "—";
+            all.push(a);
+          });
+        }
+      } catch {
+        // Pokud API selže, pokračuj s dalšími
+      }
+    }
+
+    allApps = all.length ? all : getDemoApps();
+    updateStats();
+    applyFilters();
+    document.getElementById("pageSub").textContent =
+      `${allApps.length} přihlášek celkem · aktualizováno ${new Date().toLocaleTimeString("cs-CZ", {hour:"2-digit",minute:"2-digit"})}`;
+  }
+
+  // ── Statistiky ────────────────────────────────────────────
+  function updateStats() {
+    const count = s => allApps.filter(a => a.status === s).length;
+    document.getElementById("statAll").textContent       = allApps.length;
+    document.getElementById("statSubmitted").textContent = count("SUBMITTED");
+    document.getElementById("statToReview").textContent  = count("TO_REVIEW");
+    document.getElementById("statInReview").textContent  = count("IN_REVIEW");
+    document.getElementById("statApproved").textContent  = count("APPROVED");
+    document.getElementById("statDraft").textContent     = count("DRAFT");
+  }
+
+  function filterByStatus(status) {
+    activeStatus = status;
+    document.querySelectorAll(".stat-card").forEach(c => c.classList.remove("active"));
+    const idx = ["all","SUBMITTED","TO_REVIEW","IN_REVIEW","APPROVED","DRAFT"].indexOf(status);
+    document.querySelectorAll(".stat-card")[Math.max(0,idx)]?.classList.add("active");
+    applyFilters();
+  }
+
+  // ── Filtry ────────────────────────────────────────────────
+  function applyFilters() {
+    const q       = document.getElementById("searchInput").value.toLowerCase();
+    const comp    = document.getElementById("compFilter").value;
+    const faculty = document.getElementById("facultyFilter").value;
+
+    filtered = allApps.filter(a => {
+      if (activeStatus !== "all" && a.status !== activeStatus) return false;
+      if (comp    && a.competition_id !== comp)    return false;
+      if (faculty && a.faculty !== faculty)        return false;
+      if (q && ![a.application_id, a.applicant_name, a.applicant_email, a.project_title]
+        .join(" ").toLowerCase().includes(q)) return false;
+      return true;
+    });
+
+    // Řazení
+    filtered.sort((a, b) => {
+      const va = String(a[sortCol] || "");
+      const vb = String(b[sortCol] || "");
+      return va.localeCompare(vb, "cs") * sortDir;
+    });
+
+    document.getElementById("filterCount").textContent =
+      `Zobrazeno: ${filtered.length} z ${allApps.length}`;
+    renderTable();
+  }
+
+  function sortBy(col) {
+    if (sortCol === col) sortDir *= -1; else { sortCol = col; sortDir = -1; }
+    applyFilters();
+  }
+
+  // ── Tabulka ────────────────────────────────────────────────
+  function renderTable() {
+    const body = document.getElementById("tableBody");
+    if (!filtered.length) {
+      body.innerHTML = `<tr><td colspan="8">
+        <div class="empty-state">
+          <div class="empty-icon">📭</div>
+          <div>Žádné přihlášky neodpovídají filtru</div>
+        </div></td></tr>`;
+      return;
+    }
+
+    body.innerHTML = filtered.map(a => {
+      const comp   = COMP_NAMES[a.competition_id] || a.competition_id;
+      const date   = a.submitted_at ? a.submitted_at.substring(0,10) : (a.created_at||"").substring(0,10);
+      const status = a.status || "DRAFT";
+
+      // Rychlé akce dle stavu
+      let quickBtns = "";
+      if (status === "SUBMITTED") {
+        quickBtns = `
+          <button class="btn-sm btn-sm-green" onclick="quickAction(event,'${a.application_id}','${a.competition_id}','TO_REVIEW')">→ Review</button>
+          <button class="btn-sm btn-sm-amber" onclick="quickAction(event,'${a.application_id}','${a.competition_id}','DRAFT')">← Vrátit</button>`;
+      } else if (status === "TO_REVIEW") {
+        quickBtns = `<button class="btn-sm btn-sm-primary" onclick="quickAction(event,'${a.application_id}','${a.competition_id}','IN_REVIEW')">Spustit review</button>`;
+      }
+
+      return `<tr onclick="openDetail('${a.application_id}')">
+        <td class="td-id">${a.application_id}</td>
+        <td><span style="font-size:11px;background:var(--navy-lite);color:var(--navy);padding:2px 7px;border-radius:4px;font-weight:600;">${comp}</span></td>
+        <td class="td-name">${a.applicant_name || "—"}</td>
+        <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;">${a.project_title}</td>
+        <td style="font-size:12px;">${a.faculty}</td>
+        <td><span class="badge badge-${status.toLowerCase()}">${STATUS_FLOW[status]?.label || status}</span></td>
+        <td class="td-date">${date}</td>
+        <td class="td-actions" onclick="event.stopPropagation()">${quickBtns}
+          <button class="btn-sm" onclick="openDetail('${a.application_id}')">Detail</button>
+        </td>
+      </tr>`;
+    }).join("");
+  }
+
+  // ── Rychlá akce z tabulky ─────────────────────────────────
+  async function quickAction(e, appId, compId, newStatus) {
+    e.stopPropagation();
+    await changeStatus(appId, compId, newStatus, "");
+  }
+
+  // ── Detail modal ──────────────────────────────────────────
+  function openDetail(appId) {
+    currentApp = allApps.find(a => a.application_id === appId);
+    if (!currentApp) return;
+
+    const a    = currentApp;
+    const form = a._form || {};
+    const comp = COMP_NAMES[a.competition_id] || a.competition_id;
+    const status = a.status || "DRAFT";
+
+    document.getElementById("modalTitle").textContent =
+      form.project_title || a.application_id;
+    document.getElementById("modalSub").textContent =
+      `${a.application_id} · ${comp} · ${a.applicant_email}`;
+
+    // Workflow akce
+    const wfActions = {
+      SUBMITTED: [
+        { label: "Schválit", sub: "→ To review", cls: "wf-approve", icon: "✓", next: "TO_REVIEW" },
+        { label: "Vrátit",   sub: "→ Draft",     cls: "wf-return",  icon: "↩", next: "DRAFT" },
+        { label: "Zamítnout",sub: "→ Rejected",  cls: "wf-reject",  icon: "✕", next: "REJECTED" },
+      ],
+      TO_REVIEW: [
+        { label: "Spustit review", sub: "→ In review", cls: "wf-review",  icon: "⭐", next: "IN_REVIEW" },
+        { label: "Vrátit",         sub: "→ Draft",     cls: "wf-return",  icon: "↩", next: "DRAFT" },
+      ],
+      IN_REVIEW: [
+        { label: "Schválit", sub: "→ Approved", cls: "wf-approve", icon: "✓", next: "APPROVED" },
+        { label: "Vrátit",   sub: "→ Draft",    cls: "wf-return",  icon: "↩", next: "DRAFT" },
+      ],
+      DRAFT: [
+        { label: "Označit jako podáno", sub: "→ Submitted", cls: "wf-approve", icon: "↑", next: "SUBMITTED" },
+      ],
+    }[status] || [];
+
+    const wfHtml = wfActions.length ? `
+      <div class="workflow-section">
+        <div class="workflow-title">Změna stavu</div>
+        <div class="workflow-btns">
+          ${wfActions.map(w => `
+            <button class="workflow-btn ${w.cls}" onclick="changeStatusFromModal('${w.next}')">
+              <span class="workflow-btn-icon">${w.icon}</span>
+              <span class="workflow-btn-label">${w.label}</span>
+              <span class="workflow-btn-sub">${w.sub}</span>
+            </button>`).join("")}
+        </div>
+      </div>` : `<div style="padding:8px 0 16px;font-size:13px;color:var(--muted);">Stav <strong>${STATUS_FLOW[status]?.label || status}</strong> – žádné další akce.</div>`;
+
+    // Formulářová data
+    const fieldRows = Object.entries(form)
+      .filter(([k]) => !k.startsWith("budget_") || k === "budget_total")
+      .map(([k, v]) => v ? `
+        <div class="detail-field">
+          <div class="detail-label">${k.replace(/_/g," ")}</div>
+          <div class="detail-value">${String(v).substring(0,200)}</div>
+        </div>` : "").join("");
+
+    // Rozpočet
+    const budgetFields = ["budget_travel","budget_accommodation","budget_meals","budget_local","budget_fee","budget_publication","budget_personnel"];
+    const budgetRows = budgetFields.map(k => form[k] ? `
+      <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;">
+        <span style="color:var(--muted);">${k.replace("budget_","").replace(/_/g," ")}</span>
+        <span style="font-family:'DM Mono',monospace;">${Number(form[k]).toLocaleString("cs-CZ")} Kč</span>
+      </div>` : "").join("");
+
+    document.getElementById("modalBody").innerHTML = `
+      ${wfHtml}
+      <div class="detail-grid">
+        <div class="detail-divider">Základní informace</div>
+        <div class="detail-field"><div class="detail-label">Žadatel</div><div class="detail-value">${a.applicant_name || "—"}</div></div>
+        <div class="detail-field"><div class="detail-label">E-mail</div><div class="detail-value">${a.applicant_email || "—"}</div></div>
+        <div class="detail-field"><div class="detail-label">Soutěž</div><div class="detail-value">${comp}</div></div>
+        <div class="detail-field"><div class="detail-label">Stav</div><div class="detail-value"><span class="badge badge-${status.toLowerCase()}">${STATUS_FLOW[status]?.label || status}</span></div></div>
+        <div class="detail-field"><div class="detail-label">Podáno</div><div class="detail-value">${a.submitted_at || "—"}</div></div>
+        <div class="detail-field"><div class="detail-label">Součást</div><div class="detail-value">${form.faculty || "—"}</div></div>
+        ${fieldRows}
+      </div>
+      ${budgetRows ? `
+        <div style="margin-bottom:16px;">
+          <div style="font-size:11px;font-weight:600;color:var(--navy);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Rozpočet</div>
+          ${budgetRows}
+          <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px;font-weight:600;">
+            <span>Celkem</span>
+            <span style="font-family:'DM Mono',monospace;">${Number(form.budget_total||0).toLocaleString("cs-CZ")} Kč</span>
+          </div>
+        </div>` : ""}
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px;">Poznámka koordinátorky</div>
+        <textarea class="note-area" id="coordNote" placeholder="Interní poznámka – uvidí jen koordinátorka a admin…">${a.note || ""}</textarea>
+      </div>`;
+
+    document.getElementById("modalFooter").innerHTML = `
+      <button class="btn btn-outline" onclick="closeModal()">Zavřít</button>
+      <button class="btn btn-navy" onclick="saveNote()">Uložit poznámku</button>`;
+
+    document.getElementById("detailModal").classList.add("open");
+  }
+
+  function closeModal() {
+    document.getElementById("detailModal").classList.remove("open");
+    currentApp = null;
+  }
+
+  // ── Změna stavu ───────────────────────────────────────────
+  async function changeStatusFromModal(newStatus) {
+    if (!currentApp) return;
+    const note = document.getElementById("coordNote")?.value || "";
+    await changeStatus(currentApp.application_id, currentApp.competition_id, newStatus, note);
+    closeModal();
+  }
+
+  async function changeStatus(appId, compId, newStatus, note) {
+    try {
+      const session = Auth._getSession();
+      await fetch(API_URL, {
+        method: "POST", mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "updateApplicationStatus",
+          token:  session?.token || "",
+          competitionId: compId,
+          applicationId: appId,
+          newStatus,
+          note,
+          coordinatorEmail: user.email,
+        }),
+      });
+
+      // Aktualizuj lokálně
+      const app = allApps.find(a => a.application_id === appId);
+      if (app) { app.status = newStatus; if (note) app.note = note; }
+
+      updateStats();
+      applyFilters();
+      showToast(`Stav změněn na ${STATUS_FLOW[newStatus]?.label || newStatus} ✓`);
+    } catch (err) {
+      showToast("Chyba při změně stavu.", "err");
+    }
+  }
+
+  async function saveNote() {
+    if (!currentApp) return;
+    const note = document.getElementById("coordNote")?.value || "";
+    try {
+      const session = Auth._getSession();
+      await fetch(API_URL, {
+        method: "POST", mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "updateApplicationStatus",
+          token:  session?.token || "",
+          competitionId: currentApp.competition_id,
+          applicationId: currentApp.application_id,
+          newStatus: currentApp.status,
+          note,
+          coordinatorEmail: user.email,
+        }),
+      });
+      currentApp.note = note;
+      showToast("Poznámka uložena ✓");
+    } catch {
+      showToast("Chyba při ukládání.", "err");
+    }
+  }
+
+  // ── Toast ─────────────────────────────────────────────────
+  let tt;
+  function showToast(msg, type = "ok") {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.style.background = type === "err" ? "#991B1B" : "#1E6B45";
+    t.classList.add("show");
+    clearTimeout(tt);
+    tt = setTimeout(() => t.classList.remove("show"), 4000);
+  }
+
+  // ── Demo data ─────────────────────────────────────────────
+  function getDemoApps() {
+    return [
+      { application_id:"APP-260402-A1B2C", competition_id:"uhk_connect_2026_v2", applicant_name:"Mgr. Jan Novák, Ph.D.", applicant_email:"jan.novak@uhk.cz", status:"SUBMITTED", submitted_at:"2026-04-02 10:15", created_at:"2026-04-01", note:"", form_data_json: JSON.stringify({ project_title:"Síťování s ETH Zürich", faculty:"FIM", activity_type:"Mobilita (výjezd)", activity_goal:"Navázání spolupráce v oblasti ML", partner_institution:"ETH Zürich", partner_country:"Švýcarsko", budget_total:"62000", budget_travel:"28000", budget_accommodation:"24000", budget_meals:"10000" }) },
+      { application_id:"APP-260401-D3E4F", competition_id:"uhk_connect_2026_v2", applicant_name:"RNDr. Eva Malá, Ph.D.", applicant_email:"eva.mala@uhk.cz", status:"DRAFT", submitted_at:"", created_at:"2026-04-01", note:"", form_data_json: JSON.stringify({ project_title:"Konference ICML 2026", faculty:"PřF", budget_total:"45000" }) },
+      { application_id:"APP-260330-G5H6I", competition_id:"uhk_rega_2026_v1", applicant_name:"doc. Petra Bílá, Ph.D.", applicant_email:"petra.bila@uhk.cz", status:"TO_REVIEW", submitted_at:"2026-03-30 14:22", created_at:"2026-03-29", note:"Posudky ověřeny", form_data_json: JSON.stringify({ project_title:"GA ČR – dopracování návrhu", faculty:"PřF", original_agency:"GA ČR", budget_total:"380000", budget_personnel_pi:"200000" }) },
+      { application_id:"APP-260328-J7K8L", competition_id:"uhk_connect_2026_v2", applicant_name:"Mgr. Lucie Horáčková", applicant_email:"lucie.horackova@uhk.cz", status:"IN_REVIEW", submitted_at:"2026-03-28 09:00", created_at:"2026-03-27", note:"", form_data_json: JSON.stringify({ project_title:"Workshop s Universität Wien", faculty:"FF", budget_total:"55000" }) },
+    ].map(a => {
+      try { a._form = JSON.parse(a.form_data_json); } catch { a._form = {}; }
+      a.faculty = a._form.faculty || "—";
+      a.project_title = a._form.project_title || "—";
+      return a;
+    });
+  }
+
+  // Zavření modalu kliknutím mimo
+  document.getElementById("detailModal").addEventListener("click", e => {
+    if (e.target === document.getElementById("detailModal")) closeModal();
+  });
+
+  // ── INIT ─────────────────────────────────────────────────
+  loadAll();
+</script>
+</body>
+</html>
