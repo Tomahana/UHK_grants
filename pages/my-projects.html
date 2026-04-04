@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Moje projekty – UHK Granty</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--navy:#1C2E5A;--navy-mid:#2F4A8A;--navy-lite:#E8EDF8;--green:#1E6B45;--green-lite:#E6F4EE;--red:#991B1B;--red-lite:#FEF2F2;--gold:#C49A2A;--gold-lite:#FDF6E3;--purple:#5B21B6;--purple-lite:#EDE9FE;--border:#E2E0D8;--muted:#6B6A63;--bg:#F8F7F4;--r:8px;--r-lg:12px}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--navy);font-size:15px;min-height:100vh}
+    .topbar{background:var(--navy);height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:100}
+    .topbar img{height:26px;opacity:.9}
+    .tt{font-size:14px;font-weight:500;color:rgba(255,255,255,.8);margin-left:10px}
+    .tu{font-size:13px;color:rgba(255,255,255,.5)}
+    .tu strong{color:rgba(255,255,255,.85);font-weight:500}
+    .btn-back{background:none;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.6);font-family:'DM Mono',monospace;font-size:11px;padding:5px 12px;border-radius:4px;cursor:pointer;text-decoration:none}
+    .page{max-width:900px;margin:0 auto;padding:28px 24px 80px}
+    .page-title{font-size:22px;font-weight:500;color:var(--navy);margin-bottom:4px}
+    .page-sub{font-size:13px;color:var(--muted);margin-bottom:24px}
+    /* PROJEKT KARTA */
+    .proj-card{background:white;border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+    .proj-header{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+    .proj-title{font-size:16px;font-weight:500;color:var(--navy);margin-bottom:4px}
+    .proj-meta{font-size:12px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap}
+    .proj-body{padding:20px}
+    /* WORKFLOW TIMELINE */
+    .timeline{display:flex;align-items:center;gap:0;margin-bottom:20px;overflow-x:auto;padding-bottom:4px}
+    .tl-step{display:flex;flex-direction:column;align-items:center;min-width:90px}
+    .tl-dot{width:32px;height:32px;border-radius:50%;border:2px solid var(--border);background:white;display:flex;align-items:center;justify-content:center;font-size:13px;z-index:1;position:relative;flex-shrink:0}
+    .tl-dot.done{background:var(--green);border-color:var(--green);color:white}
+    .tl-dot.active{background:var(--navy);border-color:var(--navy);color:white}
+    .tl-dot.reject{background:var(--red-lite);border-color:#FECACA;color:var(--red)}
+    .tl-label{font-size:11px;color:var(--muted);margin-top:6px;text-align:center;line-height:1.3;max-width:80px}
+    .tl-label.active{color:var(--navy);font-weight:600}
+    .tl-label.done{color:var(--green)}
+    .tl-connector{flex:1;height:2px;background:var(--border);min-width:20px}
+    .tl-connector.done{background:var(--green)}
+    /* SEKCE */
+    .section{margin-bottom:20px}
+    .section-title{font-size:12px;font-weight:600;color:var(--navy);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+    .section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+    /* INFO GRID */
+    .info-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+    .info-item{background:var(--bg);border-radius:var(--r);padding:10px 12px}
+    .info-key{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
+    .info-val{font-size:13px;color:var(--navy);font-weight:500}
+    /* ZPRÁVY */
+    .report-item{border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:10px}
+    .report-header{padding:10px 14px;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .report-title{font-size:13px;font-weight:500;color:var(--navy)}
+    .report-date{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace}
+    .report-body{padding:14px}
+    /* FORMULÁŘ ZPRÁVY */
+    .report-form{background:var(--navy-lite);border:1px solid #D0D8EE;border-radius:var(--r);padding:16px;margin-top:12px}
+    .form-field{margin-bottom:14px}
+    .form-label{font-size:13px;font-weight:500;color:var(--navy);display:block;margin-bottom:6px}
+    .form-help{font-size:12px;color:var(--muted);margin-bottom:6px}
+    .form-input{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:13px;color:var(--navy);outline:none;background:white}
+    .form-input:focus{border-color:var(--navy-mid);box-shadow:0 0 0 3px rgba(47,74,138,.08)}
+    textarea.form-input{resize:vertical;min-height:80px;line-height:1.5}
+    /* BADGE */
+    .badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap}
+    .badge-draft{background:#F3F4F6;color:#6B7280}
+    .badge-submitted{background:var(--navy-lite);color:var(--navy-mid)}
+    .badge-to_review{background:var(--gold-lite);color:var(--gold)}
+    .badge-in_review{background:#FFF7ED;color:#C2410C}
+    .badge-approved{background:var(--green-lite);color:var(--green)}
+    .badge-rejected{background:var(--red-lite);color:var(--red)}
+    /* BTN */
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;border:none;transition:all .15s}
+    .btn-n{background:var(--navy);color:white}
+    .btn-n:hover{background:var(--navy-mid)}
+    .btn-n:disabled{background:var(--border);color:var(--muted);cursor:not-allowed}
+    .btn-o{background:white;color:var(--navy);border:1.5px solid var(--border)}
+    .btn-o:hover{border-color:var(--navy)}
+    .btn-sm{padding:6px 14px;font-size:12px}
+    /* EMPTY */
+    .empty-state{padding:48px;text-align:center;color:var(--muted);background:white;border:1px solid var(--border);border-radius:var(--r-lg)}
+    .empty-icon{font-size:40px;margin-bottom:16px}
+    .spin{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--navy);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);color:white;font-size:14px;font-weight:500;padding:12px 24px;border-radius:100px;z-index:9999;transition:transform .3s cubic-bezier(.34,1.56,.64,1);white-space:nowrap}
+    .toast.show{transform:translateX(-50%) translateY(0)}
+    /* ALERT */
+    .alert{padding:12px 16px;border-radius:var(--r);font-size:13px;line-height:1.5;margin-bottom:16px;display:flex;gap:10px}
+    .alert-info{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E40AF}
+    .alert-success{background:var(--green-lite);border:1px solid #A7F3D0;color:var(--green)}
+    .alert-warn{background:var(--gold-lite);border:1px solid #FDE68A;color:#92400E}
+  </style>
+</head>
+<body>
+<header class="topbar">
+  <div style="display:flex;align-items:center;">
+    <img src="../img/uhk-abb-w.png" alt="UHK">
+    <span class="tt">Moje projekty</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span class="tu">Přihlášen: <strong id="topbarName">—</strong></span>
+    <a href="dashboard.html" class="btn-back">← Rozcestník</a>
+  </div>
+</header>
+
+<div class="page">
+  <div class="page-title">Moje přihlášky a projekty</div>
+  <div class="page-sub" id="pageSub">Načítám vaše projekty…</div>
+
+  <div id="content"><div style="text-align:center;padding:48px;"><span class="spin"></span></div></div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="../js/config.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+const user = Auth.requireLogin(["ZADATEL","RESITEL","ADMIN","TESTER"]);
+document.getElementById("topbarName").textContent = user.name||user.email;
+
+const COMP_IDS = ["uhk_connect_2026_v2","uhk_rega_2026_v1","uhk_prestige_2026"];
+const COMP_NAMES = {
+  "uhk_connect_2026_v2":"UHK Connect – výzva č. 2",
+  "uhk_rega_2026_v1":"UHK ReGa – výzva č. 1",
+  "uhk_prestige_2026":"UHK Prestige 2026",
+};
+const STATUS = {
+  DRAFT:{label:"Koncept",cls:"badge-draft"},
+  SUBMITTED:{label:"Podáno",cls:"badge-submitted"},
+  TO_REVIEW:{label:"Ke kontrole",cls:"badge-to_review"},
+  IN_REVIEW:{label:"V hodnocení",cls:"badge-in_review"},
+  APPROVED:{label:"Schváleno",cls:"badge-approved"},
+  REJECTED:{label:"Zamítnuto",cls:"badge-rejected"},
+};
+
+// Workflow kroky pro zobrazení
+const WF_STEPS = [
+  {key:"DRAFT",     label:"Koncept"},
+  {key:"SUBMITTED", label:"Podáno"},
+  {key:"TO_REVIEW", label:"Formální kontrola"},
+  {key:"IN_REVIEW", label:"Hodnocení komise"},
+  {key:"APPROVED",  label:"Schváleno"},
+];
+const WF_ORDER = WF_STEPS.map(s=>s.key);
+
+let allProjects = [];
+let openReportForms = {};
+
+async function loadProjects() {
+  const all = [];
+  for (const cid of COMP_IDS) {
+    try {
+      if (API_URL.includes("DOPLNIT")) { all.push(...getDemoProjects()); break; }
+      const s=Auth._getSession(), u=new URL(API_URL);
+      u.searchParams.set("action","getApplications");
+      u.searchParams.set("competitionId",cid);
+      u.searchParams.set("token",s?.token||"");
+      const d=await (await fetch(u.toString())).json();
+      const mine=(d.applications||[]).filter(a=>
+        a.applicant_email?.toLowerCase()===user.email?.toLowerCase()
+      ).map(a=>{try{a._f=JSON.parse(a.form_data_json||"{}")}catch{a._f={}}; a.competition_id=cid; return a});
+      all.push(...mine);
+    } catch { all.push(...getDemoProjects()); break; }
+  }
+  allProjects = all;
+  render();
+  document.getElementById("pageSub").textContent =
+    all.length + " přihlášek / projektů · " + user.name;
+}
+
+function render() {
+  const el = document.getElementById("content");
+  if (!allProjects.length) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">📭</div>
+      <div style="font-size:16px;font-weight:500;margin-bottom:8px;">Zatím žádné přihlášky</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:20px;">Podejte přihlášku do některé z otevřených soutěží.</div>
+      <a href="dashboard.html" class="btn btn-n">← Zpět na rozcestník</a>
+    </div>`;
+    return;
+  }
+  el.innerHTML = allProjects.map(p => renderProject(p)).join("");
+}
+
+function renderProject(p) {
+  const f       = p._f || {};
+  const status  = p.status || "DRAFT";
+  const st      = STATUS[status] || {label:status,cls:"badge-draft"};
+  const cname   = COMP_NAMES[p.competition_id] || p.competition_id;
+  const budget  = f.budget_total ? Number(f.budget_total).toLocaleString("cs-CZ")+" Kč" : "—";
+  const isRej   = status === "REJECTED";
+  const isApp   = status === "APPROVED";
+
+  // Timeline
+  const curIdx = WF_ORDER.indexOf(status);
+  const timeline = WF_STEPS.map((s,i) => {
+    const done   = i < curIdx && !isRej;
+    const active = i === curIdx && !isRej;
+    return `${i>0?`<div class="tl-connector ${done?"done":""}"></div>`:""}
+      <div class="tl-step">
+        <div class="tl-dot ${done?"done":active?"active":""}">
+          ${done?"✓":active?"●":i+1}
+        </div>
+        <div class="tl-label ${done?"done":active?"active":""}">${s.label}</div>
+      </div>`;
+  }).join("");
+
+  // Zprávy
+  const reports = (p._reports||[]).map(r => `
+    <div class="report-item">
+      <div class="report-header">
+        <div class="report-title">${r.type||"Zpráva"}</div>
+        <span class="report-date">${r.date||""}</span>
+      </div>
+      <div class="report-body" style="font-size:13px;color:var(--muted);">${r.note||"—"}</div>
+    </div>`).join("");
+
+  // Alert dle stavu
+  const alert = isApp
+    ? `<div class="alert alert-success">✓ Projekt byl schválen. Po zahájení aktivity nezapomeňte podat závěrečnou zprávu.</div>`
+    : isRej
+    ? `<div class="alert" style="background:var(--red-lite);border:1px solid #FECACA;color:var(--red);">✕ Přihláška nebyla podpořena. ${p.note||""}</div>`
+    : status==="IN_REVIEW"
+    ? `<div class="alert alert-info">⭐ Vaše přihláška je právě hodnocena komisí. Výsledky obdržíte e-mailem.</div>`
+    : status==="SUBMITTED"
+    ? `<div class="alert alert-info">ℹ Přihláška byla podána a čeká na formální kontrolu koordinátorky.</div>`
+    : "";
+
+  // Formulář závěrečné zprávy
+  const reportForm = isApp && openReportForms[p.application_id] ? `
+    <div class="report-form">
+      <div style="font-size:14px;font-weight:500;color:var(--navy);margin-bottom:12px;">Závěrečná zpráva</div>
+      <div class="form-field">
+        <label class="form-label">Co bylo realizováno a s kým spolupráce proběhla?</label>
+        <textarea class="form-input" id="rep-summary-${p.application_id}" placeholder="Popis realizované aktivity…"></textarea>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Identifikace výstupu</label>
+        <div class="form-help">Doložte výstup (LoI, draft článku, protokol apod.) – přiložte soubor nebo uveďte odkaz</div>
+        <input class="form-input" id="rep-output-${p.application_id}" type="text" placeholder="Název výstupu nebo odkaz…">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Stav čerpání nákladů</label>
+        <textarea class="form-input" id="rep-budget-${p.application_id}" placeholder="Přehled skutečně čerpaných nákladů a odchylky od plánu…" style="min-height:60px;"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px;">
+        <button class="btn btn-o btn-sm" onclick="closeReportForm('${p.application_id}')">Zrušit</button>
+        <button class="btn btn-n btn-sm" onclick="submitReport('${p.application_id}','${p.competition_id}')">Odeslat zprávu</button>
+      </div>
+    </div>` : "";
+
+  return `<div class="proj-card" id="card-${p.application_id}">
+    <div class="proj-header">
+      <div>
+        <div class="proj-title">${f.project_title||p.application_id}</div>
+        <div class="proj-meta">
+          <span>${cname}</span>
+          <span>${p.application_id}</span>
+          <span>${f.faculty||"—"} · ${f.department||"—"}</span>
+          ${p.submitted_at?`<span>Podáno: ${String(p.submitted_at).substring(0,10)}</span>`:""}
+        </div>
+      </div>
+      <span class="badge ${st.cls}">${st.label}</span>
+    </div>
+    <div class="proj-body">
+      ${alert}
+
+      <div class="section">
+        <div class="section-title">Průběh přihlášky</div>
+        ${isRej
+          ? `<div style="display:flex;align-items:center;gap:8px;color:var(--red);font-size:13px;">✕ Přihláška nebyla podpořena</div>`
+          : `<div class="timeline">${timeline}</div>`}
+      </div>
+
+      <div class="section">
+        <div class="section-title">Přehled projektu</div>
+        <div class="info-grid">
+          <div class="info-item"><div class="info-key">Typ aktivity</div><div class="info-val">${f.activity_type||"—"}</div></div>
+          <div class="info-item"><div class="info-key">Partner</div><div class="info-val">${f.partner_institution||"—"}</div></div>
+          <div class="info-item"><div class="info-key">Termín</div><div class="info-val">${f.activity_start||"?"} – ${f.activity_end||"?"}</div></div>
+          <div class="info-item"><div class="info-key">Rozpočet</div><div class="info-val">${budget}</div></div>
+          <div class="info-item"><div class="info-key">Výstup</div><div class="info-val">${f.expected_output||"—"}</div></div>
+        </div>
+      </div>
+
+      ${reports ? `<div class="section"><div class="section-title">Podané zprávy</div>${reports}</div>` : ""}
+
+      ${reportForm}
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">
+        ${status==="DRAFT" ? `<a href="apply-${p.competition_id.includes('connect')?'connect':'rega'}.html" class="btn btn-n btn-sm">✏ Upravit přihlášku</a>` : ""}
+        ${isApp && !openReportForms[p.application_id] ? `<button class="btn btn-n btn-sm" onclick="openReportForm('${p.application_id}')">📄 Podat závěrečnou zprávu</button>` : ""}
+      </div>
+    </div>
+  </div>`;
+}
+
+function openReportForm(id) {
+  openReportForms[id] = true;
+  render();
+  document.getElementById("rep-summary-"+id)?.focus();
+}
+
+function closeReportForm(id) {
+  delete openReportForms[id];
+  render();
+}
+
+async function submitReport(appId, compId) {
+  const summary = document.getElementById("rep-summary-"+appId)?.value||"";
+  const output  = document.getElementById("rep-output-"+appId)?.value||"";
+  const budget  = document.getElementById("rep-budget-"+appId)?.value||"";
+  if (!summary) { showToast("Vyplňte popis realizace.", "err"); return; }
+
+  try {
+    await fetch(API_URL, {
+      method:"POST", mode:"no-cors",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        action:"submitFinalReport",
+        token: Auth._getSession()?.token||"",
+        competitionId: compId,
+        applicationId: appId,
+        report: {summary, output, budget, submittedAt: new Date().toISOString()},
+        applicantEmail: user.email,
+      }),
+    });
+    closeReportForm(appId);
+    showToast("Závěrečná zpráva odeslána ✓");
+  } catch {
+    showToast("Chyba při odesílání.", "err");
+  }
+}
+
+let _tt;
+function showToast(msg,type="ok") {
+  const t=document.getElementById("toast");t.textContent=msg;
+  t.style.background=type==="err"?"#991B1B":"#1E6B45";t.classList.add("show");
+  clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove("show"),4000);
+}
+
+function getDemoProjects() {
+  return [{
+    application_id:"APP-260320-DEMO1",competition_id:"uhk_connect_2026_v2",
+    applicant_email:user.email,applicant_name:user.name,
+    status:"IN_REVIEW",submitted_at:"2026-03-20 10:15",note:"",
+    form_data_json:JSON.stringify({
+      project_title:"Síťování s ETH Zürich – ML výzkum",faculty:"FIM",department:"Katedra informatiky",
+      activity_type:"Mobilita (výjezd)",partner_institution:"ETH Zürich",partner_country:"Švýcarsko",
+      activity_start:"2026-06-01",activity_end:"2026-06-14",
+      expected_output:"Rozpracovaný článek",budget_total:"57400",
+    }),
+    _reports:[{type:"Průběžná informace",date:"2026-04-01",note:"Aktivita proběhne dle plánu."}],
+  },{
+    application_id:"APP-260301-DEMO4",competition_id:"uhk_connect_2026_v2",
+    applicant_email:user.email,applicant_name:user.name,
+    status:"APPROVED",submitted_at:"2026-03-01 09:00",note:"Schváleno prorektorkou.",
+    form_data_json:JSON.stringify({
+      project_title:"Bilaterální výzkum – Universität Heidelberg",faculty:"PdF",department:"Katedra pedagogiky",
+      activity_type:"Pracovní setkání",partner_institution:"Universität Heidelberg",partner_country:"Německo",
+      activity_start:"2026-03-10",activity_end:"2026-03-13",
+      expected_output:"Plán navazující mobility",budget_total:"24000",
+    }),
+    _reports:[],
+  }].map(a=>{try{a._f=JSON.parse(a.form_data_json)}catch{a._f={}}return a});
+}
+
+loadProjects();
+</script>
+</body>
+</html>

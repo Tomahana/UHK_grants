@@ -4,37 +4,470 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hodnocení – UHK Connect</title>
-  <script src="../js/config.js"></script>
-  <script src="../js/auth.js"></script>
-  <script>
-    // Tato stránka je sdílená pro Connect i ReGa
-    // Obsah se načítá dynamicky dle parametru ?c=
-    const c = new URLSearchParams(window.location.search).get("c") || "uhk_connect_2026_v2";
-    document.title = "Hodnocení – " + c;
-  </script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--navy:#1C2E5A;--navy-mid:#2F4A8A;--navy-lite:#E8EDF8;--green:#1E6B45;--green-lite:#E6F4EE;--red:#991B1B;--red-lite:#FEF2F2;--gold:#C49A2A;--gold-lite:#FDF6E3;--border:#E2E0D8;--muted:#6B6A63;--bg:#F8F7F4;--r:8px;--r-lg:12px}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--navy);font-size:15px;min-height:100vh}
+    .topbar{background:var(--navy);height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:100}
+    .topbar img{height:26px;opacity:.9}
+    .tt{font-size:14px;font-weight:500;color:rgba(255,255,255,.8);margin-left:10px}
+    .tu{font-size:13px;color:rgba(255,255,255,.5)}
+    .tu strong{color:rgba(255,255,255,.85);font-weight:500}
+    .btn-back{background:none;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.6);font-family:'DM Mono',monospace;font-size:11px;padding:5px 12px;border-radius:4px;cursor:pointer;text-decoration:none}
+    .btn-back:hover{color:white;border-color:rgba(255,255,255,.4)}
+    .page{max-width:1140px;margin:0 auto;padding:24px 20px 80px;display:grid;grid-template-columns:300px 1fr;gap:20px;align-items:start}
+    @media(max-width:800px){.page{grid-template-columns:1fr}.sidebar{display:none}}
+    .tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:20px}
+    .tab{padding:10px 20px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+    .tab:hover{color:var(--navy)}
+    .tab.active{color:var(--navy);border-bottom-color:var(--navy)}
+    .tab-hide{display:none}
+    .panel{background:white;border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+    .ph{padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .ph-title{font-size:14px;font-weight:600;color:var(--navy)}
+    .ph-sub{font-size:12px;color:var(--muted);margin-top:1px}
+    .pb{padding:18px}
+    .app-item{padding:11px 16px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:10px;transition:background .1s}
+    .app-item:last-child{border-bottom:none}
+    .app-item:hover{background:var(--navy-lite)}
+    .app-item.active{background:var(--navy-lite);border-left:3px solid var(--navy);padding-left:13px}
+    .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--gold)}
+    .dot.done{background:var(--green)}
+    .ai{flex:1;min-width:0}
+    .an{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .am{font-size:11px;color:var(--muted);margin-top:1px}
+    .sp{font-family:'DM Mono',monospace;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap;flex-shrink:0}
+    .sp.done{background:var(--green-lite);color:var(--green)}
+    .sp.new{background:var(--gold-lite);color:var(--gold)}
+    .dbox{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:16px}
+    .dgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .dl{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+    .dv{font-size:13px;color:var(--navy);margin-top:2px;line-height:1.4}
+    .dfull{grid-column:1/-1}
+    .crit{border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:10px}
+    .ch{padding:10px 14px;background:var(--navy-lite);border-bottom:1px solid #D0D8EE;display:flex;align-items:flex-start;gap:10px}
+    .cn{width:24px;height:24px;border-radius:50%;background:var(--navy);color:white;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .cl{font-size:13px;font-weight:500;color:var(--navy)}
+    .cd{font-size:11px;color:#4A5A8A;margin-top:2px;line-height:1.4}
+    .cbody{padding:12px 14px}
+    .srow{display:flex;gap:6px;margin-bottom:10px}
+    .sb{flex:1;padding:8px 4px;border:1.5px solid var(--border);border-radius:var(--r);text-align:center;cursor:pointer;transition:all .15s;background:white;user-select:none}
+    .sb:hover{border-color:var(--navy-mid);background:var(--navy-lite)}
+    .sb.sel{background:var(--navy);border-color:var(--navy);color:white}
+    .sn{font-size:18px;font-weight:600;font-family:'DM Mono',monospace;line-height:1}
+    .sl{font-size:10px;margin-top:3px;opacity:.7}
+    .sb.sel .sl{opacity:.9}
+    .cnote{width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:12px;resize:vertical;min-height:52px;outline:none;color:var(--navy)}
+    .cnote:focus{border-color:var(--navy-mid)}
+    .sep{display:flex;align-items:center;gap:10px;margin:16px 0 12px}
+    .sep-line{flex:1;height:1px;background:var(--border)}
+    .sep-lbl{font-size:11px;font-weight:600;color:var(--navy);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+    .ca{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:13px;resize:vertical;min-height:72px;outline:none;color:var(--navy)}
+    .ca:focus{border-color:var(--navy-mid)}
+    .rec-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:20px}
+    .rb{padding:11px 8px;border:1.5px solid var(--border);border-radius:var(--r);text-align:center;cursor:pointer;font-size:12px;font-weight:500;transition:all .15s;background:white;font-family:'DM Sans',sans-serif}
+    .rb:hover{transform:translateY(-1px)}
+    .rb.sel-s{background:var(--green);color:white;border-color:var(--green)}
+    .rb.sel-c{background:var(--gold-lite);color:#92400E;border-color:var(--gold)}
+    .rb.sel-r{background:var(--red-lite);color:var(--red);border-color:#FECACA}
+    .ri{font-size:18px;display:block;margin-bottom:4px}
+    .rl{font-size:12px;font-weight:600}
+    .rs{font-size:11px;opacity:.7;margin-top:2px}
+    .sidebar{display:flex;flex-direction:column;gap:14px}
+    .sc{background:white;border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+    .sc h3{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+    .scells{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:10px}
+    .scell{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:6px;text-align:center}
+    .sck{font-size:10px;color:var(--muted);font-weight:600}
+    .scv{font-size:20px;font-weight:600;font-family:'DM Mono',monospace;color:var(--navy);line-height:1.1}
+    .stbox{background:var(--navy);border-radius:var(--r);padding:14px;text-align:center;margin-bottom:10px}
+    .stnum{font-size:36px;font-weight:600;font-family:'DM Mono',monospace;color:white;line-height:1}
+    .stlbl{font-size:11px;color:rgba(255,255,255,.6);margin-top:4px}
+    .leg{font-size:12px;line-height:1.8;color:var(--navy)}
+    .leg strong{font-weight:600;color:var(--navy-mid)}
+    .rt{width:100%;border-collapse:collapse;font-size:12px}
+    .rt th{padding:8px 12px;background:var(--navy);color:white;font-weight:500;text-align:left}
+    .rt td{padding:8px 12px;border-bottom:1px solid var(--border)}
+    .rt tr:hover td{background:var(--navy-lite)}
+    .rt tr:last-child td{border-bottom:none}
+    .prc{border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px}
+    .prt{font-size:14px;font-weight:500;margin-bottom:6px}
+    .prm{font-size:12px;color:var(--muted);margin-bottom:12px;display:flex;gap:16px;flex-wrap:wrap}
+    .prb{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .pb-btn{padding:10px;border-radius:var(--r);border:1.5px solid;cursor:pointer;font-size:12px;font-weight:500;text-align:center;font-family:'DM Sans',sans-serif;transition:all .15s}
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;border:none;transition:all .15s}
+    .btn-n{background:var(--navy);color:white}
+    .btn-n:hover{background:var(--navy-mid)}
+    .btn-n:disabled{background:var(--border);color:var(--muted);cursor:not-allowed}
+    .btn-o{background:white;color:var(--navy);border:1.5px solid var(--border)}
+    .btn-o:hover{border-color:var(--navy)}
+    .badge{display:inline-block;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:600}
+    .bdone{background:var(--green-lite);color:var(--green)}
+    .bnew{background:var(--gold-lite);color:var(--gold)}
+    .empty{padding:36px;text-align:center;color:var(--muted);font-size:13px}
+    .spin{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--navy);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);color:white;font-size:14px;font-weight:500;padding:12px 24px;border-radius:100px;z-index:9999;transition:transform .3s cubic-bezier(.34,1.56,.64,1);white-space:nowrap}
+    .toast.show{transform:translateX(-50%) translateY(0)}
+    .fl{font-size:13px;font-weight:500;color:var(--navy);display:block;margin-bottom:6px}
+    .fh{font-size:12px;color:var(--muted);margin-bottom:6px}
+  </style>
 </head>
 <body>
-  <!-- Inline verze hodnocení Connect/ReGa -->
-  <script>window.COMPETITION_ID = new URLSearchParams(window.location.search).get("c") || "uhk_connect_2026_v2";</script>
-  <script>
-    // Přesměruj na Návraty review s parametrem pro Connect
-    // dokud nemáme samostatnou stránku
-    document.addEventListener("DOMContentLoaded", () => {
-      const user = Auth.requireLogin(["KOMISAR","PROREKTOR","ADMIN","TESTER"]);
-      if (!user) return;
-      // Zobraz dočasnou zprávu
-      document.body.innerHTML = `
-        <div style="font-family:'DM Sans',sans-serif;background:#F8F7F4;min-height:100vh;display:flex;align-items:center;justify-content:center;">
-          <div style="background:white;border:1px solid #E2E0D8;border-radius:12px;padding:40px;max-width:500px;text-align:center;">
-            <div style="font-size:36px;margin-bottom:16px;">⭐</div>
-            <h2 style="font-size:20px;font-weight:500;color:#1C2E5A;margin-bottom:8px;">Hodnocení Connect / ReGa</h2>
-            <p style="font-size:13px;color:#6B6A63;margin-bottom:24px;">Hodnoticí formulář pro tuto soutěž bude dostupný po spuštění kola hodnocení koordinátorkou.</p>
-            <p style="font-size:12px;color:#6B6A63;margin-bottom:24px;">Soutěž: <strong style="color:#1C2E5A;">${window.COMPETITION_ID}</strong></p>
-            <a href="coordinator.html" style="display:inline-block;background:#1C2E5A;color:white;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:500;text-decoration:none;margin-right:8px;">Správa přihlášek</a>
-            <a href="dashboard.html" style="display:inline-block;background:white;color:#1C2E5A;border:1.5px solid #E2E0D8;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:500;text-decoration:none;">← Rozcestník</a>
+<header class="topbar">
+  <div style="display:flex;align-items:center;">
+    <img src="../img/uhk-abb-w.png" alt="UHK">
+    <span class="tt" id="topbarTitle">Hodnocení – UHK Connect</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span class="tu">Přihlášen: <strong id="topbarName">—</strong></span>
+    <a href="dashboard.html" class="btn-back">← Rozcestník</a>
+  </div>
+</header>
+
+<div class="page">
+  <div>
+    <div class="tabs">
+      <div class="tab active" id="tab-h" onclick="switchTab('h')">Hodnocení</div>
+      <div class="tab" id="tab-p" onclick="switchTab('p')">Výsledky</div>
+      <div class="tab tab-hide" id="tab-pr" onclick="switchTab('pr')">Prorektor</div>
+    </div>
+
+    <div id="view-h">
+      <div class="panel">
+        <div class="ph">
+          <div><div class="ph-title">Přihlášky k hodnocení</div><div class="ph-sub" id="listSub"><span class="spin"></span>Načítám…</div></div>
+          <button class="btn btn-o" style="padding:6px 12px;font-size:12px;" onclick="loadData()">↺</button>
+        </div>
+        <div id="appList"><div class="empty"><span class="spin"></span></div></div>
+      </div>
+      <div id="reviewForm" style="display:none;">
+        <div class="panel">
+          <div class="ph">
+            <div><div class="ph-title" id="rTitle">—</div><div class="ph-sub" id="rSub">—</div></div>
+            <span id="rBadge"></span>
           </div>
-        </div>`;
-    });
-  </script>
+          <div class="pb">
+            <div class="dbox" id="appDetail"></div>
+            <div id="critBox"></div>
+            <div class="sep"><div class="sep-line"></div><div class="sep-lbl">Komentáře</div><div class="sep-line"></div></div>
+            <div style="margin-bottom:10px;">
+              <label class="fl">Komentář pro žadatele</label>
+              <div class="fh">Žadatel tento komentář uvidí</div>
+              <textarea class="ca" id="cPub" placeholder="Celkové zhodnocení…"></textarea>
+            </div>
+            <div style="margin-bottom:20px;">
+              <label class="fl">Interní poznámka</label>
+              <textarea class="ca" id="cInt" placeholder="Interní poznámka…" style="min-height:52px;"></textarea>
+            </div>
+            <div class="sep"><div class="sep-line"></div><div class="sep-lbl">Doporučení <span style="color:var(--red)">*</span></div><div class="sep-line"></div></div>
+            <div class="rec-row">
+              <div class="rb" id="rec-SUPPORT" onclick="setRec('SUPPORT')"><span class="ri">✓</span><div class="rl">Podpořit</div><div class="rs">Doporučuji financovat</div></div>
+              <div class="rb" id="rec-CUT"     onclick="setRec('CUT')"><span class="ri">◐</span><div class="rl">Krátit rozpočet</div><div class="rs">Podpořit s nižší částkou</div></div>
+              <div class="rb" id="rec-REJECT"  onclick="setRec('REJECT')"><span class="ri">✕</span><div class="rl">Nepodpořit</div><div class="rs">Nedoporučuji financovat</div></div>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+              <button class="btn btn-o" onclick="clearForm()">Zrušit</button>
+              <button class="btn btn-n" id="submitBtn" onclick="submitReview()">Uložit hodnocení</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="view-p" style="display:none;">
+      <div class="panel">
+        <div class="ph"><div class="ph-title">Přehled hodnocení</div></div>
+        <div class="pb" id="resBody"><div class="empty">Načtěte přihlášky.</div></div>
+      </div>
+    </div>
+
+    <div id="view-pr" style="display:none;">
+      <div class="panel">
+        <div class="ph"><div><div class="ph-title">Rozhodnutí prorektora</div><div class="ph-sub">Finální schválení</div></div></div>
+        <div class="pb" id="prBody"><div class="empty">Načtěte přihlášky.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sc">
+      <h3>Soutěž</h3>
+      <div style="font-size:13px;font-weight:500;color:var(--navy);margin-bottom:4px;" id="sName">—</div>
+      <div style="font-size:12px;color:var(--muted);">Max. 25 bodů · 5 kritérií</div>
+    </div>
+    <div class="sc">
+      <h3>Aktuální skóre</h3>
+      <div class="scells">
+        <div class="scell"><div class="sck">K1</div><div class="scv" id="s1">—</div></div>
+        <div class="scell"><div class="sck">K2</div><div class="scv" id="s2">—</div></div>
+        <div class="scell"><div class="sck">K3</div><div class="scv" id="s3">—</div></div>
+        <div class="scell"><div class="sck">K4</div><div class="scv" id="s4">—</div></div>
+        <div class="scell"><div class="sck">K5</div><div class="scv" id="s5">—</div></div>
+      </div>
+      <div class="stbox"><div class="stnum" id="stot">—</div><div class="stlbl">z 25 bodů</div></div>
+    </div>
+    <div class="sc">
+      <h3>Kritéria</h3>
+      <div class="leg">
+        <div><strong>K1</strong> Jasnost a cíl projektu</div>
+        <div><strong>K2</strong> Kvalita spolupráce</div>
+        <div><strong>K3</strong> Adekvátnost rozpočtu</div>
+        <div><strong>K4</strong> Odborný profil žadatele</div>
+        <div><strong>K5</strong> Očekávané výstupy</div>
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:var(--muted);">1 = nejslabší · 5 = výborný</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="../js/config.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+const user = Auth.requireLogin(["KOMISAR","PROREKTOR","ADMIN","TESTER"]);
+document.getElementById("topbarName").textContent = user.name||user.email;
+const params = new URLSearchParams(window.location.search);
+const CID = params.get("c")||"uhk_connect_2026_v2";
+const CNAMES = {"uhk_connect_2026_v2":"UHK Connect – výzva č. 2","uhk_rega_2026_v1":"UHK ReGa – výzva č. 1","uhk_prestige_2026":"UHK Prestige 2026"};
+const cname = CNAMES[CID]||CID;
+document.getElementById("topbarTitle").textContent = "Hodnocení – "+cname;
+document.getElementById("sName").textContent = cname;
+if(["PROREKTOR","ADMIN","TESTER"].includes(user.role)) document.getElementById("tab-pr").classList.remove("tab-hide");
+
+const CRIT = [
+  {key:"K1",label:"Jasnost a cíl projektu",desc:"Je projekt jasně definován? Je cíl konkrétní a dosažitelný? Odpovídá zaměření soutěže UHK Connect?",labels:["Nejasný","Slabý","Průměrný","Dobrý","Výborný"]},
+  {key:"K2",label:"Kvalita navrhované spolupráce",desc:"Je partnerská instituce relevantní? Je spolupráce prokazatelná a reálná? Existují předchozí kontakty?",labels:["Nevhodná","Slabá","Průměrná","Dobrá","Výborná"]},
+  {key:"K3",label:"Adekvátnost rozpočtu k návrhu projektu",desc:"Je rozpočet přiměřený plánované aktivitě? Jsou všechny položky odůvodněné?",labels:["Nepřiměřený","Slabý","Průměrný","Dobrý","Výborný"]},
+  {key:"K4",label:"Předchozí výzkumné aktivity a odborný profil žadatele",desc:"Má žadatel relevantní výzkumný profil? Jsou doloženy odpovídající výstupy a zkušenosti?",labels:["Nevyhovující","Slabý","Průměrný","Dobrý","Výborný"]},
+  {key:"K5",label:"Očekávané výstupy spolupráce",desc:"Jsou výstupy konkrétní a doložitelné? Přispějí k rozvoji VaV UHK? Plánována navazující aktivita?",labels:["Nejasné","Slabé","Průměrné","Dobré","Výborné"]},
+];
+
+let apps=[],revs=[],cur=null,scores={},rec="";
+
+async function loadData(){
+  document.getElementById("listSub").innerHTML='<span class="spin"></span>Načítám…';
+  document.getElementById("appList").innerHTML='<div class="empty"><span class="spin"></span></div>';
+  try{
+    const s=Auth._getSession(),u=new URL(API_URL);
+    u.searchParams.set("action","getApplications");
+    u.searchParams.set("competitionId",CID);
+    u.searchParams.set("token",s?.token||"");
+    const d=(await (await fetch(u.toString())).json());
+    apps=(d.applications||[]).filter(a=>["IN_REVIEW","TO_REVIEW","APPROVED","SUBMITTED"].includes(a.status))
+      .map(a=>{try{a._f=JSON.parse(a.form_data_json||"{}")}catch{a._f={}}return a});
+  }catch{apps=demoApps()}
+  try{
+    const s=Auth._getSession(),u=new URL(API_URL);
+    u.searchParams.set("action","getConnectReviews");
+    u.searchParams.set("competitionId",CID);
+    u.searchParams.set("token",s?.token||"");
+    const d=(await (await fetch(u.toString())).json());
+    revs=d.reviews||[];
+  }catch{revs=[]}
+  renderList();renderRes();renderPr();
+  document.getElementById("listSub").textContent=apps.length+" přihlášek · "+revs.length+" hodnocení";
+}
+
+function myRev(id){return revs.find(r=>r.project_id===id&&r.reviewer_email===user.email)}
+
+function renderList(){
+  if(!apps.length){document.getElementById("appList").innerHTML='<div class="empty">Žádné přihlášky.<br><small>Koordinátorka musí přesunout přihlášky do IN_REVIEW.</small></div>';return}
+  document.getElementById("appList").innerHTML=apps.map(a=>{
+    const mr=myRev(a.application_id),done=!!mr;
+    return`<div class="app-item ${cur?.application_id===a.application_id?"active":""}" onclick="selApp('${a.application_id}')">
+      <div class="dot ${done?"done":""}"></div>
+      <div class="ai"><div class="an">${a._f.project_title||a.application_id}</div><div class="am">${a.applicant_name||"—"} · ${a._f.faculty||"—"}</div></div>
+      ${done?`<span class="sp done">${mr.score_total}/25</span>`:`<span class="sp new">Nové</span>`}
+    </div>`;
+  }).join("");
+}
+
+function selApp(id){
+  cur=apps.find(a=>a.application_id===id);if(!cur)return;
+  const ex=myRev(id);scores={};rec="";
+  if(ex){
+    const k=["K1","K2","K3","K4","K5"],c=["score_clarity","score_quality","score_budget","score_profile","score_outputs"];
+    k.forEach((key,i)=>scores[key]=parseInt(ex[c[i]]||0)||0);
+    rec=ex.recommendation||"";
+    document.getElementById("cPub").value=ex.comment_public||"";
+    document.getElementById("cInt").value=ex.comment_internal||"";
+  }else{document.getElementById("cPub").value="";document.getElementById("cInt").value=""}
+  renderDetail();renderCrit();updateRec();updateScore();
+  const b=document.getElementById("rBadge");
+  if(ex){b.className="badge bdone";b.textContent="Hodnoceno"}else{b.className="badge bnew";b.textContent="Nové"}
+  document.getElementById("rTitle").textContent=cur._f.project_title||id;
+  document.getElementById("rSub").textContent=id+" · "+(cur.applicant_email||"");
+  document.getElementById("reviewForm").style.display="block";
+  renderList();window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function renderDetail(){
+  const f=cur._f;
+  const rows=[
+    ["Žadatel",cur.applicant_name||"—"],
+    ["Součást / katedra",(f.faculty||"—")+(f.department?" · "+f.department:"")],
+    ["Typ žadatele",f.applicant_type||"—"],
+    ["Typ aktivity",f.activity_type||"—"],
+    ["Partner",(f.partner_institution||"—")+(f.partner_country?", "+f.partner_country:"")],
+    ["Termín",(f.activity_start||"?")+" – "+(f.activity_end||"?")],
+    ["Rozpočet",f.budget_total?Number(f.budget_total).toLocaleString("cs-CZ")+" Kč":"—"],
+  ].map(([k,v])=>`<div><div class="dl">${k}</div><div class="dv">${v}</div></div>`).join("");
+  const long=[
+    f.research_focus?["Výzkumné zaměření",f.research_focus]:null,
+    f.activity_goal?["Cíl aktivity",f.activity_goal]:null,
+    f.cooperation_history?.trim()?["Dosavadní kontakty",f.cooperation_history]:null,
+    f.output_description?["Popis výstupu",f.output_description]:null,
+    f.output_impact?["Přínos pro UHK",f.output_impact]:null,
+    f.recent_outputs?.trim()?["Výstupy žadatele (5 let)",f.recent_outputs]:null,
+    f.budget_justification?["Odůvodnění rozpočtu",f.budget_justification]:null,
+  ].filter(Boolean).map(([k,v])=>`<div class="dfull"><div class="dl">${k}</div><div class="dv" style="white-space:pre-line;">${v}</div></div>`).join("");
+  document.getElementById("appDetail").innerHTML=`<div class="dgrid">${rows}${long}</div>`;
+}
+
+function renderCrit(){
+  document.getElementById("critBox").innerHTML=CRIT.map((c,i)=>{
+    const ex=myRev(cur.application_id),nk="comment_"+c.key.toLowerCase(),nv=ex?ex[nk]||"":"";
+    return`<div class="crit">
+      <div class="ch"><div class="cn">${i+1}</div><div><div class="cl">${c.label}</div><div class="cd">${c.desc}</div></div></div>
+      <div class="cbody">
+        <div class="srow">${[1,2,3,4,5].map(n=>`<div class="sb ${scores[c.key]===n?"sel":""}" onclick="setScore('${c.key}',${n})"><div class="sn">${n}</div><div class="sl">${c.labels[n-1]}</div></div>`).join("")}</div>
+        <textarea class="cnote" id="note-${c.key}" placeholder="Komentář ke kritériu ${c.key}…">${nv}</textarea>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function setScore(key,val){
+  scores[key]=val;
+  const row=document.querySelector(`[onclick="setScore('${key}',${val})"]`)?.closest(".srow");
+  if(row){row.querySelectorAll(".sb").forEach(b=>b.classList.remove("sel"));document.querySelector(`[onclick="setScore('${key}',${val})"]`)?.classList.add("sel")}
+  updateScore();
+}
+
+function updateScore(){
+  const k=["K1","K2","K3","K4","K5"],ids=["s1","s2","s3","s4","s5"];
+  let t=0;k.forEach((key,i)=>{const v=scores[key]||0;document.getElementById(ids[i]).textContent=v||"—";t+=v});
+  const el=document.getElementById("stot");el.textContent=t||"—";
+  el.style.color=t>=20?"#86EFAC":t>=12?"white":"#FCA5A5";
+}
+
+function setRec(val){rec=val;updateRec()}
+function updateRec(){
+  ["SUPPORT","CUT","REJECT"].forEach(r=>{
+    const b=document.getElementById("rec-"+r);if(!b)return;
+    b.className="rb";
+    if(rec===r){if(r==="SUPPORT")b.classList.add("sel-s");else if(r==="CUT")b.classList.add("sel-c");else b.classList.add("sel-r")}
+  });
+}
+
+async function submitReview(){
+  if(!cur)return;
+  const miss=["K1","K2","K3","K4","K5"].filter(k=>!scores[k]);
+  if(miss.length){showToast("Ohodnoťte kritéria: "+miss.join(", "),"err");return}
+  if(!rec){showToast("Vyberte doporučení.","err");return}
+  const btn=document.getElementById("submitBtn");btn.disabled=true;btn.textContent="Ukládám…";
+  const tot=["K1","K2","K3","K4","K5"].reduce((s,k)=>s+(scores[k]||0),0);
+  const notes={};["K1","K2","K3","K4","K5"].forEach(k=>{const el=document.getElementById("note-"+k);if(el)notes["comment_"+k.toLowerCase()]=el.value});
+  const payload={action:"submitConnectReview",token:Auth._getSession()?.token||"",competitionId:CID,
+    projectId:cur.application_id,reviewerEmail:user.email,reviewerName:user.name||user.email,
+    score_clarity:scores.K1,score_quality:scores.K2,score_budget:scores.K3,score_profile:scores.K4,score_outputs:scores.K5,
+    score_total:tot,recommendation:rec,
+    comment_public:document.getElementById("cPub").value,
+    comment_internal:document.getElementById("cInt").value,...notes};
+  try{
+    await fetch(API_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+    const idx=revs.findIndex(r=>r.project_id===cur.application_id&&r.reviewer_email===user.email);
+    if(idx>=0)Object.assign(revs[idx],{...payload,score_total:tot});
+    else revs.push({...payload,project_id:cur.application_id,score_total:tot});
+    showToast("Hodnocení uloženo – "+tot+"/25 bodů ✓");
+    btn.disabled=false;btn.textContent="Uložit hodnocení";
+    renderList();renderRes();selApp(cur.application_id);
+  }catch{btn.disabled=false;btn.textContent="Uložit hodnocení";showToast("Chyba při ukládání.","err")}
+}
+
+function clearForm(){cur=null;scores={};rec="";document.getElementById("reviewForm").style.display="none"}
+
+function renderRes(){
+  const m={};apps.forEach(a=>m[a.application_id]={app:a,revs:[]});
+  revs.forEach(r=>{if(m[r.project_id])m[r.project_id].revs.push(r)});
+  const REC={SUPPORT:"✓ Podpořit",CUT:"◐ Krátit",REJECT:"✕ Nepodpořit"};
+  const rows=Object.values(m).sort((a,b)=>{
+    const A=a.revs.length?a.revs.reduce((s,r)=>s+Number(r.score_total||0),0)/a.revs.length:0;
+    const B=b.revs.length?b.revs.reduce((s,r)=>s+Number(r.score_total||0),0)/b.revs.length:0;
+    return B-A;
+  }).map(({app,revs:rv})=>{
+    const avg=rv.length?(rv.reduce((s,r)=>s+Number(r.score_total||0),0)/rv.length).toFixed(1):"—";
+    return`<tr><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${app._f?.project_title||app.application_id}</td><td>${app._f?.faculty||"—"}</td><td style="text-align:center;font-family:'DM Mono',monospace;font-weight:600;">${avg}</td><td style="text-align:center;">${rv.length}</td><td style="font-size:12px;">${rv.length?REC[rv[rv.length-1].recommendation]||"—":"—"}</td></tr>`;
+  }).join("");
+  document.getElementById("resBody").innerHTML=rows?`<table class="rt"><thead><tr><th>Projekt</th><th>Součást</th><th style="text-align:center;">Prům.</th><th style="text-align:center;">Hod.</th><th>Doporučení</th></tr></thead><tbody>${rows}</tbody></table>`:'<div class="empty">Zatím žádná hodnocení.</div>';
+}
+
+function renderPr(){
+  const m={};apps.forEach(a=>m[a.application_id]={app:a,revs:[]});
+  revs.forEach(r=>{if(m[r.project_id])m[r.project_id].revs.push(r)});
+  const cards=Object.values(m).map(({app,revs:rv})=>{
+    const avg=rv.length?(rv.reduce((s,r)=>s+Number(r.score_total||0),0)/rv.length).toFixed(1):"—";
+    return`<div class="prc"><div class="prt">${app._f?.project_title||app.application_id}</div>
+      <div class="prm"><span>${app.applicant_name||"—"}</span><span>${app._f?.faculty||"—"}</span><span style="font-family:'DM Mono',monospace;">${Number(app._f?.budget_total||0).toLocaleString("cs-CZ")} Kč</span><span>Prům. ${avg}/25</span><span>${rv.length} hodnocení</span></div>
+      <div class="prb">
+        <div class="pb-btn" style="background:var(--green-lite);color:var(--green);border-color:#A7F3D0;" onclick="prDec('${app.application_id}','APPROVED')">✓ Podpořit</div>
+        <div class="pb-btn" style="background:var(--gold-lite);color:#92400E;border-color:var(--gold);" onclick="prDec('${app.application_id}','CUT')">◐ Krátit</div>
+        <div class="pb-btn" style="background:var(--red-lite);color:var(--red);border-color:#FECACA;" onclick="prDec('${app.application_id}','REJECTED')">✕ Nepodpořit</div>
+      </div></div>`;
+  }).join("");
+  document.getElementById("prBody").innerHTML=cards||'<div class="empty">Žádné přihlášky.</div>';
+}
+
+async function prDec(id,dec){
+  try{
+    await fetch(API_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({action:"updateApplicationStatus",token:Auth._getSession()?.token||"",competitionId:CID,applicationId:id,newStatus:dec,coordinatorEmail:user.email})});
+    showToast("Rozhodnutí uloženo ✓");
+  }catch{showToast("Chyba.","err")}
+}
+
+function switchTab(t){
+  ["h","p","pr"].forEach(x=>{
+    document.getElementById("tab-"+x)?.classList.toggle("active",x===t);
+    const v=document.getElementById("view-"+x);if(v)v.style.display=x===t?"block":"none";
+  });
+}
+
+let _tt;
+function showToast(msg,type="ok"){
+  const t=document.getElementById("toast");t.textContent=msg;
+  t.style.background=type==="err"?"#991B1B":"#1E6B45";t.classList.add("show");
+  clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove("show"),4000);
+}
+
+function demoApps(){
+  return[
+    {application_id:"APP-260320-DEMO1",applicant_name:"Mgr. Jan Novák, Ph.D.",applicant_email:"jan.novak@uhk.cz",status:"IN_REVIEW",
+     form_data_json:JSON.stringify({project_title:"Síťování s ETH Zürich – ML výzkum",faculty:"FIM",department:"Katedra informatiky",
+     applicant_type:"Junior/early-career researcher",activity_type:"Mobilita (výjezd)",
+     partner_institution:"ETH Zürich",partner_country:"Švýcarsko",activity_start:"2026-06-01",activity_end:"2026-06-14",
+     research_focus:"Strojové učení a NLP. Zaměřuji se na interpretovatelné modely pro vědecké texty.",
+     activity_goal:"Navázání spolupráce s týmem prof. Schmidta, příprava článku NeurIPS 2026.",
+     cooperation_history:"Setkali jsme se na EMNLP 2024, korespondujeme od 11/2024.",
+     output_description:"Draft článku pro NeurIPS 2026.",output_impact:"Základ pro GAČR projekt s ETH.",
+     recent_outputs:"Novák J. (2024) Explainable NLP. EMNLP 2024.\nGA ČR junior 24-12345J.",
+     budget_travel:"28000",budget_accommodation:"21000",budget_meals:"8400",budget_total:"57400",
+     budget_justification:"Letenka Praha–Curych, 14 nocí ubytování."})},
+    {application_id:"APP-260315-DEMO2",applicant_name:"RNDr. Eva Malá, Ph.D.",applicant_email:"eva.mala@uhk.cz",status:"IN_REVIEW",
+     form_data_json:JSON.stringify({project_title:"Konference ICML 2026 – oral presentation",faculty:"PřF",department:"Katedra fyziky",
+     applicant_type:"Junior/early-career researcher",activity_type:"Konference",
+     partner_institution:"ICML 2026 Vienna",partner_country:"Rakousko",activity_start:"2026-07-20",activity_end:"2026-07-26",
+     research_focus:"Kvantové výpočty a kvantové ML.",activity_goal:"Prezentace oral příspěvku, navázání spolupráce s DeepMind.",
+     output_description:"LoI o spolupráci s DeepMind.",output_impact:"Základ pro ERC Synergy 2027.",
+     recent_outputs:"Malá E. et al. (2023) Quantum ML. Nature Physics.",
+     budget_travel:"15000",budget_accommodation:"18000",budget_fee:"22000",budget_total:"61000",
+     budget_justification:"Vlak Praha–Vídeň, 6 nocí, konf. poplatek."})},
+  ].map(a=>{try{a._f=JSON.parse(a.form_data_json)}catch{a._f={}}return a});
+}
+
+loadData();
+</script>
 </body>
 </html>
