@@ -313,7 +313,7 @@
 
       if (result.roles.length === 1) {
         // Jen jedna role → přímé přihlášení
-        Auth.setSession(result.token, email, result.name, result.roles[0]);
+        Auth.setSession(result.token, email, result.name, result.roles[0], result.roles);
         window.location.href = "pages/dashboard.html";
       } else {
         // Více rolí → výběr
