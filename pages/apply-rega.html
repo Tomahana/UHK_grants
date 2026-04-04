@@ -838,7 +838,7 @@
       const data = await res.json();
       if (data.draft?.formData) {
         formData = data.draft.formData;
-        draftId  = data.draft.id;
+        draftId  = data.draft.id || data.draft.application_id || null;
         renderStep();
         updateChecklist();
         showToast("Načten uložený draft.");
