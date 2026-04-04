@@ -645,6 +645,7 @@
 
     // ── NAČTI PŘIHLÁŠKY ZE SHEETS ────────────────────────────────
     async function loadApplications() {
+      const errEl = document.getElementById("errorApps");
       try {
         const url = new URL(API_URL);
         url.searchParams.set("action", "getProjects");
@@ -654,10 +655,18 @@
 
         const res  = await fetch(url.toString());
         const data = await res.json();
-        applications = data.success && data.projects ? data.projects : [];
-        if (!applications.length) applications = []; // žádná demo data
-      } catch {
-        applications = []; // žádná demo data
+        if (data.error) {
+          applications = [];
+          errEl.style.display = "block";
+          errEl.textContent = "⚠️ " + data.error;
+        } else {
+          errEl.style.display = "none";
+          applications = data.success && data.projects ? data.projects : [];
+        }
+      } catch (e) {
+        applications = [];
+        errEl.style.display = "block";
+        errEl.textContent = "⚠️ Chyba sítě nebo API: " + (e.message || "zkuste obnovit stránku.");
       }
 
       totalApps = applications.length;
@@ -665,7 +674,6 @@
       document.getElementById("loadingApps").style.display = "none";
       document.getElementById("selectorCard").style.display = "block";
 
-      // Načti vlastní hodnocení hned po načtení projektů
       await loadMyReviews();
     }
 
@@ -681,6 +689,7 @@
         const all  = data.reviews || data || [];
         myExistingReviews = {};
         all.forEach(r => {
+          if (String(r.comment_internal || "").trim() === "PROREKTOR_DECISION") return;
           const email = String(r.reviewer_email || "").toLowerCase().trim();
           if (email === user.email.toLowerCase()) {
             const pid = r.project_id || r.application_id;
@@ -927,10 +936,21 @@
         if (session?.token) url.searchParams.set("token", session.token);
         const res  = await fetch(url.toString());
         const data = await res.json();
-        // Přidej _app referenci pro každé hodnocení
-        const reviews = Array.isArray(data) ? data.map(r => ({
+        const raw = Array.isArray(data) ? data : [];
+        prDecisions = {};
+        raw.forEach(r => {
+          if (String(r.comment_internal || "").trim() !== "PROREKTOR_DECISION") return;
+          const pid = r.project_id || r.application_id;
+          if (pid) {
+            prDecisions[pid] = {
+              decision: r.recommendation || "",
+              note:     r.comment_public || "",
+            };
+          }
+        });
+        const komiseOnly = raw.filter(r => String(r.comment_internal || "").trim() !== "PROREKTOR_DECISION");
+        const reviews = komiseOnly.map(r => ({
           ...r,
-          // Mapuj názvy sloupců ze Sheets na názvy které dashboard očekává
           application_id: r.project_id || r.application_id,
           reviewer_email: r.reviewer_email || r.hodnotitel || "—",
           reviewer_name:  r.reviewer_name  || r.reviewer_email || r.hodnotitel || "—",
@@ -943,10 +963,9 @@
           recommendation: r.recommendation || r.doporuceni || "",
           comment_public: r.comment_public || r.zduvodneni || "",
           _app: applications.find(a => (a.project_id||a.id) === (r.project_id||r.application_id)) || {},
-        })) : [];
+        }));
         dashboardData = reviews.length ? reviews : [];
 
-        // Ulož si hodnocení aktuálního uživatele pro kontrolu při výběru projektu
         myExistingReviews = {};
         dashboardData.forEach(r => {
           const email = (r.reviewer_email || "").toLowerCase().trim();
@@ -1109,7 +1128,7 @@
       const csv  = [headers.join(";"), ...rows].join("\n");
       const a    = document.createElement("a");
       a.href     = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" }));
-      a.download = `uhk_connect_hodnoceni_${new Date().toISOString().slice(0,10)}.csv`;
+      a.download = `uhk_navraty_hodnoceni_${new Date().toISOString().slice(0,10)}.csv`;
       a.click();
     }
 

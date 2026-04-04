@@ -78,7 +78,6 @@ function doGet(e) {
       case "getUsers":         return corsResponse(getUsers(p.token));
       case "getUserRoles":     return corsResponse(getUserRoles(p.email, p.token));
       case "getNavratyReviews": return corsResponse(getNavratyAllReviews(p.competitionId, p.token));
-      case "getFormFields":    return corsResponse(getFormFields(p.competitionId, p.token));
       case "getDraft":         return corsResponse(getDraft(p.competitionId, p.applicantEmail, p.token));
       case "ping":             return corsResponse({ success: true, message: "API běží ✓" });
       default:                 return corsResponse({ error: "Neznámá akce: " + (p.action || "chybí") });
@@ -112,7 +111,6 @@ function doPost(e) {
       case "updateConfig":     return corsResponse(updateConfig(body));
       case "saveProrekorDecision": return corsResponse(saveProrekorDecision(body));
       case "saveDraft":        return corsResponse(saveDraft(body));
-      case "submitApplication":return corsResponse(submitApplication(body));
       default:                 return corsResponse({ error: "Neznámá POST akce: " + body.action });
     }
   } catch (err) {
@@ -491,27 +489,6 @@ function getApplications(competitionId, token, filters) {
   return rows;
 }
 
-function submitApplication(body) {
-  const auth  = requireAuth(body.token);
-  const ss    = getSpreadsheet(body.competitionId);
-  const sheet = ss.getSheetByName(SHEETS.APPLICATIONS);
-  if (!sheet) throw new Error("List APPLICATIONS nenalezen.");
-
-  const now   = new Date();
-  const appId = generateAppId();
-  sheet.appendRow([
-    appId,
-    body.competitionId,
-    body.fields.applicant_email || auth.email,
-    fmtDate(now), fmtDate(now),
-    body.status || "SUBMITTED",
-    "", "", "", "",
-    ...Object.values(body.fields || {}),
-  ]);
-  writeAudit(ss, "APPLICATION_SUBMIT", appId, "", body.status, auth.email);
-  return { success: true, applicationId: appId };
-}
-
 function changeStatus(body) {
   const auth = requireAuth(body.token);
   if (!auth.roles.some(r => ["ADMIN","PROREKTOR","KOMISAR"].includes(r)))
@@ -795,7 +772,10 @@ function writeAudit(ss, action, targetId, oldVal, newVal, note) {
   } catch (e) { /* audit není kritický */ }
 }
 function getProjects(competitionId, token) {
-  requireAuth(token);
+  const auth = requireAuth(token);
+  if (!auth.roles.some(r => ["ADMIN", "KOMISAR", "PROREKTOR", "TESTER", "READONLY"].includes(r)))
+    throw new Error("Nedostatečná oprávnění pro seznam projektů Návraty.");
+
   const ss    = getSpreadsheet(competitionId);
   const sheet = ss.getSheetByName("📝 PROJECTS");
   if (!sheet) return { success: false, message: "List '📝 PROJECTS' nenalezen." };
@@ -815,21 +795,20 @@ function getProjects(competitionId, token) {
       resitel     : String(row[findCol(COL,"resitel","řešitel","solver")]   || "").trim(),
       soucast     : String(row[findCol(COL,"soucast","součást","faculty")]  || "").trim(),
       rozpocet    : String(row[findCol(COL,"rozpocet","rozpočet","budget")] || "").trim(),
+      vedni_oblast: String(row[findCol(COL,"vedni_oblast","vědní_oblast","vedna_oblast","scientific_field")] || "").trim(),
+      anotace     : String(row[findCol(COL,"anotace","annotation","abstract")] || "").trim(),
+      vystupy     : String(row[findCol(COL,"vystupy","výstupy","outputs","expected_outputs")] || "").trim(),
+      team        : String(row[findCol(COL,"team","tým","resitelsky_tym","řešitelský_tým")] || "").trim(),
       status,
     });
   }
   return { success: true, projects };
 }
 function submitNavratyReview(body) {
-  // Ověř token pokud existuje
-  let reviewerEmail = "anonym";
-  try {
-    const auth = verifyToken(body.token);
-    if (auth.valid) reviewerEmail = auth.email;
-  } catch (e) {}
-  if (reviewerEmail === "anonym" && body.reviewerEmail) {
-    reviewerEmail = body.reviewerEmail;
-  }
+  const auth = requireAuth(body.token);
+  if (!auth.roles.some(r => ["ADMIN", "KOMISAR", "PROREKTOR", "TESTER"].includes(r)))
+    throw new Error("Nedostatečná oprávnění pro hodnocení Návraty.");
+  const reviewerEmail = auth.email;
 
   const competitionId = body.competitionId || "uhk_navraty_2026";
   const ss    = getSpreadsheet(competitionId);
@@ -889,7 +868,10 @@ function getNavratyReviews(competitionId, projectId, token) {
   return rows;
 }
 function getNavratyAllReviews(competitionId, token) {
-  requireAuth(token);
+  const auth = requireAuth(token);
+  if (!auth.roles.some(r => ["ADMIN", "KOMISAR", "PROREKTOR", "TESTER", "READONLY"].includes(r)))
+    throw new Error("Nedostatečná oprávnění pro přehled hodnocení.");
+
   const ss   = getSpreadsheet(competitionId);
   const rows = sheetToObjects(ss.getSheetByName("⭐ REVIEWS"));
   return rows;
@@ -1139,29 +1121,27 @@ function handleLoginGlobal(email, password) {
 // ============================================================
 
 function saveProrekorDecision(body) {
-  // Ulož rozhodnutí do REVIEWS listu – přidej nebo aktualizuj řádek prorektora
+  const auth = requireAuth(body.token);
+  if (!auth.roles.some(r => ["ADMIN", "PROREKTOR"].includes(r)))
+    throw new Error("Rozhodnutí může ukládat pouze prorektor nebo správce.");
+
   const ss    = getSpreadsheet(body.competitionId || "uhk_navraty_2026");
   const sheet = ss.getSheetByName("⭐ REVIEWS");
   if (!sheet) throw new Error("List REVIEWS nenalezen.");
 
-  let reviewerEmail = "prorektor@uhk.cz";
-  try {
-    const auth = verifyToken(body.token);
-    if (auth.valid) reviewerEmail = auth.email;
-  } catch(e) {}
+  const reviewerEmail = auth.email;
 
   // Smaž existující rozhodnutí prorektora pro tento projekt
   const data    = sheet.getDataRange().getValues();
   const headers = data[HEADER_ROW - 1];
   const COL     = mapColumns(headers);
   const pidCol  = findCol(COL, "project_id");
-  const revCol  = findCol(COL, "reviewer_email");
-  const recCol  = findCol(COL, "recommendation");
+  const intCol  = findCol(COL, "comment_internal");
 
   for (let i = data.length - 1; i >= HEADER_ROW; i--) {
     const rowPid = String(data[i][pidCol] || "").trim();
-    const rowRev = String(data[i][revCol] || "").toLowerCase();
-    if (rowPid === body.projectId && rowRev === reviewerEmail.toLowerCase()) {
+    const internal = intCol >= 0 ? String(data[i][intCol] || "").trim() : "";
+    if (rowPid === body.projectId && internal === "PROREKTOR_DECISION") {
       sheet.deleteRow(i + 1);
     }
   }
@@ -1189,17 +1169,13 @@ function saveProrekorDecision(body) {
 // PŘIHLÁŠKY – DRAFT A SUBMIT
 // ============================================================
 
-/** Načte FORM_FIELDS z příslušného Sheets */
-function getFormFields(competitionId, token) {
-  const ss    = getSpreadsheet(competitionId);
-  const sheet = ss.getSheetByName("📝 FORM_FIELDS");
-  if (!sheet) return { success: false, fields: [], message: "FORM_FIELDS list nenalezen." };
-  const rows = sheetToObjects(sheet);
-  return { success: true, fields: rows.filter(r => r.field_id) };
-}
-
 /** Uloží nebo aktualizuje draft přihlášky */
 function saveDraft(body) {
+  const auth = requireAuth(body.token);
+  const applicant = String(body.applicantEmail || "").toLowerCase().trim();
+  if (!applicant || applicant !== auth.email)
+    throw new Error("Draft lze ukládat jen pod vlastním přihlášeným e-mailem.");
+
   const ss    = getSpreadsheet(body.competitionId);
   let sheet   = ss.getSheetByName("📥 APPLICATIONS");
   if (!sheet) {
@@ -1218,6 +1194,8 @@ function saveDraft(body) {
   const sCol   = findCol(COL, "status");
   const fCol   = findCol(COL, "form_data_json");
   const uCol   = findCol(COL, "updated_at");
+  if (eCol < 0 || sCol < 0 || fCol < 0)
+    throw new Error("List APPLICATIONS: chybí sloupce applicant_email, status nebo form_data_json (záhlaví na řádku " + HEADER_ROW + ").");
 
   // Hledej existující draft
   for (let i = HEADER_ROW; i < data.length; i++) {
@@ -1251,6 +1229,11 @@ function saveDraft(body) {
 
 /** Načte draft přihlášky pro žadatele */
 function getDraft(competitionId, applicantEmail, token) {
+  const auth = requireAuth(token);
+  const applicant = String(applicantEmail || "").toLowerCase().trim();
+  if (!applicant || applicant !== auth.email)
+    throw new Error("Draft lze načíst jen pro vlastní e-mail.");
+
   const ss    = getSpreadsheet(competitionId);
   const sheet = ss.getSheetByName("📥 APPLICATIONS");
   if (!sheet) return { success: true, draft: null };
@@ -1270,8 +1253,13 @@ function getDraft(competitionId, applicantEmail, token) {
   return { success: true, draft };
 }
 
-/** Finálně podá přihlášku (DRAFT → SUBMITTED) */
+/** Finálně podá přihlášku (DRAFT → SUBMITTED) – Connect / ReGa (JSON ve form_data_json) */
 function submitApplication(body) {
+  const auth = requireAuth(body.token);
+  const applicant = String(body.applicantEmail || "").toLowerCase().trim();
+  if (!applicant || applicant !== auth.email)
+    throw new Error("Přihlášku můžete odeslat jen za svůj účet.");
+
   const ss    = getSpreadsheet(body.competitionId);
   const sheet = ss.getSheetByName("📥 APPLICATIONS");
   if (!sheet) throw new Error("APPLICATIONS list nenalezen.");
@@ -1283,6 +1271,8 @@ function submitApplication(body) {
   const sCol  = findCol(COL, "status");
   const fCol  = findCol(COL, "form_data_json");
   const subCol= findCol(COL, "submitted_at");
+  if (eCol < 0 || sCol < 0 || fCol < 0)
+    throw new Error("List APPLICATIONS: chybí potřebná záhlaví (applicant_email, status, form_data_json).");
 
   for (let i = HEADER_ROW; i < data.length; i++) {
     const rowEmail  = String(data[i][eCol] || "").toLowerCase();

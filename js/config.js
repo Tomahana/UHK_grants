@@ -169,9 +169,9 @@ function statusPill(status, type = "app") {
 }
 
 // ── Spreadsheet IDs (informativní – používají se jen v Apps Script) ─
-// Všechny Sheets jsou pod Gmail účtem: uhk.granty@gmail.com
+// Kompletní odkazy: soubor linkstoSheets v kořeni repa.
 // Connect:  1maDTXF8xKCpSY0LfeNcRyLo1KtulgipEIwQaIGb3Su0
-// Návraty:  1VU3c_gwxjbuZuNQ5_B1iqlbGzOgLwtUXUAI-E2dt6EA
-// ReGa:     1E8hRFVkVt3WuhGcSrhz9E0P9Pvz7udoT1IGMnNH8ADc
+// Návraty:  1E8hRFVkVt3WuhGcSrhz9E0P9Pvz7udoT1IGMnNH8ADc
+// ReGa:     1VU3c_gwxjbuZuNQ5_B1iqlbGzOgLwtUXUAI-E2dt6EA
 // Prestige: 1qmx2gFETaYJVdZmhkGUvdGdukARlQZXnepVPYJSuemk
 // Users:    17bf7fHOu-tdza7UXzahwWyIAwwuk0BcpC39KGiG-64g

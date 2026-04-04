@@ -4,3 +4,16 @@ Prestige - https://docs.google.com/spreadsheets/d/1qmx2gFETaYJVdZmhkGUvdGdukARlQ
 Connect - https://docs.google.com/spreadsheets/d/1maDTXF8xKCpSY0LfeNcRyLo1KtulgipEIwQaIGb3Su0/edit?usp=sharing
 
 UserSheet - https://docs.google.com/spreadsheets/d/17bf7fHOu-tdza7UXzahwWyIAwwuk0BcpC39KGiG-64g/edit?usp=sharing
+
+---
+Apps Script (jedna Web App URL pro celou aplikaci):
+  • Zkopíruj obsah js/UHK_AppScript_v5.gs do projektu navázaného na Connect (nebo samostatný skript se stejnými ID v konstantách).
+  • Deploy → Web App → Execute as: Me, Who has access: Anyone.
+  • URL vlož do js/config.js → API_URL.
+
+Návraty – listy v sheetu „Návraty“:
+  • 📝 PROJECTS – záhlaví na řádku 4; sloupce mimo jiné: project_id, project_name, resitel, soucast, rozpocet, vedni_oblast, anotace, vystupy, team, status (ACTIVE/INACTIVE).
+  • ⭐ REVIEWS – záhlaví řádek 4; pořadí sloupců musí odpovídat appendRow v submitNavratyReview / saveProrekorDecision (review_id, project_id, reviewer_email, submitted_at, K1–K5, score_total, poradi, recommendation, comment_public, comment_internal).
+
+Connect – list 📥 APPLICATIONS:
+  • Záhlaví na řádku 4 včetně: application_id, competition_id, applicant_email, applicant_name, status, created_at, updated_at, form_data_json, submitted_at, note.
