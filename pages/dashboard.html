@@ -125,10 +125,14 @@
       let competitions = [];
       try {
         const data = await API.getCompetitions();
-        competitions = Array.isArray(data) ? data : [];
+        competitions = Array.isArray(data) && data.length ? data : [];
       } catch (err) {
-        // API chyba – použij Connect demo kartu
-        competitions = [DEMO_COMPETITIONS[0]];
+        console.warn("API nedostupné, používám fallback:", err.message);
+      }
+
+      // Fallback – vždy zobraz všechny soutěže ze FALLBACK_COMPETITIONS
+      if (!competitions.length) {
+        competitions = FALLBACK_COMPETITIONS.slice();
       }
 
       // Vždy přidej Návraty pokud tam nejsou
