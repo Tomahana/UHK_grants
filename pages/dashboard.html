@@ -106,14 +106,18 @@
     document.getElementById("userName").textContent    = user.name || user.email;
     document.getElementById("userRole").textContent    = ROLES[user.role]?.label || user.role;
     document.getElementById("userAvatar").textContent  = (user.name || user.email)[0].toUpperCase();
-    document.getElementById("welcomeName").textContent = user.name?.split(" ")[0] || user.email;
     document.getElementById("roleBadge").textContent   = ROLES[user.role]?.label || user.role;
     document.getElementById("roleBadge").className     = `dashboard-header__badge role-badge--${user.role.toLowerCase()}`;
 
-    // Pozdrav podle hodiny
+    // Uvítání: celé jméno z profilu, ne první „token“ (aby nezůstávalo jen „doc.“)
+    const displayName = (user.name && String(user.name).trim()) ? String(user.name).trim() : "";
+    const welcomeEl = document.getElementById("welcomeName");
+    welcomeEl.textContent = displayName;
+    welcomeEl.style.display = displayName ? "" : "none";
+
     const h = new Date().getHours();
-    document.getElementById("greeting").textContent =
-      h < 12 ? "Dobré ráno," : h < 18 ? "Dobré odpoledne," : "Dobrý večer,";
+    const baseGreet = h < 12 ? "Dobré ráno" : h < 18 ? "Dobré odpoledne" : "Dobrý večer";
+    document.getElementById("greeting").textContent = displayName ? baseGreet + "," : baseGreet;
 
     // Admin sekce
     if (["ADMIN", "TESTER"].includes(user.role)) {
