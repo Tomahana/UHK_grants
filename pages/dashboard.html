@@ -127,39 +127,34 @@
     }
 
     async function loadCompetitions() {
-      let competitions = [];
-      try {
-        const data = await API.getCompetitions();
-        competitions = Array.isArray(data) && data.length ? data : [];
-      } catch (err) {
-        console.warn("API nedostupné, používám fallback:", err.message);
-      }
+      const isAdmin = ["ADMIN","TESTER"].includes(user.role);
+      const vis = getDashboardVisibility();
 
-      // Fallback – vždy zobraz všechny soutěže ze FALLBACK_COMPETITIONS
-      if (!competitions.length) {
-        competitions = FALLBACK_COMPETITIONS.slice();
-      }
-
-      // Vždy přidej Návraty pokud tam nejsou
-      const hasNavraty = competitions.some(c => c.id === "uhk_navraty_2026");
-      if (!hasNavraty) competitions.push(NAVRATY_CARD);
-
-      // Filtruj podle viditelnosti – admin vidí vše, ostatní jen povolené
-      const vis  = getDashboardVisibility();
-      const role = user.role;
-      const isAdmin = ["ADMIN","TESTER"].includes(role);
-
-      competitions = competitions.map(c => {
-        const visible = vis[c.id] !== undefined ? vis[c.id] : true;
-        return { ...c, _visible: visible };
-      });
-
-      // Neadmini vidí jen viditelné soutěže
-      if (!isAdmin) {
-        competitions = competitions.filter(c => c._visible);
-      }
-
+      // Okamžitě zobraz fallback – žádné čekání na API
+      let competitions = FALLBACK_COMPETITIONS.map(c => ({
+        ...c,
+        _visible: vis[c.id] !== undefined ? vis[c.id] : true,
+      }));
+      if (!isAdmin) competitions = competitions.filter(c => c._visible);
       renderCompetitions(competitions, isAdmin);
+
+      // API aktualizace na pozadí – přidá reálné počty přihlášek
+      try {
+        const data = await Promise.race([
+          API.getCompetitions(),
+          new Promise((_,r) => setTimeout(() => r(new Error("timeout")), 4000)),
+        ]);
+        if (Array.isArray(data) && data.length) {
+          let live = data.map(c => ({ ...c, _visible: vis[c.id] !== undefined ? vis[c.id] : true }));
+          // Doplň Návraty pokud API nevrátí
+          if (!live.some(c => c.id === "uhk_navraty_2026")) live.unshift(NAVRATY_CARD);
+          if (!isAdmin) live = live.filter(c => c._visible);
+          renderCompetitions(live, isAdmin);
+        }
+      } catch(e) {
+        // Fallback už je zobrazen – nic nedělej
+        console.info("API timeout/chyba, zobrazuji fallback:", e.message);
+      }
     }
 
     function renderCompetitions(list, isAdmin) {
@@ -342,35 +337,34 @@
     }
 
     // ── Karta Návraty – vždy zobrazit ─────────────────────────
-    const NAVRATY_CARD = {
-      id:          "uhk_navraty_2026",
-      name:        "OP JAK Návraty – IGA komise",
-      type:        "OP_JAK_NAVRATY",
-      status:      "RUNNING",
-      description: "Hodnocení projektů v rámci UHK: Return – Research – Restart. Reg. č. CZ.02.01.01/00/24_037/0013855.",
-      deadline:    "2026-06-30",
-      allocation:  40156893,
-      applicationsCount: 7,
-    };
-
-    // ── Demo data (fallback když API nedostupné) ───────────────
-    const DEMO_COMPETITIONS = [
+    // ── Fallback soutěže (zobrazí se pokud API nedostupné) ─────
+    const FALLBACK_COMPETITIONS = [
+      {
+        id:          "uhk_navraty_2026",
+        name:        "OP JAK Návraty 2026",
+        type:        "OP_JAK_NAVRATY",
+        status:      "RUNNING",
+        description: "Hodnocení projektů OP JAK Návraty – IGA komise UHK. Reg. č. CZ.02.01.01/00/24_037/0013855.",
+        deadline:    "2026-06-30",
+        allocation:  40156893,
+        applicationsCount: 7,
+      },
       {
         id:          "uhk_connect_2026_v2",
         name:        "UHK Connect – výzva č. 2",
         type:        "UHK_CONNECT",
         status:      "OPEN",
-        description: "Krátké projekty pro síťování, mobilitu a navázání spolupráce.",
+        description: "Krátké projekty pro síťování, mobilitu a navázání spolupráce s partnerskými institucemi.",
         deadline:    "2026-10-14",
         allocation:  800000,
-        applicationsCount: 12,
+        applicationsCount: 0,
       },
       {
         id:          "uhk_rega_2026_v1",
         name:        "UHK ReGa – výzva č. 1",
         type:        "UHK_REGA",
         status:      "OPEN",
-        description: "Podpora dopracování a znovupodání nezafinancovaných projektů základního výzkumu.",
+        description: "Podpora dopracování a znovupodání nezafinancovaných projektů základního výzkumu (GA ČR).",
         deadline:    "2026-04-01",
         allocation:  2000000,
         applicationsCount: 0,
@@ -379,14 +373,15 @@
         id:          "uhk_prestige_2026",
         name:        "UHK Prestige 2026",
         type:        "UHK_PRESTIGE",
-        status:      "OPEN",
-        description: "Prestižní granty Univerzity Hradec Králové.",
+        status:      "DRAFT",
+        description: "Prestižní granty Univerzity Hradec Králové – výzva se připravuje.",
         deadline:    "",
         allocation:  0,
         applicationsCount: 0,
       },
-      NAVRATY_CARD,
     ];
+    const NAVRATY_CARD = FALLBACK_COMPETITIONS[0];
+    const DEMO_COMPETITIONS = FALLBACK_COMPETITIONS;
 
 
     // ── Přepnutí role ──────────────────────────────────────────
