@@ -176,6 +176,11 @@
         : '<span class="badge badge--final">Finální</span>';
       const wfClass = workflowPillClass(r.status);
       const dateStr = escapeHtml(r.submitted_at_label || "–");
+      const sep = applyHref.includes("?") ? "&" : "?";
+      const formHref = isDraft
+        ? applyHref
+        : `${applyHref}${sep}app=${encodeURIComponent(r.application_id || "")}`;
+      const formLabel = isDraft ? "Formulář" : "Detail podání";
       return `<tr>
         <td>${ver}</td>
         <td>${title}</td>
@@ -183,7 +188,7 @@
         <td><span class="${wfClass}">${wfText}</span></td>
         <td>${res}</td>
         <td class="meta-date">${dateStr}</td>
-        <td><a class="btn-row" href="${applyHref}">Formulář</a></td>
+        <td><a class="btn-row" href="${formHref}">${formLabel}</a></td>
       </tr>`;
     }
 
