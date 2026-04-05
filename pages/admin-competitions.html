@@ -109,6 +109,9 @@
     <div class="alert alert--info">
       ℹ️ Změny se ukládají do CONFIG listů jednotlivých Sheets souborů. Po uložení se projeví okamžitě v aplikaci.
     </div>
+    <div class="alert alert--info" id="cfgApiWarn" style="display:none;background:#FEF3C7;border-color:#FDE68A;color:#92400E;">
+      ⚠️ <strong>Nepodařilo se načíst CONFIG ze skriptu</strong> (chybí akce <code>getCompetitionConfig</code> v nasazeném Web App nebo chyba přístupu). Zobrazují se výchozí hodnoty – po opravě deploye obnovte stránku. Podrobnosti v konzoli (F12).
+    </div>
 
     <!-- Záložky soutěží -->
     <div class="comp-tabs" id="compTabs"></div>
@@ -141,13 +144,22 @@
     let configs = {};  // competitionId → config objekt
     let activeTab = null;
 
+    function mergeConfig(comp, apiConfig) {
+      const base = getDefaultConfig(comp);
+      if (!apiConfig || typeof apiConfig !== "object") return base;
+      return { ...base, ...apiConfig };
+    }
+
     // ── Načtení konfigurací ────────────────────────────────────
     async function loadConfigs() {
       document.getElementById("compPanels").innerHTML =
         '<div class="loading-msg">Načítám nastavení soutěží…</div>';
+      const warnEl = document.getElementById("cfgApiWarn");
+      if (warnEl) warnEl.style.display = "none";
 
       // Použij demo data nebo API
       const competitions = FALLBACK_COMPETITIONS;
+      let apiProblems = [];
 
       // Načti config pro každou soutěž
       for (const comp of competitions) {
@@ -159,10 +171,21 @@
           url.searchParams.set("token", session.token);
           const res  = await fetch(url.toString());
           const data = await res.json();
-          configs[comp.id] = data.config || getDefaultConfig(comp);
-        } catch {
+          if (data.error) {
+            apiProblems.push(comp.id + ": " + data.error);
+            configs[comp.id] = getDefaultConfig(comp);
+          } else {
+            configs[comp.id] = mergeConfig(comp, data.config);
+          }
+        } catch (e) {
+          apiProblems.push(comp.id + ": " + (e && e.message ? e.message : "síť"));
           configs[comp.id] = getDefaultConfig(comp);
         }
+      }
+
+      if (apiProblems.length) {
+        console.warn("[admin-competitions] getCompetitionConfig:", apiProblems);
+        if (warnEl) warnEl.style.display = "block";
       }
 
       renderTabs(competitions);
@@ -182,6 +205,7 @@
         admin_email:              "hana.tomaskova@uhk.cz",
         deadline_final_report:    "",
         deadline_activity_end:    "",
+        dashboard_visible:        "TRUE",
       };
     }
 
@@ -210,9 +234,25 @@
       container.innerHTML = competitions.map((comp, i) => {
         const cfg = configs[comp.id] || {};
         const statusCss = { OPEN:"open", RUNNING:"running", CLOSED:"closed", DRAFT:"draft" }[cfg.status] || "draft";
+        const dashVis = cfg.dashboard_visible;
+        const dashHidden = String(dashVis == null ? "" : dashVis).trim().toUpperCase() === "FALSE" || dashVis === false;
         return `
           <div class="comp-panel ${i === 0 ? "active" : ""}" id="panel-${comp.id}">
             <div class="config-grid">
+
+              <div class="config-card" style="grid-column: 1 / -1; border: 2px solid var(--navy-mid); box-shadow: 0 2px 12px rgba(28,46,90,.08);">
+                <div class="config-card__title"><span class="config-card__icon">👁</span>Viditelnost na rozcestníku</div>
+                <p style="font-size:13px;color:var(--grey-700);margin:-8px 0 14px;line-height:1.5;">
+                  Klíč v listu <strong>📋 CONFIG</strong>: sloupec <strong>B</strong> = <code>dashboard_visible</code>, sloupec <strong>C</strong> = <code>TRUE</code> nebo <code>FALSE</code> (stejně jako u ostatních parametrů).
+                </p>
+                <div class="field" style="margin-bottom:0;">
+                  <label>Zobrazit soutěž uživatelům (kromě ADMIN / TESTER)</label>
+                  <select id="${comp.id}__dashboard_visible">
+                    <option value="TRUE"  ${!dashHidden ? "selected" : ""}>Ano – viditelná</option>
+                    <option value="FALSE" ${dashHidden ? "selected" : ""}>Ne – skrytá</option>
+                  </select>
+                </div>
+              </div>
 
               <!-- Základní info -->
               <div class="config-card">
@@ -298,7 +338,7 @@
       if (!activeTab) return;
 
       const fields = [
-        "competition_name","description","status","admin_email",
+        "competition_name","description","status","admin_email","dashboard_visible",
         "total_allocation_czk","max_budget_czk",
         "deadline_applications","deadline_activity_end","deadline_final_report"
       ];
