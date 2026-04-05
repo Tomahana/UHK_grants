@@ -69,6 +69,11 @@ const API = {
     return this.get("getApplications", { competitionId, ...filters });
   },
 
+  /** Přehled vlastních přihlášek Connect (drafty + finální, stav, výsledek prorektora). */
+  async getConnectMyApplications(competitionId) {
+    return this.get("getConnectMyApplications", { competitionId });
+  },
+
   /** Změna statusu přihlášky */
   async changeStatus(competitionId, applicationId, newStatus, note = "") {
     return this.post("changeStatus", { competitionId, applicationId, newStatus, note });
