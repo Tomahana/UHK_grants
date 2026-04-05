@@ -168,6 +168,27 @@
     .outcome-comment { font-size: 13px; line-height: 1.55; color: var(--navy); white-space: pre-wrap; }
     .outcome-meta { font-size: 11px; color: var(--muted); margin-top: 10px; }
 
+    /* Povinné výstupy po Podpořeno / Kráceno */
+    .postaward-wrap { text-align: left; margin-top: 28px; padding: 22px 20px; background: var(--gold-lite); border: 1px solid #E8D88A; border-radius: var(--r-lg); max-width: 680px; margin-left: auto; margin-right: auto; }
+    .postaward-wrap h3 { font-size: 13px; font-weight: 700; color: #7A5A10; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 10px; }
+    .postaward-sub { font-size: 12px; color: #7A5A10; line-height: 1.45; margin-bottom: 14px; }
+    .postaward-deadline { font-size: 14px; color: var(--navy); font-weight: 600; margin: 10px 0 6px; }
+    .postaward-deadline span { font-family: 'DM Mono', monospace; font-weight: 600; }
+    .postaward-expl { font-size: 12px; color: var(--muted); line-height: 1.45; margin-bottom: 14px; }
+    .postaward-rules { font-size: 13px; color: var(--navy); line-height: 1.55; margin: 14px 0; }
+    .postaward-rules strong { color: var(--navy); }
+    .postaward-rules ol { margin: 8px 0 8px 20px; padding: 0; }
+    .postaward-rules li { margin-bottom: 12px; }
+    .postaward-task { display: flex; gap: 10px; align-items: flex-start; margin: 14px 0; font-size: 13px; line-height: 1.45; color: var(--navy); }
+    .postaward-task input { margin-top: 4px; accent-color: var(--navy); flex-shrink: 0; }
+    .postaward-notes { width: 100%; min-height: 72px; margin-top: 8px; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: var(--r); font-family: 'DM Sans', sans-serif; font-size: 13px; }
+    .postaward-actions { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .postaward-mail { font-size: 12px; color: var(--muted); }
+    .postaward-mail a { color: var(--navy-mid); font-weight: 500; }
+    .postaward-cons { font-size: 12px; color: #92400E; line-height: 1.5; margin-top: 18px; padding-top: 14px; border-top: 1px solid #E8D88A; }
+    .postaward-cons ol { margin: 8px 0 0 18px; }
+    .postaward-readonly { font-size: 12px; color: var(--muted); font-style: italic; margin-bottom: 8px; }
+
     .vyzva-list { list-style: none; padding: 0; margin: 0; font-size: 12px; line-height: 1.45; color: var(--navy); }
     .vyzva-list li { padding: 10px 0; border-bottom: 1px solid var(--border); }
     .vyzva-list li:last-child { border-bottom: none; }
@@ -275,6 +296,7 @@
 
   <script src="../js/config.js"></script>
   <script src="../js/auth.js"></script>
+  <script src="../js/api.js"></script>
   <script>
 
     const user = Auth.requireLogin(["ZADATEL","RESITEL","ADMIN","TESTER"]);
@@ -386,11 +408,139 @@
           <p style="font-size:13px;color:var(--muted);margin-bottom:4px;">Aktuální stav: <strong>${escapeHtml(sub.status)}</strong></p>
           ${outcomeBlock}
           ${draftNote}
+          <div id="postawardRoot" style="display:none;"></div>
           <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:20px;">
             <a href="my-connect.html?c=${encodeURIComponent(COMPETITION_ID)}" class="btn btn-ghost">← Moje přihlášky</a>
             <a href="dashboard.html" class="btn btn-primary">Rozcestník</a>
           </div>
         </div>`;
+    }
+
+    function buildConnectPostAwardPanel(data) {
+      const d = data.deadlines || {};
+      const c = data.checklist || {};
+      const mail = String(data.coordinatorEmail || "").trim();
+      const subj = encodeURIComponent("UHK Connect – závěrečná zpráva a výstupy (" + (data.applicationId || "") + ")");
+      const mailBody = encodeURIComponent(
+        "Dobrý den,\n\nv příloze / níže posílám podklady k přihlášce " + (data.applicationId || "") + " (povinné výstupy dle výzvy UHK Connect).\n\n…\n\n" + (user.name || user.email)
+      );
+      const mailHref = mail ? "mailto:" + mail + "?subject=" + subj + "&body=" + mailBody : "";
+      const dis = c.dissemination_fulfilled ? " checked" : "";
+      const pkg = c.package_emailed_declared ? " checked" : "";
+      const ack = c.consequences_acknowledged ? " checked" : "";
+      const notes = escapeHtml(c.notes || "");
+      const readOnly = !data.canEdit;
+      const roNote = readOnly
+        ? `<p class="postaward-readonly">Náhled pro oprávněné role; checklist ukládá pouze řešitel uvedený u přihlášky.</p>`
+        : "";
+      const saveBtn = readOnly
+        ? ""
+        : `<div class="postaward-actions">
+            <button type="button" class="btn btn-primary" id="postawardSaveBtn">Uložit potvrzení</button>
+            <span class="postaward-mail" id="postawardSaveStatus"></span>
+          </div>`;
+      const mailLine = mailHref
+        ? `<p class="postaward-mail">Odevzdání probíhá e-mailem administrátorce soutěže: <a href="${mailHref}">${escapeHtml(mail)}</a></p>`
+        : `<p class="postaward-mail">E-mail administrátorky doplníte v CONFIG listu (coordinator_email) nebo kontaktujte OVTZ.</p>`;
+
+      return `
+        <div class="postaward-wrap">
+          <h3>Povinné výstupy a závěrečná zpráva</h3>
+          <p class="postaward-sub">Platí pro projekty se stanoviskem <strong>${escapeHtml(data.outcomeLabel || "")}</strong>. Závazné znění má výzva UHK Connect a přílohy (např. vzor závěrečné zprávy).</p>
+          ${roNote}
+          <p class="postaward-deadline">Termín odevzdání (závěrečná zpráva + výstupy e-mailem): <span>${escapeHtml(d.dueLabel || "—")}</span></p>
+          ${d.activityEndLabel ? `<p class="postaward-expl">Plánované ukončení aktivity v přihlášce: <strong>${escapeHtml(d.activityEndLabel)}</strong>. Nejpozdější konečný termín dle výzvy: <strong>${escapeHtml(d.hardCapLabel || "")}</strong>.</p>` : ""}
+          ${d.explanation ? `<p class="postaward-expl">${escapeHtml(d.explanation)}</p>` : ""}
+          <div class="postaward-rules">
+            <p><strong>1. Povinná diseminační aktivita (panelová diskuze)</strong></p>
+            <p>Řešitel se účastní panelové diskuse k průběhu výjezdu, přínosu spolupráce a dopadům pro výzkum/rozvoj UHK — na <em>Young Scientists Conference</em> nebo <em>PhD Summitu</em> (dle programu UHK).</p>
+            <ol type="a">
+              <li>Za splnění se považuje aktivní účast (prezentace vstupů do diskuse).</li>
+              <li>Pokud se diskuze v daném roce neuskuteční nebo se řešitel nemůže z objektivních důvodů zúčastnit, předloží <strong>náhradní doložení</strong> v rozsahu stanoveném Oddělením vědy a transferu znalostí (např. krátké vystoupení na interním semináři / nahraná 5–7min prezentace).</li>
+            </ol>
+            <p><strong>2. Závěrečná zpráva a doložení do 30 dnů od ukončení řešení projektu</strong></p>
+            <p>Nejpozději však do <strong>30. 11. 2026</strong> odešle řešitel administrátorce soutěže UHK Connect e-mailem:</p>
+            <ol>
+              <li>závěrečnou zprávu v požadované kvalitě (max. cca 3 strany, viz příloha výzvy „Vzor závěrečné zprávy“),</li>
+              <li>alespoň jeden výstup spolupráce (např. rozpracovaný článek, projektová ideová skica, Letter of Intent / MoU, protokol z konzultace, draft výzkumného designu, plán mobility nebo návazného projektu),</li>
+              <li>potvrzení o uskutečněné aktivitě (např. účast na konferenci).</li>
+            </ol>
+          </div>
+          ${mailLine}
+          <div class="postaward-rules" style="margin-top:18px;">
+            <p><strong>Sledování povinností (potvrzení řešitele)</strong></p>
+            <label class="postaward-task">
+              <input type="checkbox" id="pa_dis"${dis}${readOnly ? " disabled" : ""}>
+              <span>Potvrzuji splnění / řízení náhradního doložení u <strong>diseminační aktivity</strong> dle pokynů OVTZ (včetně případné náhrady dle bodu 1b).</span>
+            </label>
+            <label class="postaward-task">
+              <input type="checkbox" id="pa_pkg"${pkg}${readOnly ? " disabled" : ""}>
+              <span>Potvrzuji, že jsem ve lhůtě odeslal(a) administrátorce e-mailem požadovaný balíček: <strong>závěrečná zpráva + výstup spolupráce + potvrzení aktivity</strong> (nebo že tak učiním do výše uvedeného termínu).</span>
+            </label>
+            <label class="postaward-task">
+              <input type="checkbox" id="pa_ack"${ack}${readOnly ? " disabled" : ""}>
+              <span>Seznámil(a) jsem se s následky nedodržení podmínek uvedenými níže.</span>
+            </label>
+            <p style="margin-top:10px;font-size:12px;color:var(--muted);">Poznámka pro vás / OVTZ (nepovinné):</p>
+            <textarea class="postaward-notes" id="pa_notes" placeholder="např. datum odeslání, odkaz na nahraný soubor v úložišti…"${readOnly ? " disabled" : ""}>${notes}</textarea>
+          </div>
+          ${saveBtn}
+          ${c.savedAt ? `<p class="postaward-mail" style="margin-top:8px;">Stav potvrzení v systému naposledy uložen: <strong>${escapeHtml(c.savedAt)}</strong></p>` : ""}
+          <div class="postaward-cons">
+            <strong>Následky nedodržení (dle výzvy)</strong>
+            <ol>
+              <li>Pokud nebyla zrealizována aktivita, nebyl doložen výstup spolupráce nebo nebyla odevzdána závěrečná zpráva v požadované kvalitě, může prorektorka pro VVTZ na základě doporučení hodnoticího panelu rozhodnout o: (a) vyhodnocení projektu jako neúspěšného pro účely soutěže UHK Connect, (b) omezení účasti řešitele v <strong>dvou následujících výzvách</strong> UHK Connect.</li>
+              <li>O neúspěšnosti projektu budou informováni děkan, vedoucí pracoviště, popř. garant DSP a školitel.</li>
+            </ol>
+          </div>
+        </div>`;
+    }
+
+    function bindConnectPostAwardForm(data, applicationId) {
+      const btn = document.getElementById("postawardSaveBtn");
+      if (!btn || !data.canEdit) return;
+      btn.addEventListener("click", async function () {
+        const st = document.getElementById("postawardSaveStatus");
+        btn.disabled = true;
+        if (st) st.textContent = "Ukládám…";
+        try {
+          const checklist = {
+            dissemination_fulfilled: !!document.getElementById("pa_dis")?.checked,
+            package_emailed_declared: !!document.getElementById("pa_pkg")?.checked,
+            consequences_acknowledged: !!document.getElementById("pa_ack")?.checked,
+            notes: document.getElementById("pa_notes")?.value || "",
+          };
+          const res = await API.saveConnectPostAward(COMPETITION_ID, applicationId, checklist);
+          if (res.error) throw new Error(res.error);
+          if (st) st.textContent = "Uloženo ✓";
+          showToast("Potvrzení uloženo.");
+        } catch (e) {
+          if (st) st.textContent = "";
+          showToast(e.message || "Uložení selhalo", "err");
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    }
+
+    async function mountConnectPostAward(applicationId) {
+      const root = document.getElementById("postawardRoot");
+      if (!root || !applicationId) return;
+      root.style.display = "block";
+      root.innerHTML = '<p style="font-size:13px;color:var(--muted);padding:12px;">Načítám povinné výstupy…</p>';
+      try {
+        const data = await API.getConnectPostAward(COMPETITION_ID, applicationId);
+        if (data.error) throw new Error(data.error);
+        if (!data.applicable) {
+          root.innerHTML = "";
+          root.style.display = "none";
+          return;
+        }
+        root.innerHTML = buildConnectPostAwardPanel(data);
+        bindConnectPostAwardForm(data, applicationId);
+      } catch (e) {
+        root.innerHTML = `<p style="font-size:13px;color:var(--red);">${escapeHtml(e.message)}</p>`;
+      }
     }
 
     function renderConnectVyzvaSidebar() {
@@ -980,6 +1130,9 @@
             data.prorektorOutcome,
             !!data.hasOtherDraft
           );
+          const sid = data.submittedApplication.application_id;
+          const dec = data.prorektorOutcome && String(data.prorektorOutcome.decision || "").toUpperCase();
+          if (sid && (dec === "SUPPORT" || dec === "CUT")) void mountConnectPostAward(sid);
           return true;
         }
 
