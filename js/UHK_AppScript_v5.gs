@@ -81,6 +81,8 @@ function doGet(e) {
       case "getReviews":       return corsResponse(getReviews(p.competitionId, p.applicationId, p.token));
       case "getConnectReviews":
         return corsResponse(getConnectReviews(p.competitionId, p.token));
+      case "getConnectMyApplications":
+        return corsResponse(getConnectMyApplications(p.competitionId, p.token));
       case "getProjects":      return corsResponse(getProjects(p.competitionId, p.token));
       case "getUsers":         return corsResponse(getUsers(p.token));
       case "getUserRoles":     return corsResponse(getUserRoles(p.email, p.token));
@@ -577,6 +579,107 @@ function getApplications(competitionId, token, filters) {
       return String(r.status || "").trim() === String(filters.statusFilter).trim();
     });
   return { applications: rows };
+}
+
+/** Stav průběhu pro žadatele (Connect). */
+function connectApplicantWorkflowLabel_(status, hasProrektorOutcome) {
+  var st = String(status || "").toUpperCase();
+  if (st === "DRAFT") return "Koncept – neodesláno";
+  if (st === "SUBMITTED") return "Podáno";
+  if (st === "FORMAL_CHECK") return "Formální kontrola";
+  if (st === "TO_REVIEW") return "Po formální kontrole";
+  if (st === "IN_REVIEW") return "V hodnocení komise";
+  if (st === "APPROVED")
+    return hasProrektorOutcome ? "Rozhodnutí zapsáno" : "Schváleno – doplní se stanovisko prorektora";
+  if (st === "REJECTED")
+    return hasProrektorOutcome ? "Rozhodnutí zapsáno" : "Zamítnuto";
+  if (st === "WITHDRAWN") return "Staženo";
+  return st || "—";
+}
+
+/** Výsledek pro žadatele (jen po zápisu prorektora). */
+function connectApplicantResultLabel_(outcome) {
+  if (!outcome || !outcome.decision) return "—";
+  var d = String(outcome.decision).toUpperCase();
+  if (d === "SUPPORT") return "Podpořeno";
+  if (d === "CUT") return "Kráceno";
+  if (d === "REJECT") return "Nepodpořeno";
+  return "—";
+}
+
+/**
+ * Přehled přihlášek přihlášeného žadatele v Connect (drafty + podané) se stavem a výsledkem prorektora.
+ */
+function getConnectMyApplications(competitionId, token) {
+  if (!competitionId) throw new Error("chybí competitionId");
+  const auth = requireAuth(token);
+  const me = String(auth.email || "").toLowerCase().trim();
+
+  const ss = getSpreadsheet(competitionId);
+  const sheet = ss.getSheetByName(SHEETS.APPLICATIONS);
+  if (!sheet) return { success: true, applications: [] };
+
+  let rows = sheetToObjects(sheet);
+  rows = rows.map(function (r) {
+    var em =
+      r.applicant_email ||
+      r.applicantEmail ||
+      r["Applicant email"] ||
+      r["E-mail žadatele"] ||
+      r.email ||
+      "";
+    var st = String(r.status != null ? r.status : "").trim().toUpperCase();
+    var out = {};
+    for (var k in r) if (Object.prototype.hasOwnProperty.call(r, k)) out[k] = r[k];
+    out.applicant_email = String(em).trim();
+    out.status = st;
+    var fd = String(r.form_data_json || r.form_data || "").trim();
+    if (!fd || fd === "{}") {
+      var wrongCol = String(r.coordinator_email || r.project_title || "").trim();
+      if (wrongCol.charAt(0) === "{") fd = wrongCol;
+    }
+    out.form_data_json = fd;
+    return out;
+  });
+  rows = rows.filter(function (r) {
+    return String(r.applicant_email || "").toLowerCase().trim() === me;
+  });
+
+  const list = rows.map(function (r) {
+    var id = String(r.application_id || "").trim();
+    var st = r.status;
+    var isDraft = st === "DRAFT";
+    var outcome = isDraft ? null : findProrektorOutcomeForApp_(ss, id);
+    var hasPr = !!(outcome && outcome.decision);
+    return {
+      application_id: id,
+      status: st,
+      project_title: applicationRowTitle_(r),
+      version_kind: isDraft ? "DRAFT" : "FINAL",
+      workflow_label: connectApplicantWorkflowLabel_(st, hasPr),
+      result_label: connectApplicantResultLabel_(outcome),
+      updated_at: r.updated_at || "",
+      submitted_at: r.submitted_at || "",
+      created_at: r.created_at || "",
+    };
+  });
+
+  list.sort(function (a, b) {
+    if (a.version_kind !== b.version_kind) return a.version_kind === "DRAFT" ? -1 : 1;
+    var sa =
+      parseSubmittedAt_(a.submitted_at) ||
+      parseSubmittedAt_(a.updated_at) ||
+      parseSubmittedAt_(a.created_at) ||
+      new Date(0);
+    var sb =
+      parseSubmittedAt_(b.submitted_at) ||
+      parseSubmittedAt_(b.updated_at) ||
+      parseSubmittedAt_(b.created_at) ||
+      new Date(0);
+    return (sb.getTime ? sb.getTime() : 0) - (sa.getTime ? sa.getTime() : 0);
+  });
+
+  return { success: true, applications: list };
 }
 
 function changeStatus(body) {
