@@ -49,6 +49,21 @@
     .spinner { width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--navy); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 12px; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-box { padding: 40px; text-align: center; color: var(--muted); }
+    .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .table-scroll table { min-width: 640px; }
+    .wf-pill {
+      display: inline-block; max-width: 280px; line-height: 1.35;
+      padding: 5px 10px; border-radius: 100px; font-size: 12px; font-weight: 500;
+      background: var(--navy-lite); color: var(--navy-mid); border: 1px solid #D0D8EE;
+    }
+    .wf-pill--draft { background: #E6F1FB; color: #0C447C; border-color: #B8D4F0; }
+    .wf-pill--submitted { background: #E8F5E9; color: #1B5E20; border-color: #C8E6C9; }
+    .wf-pill--review { background: #FFF8E1; color: #E65100; border-color: #FFE082; }
+    .wf-pill--done { background: #EDE7F6; color: #4527A0; border-color: #D1C4E9; }
+    .wf-pill--reject { background: #FFEBEE; color: #B71C1C; border-color: #FFCDD2; }
+    .meta-date { font-size: 13px; color: var(--navy); white-space: nowrap; }
+    .foot-actions { margin-top: 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+    .foot-hint { font-size: 13px; color: var(--muted); max-width: 520px; line-height: 1.45; }
   </style>
 </head>
 <body>
@@ -65,8 +80,11 @@
 
   <div class="wrap">
     <h1 id="pageTitle">Moje přihlášky</h1>
-    <p class="sub" id="pageSub">Přehled konceptů a odeslaných přihlášek včetně stavu v řízení a výsledku po zápisu stanoviska prorektora.</p>
+    <p class="sub" id="pageSub">
+      Koncepty a odeslané přihlášky: stav v řízení a po rozhodnutí prorektora výsledek (podpořeno / kráceno / nepodpořeno).
+    </p>
 
+    <div id="scopeNote" class="alert alert--info" style="display:none;"></div>
     <div id="msgErr" class="alert alert--err" style="display:none;"></div>
 
     <div id="loading" class="panel loading-box">
@@ -76,7 +94,7 @@
 
     <div id="content" style="display:none;">
       <p class="section-title">Koncepty (neodesláno)</p>
-      <div class="panel" id="draftWrap">
+      <div class="panel table-scroll" id="draftWrap">
         <div id="draftEmpty" class="empty" style="display:none;">Žádný uložený koncept.</div>
         <table id="draftTable" style="display:none;">
           <thead>
@@ -84,8 +102,9 @@
               <th>Verze</th>
               <th>Název / projekt</th>
               <th>ID</th>
-              <th>Stav</th>
+              <th>Stav v řízení</th>
               <th>Výsledek</th>
+              <th>Upraveno</th>
               <th></th>
             </tr>
           </thead>
@@ -94,7 +113,7 @@
       </div>
 
       <p class="section-title">Finální přihlášky (podané)</p>
-      <div class="panel" id="finalWrap">
+      <div class="panel table-scroll" id="finalWrap">
         <div id="finalEmpty" class="empty" style="display:none;">Zatím žádná podaná přihláška.</div>
         <table id="finalTable" style="display:none;">
           <thead>
@@ -102,8 +121,9 @@
               <th>Verze</th>
               <th>Název / projekt</th>
               <th>ID</th>
-              <th>Stav</th>
+              <th>Stav v řízení</th>
               <th>Výsledek prorektora</th>
+              <th>Podáno</th>
               <th></th>
             </tr>
           </thead>
@@ -111,10 +131,10 @@
         </table>
       </div>
 
-      <p class="sub" style="margin-top:24px;">
-        <a id="linkApply" href="#" class="btn-row" style="margin-right:10px;">Otevřít formulář přihlášky</a>
-        Úpravy konceptu a podání probíhají v jednom formuláři; tato stránka slouží jen k přehledu.
-      </p>
+      <div class="foot-actions">
+        <a id="linkApply" href="#" class="btn-row">Otevřít formulář přihlášky</a>
+        <p class="foot-hint">Úpravy konceptu a finální podání jsou ve formuláři; tato stránka je jen přehled pod vaším účtem.</p>
+      </div>
     </div>
   </div>
 
@@ -135,21 +155,34 @@
         .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
 
+    function workflowPillClass(status) {
+      const u = String(status || "").toUpperCase();
+      if (u === "DRAFT") return "wf-pill wf-pill--draft";
+      if (u === "SUBMITTED") return "wf-pill wf-pill--submitted";
+      if (u === "FORMAL_CHECK" || u === "TO_REVIEW" || u === "IN_REVIEW") return "wf-pill wf-pill--review";
+      if (u === "APPROVED") return "wf-pill wf-pill--done";
+      if (u === "REJECTED" || u === "WITHDRAWN") return "wf-pill wf-pill--reject";
+      return "wf-pill";
+    }
+
     function rowHtml(r) {
       const title = escapeHtml(r.project_title || "—");
       const id = escapeHtml(r.application_id || "—");
-      const wf = escapeHtml(r.workflow_label || "—");
+      const wfText = escapeHtml(r.workflow_label || "—");
       const res = escapeHtml(r.result_label || "—");
       const isDraft = r.version_kind === "DRAFT";
       const ver = isDraft
         ? '<span class="badge badge--draft">Koncept</span>'
         : '<span class="badge badge--final">Finální</span>';
+      const wfClass = workflowPillClass(r.status);
+      const dateStr = escapeHtml(r.submitted_at_label || "–");
       return `<tr>
         <td>${ver}</td>
         <td>${title}</td>
         <td class="mono">${id}</td>
-        <td>${wf}</td>
+        <td><span class="${wfClass}">${wfText}</span></td>
         <td>${res}</td>
+        <td class="meta-date">${dateStr}</td>
         <td><a class="btn-row" href="${applyHref}">Formulář</a></td>
       </tr>`;
     }
@@ -187,6 +220,16 @@
 
         document.getElementById("loading").style.display = "none";
         document.getElementById("content").style.display = "block";
+        const scopeEl = document.getElementById("scopeNote");
+        if (data.viewer_email && data.scope === "own_rows_only") {
+          scopeEl.style.display = "block";
+          scopeEl.textContent =
+            "V přehledu jsou jen záznamy, kde je jako žadatel uvedena vaše adresa " +
+            data.viewer_email +
+            " (stejná logika jako u formuláře).";
+        } else {
+          scopeEl.style.display = "none";
+        }
         showSection("draft", drafts);
         showSection("final", finals);
       } catch (err) {
