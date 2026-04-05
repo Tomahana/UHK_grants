@@ -49,6 +49,9 @@ const HEADER_ROW = 4;
 // Admin e-mail pro notifikace
 const ADMIN_EMAIL = "hana.tomaskova@uhk.cz";
 
+/** ID soutěže Connect (měsíční workflow + notifikace komise) */
+const CONNECT_COMPETITION_ID = "uhk_connect_2026_v2";
+
 
 // ============================================================
 // CORS – každá odpověď musí mít správný MIME type
@@ -70,10 +73,14 @@ function doGet(e) {
       case "login":            return corsResponse(handleLoginGlobal(p.email, p.password));
       case "verifyToken":      return corsResponse(verifyToken(p.token));
       case "getCompetitions":  return corsResponse(getCompetitions(p.token));
+      case "getCompetitionConfig":
+        return corsResponse(getCompetitionConfigAction(p.competitionId, p.token));
       case "getFormFields":    return corsResponse(getFormFields(p.competitionId, p.token));
       case "getApplications":  return corsResponse(getApplications(p.competitionId, p.token, p));
       case "getApplicationStatus": return corsResponse(getApplicationStatus(p.applicationId, p.token));
       case "getReviews":       return corsResponse(getReviews(p.competitionId, p.applicationId, p.token));
+      case "getConnectReviews":
+        return corsResponse(getConnectReviews(p.competitionId, p.token));
       case "getProjects":      return corsResponse(getProjects(p.competitionId, p.token));
       case "getUsers":         return corsResponse(getUsers(p.token));
       case "getUserRoles":     return corsResponse(getUserRoles(p.email, p.token));
@@ -103,13 +110,18 @@ function doPost(e) {
     switch (body.action) {
       case "register":         return corsResponse(registerUser(body));
       case "submitApplication":return corsResponse(submitApplication(body));
-      case "changeStatus":     return corsResponse(changeStatus(body));
+      case "changeStatus":
+      case "updateApplicationStatus":
+        return corsResponse(changeStatus(body));
       case "submitReview":     return corsResponse(submitReview(body));
       case "submitNavratyReview": return corsResponse(submitNavratyReview(body));
       case "createUser":       return corsResponse(createUser(body));
       case "updateUser":       return corsResponse(updateUser(body));
       case "updateConfig":     return corsResponse(updateConfig(body));
       case "saveProrekorDecision": return corsResponse(saveProrekorDecision(body));
+      case "submitConnectReview": return corsResponse(submitConnectReview(body));
+      case "saveConnectProrektorDecision":
+        return corsResponse(saveConnectProrektorDecision(body));
       case "saveDraft":        return corsResponse(saveDraft(body));
       default:                 return corsResponse({ error: "Neznámá POST akce: " + body.action });
     }
@@ -382,6 +394,45 @@ function requireAuth(token) {
 // ============================================================
 // SOUTĚŽE
 // ============================================================
+
+/**
+ * Zapíše jeden řádek listu CONFIG do mapy cfg.
+ * Standard: sloupec B = klíč, C = hodnota.
+ * Fallback: pokud je B prázdné a A vypadá jako technický klíč (např. dashboard_visible), pak A = klíč, B = hodnota.
+ */
+function absorbConfigRow(cfg, row) {
+  const a = String(row[0] !== undefined && row[0] !== null ? row[0] : "").trim();
+  const b = String(row[1] !== undefined && row[1] !== null ? row[1] : "").trim();
+  if (b) {
+    cfg[b] = row[2];
+    return;
+  }
+  if (a && /^[a-z][a-z0-9_]*$/i.test(a)) cfg[a] = row[1];
+}
+
+/** Viditelnost na rozcestníku: prázdná / chybějící hodnota = viditelné. FALSE / 0 / NE = skryté pro ne-adminy. */
+function configDashboardVisible(cfg) {
+  const v = cfg["dashboard_visible"];
+  if (v === undefined || v === null || v === "") return true;
+  if (v === false) return false;
+  if (v === true) return true;
+  const s = String(v).trim().toUpperCase();
+  if (s === "FALSE" || s === "0" || s === "NE") return false;
+  return true;
+}
+
+/** Celý CONFIG list jako objekt (pro administraci soutěží). */
+function getCompetitionConfigAction(competitionId, token) {
+  requireAuth(token);
+  if (!competitionId) throw new Error("chybí competitionId");
+  const ss    = getSpreadsheet(competitionId);
+  const sheet = ss.getSheetByName(SHEETS.CONFIG);
+  if (!sheet) throw new Error("CONFIG list nenalezen pro: " + competitionId);
+  const cfg = {};
+  sheet.getDataRange().getValues().forEach(row => absorbConfigRow(cfg, row));
+  return { success: true, competitionId: competitionId, config: cfg };
+}
+
 function getCompetitions(token) {
   requireAuth(token);
   const result = [];
@@ -398,15 +449,14 @@ function getCompetitions(token) {
             description: "Hodnocení projektů IGA komise.",
             deadline: "2026-06-30", allocation: 40156893,
             maxBudget: 0, applicationsCount: 0,
+            dashboardVisible: true,
           });
         }
         return;
       }
 
       const cfg = {};
-      sheet.getDataRange().getValues().forEach(row => {
-        if (row[1]) cfg[String(row[1]).trim()] = row[2];
-      });
+      sheet.getDataRange().getValues().forEach(row => absorbConfigRow(cfg, row));
 
       let appCount = 0;
       const appSheet = ss.getSheetByName(SHEETS.APPLICATIONS);
@@ -422,6 +472,7 @@ function getCompetitions(token) {
         allocation:        Number(cfg["total_allocation_czk"]) || 0,
         maxBudget:         Number(cfg["max_budget_czk"])       || 0,
         applicationsCount: appCount,
+        dashboardVisible:  configDashboardVisible(cfg),
       });
     } catch (err) {
       console.error("getCompetitions:" + compId, err.message);
@@ -500,6 +551,12 @@ function getApplications(competitionId, token, filters) {
     for (var k in r) if (Object.prototype.hasOwnProperty.call(r, k)) out[k] = r[k];
     out.applicant_email = String(em).trim();
     out.status = st;
+    var fd = String(r.form_data_json || r.form_data || "").trim();
+    if (!fd || fd === "{}") {
+      var wrongCol = String(r.coordinator_email || r.project_title || "").trim();
+      if (wrongCol.charAt(0) === "{") fd = wrongCol;
+    }
+    out.form_data_json = fd;
     return out;
   });
 
@@ -553,6 +610,11 @@ function changeStatus(body) {
     const emailAddr = data[i][findCol(COL, "applicant_email")];
     const projectT  = data[i][findCol(COL, "project_title")] || "";
     if (emailAddr) sendStatusEmail(emailAddr, body.applicationId, body.newStatus, projectT);
+    const comp = String(body.competitionId || "").trim();
+    const ns = String(body.newStatus || "").toUpperCase();
+    const os = String(oldStatus || "").toUpperCase();
+    if (comp === CONNECT_COMPETITION_ID && ns === "IN_REVIEW" && os !== "IN_REVIEW")
+      notifyConnectCommissionInReview_(body.applicationId, projectT);
     return { success: true, oldStatus, newStatus: body.newStatus };
   }
   throw new Error("Přihláška nenalezena: " + body.applicationId);
@@ -592,6 +654,187 @@ function getReviews(competitionId, applicationId, token) {
     throw new Error("Nedostatečná oprávnění.");
   const rows = sheetToObjects(getSpreadsheet(competitionId).getSheetByName(SHEETS.REVIEWS));
   return rows.filter(r => r.application_id === applicationId);
+}
+
+/** Normalizace ID přihlášky z řádku REVIEWS (project_id / application_id). */
+function connectReviewAppId_(r) {
+  return String(r.project_id || r.application_id || r.applicationId || "").trim();
+}
+
+/** Všechna hodnocení Connect z ⭐ REVIEWS (frontend: getConnectReviews). */
+function getConnectReviews(competitionId, token) {
+  const auth = requireAuth(token);
+  if (!auth.roles.some(r => ["ADMIN", "PROREKTOR", "KOMISAR", "TESTER", "READONLY"].includes(r)))
+    throw new Error("Nedostatečná oprávnění.");
+  const sheet = getSpreadsheet(competitionId).getSheetByName(SHEETS.REVIEWS);
+  if (!sheet) return { success: true, reviews: [] };
+  const rows = sheetToObjects(sheet);
+  const reviews = rows.map(function (r) {
+    const o = {};
+    for (var k in r) if (Object.prototype.hasOwnProperty.call(r, k)) o[k] = r[k];
+    o.project_id = connectReviewAppId_(r);
+    return o;
+  });
+  return { success: true, reviews: reviews };
+}
+
+function deleteConnectReviewsByReviewer_(sheet, applicationId, reviewerEmail) {
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= HEADER_ROW) return;
+  const COL = mapColumns(data[HEADER_ROW - 1]);
+  const aid = findCol(COL, "application_id", "project_id", "app_id");
+  const rem = findCol(COL, "reviewer_email", "reviewer", "email", "hodnotitel");
+  const intn = findCol(COL, "comment_internal", "internal", "interni");
+  if (aid < 0 || rem < 0) return;
+  const em = String(reviewerEmail || "").toLowerCase().trim();
+  const aidv = String(applicationId || "").trim();
+  for (let i = data.length - 1; i >= HEADER_ROW; i--) {
+    const rowId = String(data[i][aid] || "").trim();
+    const rowEm = String(data[i][rem] || "").toLowerCase().trim();
+    const internal = intn >= 0 ? String(data[i][intn] || "").trim() : "";
+    if (rowId === aidv && rowEm === em && internal !== "PROREKTOR_DECISION")
+      sheet.deleteRow(i + 1);
+  }
+}
+
+function deleteProrektorConnectDecisionsForApp_(sheet, applicationId) {
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= HEADER_ROW) return;
+  const COL = mapColumns(data[HEADER_ROW - 1]);
+  const aid = findCol(COL, "application_id", "project_id", "app_id");
+  const intn = findCol(COL, "comment_internal", "internal", "interni");
+  if (aid < 0 || intn < 0) return;
+  const aidv = String(applicationId || "").trim();
+  for (let i = data.length - 1; i >= HEADER_ROW; i--) {
+    const rowId = String(data[i][aid] || "").trim();
+    const internal = String(data[i][intn] || "").trim();
+    if (rowId === aidv && internal === "PROREKTOR_DECISION")
+      sheet.deleteRow(i + 1);
+  }
+}
+
+function appendReviewsRowFromMap_(sheet, map) {
+  const data = sheet.getDataRange().getValues();
+  const hdrs = data[HEADER_ROW - 1];
+  const width = Math.max(hdrs.length, 1);
+  const row = new Array(width).fill("");
+  const COL = mapColumns(hdrs);
+  const putMany = function (val) {
+    const names = Array.prototype.slice.call(arguments, 1);
+    if (val === undefined || val === null) return;
+    const c = findCol.apply(null, [COL].concat(names));
+    if (c >= 0 && c < width) row[c] = val;
+  };
+  putMany(map.review_id, "review_id", "id", "reviewId");
+  putMany(map.application_id, "application_id", "project_id", "app_id");
+  putMany(map.reviewer_email, "reviewer_email", "reviewer", "email", "hodnotitel");
+  putMany(map.reviewer_name, "reviewer_name", "name", "hodnotitel_jmeno", "jmeno");
+  putMany(map.submitted_at, "submitted_at", "datum", "created_at");
+  putMany(map.score_clarity, "score_clarity", "clarity", "k1");
+  putMany(map.score_quality, "score_quality", "quality", "k2");
+  putMany(map.score_budget, "score_budget", "budget", "k3");
+  putMany(map.score_profile, "score_profile", "profile", "k4");
+  putMany(map.score_outputs, "score_outputs", "outputs", "k5");
+  putMany(map.score_total, "score_total", "total", "celkem");
+  putMany(map.recommendation, "recommendation", "doporuceni", "verdict");
+  putMany(map.comment_public, "comment_public", "komentar_verejny", "public_comment");
+  putMany(map.comment_internal, "comment_internal", "internal", "interni");
+  putMany(map.comment_k1, "comment_k1", "k1_comment");
+  putMany(map.comment_k2, "comment_k2", "k2_comment");
+  putMany(map.comment_k3, "comment_k3", "k3_comment");
+  putMany(map.comment_k4, "comment_k4", "k4_comment");
+  putMany(map.comment_k5, "comment_k5", "k5_comment");
+  putMany(map.poradi, "poradi", "rank");
+  putMany(map.conflict, "conflict", "stret_zajmu");
+  sheet.appendRow(row);
+}
+
+/** Hodnocení komise – upsert řádku v ⭐ REVIEWS (formulář review-connect). */
+function submitConnectReview(body) {
+  const auth = requireAuth(body.token);
+  if (!auth.roles.some(r => ["ADMIN", "KOMISAR", "KOMISAŘ", "TESTER"].includes(r)))
+    throw new Error("Hodnocení komise mohou ukládat jen členové komise nebo správce.");
+  const competitionId = body.competitionId;
+  const projectId = String(body.projectId || "").trim();
+  if (!projectId) throw new Error("chybí projectId");
+  const ss = getSpreadsheet(competitionId);
+  const sheet = ss.getSheetByName(SHEETS.REVIEWS);
+  if (!sheet) throw new Error("List REVIEWS nenalezen.");
+  deleteConnectReviewsByReviewer_(sheet, projectId, auth.email);
+  const tot = Number(body.score_total) ||
+    (Number(body.score_clarity) || 0) + (Number(body.score_quality) || 0) +
+    (Number(body.score_budget) || 0) + (Number(body.score_profile) || 0) + (Number(body.score_outputs) || 0);
+  const map = {
+    review_id: Utilities.getUuid(),
+    application_id: projectId,
+    reviewer_email: auth.email,
+    reviewer_name: body.reviewerName || auth.email,
+    submitted_at: fmtDate(new Date()),
+    score_clarity: Number(body.score_clarity) || 0,
+    score_quality: Number(body.score_quality) || 0,
+    score_budget: Number(body.score_budget) || 0,
+    score_profile: Number(body.score_profile) || 0,
+    score_outputs: Number(body.score_outputs) || 0,
+    score_total: tot,
+    recommendation: body.recommendation || "",
+    comment_public: body.comment_public || "",
+    comment_internal: body.comment_internal || "",
+    comment_k1: body.comment_k1 || "",
+    comment_k2: body.comment_k2 || "",
+    comment_k3: body.comment_k3 || "",
+    comment_k4: body.comment_k4 || "",
+    comment_k5: body.comment_k5 || "",
+  };
+  appendReviewsRowFromMap_(sheet, map);
+  writeAudit(ss, "CONNECT_REVIEW", projectId, "", body.recommendation || "",
+    auth.email + ", " + tot + "/25");
+  return { success: true, total: tot };
+}
+
+/** Finální rozhodnutí prorektora u Connect + změna stavu přihlášky. */
+function saveConnectProrektorDecision(body) {
+  const auth = requireAuth(body.token);
+  if (!auth.roles.some(r => ["ADMIN", "PROREKTOR"].includes(r)))
+    throw new Error("Rozhodnutí může ukládat pouze prorektor nebo správce.");
+  const competitionId = body.competitionId;
+  const appId = String(body.applicationId || "").trim();
+  const decision = String(body.decision || "").toUpperCase();
+  const note = String(body.comment || "").trim();
+  if (!appId) throw new Error("chybí applicationId");
+  if (["SUPPORT", "CUT", "REJECT"].indexOf(decision) < 0)
+    throw new Error("Neplatné rozhodnutí (očekáváno SUPPORT, CUT nebo REJECT).");
+  const ss = getSpreadsheet(competitionId);
+  const sheet = ss.getSheetByName(SHEETS.REVIEWS);
+  if (!sheet) throw new Error("List REVIEWS nenalezen.");
+  deleteProrektorConnectDecisionsForApp_(sheet, appId);
+  appendReviewsRowFromMap_(sheet, {
+    review_id: Utilities.getUuid(),
+    application_id: appId,
+    reviewer_email: auth.email,
+    submitted_at: fmtDate(new Date()),
+    score_clarity: 0,
+    score_quality: 0,
+    score_budget: 0,
+    score_profile: 0,
+    score_outputs: 0,
+    score_total: 0,
+    recommendation: decision,
+    comment_public: note,
+    comment_internal: "PROREKTOR_DECISION",
+  });
+  const newStatus = decision === "REJECT" ? "REJECTED" : "APPROVED";
+  const statusNote = decision === "CUT"
+    ? "Rozhodnutí prorektora: krátit rozpočet. " + note
+    : (decision === "REJECT" ? note : (decision === "SUPPORT" ? note : note));
+  changeStatus({
+    token: body.token,
+    competitionId: competitionId,
+    applicationId: appId,
+    newStatus: newStatus,
+    note: statusNote || undefined,
+  });
+  writeAudit(ss, "CONNECT_PROREKTOR", appId, "", decision, auth.email);
+  return { success: true, newStatus: newStatus };
 }
 
 
@@ -685,17 +928,41 @@ function onOpen() {
     .addItem("✅ Zkontrolovat listy", "checkSetup")
     .addSeparator()
     .addItem("📊 Odeslat report hodnocení", "sendReviewReport")
+    .addItem("📅 Měsíční souhrn Connect (ručně)", "sendConnectMonthlyAdminNotification")
     .addSeparator()
     .addItem("⚙️ Instalovat triggery", "installTriggers")
     .addToUi();
+}
+
+/** Denně: report hodnocení + 16. den v měsíci měsíční souhrn přihlášek pro administrátory Connect. */
+function runDailyConnectTasks() {
+  try {
+    sendReviewReport();
+  } catch (err) {
+    console.error("runDailyConnectTasks sendReviewReport:", err.message);
+  }
+  try {
+    sendConnectMonthlyAdminNotificationIfDue();
+  } catch (err) {
+    console.error("runDailyConnectTasks monthly:", err.message);
+  }
 }
 
 function installTriggers() {
   ScriptApp.getProjectTriggers().forEach(t => ScriptApp.deleteTrigger(t));
   const ss = SpreadsheetApp.openById(GLOBAL_SPREADSHEET_ID);
   ScriptApp.newTrigger("onEditHandler").forSpreadsheet(ss).onEdit().create();
-  ScriptApp.newTrigger("sendReviewReport").timeBased().atHour(8).everyDays(1).create();
-  SpreadsheetApp.getUi().alert("✅ Triggery nainstalovány.\n\nonEditHandler + denní report v 8:00");
+  ScriptApp.newTrigger("runDailyConnectTasks").timeBased().atHour(8).everyDays(1).create();
+  const msg =
+    "✅ Triggery nainstalovány.\n\n" +
+    "• onEditHandler (stav v APPLICATIONS)\n" +
+    "• Každý den 8:00 – report hodnocení + 16. den měsíce měsíční souhrn Connect pro administrátory";
+  try {
+    SpreadsheetApp.getUi().alert(msg);
+  } catch (e) {
+    // Samostatný projekt (ne vázaný na tabulku), spuštění z editoru „Run“, nebo kontext bez UI
+    console.log(msg);
+  }
 }
 
 function onEditHandler(e) {
@@ -715,6 +982,10 @@ function onEditHandler(e) {
     const emailAddr  = sheet.getRange(row, 3).getValue();
     const projectT   = sheet.getRange(row, 11).getValue();
     if (emailAddr && e.value) sendStatusEmail(emailAddr, appId, e.value, projectT);
+    const nv = String(e.value || "").toUpperCase();
+    const ov = String(e.oldValue || "").toUpperCase();
+    if (nv === "IN_REVIEW" && ov !== "IN_REVIEW")
+      notifyConnectCommissionInReview_(appId, projectT);
   } catch (err) {
     console.error("onEditHandler:", err.message);
   }
@@ -777,6 +1048,41 @@ function findCol(COL, ...names) {
   return -1;
 }
 
+/**
+ * Přidá řádek do 📥 APPLICATIONS podle skutečných názvů sloupců v záhlaví (ř. HEADER_ROW).
+ * Důležité: nepoužívat appendRow s fixním pořadím 10 hodnot, pokud tabulka má další sloupce
+ * (project_title, coordinator_email, …) – JSON by se zapsal špatně.
+ */
+function appendApplicationsRowFromMap(sheet, map) {
+  const data  = sheet.getDataRange().getValues();
+  const hdrs  = data[HEADER_ROW - 1];
+  const width = Math.max(hdrs.length, 1);
+  const row   = new Array(width).fill("");
+  const COL   = mapColumns(hdrs);
+
+  /** val, pak alternativní názvy sloupců */
+  const putMany = function (val) {
+    var nameList = Array.prototype.slice.call(arguments, 1);
+    if (val === undefined || val === null) return;
+    var c = findCol.apply(null, [COL].concat(nameList));
+    if (c >= 0 && c < width) row[c] = val;
+  };
+
+  putMany(map.application_id, "application_id", "id", "app_id");
+  putMany(map.competition_id, "competition_id");
+  putMany(map.applicant_email, "applicant_email", "email_zadatele", "email");
+  putMany(map.applicant_name, "applicant_name", "name", "jmeno", "cele_jmeno");
+  putMany(map.status, "status", "stav");
+  putMany(map.created_at, "created_at", "vytvoreno");
+  putMany(map.updated_at, "updated_at", "upraveno");
+  putMany(map.form_data_json, "form_data_json", "form_data", "data_json", "json_data", "formdata", "prihlaska_json");
+  putMany(map.submitted_at, "submitted_at", "datum_podani");
+  putMany(map.note, "note", "notes", "poznamka", "internal_notes");
+  putMany(map.project_title, "project_title", "nazev_projektu", "project", "nazev");
+
+  sheet.appendRow(row);
+}
+
 // Generuje ID přihlášky
 function generateAppId() {
   const d = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyMMdd");
@@ -790,6 +1096,181 @@ function fmtDate(date) {
     Session.getScriptTimeZone(),
     "yyyy-MM-dd HH:mm:ss"
   );
+}
+
+/** Parsuje submitted_at z listu (řetězec yyyy-MM-dd HH:mm:ss nebo Date z Sheets). */
+function parseSubmittedAt_(val) {
+  if (val === null || val === undefined || val === "") return null;
+  if (val instanceof Date && !isNaN(val.getTime())) return val;
+  const s = String(val).trim();
+  if (!s) return null;
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?/);
+  if (m) {
+    const d = new Date(
+      Number(m[1]), Number(m[2]) - 1, Number(m[3]),
+      m[4] ? Number(m[4]) : 0, m[5] ? Number(m[5]) : 0, m[6] ? Number(m[6]) : 0
+    );
+    return isNaN(d.getTime()) ? null : d;
+  }
+  const tryD = new Date(s);
+  return isNaN(tryD.getTime()) ? null : tryD;
+}
+
+/**
+ * Kolo příjmu pro měsíční souhrn: od 16. předchozího měsíce 00:00 do 15. běžného měsíce 23:59:59.
+ * Voláno v den 16. (souhrn právě uzavřeného kola).
+ */
+function getConnectIntakeWindowEndOnSixteenth_(referenceDate) {
+  const d = referenceDate instanceof Date ? new Date(referenceDate.getTime()) : new Date(referenceDate);
+  const y = d.getFullYear();
+  const m = d.getMonth(); // 0–11, den 16. → m je měsíc „uzávěrky“ kola
+  const end = new Date(y, m, 15, 23, 59, 59);
+  const start = new Date(y, m - 1, 16, 0, 0, 0);
+  return { start: start, end: end };
+}
+
+function formatCsDateTime_(date) {
+  if (!date) return "–";
+  return Utilities.formatDate(date, Session.getScriptTimeZone(), "d. M. yyyy HH:mm");
+}
+
+/** E-maily ADMINů pro Connect z globálního listu ROLES (+ volitelně CONFIG connect_admin_notify_emails). */
+function getConnectAdminNotifyEmails_(ssConnect) {
+  const emails = {};
+  const add = function (e) {
+    const x = String(e || "").toLowerCase().trim();
+    if (x && x.indexOf("@") > 0) emails[x] = true;
+  };
+  add(ADMIN_EMAIL);
+  try {
+    const cfg = getConfigMap(ssConnect);
+    if (cfg.connect_admin_notify_emails)
+      String(cfg.connect_admin_notify_emails).split(/[;,]/).forEach(function (p) { add(p); });
+  } catch (e) { /* ignore */ }
+  try {
+    const ssUsers = SpreadsheetApp.openById(USERS_SPREADSHEET_ID);
+    const rs = ssUsers.getSheetByName("🎭 ROLES");
+    if (rs) {
+      sheetToObjects(rs).forEach(function (r) {
+        if (String(r.competition_id || "").trim() !== CONNECT_COMPETITION_ID) return;
+        if (String(r.role || "").toUpperCase().trim() !== "ADMIN") return;
+        add(r.email);
+      });
+    }
+  } catch (e) { /* ignore */ }
+  return Object.keys(emails);
+}
+
+/** E-maily komisařů Connect (KOMISAR / KOMISAŘ). */
+function getConnectKomisarEmails_() {
+  const emails = {};
+  try {
+    const ssUsers = SpreadsheetApp.openById(USERS_SPREADSHEET_ID);
+    const rs = ssUsers.getSheetByName("🎭 ROLES");
+    if (!rs) return [];
+    sheetToObjects(rs).forEach(function (r) {
+      if (String(r.competition_id || "").trim() !== CONNECT_COMPETITION_ID) return;
+      const role = String(r.role || "").toUpperCase().trim();
+      if (role !== "KOMISAR" && role !== "KOMISAŘ") return;
+      const e = String(r.email || "").toLowerCase().trim();
+      if (e && e.indexOf("@") > 0) emails[e] = true;
+    });
+  } catch (e) { /* ignore */ }
+  return Object.keys(emails);
+}
+
+/**
+ * Měsíční souhrn pro administrátory Connect: přihlášky s datem podání v intervalu kola 16.–15.
+ */
+function sendConnectMonthlyAdminNotification() {
+  const ss = SpreadsheetApp.openById(GLOBAL_SPREADSHEET_ID);
+  const win = getConnectIntakeWindowEndOnSixteenth_(new Date());
+  const apps = sheetToObjects(ss.getSheetByName(SHEETS.APPLICATIONS));
+  const inWindow = [];
+  apps.forEach(function (a) {
+    const st = String(a.status || "").toUpperCase().trim();
+    if (st === "DRAFT") return;
+    const sub = parseSubmittedAt_(a.submitted_at || a.datum_podani);
+    if (!sub || sub < win.start || sub > win.end) return;
+    inWindow.push(a);
+  });
+
+  const to = getConnectAdminNotifyEmails_(ss);
+  if (!to.length) {
+    console.warn("sendConnectMonthlyAdminNotification: žádní příjemci");
+    return;
+  }
+
+  const lines = inWindow.map(function (a, i) {
+    return (i + 1) + ". " + String(a.application_id || "–") + " | " +
+      String(a.project_title || "–").slice(0, 80) + " | stav: " + String(a.status || "–") +
+      " | žadatel: " + String(a.applicant_name || a.applicant_email || "–");
+  });
+
+  const body =
+    "Dobrý den,\n\n" +
+    "toto je automatický souhrn soutěže UHK Connect za uzavřené kolo příjmu žádostí:\n" +
+    "od " + formatCsDateTime_(win.start) + " do " + formatCsDateTime_(win.end) + ".\n\n" +
+    "Počet záznamů s datem podání v tomto intervalu (bez konceptů): " + inWindow.length + "\n\n" +
+    (lines.length ? lines.join("\n") + "\n\n" : "(V intervalu nebyly nalezeny žádné podané přihlášky.)\n\n") +
+    "── Postup dle výzvy / OVTZ ──\n" +
+    "• Formální posouzení (příprava na předání komisi): administrátor má k dispozici 2 pracovní dny.\n" +
+    "• Poté označte v systému / v tabulce projekty připravené na posouzení komisí (stav IN_REVIEW).\n" +
+    "• Komise obdrží e-mailovou výzvu k hodnocení; na hodnocení jednotlivých přihlášek je stanovena lhůta 5 pracovních dní.\n" +
+    "• Prorektor následně učiní shrnující rozhodnutí (podpořit / zkrátit rozpočet / zamítnout) do 2 pracovních dnů.\n" +
+    "• Ukončení realizace podporovaných aktivit nejpozději do 15. 11. 2026 (dle výzvy UHK Connect).\n\n" +
+    "Hodnoticí formulář pro komisi: webový portál → Hodnocení – UHK Connect (review-connect).\n\n" +
+    "Dotazy: " + ADMIN_EMAIL + "\n\n" +
+    "— UHK Grant Manager (automaticky)";
+
+  GmailApp.sendEmail(
+    to.join(","),
+    "[UHK Connect] Měsíční souhrn přihlášek – kolo " +
+      Utilities.formatDate(win.start, Session.getScriptTimeZone(), "d. M.") +
+      " – " +
+      Utilities.formatDate(win.end, Session.getScriptTimeZone(), "d. M. yyyy"),
+    body,
+    { name: "UHK Grant Manager", replyTo: ADMIN_EMAIL }
+  );
+  writeAudit(ss, "CONNECT_MONTHLY_SUMMARY", "—", "", String(inWindow.length),
+    "Odesláno: " + to.join(", "));
+}
+
+/** Spustí měsíční souhrn pouze v den 16. v měsíci (voláno z denního triggeru). */
+function sendConnectMonthlyAdminNotificationIfDue() {
+  const d = new Date();
+  if (d.getDate() !== 16) return;
+  sendConnectMonthlyAdminNotification();
+}
+
+/** E-mail komisi po předání přihlášky do IN_REVIEW. */
+function notifyConnectCommissionInReview_(applicationId, projectTitle) {
+  const recipients = getConnectKomisarEmails_();
+  if (!recipients.length) {
+    console.warn("notifyConnectCommissionInReview_: žádní komisaři v ROLES pro Connect");
+    return;
+  }
+  const subj = "[UHK Connect] Nová přihláška k hodnocení – " + applicationId;
+  const body =
+    "Dobrý den,\n\n" +
+    "byla Vám předána přihláška k hodnocení v soutěži UHK Connect.\n\n" +
+    "ID: " + applicationId + "\n" +
+    "Název projektu: " + (projectTitle || "–") + "\n\n" +
+    "Na hodnocení v hodnoticím formuláři máte 5 pracovních dní od předání.\n" +
+    "Po vyhodnocení komisí následuje rozhodnutí prorektora (podpořit / zkrátit / zamítnout) do 2 pracovních dnů.\n\n" +
+    "Přihlaste se do portálu: sekce Hodnocení – UHK Connect.\n\n" +
+    "Dotazy ke koordinaci: " + ADMIN_EMAIL + "\n\n" +
+    "— UHK Grant Manager";
+  try {
+    GmailApp.sendEmail(
+      recipients.join(","),
+      subj,
+      body,
+      { name: "UHK Grant Manager", replyTo: ADMIN_EMAIL }
+    );
+  } catch (err) {
+    console.error("notifyConnectCommissionInReview_:", err.message);
+  }
 }
 
 // Zápis do AUDIT_LOG
@@ -1257,10 +1738,10 @@ function saveDraft(body) {
   const data   = sheet.getDataRange().getValues();
   const hdrs   = data[HEADER_ROW - 1];
   const COL    = mapColumns(hdrs);
-  const eCol   = findCol(COL, "applicant_email");
-  const sCol   = findCol(COL, "status");
-  const fCol   = findCol(COL, "form_data_json");
-  const uCol   = findCol(COL, "updated_at");
+  const eCol   = findCol(COL, "applicant_email", "email_zadatele", "email");
+  const sCol   = findCol(COL, "status", "stav");
+  const fCol   = findCol(COL, "form_data_json", "form_data", "data_json", "json_data", "formdata", "prihlaska_json");
+  const uCol   = findCol(COL, "updated_at", "upraveno");
   if (eCol < 0 || sCol < 0 || fCol < 0)
     throw new Error("List APPLICATIONS: chybí sloupce applicant_email, status nebo form_data_json (záhlaví na řádku " + HEADER_ROW + ").");
 
@@ -1279,18 +1760,20 @@ function saveDraft(body) {
   // Vytvoř nový draft
   const newId = "APP-" + Utilities.formatDate(new Date(), "Europe/Prague", "yyMMdd") + "-" +
     Utilities.getUuid().substring(0, 5).toUpperCase();
-  sheet.appendRow([
-    newId,
-    body.competitionId,
-    body.applicantEmail || "",
-    body.applicantName  || "",
-    "DRAFT",
-    fmtDate(new Date()),
-    fmtDate(new Date()),
-    JSON.stringify(body.formData || {}),
-    "",
-    "",
-  ]);
+  var fd = body.formData || {};
+  appendApplicationsRowFromMap(sheet, {
+    application_id: newId,
+    competition_id: body.competitionId,
+    applicant_email: body.applicantEmail || "",
+    applicant_name: body.applicantName || "",
+    status: "DRAFT",
+    created_at: fmtDate(new Date()),
+    updated_at: fmtDate(new Date()),
+    form_data_json: JSON.stringify(fd),
+    submitted_at: "",
+    note: "",
+    project_title: fd.project_title ? String(fd.project_title) : "",
+  });
   return { success: true, draftId: newId };
 }
 
@@ -1312,9 +1795,18 @@ function getDraft(competitionId, applicantEmail, token) {
   );
   if (!draft) return { success: true, draft: null };
 
+  // JSON dat formuláře (správně ve form_data_json; fallback kvůli starým řádkům zapsaným do špatného sloupce)
+  var rawJson = String(draft.form_data_json || draft.form_data || "").trim();
+  if (!rawJson || rawJson === "{}") {
+    ["coordinator_email", "project_title", "project", "note", "internal_notes"].forEach(function (k) {
+      if (rawJson && rawJson !== "{}") return;
+      var v = String(draft[k] || "").trim();
+      if (v.charAt(0) === "{") rawJson = v;
+    });
+  }
   try {
-    draft.formData = JSON.parse(draft.form_data_json || "{}");
-  } catch {
+    draft.formData = JSON.parse(rawJson || "{}");
+  } catch (e) {
     draft.formData = {};
   }
   // Frontend očekává draft.id (v listu je application_id)
@@ -1336,10 +1828,10 @@ function submitApplication(body) {
   const data  = sheet.getDataRange().getValues();
   const hdrs  = data[HEADER_ROW - 1];
   const COL   = mapColumns(hdrs);
-  const eCol  = findCol(COL, "applicant_email");
-  const sCol  = findCol(COL, "status");
-  const fCol  = findCol(COL, "form_data_json");
-  const subCol= findCol(COL, "submitted_at");
+  const eCol  = findCol(COL, "applicant_email", "email_zadatele", "email");
+  const sCol  = findCol(COL, "status", "stav");
+  const fCol  = findCol(COL, "form_data_json", "form_data", "data_json", "json_data", "formdata", "prihlaska_json");
+  const subCol= findCol(COL, "submitted_at", "datum_podani");
   if (eCol < 0 || sCol < 0 || fCol < 0)
     throw new Error("List APPLICATIONS: chybí potřebná záhlaví (applicant_email, status, form_data_json).");
 
@@ -1373,12 +1865,21 @@ function submitApplication(body) {
   // Pokud neexistuje draft, vytvoř a rovnou SUBMITTED
   const newId = "APP-" + Utilities.formatDate(new Date(), "Europe/Prague", "yyMMdd") + "-" +
     Utilities.getUuid().substring(0, 5).toUpperCase();
-  sheet.appendRow([
-    newId, body.competitionId, body.applicantEmail || "",
-    body.applicantName || "", "SUBMITTED",
-    fmtDate(new Date()), fmtDate(new Date()),
-    JSON.stringify(body.formData || {}), fmtDate(new Date()), "",
-  ]);
+  const now = fmtDate(new Date());
+  var fd2 = body.formData || {};
+  appendApplicationsRowFromMap(sheet, {
+    application_id: newId,
+    competition_id: body.competitionId,
+    applicant_email: body.applicantEmail || "",
+    applicant_name: body.applicantName || "",
+    status: "SUBMITTED",
+    created_at: now,
+    updated_at: now,
+    form_data_json: JSON.stringify(fd2),
+    submitted_at: now,
+    note: "",
+    project_title: fd2.project_title ? String(fd2.project_title) : "",
+  });
   return { success: true };
 }
 
