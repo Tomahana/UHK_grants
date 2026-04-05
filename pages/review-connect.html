@@ -16,8 +16,9 @@
     .tu strong{color:rgba(255,255,255,.85);font-weight:500}
     .btn-back{background:none;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.6);font-family:'DM Mono',monospace;font-size:11px;padding:5px 12px;border-radius:4px;cursor:pointer;text-decoration:none}
     .btn-back:hover{color:white;border-color:rgba(255,255,255,.4)}
-    .page{max-width:1140px;margin:0 auto;padding:24px 20px 80px;display:grid;grid-template-columns:300px 1fr;gap:20px;align-items:start}
-    @media(max-width:800px){.page{grid-template-columns:1fr}.sidebar{display:none}}
+    .page{max-width:1320px;margin:0 auto;padding:24px 20px 80px;display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,300px);gap:28px;align-items:start}
+    .main-col{min-width:0}
+    @media(max-width:960px){.page{grid-template-columns:1fr;gap:20px}.sidebar{position:static!important;max-height:none!important;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}}
     .tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:20px}
     .tab{padding:10px 20px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
     .tab:hover{color:var(--navy)}
@@ -41,22 +42,23 @@
     .sp.done{background:var(--green-lite);color:var(--green)}
     .sp.new{background:var(--gold-lite);color:var(--gold)}
     .dbox{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:16px}
-    .dgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    .dl{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
-    .dv{font-size:13px;color:var(--navy);margin-top:2px;line-height:1.4}
+    .dgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 20px}
+    @media(min-width:900px){.dgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+    .dl{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+    .dv{font-size:14px;color:var(--navy);margin-top:4px;line-height:1.45}
     .dfull{grid-column:1/-1}
     .crit{border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:10px}
-    .ch{padding:10px 14px;background:var(--navy-lite);border-bottom:1px solid #D0D8EE;display:flex;align-items:flex-start;gap:10px}
+    .ch{padding:14px 16px;background:var(--navy-lite);border-bottom:1px solid #D0D8EE;display:flex;align-items:flex-start;gap:12px}
     .cn{width:24px;height:24px;border-radius:50%;background:var(--navy);color:white;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-    .cl{font-size:13px;font-weight:500;color:var(--navy)}
-    .cd{font-size:11px;color:#4A5A8A;margin-top:2px;line-height:1.4}
-    .cbody{padding:12px 14px}
+    .cl{font-size:15px;font-weight:600;color:var(--navy);line-height:1.35}
+    .cd{font-size:13px;color:#3d4d78;margin-top:6px;line-height:1.5;max-width:72ch}
+    .cbody{padding:14px 16px}
     .srow{display:flex;gap:6px;margin-bottom:10px}
     .sb{flex:1;padding:8px 4px;border:1.5px solid var(--border);border-radius:var(--r);text-align:center;cursor:pointer;transition:all .15s;background:white;user-select:none}
     .sb:hover{border-color:var(--navy-mid);background:var(--navy-lite)}
     .sb.sel{background:var(--navy);border-color:var(--navy);color:white}
     .sn{font-size:18px;font-weight:600;font-family:'DM Mono',monospace;line-height:1}
-    .sl{font-size:10px;margin-top:3px;opacity:.7}
+    .sl{font-size:11px;margin-top:4px;opacity:.75;line-height:1.25}
     .sb.sel .sl{opacity:.9}
     .cnote{width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:12px;resize:vertical;min-height:52px;outline:none;color:var(--navy)}
     .cnote:focus{border-color:var(--navy-mid)}
@@ -74,7 +76,17 @@
     .ri{font-size:18px;display:block;margin-bottom:4px}
     .rl{font-size:12px;font-weight:600}
     .rs{font-size:11px;opacity:.7;margin-top:2px}
-    .sidebar{display:flex;flex-direction:column;gap:14px}
+    .sidebar{display:flex;flex-direction:column;gap:14px;position:sticky;top:60px;align-self:start;max-height:calc(100vh - 72px);overflow-y:auto;padding-bottom:8px}
+    .flow-panel{background:linear-gradient(180deg,#F0F4FC 0%,#E8EDF8 100%);border:1px solid #C8D4EC;border-radius:var(--r-lg);padding:18px 20px;margin-bottom:20px}
+    .flow-h{font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
+    .flow-grid{display:grid;gap:10px 16px;font-size:14px;line-height:1.55;color:var(--navy)}
+    @media(min-width:700px){.flow-grid{grid-template-columns:1fr 1fr}}
+    .flow-grid strong{color:var(--navy-mid)}
+    .cov-strip{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:12px;margin-bottom:22px}
+    .cov-card{background:white;border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;box-shadow:0 1px 2px rgba(28,46,90,.06)}
+    .cov-k{font-family:'DM Mono',monospace;font-weight:700;font-size:12px;color:var(--navy-mid);letter-spacing:.02em}
+    .cov-t{font-size:14px;font-weight:600;color:var(--navy);margin-top:6px;line-height:1.3}
+    .cov-d{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5}
     .sc{background:white;border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
     .sc h3{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
     .scells{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:10px}
@@ -127,7 +139,7 @@
 </header>
 
 <div class="page">
-  <div>
+  <div class="main-col">
     <div class="tabs">
       <div class="tab active" id="tab-h" onclick="switchTab('h')">Hodnocení</div>
       <div class="tab" id="tab-p" onclick="switchTab('p')">Výsledky</div>
@@ -150,6 +162,19 @@
           </div>
           <div class="pb">
             <div class="dbox" id="appDetail"></div>
+            <div class="flow-panel">
+              <div class="flow-h">Postup a lhůty (výzva Connect)</div>
+              <div class="flow-grid">
+                <div><strong>Administrátor</strong> – formální posouzení do 2 pracovních dnů, poté předání komisi (stav IN_REVIEW).</div>
+                <div><strong>Komise</strong> – hodnocení v tomto formuláři, lhůta <strong>5 pracovních dní</strong> od předání.</div>
+                <div><strong>Prorektor</strong> – shrnující rozhodnutí (podpořit / zkrátit / zamítnout) do <strong>2 pracovních dnů</strong>.</div>
+                <div style="color:var(--muted);"><strong>Ukončení aktivity</strong> nejpozději <strong>15.&nbsp;11.&nbsp;2026</strong>.</div>
+              </div>
+            </div>
+            <div class="sep"><div class="sep-line"></div><div class="sep-lbl">Kritéria výzvy – přehled</div><div class="sep-line"></div></div>
+            <p style="font-size:13px;color:var(--muted);margin:-8px 0 14px;line-height:1.5;">Níže máte u každého kritéria plné znění a škálu 1–5. Odůvodnění pište do pole komentáře u kritéria.</p>
+            <div class="cov-strip" id="covStrip"></div>
+            <div class="sep"><div class="sep-line"></div><div class="sep-lbl">Hodnocení po kritériích</div><div class="sep-line"></div></div>
             <div id="critBox"></div>
             <div class="sep"><div class="sep-line"></div><div class="sep-lbl">Komentáře</div><div class="sep-line"></div></div>
             <div style="margin-bottom:10px;">
@@ -194,8 +219,8 @@
   <div class="sidebar">
     <div class="sc">
       <h3>Soutěž</h3>
-      <div style="font-size:13px;font-weight:500;color:var(--navy);margin-bottom:4px;" id="sName">—</div>
-      <div style="font-size:12px;color:var(--muted);">Max. 25 bodů · 5 kritérií</div>
+      <div style="font-size:14px;font-weight:600;color:var(--navy);margin-bottom:6px;line-height:1.35;" id="sName">—</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.45;">5 kritérií · max. 25 bodů · škála u každého kritéria 1–5</div>
     </div>
     <div class="sc">
       <h3>Aktuální skóre</h3>
@@ -207,17 +232,7 @@
         <div class="scell"><div class="sck">K5</div><div class="scv" id="s5">—</div></div>
       </div>
       <div class="stbox"><div class="stnum" id="stot">—</div><div class="stlbl">z 25 bodů</div></div>
-    </div>
-    <div class="sc">
-      <h3>Kritéria</h3>
-      <div class="leg">
-        <div><strong>K1</strong> Jasnost a cíl projektu</div>
-        <div><strong>K2</strong> Kvalita spolupráce</div>
-        <div><strong>K3</strong> Adekvátnost rozpočtu</div>
-        <div><strong>K4</strong> Odborný profil žadatele</div>
-        <div><strong>K5</strong> Očekávané výstupy</div>
-      </div>
-      <div style="margin-top:8px;font-size:11px;color:var(--muted);">1 = nejslabší · 5 = výborný</div>
+      <p style="font-size:12px;color:var(--muted);margin-top:12px;line-height:1.45;">Souhrn kritérií a zápis bodů je v hlavní oblasti po výběru přihlášky.</p>
     </div>
   </div>
 </div>
@@ -236,12 +251,13 @@ document.getElementById("topbarTitle").textContent = "Hodnocení – "+cname;
 document.getElementById("sName").textContent = cname;
 if(["PROREKTOR","ADMIN","TESTER"].includes(user.role)) document.getElementById("tab-pr").classList.remove("tab-hide");
 
+/** Hodnoticí kritéria v souladu se zaměřením výzvy UHK Connect (mezinárodní spolupráce / mobilita, max. rozpočet dle výzvy). */
 const CRIT = [
-  {key:"K1",label:"Jasnost a cíl projektu",desc:"Je projekt jasně definován? Je cíl konkrétní a dosažitelný? Odpovídá zaměření soutěže UHK Connect?",labels:["Nejasný","Slabý","Průměrný","Dobrý","Výborný"]},
-  {key:"K2",label:"Kvalita navrhované spolupráce",desc:"Je partnerská instituce relevantní? Je spolupráce prokazatelná a reálná? Existují předchozí kontakty?",labels:["Nevhodná","Slabá","Průměrná","Dobrá","Výborná"]},
-  {key:"K3",label:"Adekvátnost rozpočtu k návrhu projektu",desc:"Je rozpočet přiměřený plánované aktivitě? Jsou všechny položky odůvodněné?",labels:["Nepřiměřený","Slabý","Průměrný","Dobrý","Výborný"]},
-  {key:"K4",label:"Předchozí výzkumné aktivity a odborný profil žadatele",desc:"Má žadatel relevantní výzkumný profil? Jsou doloženy odpovídající výstupy a zkušenosti?",labels:["Nevyhovující","Slabý","Průměrný","Dobrý","Výborný"]},
-  {key:"K5",label:"Očekávané výstupy spolupráce",desc:"Jsou výstupy konkrétní a doložitelné? Přispějí k rozvoji VaV UHK? Plánována navazující aktivita?",labels:["Nejasné","Slabé","Průměrné","Dobré","Výborné"]},
+  {key:"K1",label:"Cíl aktivity a přínos pro UHK",short:"Smysl projektu, soulad s Connect (spolupráce / mobilita) a přínos pro UHK.",desc:"Je smysl aktivity srozumitelně vymezen? Odpovídá zaměření soutěže Connect (spolupráce se zahraniční institucí, mobilita, přenos znalostí)? Je přínos pro strategii VaV a rozvoj UHK věrohodně popsán?",labels:["Nejasný","Slabý","Průměrný","Dobrý","Výborný"]},
+  {key:"K2",label:"Kvalita a relevance partnerské spolupráce",short:"Výběr partnera, prokazatelnost spolupráce, typ aktivity dle výzvy.",desc:"Je partner vhodně zvolen a role obou stran jasná? Je spolupráce reálná (doporučeně doložené kontakty / dosavadní spolupráce)? Odpovídá typ aktivity (vědecká / edukační) zadání výzvy?",labels:["Nevhodná","Slabá","Průměrná","Dobrá","Výborná"]},
+  {key:"K3",label:"Rozpočet, hospodárnost a soulad s pravidly výzvy",short:"Přiměřenost nákladů, limit výzvy, odůvodnění položek.",desc:"Jsou náklady přiměřené rozsahu aktivity a v souladu s limitem výzvy? Jsou položky odůvodněné a účelné? Nejsou rizika přecenění nebo nejasných výdajů?",labels:["Nepřiměřený","Slabý","Průměrný","Dobrý","Výborný"]},
+  {key:"K4",label:"Odborný profil žadatele a předpoklady pro realizaci",short:"Kompetence řešitele, dosavadní výstupy, proveditelnost v termínu.",desc:"Má žadatel (tým) kompetence k realizaci? Jsou relevantní předchozí výstupy / zkušenosti? Je zřejmé, že aktivitu lze v plánovaném termínu zvládnout?",labels:["Nevyhovující","Slabý","Průměrný","Dobrý","Výborný"]},
+  {key:"K5",label:"Plánované výstupy, měřitelnost a udržitelnost",short:"Konkrétní výstupy, dopad na UHK, případná navazující spolupráce.",desc:"Jsou výstupy konkrétní a ověřitelné (publikace, mobilita, workshop, další)? Je popsán očekávaný dopad na VaV UHK nebo studenty? Je zvážena případná navazující spolupráce?",labels:["Nejasné","Slabé","Průměrné","Dobré","Výborné"]},
 ];
 
 let apps=[],revs=[],cur=null,scores={},rec="";
@@ -327,7 +343,14 @@ function renderDetail(){
   document.getElementById("appDetail").innerHTML=`<div class="dgrid">${rows}${long}</div>`;
 }
 
+function renderCovStrip(){
+  const el=document.getElementById("covStrip");
+  if(!el)return;
+  el.innerHTML=CRIT.map(c=>`<div class="cov-card"><div class="cov-k">${c.key}</div><div class="cov-t">${c.label}</div><div class="cov-d">${c.short||""}</div></div>`).join("");
+}
+
 function renderCrit(){
+  renderCovStrip();
   document.getElementById("critBox").innerHTML=CRIT.map((c,i)=>{
     const ex=myRev(cur.application_id),nk="comment_"+c.key.toLowerCase(),nv=ex?ex[nk]||"":"";
     return`<div class="crit">
