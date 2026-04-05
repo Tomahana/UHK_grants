@@ -85,6 +85,9 @@
     </p>
 
     <div id="scopeNote" class="alert alert--info" style="display:none;"></div>
+    <div id="postawardHint" class="alert alert--info" style="display:none;">
+      U projektů se stanoviskem <strong>Podpořeno</strong> nebo <strong>Kráceno</strong> otevřete u řádku <strong>Detail podání</strong> — zobrazí se lhůty a povinné výstupy (diseminace, závěrečná zpráva, e-mail administrátorce).
+    </div>
     <div id="msgErr" class="alert alert--err" style="display:none;"></div>
 
     <div id="loading" class="panel loading-box">
@@ -235,6 +238,11 @@
         } else {
           scopeEl.style.display = "none";
         }
+        const hintPa = document.getElementById("postawardHint");
+        const needsPost = finals.some(function (a) {
+          return a.result_label === "Podpořeno" || a.result_label === "Kráceno";
+        });
+        if (hintPa) hintPa.style.display = needsPost ? "block" : "none";
         showSection("draft", drafts);
         showSection("final", finals);
       } catch (err) {
