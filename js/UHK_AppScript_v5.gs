@@ -854,8 +854,8 @@ function sendStatusEmail(toEmail, appId, status, projectTitle) {
     SUBMITTED:    "Vaše přihláška byla úspěšně přijata a čeká na formální kontrolu.",
     FORMAL_CHECK: "Probíhá formální kontrola Vaší přihlášky.",
     IN_REVIEW:    "Vaše přihláška byla předána hodnoticímu panelu.",
-    APPROVED:     "Gratulujeme! Vaše přihláška byla schválena k financování.",
-    REJECTED:     "Vaše přihláška nebyla v tomto kole podpořena. Komentář panelu Vám zašleme e-mailem.",
+    APPROVED:     "Gratulujeme! Vaše přihláška byla schválena k financování. Stanovisko prorektora a komentář si můžete po přihlášení přečíst u přihlášky UHK Connect (Moje přihlášky).",
+    REJECTED:     "Vaše přihláška nebyla v tomto kole podpořena. Zdůvodnění od prorektora najdete po přihlášení u přihlášky UHK Connect (Moje přihlášky).",
     WITHDRAWN:    "Vaše přihláška byla stažena ze soutěže.",
   };
   if (!subjects[status]) return;
@@ -1777,7 +1777,65 @@ function saveDraft(body) {
   return { success: true, draftId: newId };
 }
 
-/** Načte draft přihlášky pro žadatele */
+/** Název projektu z řádku APPLICATIONS. */
+function applicationRowTitle_(row) {
+  if (!row) return "";
+  if (row.project_title) return String(row.project_title);
+  try {
+    const fd = JSON.parse(String(row.form_data_json || "{}"));
+    return String(fd.project_title || row.application_id || "");
+  } catch (e) {
+    return String(row.application_id || "");
+  }
+}
+
+/** Poslední řádek prorektora (PROREKTOR_DECISION) pro přihlášku, nejnovější podle submitted_at. */
+function findProrektorOutcomeForApp_(ss, applicationId) {
+  const sheet = ss.getSheetByName(SHEETS.REVIEWS);
+  if (!sheet) return null;
+  const rows = sheetToObjects(sheet);
+  const aid = String(applicationId || "").trim();
+  const matches = rows.filter(function (r) {
+    const id = String(r.application_id || r.project_id || "").trim();
+    return id === aid && String(r.comment_internal || "").trim() === "PROREKTOR_DECISION";
+  });
+  if (!matches.length) return null;
+  matches.sort(function (a, b) {
+    const ta = parseSubmittedAt_(a.submitted_at) || new Date(0);
+    const tb = parseSubmittedAt_(b.submitted_at) || new Date(0);
+    return tb - ta;
+  });
+  const r = matches[0];
+  const dec = String(r.recommendation || "").toUpperCase();
+  let label = "—";
+  if (dec === "SUPPORT") label = "Podpořit";
+  else if (dec === "CUT") label = "Krátit rozpočet";
+  else if (dec === "REJECT") label = "Nepodpořit";
+  return {
+    decision: dec,
+    decisionLabel: label,
+    comment: String(r.comment_public || "").trim(),
+    decidedAt: r.submitted_at ? String(r.submitted_at) : "",
+  };
+}
+
+function applicantNonDraftRows_(rows, applicantLower) {
+  return rows.filter(function (r) {
+    return String(r.applicant_email || "").toLowerCase().trim() === applicantLower &&
+      String(r.status || "").toUpperCase() !== "DRAFT";
+  });
+}
+
+function pickLatestApplicationRow_(list) {
+  if (!list || !list.length) return null;
+  return list.slice().sort(function (a, b) {
+    const ta = parseSubmittedAt_(a.submitted_at) || parseSubmittedAt_(a.updated_at) || new Date(0);
+    const tb = parseSubmittedAt_(b.submitted_at) || parseSubmittedAt_(b.updated_at) || new Date(0);
+    return tb - ta;
+  })[0];
+}
+
+/** Načte draft přihlášky pro žadatele + případně poslední podanou přihlášku a výsledek prorektora. */
 function getDraft(competitionId, applicantEmail, token) {
   const auth = requireAuth(token);
   const applicant = String(applicantEmail || "").toLowerCase().trim();
@@ -1786,14 +1844,30 @@ function getDraft(competitionId, applicantEmail, token) {
 
   const ss    = getSpreadsheet(competitionId);
   const sheet = ss.getSheetByName("📥 APPLICATIONS");
-  if (!sheet) return { success: true, draft: null };
+  if (!sheet) return { success: true, draft: null, submittedApplication: null, prorektorOutcome: null };
 
   const rows = sheetToObjects(sheet);
   const draft = rows.find(r =>
     String(r.applicant_email || "").toLowerCase() === String(applicantEmail || "").toLowerCase() &&
     String(r.status || "").toUpperCase() === "DRAFT"
   );
-  if (!draft) return { success: true, draft: null };
+
+  const nonDraft = applicantNonDraftRows_(rows, applicant);
+  const latestSub = pickLatestApplicationRow_(nonDraft);
+  let prorektorOutcome = null;
+  let submittedSummary = null;
+  if (latestSub && latestSub.application_id) {
+    prorektorOutcome = findProrektorOutcomeForApp_(ss, latestSub.application_id);
+    submittedSummary = {
+      application_id: latestSub.application_id,
+      status: String(latestSub.status || "").toUpperCase(),
+      project_title: applicationRowTitle_(latestSub),
+    };
+  }
+
+  if (!draft) {
+    return { success: true, draft: null, submittedApplication: submittedSummary, prorektorOutcome: prorektorOutcome };
+  }
 
   // JSON dat formuláře (správně ve form_data_json; fallback kvůli starým řádkům zapsaným do špatného sloupce)
   var rawJson = String(draft.form_data_json || draft.form_data || "").trim();
@@ -1811,7 +1885,12 @@ function getDraft(competitionId, applicantEmail, token) {
   }
   // Frontend očekává draft.id (v listu je application_id)
   draft.id = draft.application_id || draft.id;
-  return { success: true, draft };
+  return {
+    success: true,
+    draft: draft,
+    submittedApplication: submittedSummary,
+    prorektorOutcome: prorektorOutcome,
+  };
 }
 
 /** Finálně podá přihlášku (DRAFT → SUBMITTED) – Connect / ReGa (JSON ve form_data_json) */
