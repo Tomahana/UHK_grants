@@ -83,6 +83,8 @@ function doGet(e) {
         return corsResponse(getConnectReviews(p.competitionId, p.token));
       case "getConnectMyApplications":
         return corsResponse(getConnectMyApplications(p.competitionId, p.token));
+      case "getConnectPostAward":
+        return corsResponse(getConnectPostAward(p.competitionId, p.applicationId || p.app, p.token));
       case "getProjects":      return corsResponse(getProjects(p.competitionId, p.token));
       case "getUsers":         return corsResponse(getUsers(p.token));
       case "getUserRoles":     return corsResponse(getUserRoles(p.email, p.token));
@@ -128,6 +130,8 @@ function doPost(e) {
       case "saveConnectProrektorDecision":
         return corsResponse(saveConnectProrektorDecision(body));
       case "saveDraft":        return corsResponse(saveDraft(body));
+      case "saveConnectPostAward":
+        return corsResponse(saveConnectPostAward(body));
       default:                 return corsResponse({ error: "Neznámá POST akce: " + body.action });
     }
   } catch (err) {
@@ -761,6 +765,247 @@ function applicationsSheetRowNormalize_(r) {
   return out;
 }
 
+/** Verze textů pravidel (změna = řešitel může znovu potvrdit seznámení). */
+var CONNECT_POSTAWARD_RULES_VERSION = "2026-04-05";
+
+/** Nejpozdější termín odevzdání dle výzvy (30. 11. 2026 konec dne, lokální TZ skriptu). */
+function connectPostAwardHardCapDate_() {
+  return new Date(2026, 10, 30, 23, 59, 59);
+}
+
+/** JSON z přihlášky (form_data_json + fallback sloupce). */
+function connectParseFormDataObject_(row) {
+  if (!row) return {};
+  var raw = String(row.form_data_json || row.form_data || "").trim();
+  if (!raw || raw === "{}") {
+    var w = String(row.coordinator_email || row.project_title || "").trim();
+    if (w.charAt(0) === "{") raw = w;
+  }
+  try {
+    return JSON.parse(raw || "{}");
+  } catch (e) {
+    return {};
+  }
+}
+
+/** Datum ukončení aktivity z přihlášky (YYYY-MM-DD) nebo "". */
+function connectActivityEndIsoFromRow_(row) {
+  var fd = connectParseFormDataObject_(row);
+  var v = fd.activity_end != null ? String(fd.activity_end).trim() : "";
+  if (/^\d{4}-\d{2}-\d{2}/.test(v)) return v.slice(0, 10);
+  return "";
+}
+
+/** +30 kalendářních dnů od activity_end, omezeno shora datem 30. 11. 2026. */
+function connectComputeReportDeadline_(activityEndIso) {
+  var cap = connectPostAwardHardCapDate_();
+  var capLabel = Utilities.formatDate(cap, Session.getScriptTimeZone(), "d. M. yyyy");
+  if (!activityEndIso || !/^\d{4}-\d{2}-\d{2}$/.test(activityEndIso)) {
+    return {
+      hasActivityEnd: false,
+      due: cap,
+      dueLabel: capLabel,
+      hardCapLabel: capLabel,
+      explanation:
+        "V přihlášce není platné datum ukončení aktivity – pro přesný výpočet „+30 dnů“ jej doplňte u koordinátorky. Do nejpozději " +
+        capLabel +
+        " musí být povinnosti splněny dle výzvy.",
+    };
+  }
+  var p = activityEndIso.split("-");
+  var y = Number(p[0]);
+  var mo = Number(p[1]);
+  var d = Number(p[2]);
+  var start = new Date(y, mo - 1, d, 12, 0, 0);
+  var plus30 = new Date(start.getTime());
+  plus30.setDate(plus30.getDate() + 30);
+  var due = plus30.getTime() <= cap.getTime() ? plus30 : cap;
+  return {
+    hasActivityEnd: true,
+    activityEndLabel: Utilities.formatDate(start, Session.getScriptTimeZone(), "d. M. yyyy"),
+    due: due,
+    dueLabel: Utilities.formatDate(due, Session.getScriptTimeZone(), "d. M. yyyy"),
+    hardCapLabel: capLabel,
+    explanation:
+      "Lhůta pro odevzdání závěrečné zprávy a doložení výstupů e-mailem administrátorce soutěže je kratší z: (a) 30 kalendářních dnů od ukončení podporované aktivity dle přihlášky, (b) nejpozději " +
+      capLabel +
+      " (dle výzvy).",
+  };
+}
+
+function connectPostawardJsonColIndex_(sheet) {
+  var data = sheet.getDataRange().getValues();
+  if (data.length < HEADER_ROW) return -1;
+  var COL = mapColumns(data[HEADER_ROW - 1]);
+  var c = findCol(COL, "connect_postaward_json", "postaward_json", "povinne_vystupy_json");
+  return c;
+}
+
+/** Zajistí sloupec connect_postaward_json v záhlaví; vrátí 0-based index nebo -1. */
+function ensureConnectPostawardColumn_(sheet) {
+  var c = connectPostawardJsonColIndex_(sheet);
+  if (c >= 0) return c;
+  var last = sheet.getLastColumn();
+  sheet.getRange(HEADER_ROW, last + 1).setValue("connect_postaward_json");
+  return sheet.getLastColumn() - 1;
+}
+
+function readConnectPostawardChecklist_(row) {
+  var raw = row.connect_postaward_json || row.postaward_json || row.povinne_vystupy_json || "";
+  if (!raw || !String(raw).trim()) return {};
+  try {
+    var o = JSON.parse(String(raw));
+    return o && typeof o === "object" ? o : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function findApplicationsSheetRowNumber_(sheet, applicationId) {
+  var data = sheet.getDataRange().getValues();
+  if (data.length <= HEADER_ROW) return -1;
+  var COL = mapColumns(data[HEADER_ROW - 1]);
+  var idCol = findCol(COL, "application_id", "id", "app_id");
+  if (idCol < 0) return -1;
+  var aid = String(applicationId || "").trim();
+  for (var i = HEADER_ROW; i < data.length; i++) {
+    if (String(data[i][idCol] || "").trim() === aid) return i + 1;
+  }
+  return -1;
+}
+
+function connectPostAwardPrivileged_(auth) {
+  var rolesU = (auth.roles || []).map(function (x) {
+    return String(x).trim().toUpperCase();
+  });
+  return rolesU.some(function (role) {
+    return (
+      ["ADMIN", "TESTER", "PROREKTOR", "KOMISAR", "KOMISAŘ", "READONLY"].indexOf(role) >= 0
+    );
+  });
+}
+
+/**
+ * Přehled pravidel a checklistu po rozhodnutí Podpořeno / Kráceno (Connect).
+ */
+function getConnectPostAward(competitionId, applicationId, token) {
+  if (!competitionId) throw new Error("chybí competitionId");
+  var aid = String(applicationId || "").trim();
+  if (!aid) throw new Error("chybí applicationId");
+
+  var auth = requireAuth(token);
+  var ss = getSpreadsheet(competitionId);
+  var sheet = ss.getSheetByName(SHEETS.APPLICATIONS);
+  if (!sheet) throw new Error("List APPLICATIONS nenalezen.");
+
+  var rows = sheetToObjects(sheet).map(applicationsSheetRowNormalize_);
+  var row = rows.find(function (r) {
+    return String(r.application_id || "").trim() === aid;
+  });
+  if (!row) throw new Error("Přihláška nenalezena.");
+
+  var owner = String(row.applicant_email || "").toLowerCase().trim() === String(auth.email || "").toLowerCase().trim();
+  var priv = connectPostAwardPrivileged_(auth);
+  if (!owner && !priv) throw new Error("K této přihlášce nemáte přístup.");
+
+  var outcome = findProrektorOutcomeForApp_(ss, aid);
+  var dec = outcome && outcome.decision ? String(outcome.decision).toUpperCase() : "";
+  if (dec !== "SUPPORT" && dec !== "CUT") {
+    return {
+      success: true,
+      applicable: false,
+      reason: "Povinné výstupy se vztahují jen na projekty s rozhodnutím Podpořeno nebo Kráceno.",
+    };
+  }
+
+  var cfg = getConfigMap(ss);
+  var coord =
+    cfg["coordinator_email"] ||
+    cfg["connect_coordinator_email"] ||
+    cfg["admin_email"] ||
+    ADMIN_EMAIL ||
+    "";
+
+  var actIso = connectActivityEndIsoFromRow_(row);
+  var deadline = connectComputeReportDeadline_(actIso);
+  var checklist = readConnectPostawardChecklist_(row);
+
+  return {
+    success: true,
+    applicable: true,
+    rulesVersion: CONNECT_POSTAWARD_RULES_VERSION,
+    applicationId: aid,
+    projectTitle: applicationRowTitle_(row),
+    outcomeDecision: dec,
+    outcomeLabel: dec === "SUPPORT" ? "Podpořeno" : "Kráceno",
+    outcomeComment: outcome && outcome.comment ? String(outcome.comment) : "",
+    coordinatorEmail: String(coord).trim(),
+    activityEndIso: actIso,
+    deadlines: deadline,
+    checklist: {
+      dissemination_fulfilled: !!checklist.dissemination_fulfilled,
+      package_emailed_declared: !!checklist.package_emailed_declared,
+      consequences_acknowledged: !!checklist.consequences_acknowledged,
+      notes: String(checklist.notes || "").slice(0, 2000),
+      savedAt: checklist.savedAt || "",
+      savedRulesVersion: checklist.savedRulesVersion || "",
+    },
+    canEdit: owner,
+  };
+}
+
+/**
+ * Uložení self-checklistu řešitele (jen vlastník řádku, jen SUPPORT/CUT).
+ */
+function saveConnectPostAward(body) {
+  var auth = requireAuth(body.token);
+  var competitionId = body.competitionId;
+  var applicationId = String(body.applicationId || "").trim();
+  if (!competitionId || !applicationId) throw new Error("chybí competitionId nebo applicationId");
+
+  var ss = getSpreadsheet(competitionId);
+  var sheet = ss.getSheetByName(SHEETS.APPLICATIONS);
+  if (!sheet) throw new Error("List APPLICATIONS nenalezen.");
+
+  var rowNum = findApplicationsSheetRowNumber_(sheet, applicationId);
+  if (rowNum < 0) throw new Error("Přihláška nenalezena.");
+
+  var rows = sheetToObjects(sheet).map(applicationsSheetRowNormalize_);
+  var row = rows.find(function (r) {
+    return String(r.application_id || "").trim() === applicationId;
+  });
+  if (!row) throw new Error("Přihláška nenalezena.");
+
+  var me = String(auth.email || "").toLowerCase().trim();
+  if (String(row.applicant_email || "").toLowerCase().trim() !== me)
+    throw new Error("Ukládat checklist může jen žadatel/řešitel uvedený u přihlášky.");
+
+  var outcome = findProrektorOutcomeForApp_(ss, applicationId);
+  var dec = outcome && outcome.decision ? String(outcome.decision).toUpperCase() : "";
+  if (dec !== "SUPPORT" && dec !== "CUT") throw new Error("Checklist lze ukládat jen u podpořených nebo krácených projektů.");
+
+  var prev = readConnectPostawardChecklist_(row);
+  var c = body.checklist || {};
+  var next = {
+    dissemination_fulfilled: !!c.dissemination_fulfilled,
+    package_emailed_declared: !!c.package_emailed_declared,
+    consequences_acknowledged: !!c.consequences_acknowledged,
+    notes: String(c.notes != null ? c.notes : prev.notes || "").slice(0, 2000),
+    savedAt: fmtDate(new Date()),
+    savedRulesVersion: CONNECT_POSTAWARD_RULES_VERSION,
+  };
+
+  var col = ensureConnectPostawardColumn_(sheet);
+  if (col < 0) throw new Error("Nelze založit sloupec connect_postaward_json.");
+
+  sheet.getRange(rowNum, col + 1).setValue(JSON.stringify(next));
+  try {
+    writeAudit(ss, "CONNECT_POSTAWARD_SAVE", applicationId, "", JSON.stringify(next).slice(0, 500), me);
+  } catch (aud) { /* ignore */ }
+
+  return { success: true, checklist: next };
+}
+
 /**
  * Přehled přihlášek přihlášeného žadatele v Connect (drafty + podané) se stavem a výsledkem prorektora.
  */
@@ -1324,6 +1569,7 @@ function appendApplicationsRowFromMap(sheet, map) {
   putMany(map.submitted_at, "submitted_at", "datum_podani");
   putMany(map.note, "note", "notes", "poznamka", "internal_notes");
   putMany(map.project_title, "project_title", "nazev_projektu", "project", "nazev");
+  putMany(map.connect_postaward_json, "connect_postaward_json", "postaward_json", "povinne_vystupy_json");
 
   sheet.appendRow(row);
 }
