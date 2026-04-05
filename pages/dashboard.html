@@ -149,7 +149,11 @@
           new Promise((_,r) => setTimeout(() => r(new Error("timeout")), 4000)),
         ]);
         if (Array.isArray(data) && data.length) {
-          let live = data.map(c => ({ ...c, _visible: vis[c.id] !== undefined ? vis[c.id] : true }));
+          // Viditelnost z CONFIG (dashboard_visible v Sheets); ADMIN/TESTER vidí vše, ostatní jen dashboardVisible
+          let live = data.map(c => ({
+            ...c,
+            _visible: c.dashboardVisible !== false,
+          }));
           // Doplň Návraty pokud API nevrátí
           if (!live.some(c => c.id === "uhk_navraty_2026")) live.unshift(NAVRATY_CARD);
           if (!isAdmin) live = live.filter(c => c._visible);
@@ -255,16 +259,20 @@
 
       // Odkaz na podání přihlášky dle soutěže
       const applyHref =
-        type === "UHK_CONNECT"    ? `apply-connect.html` :
+        type === "UHK_CONNECT"    ? `apply-connect.html?c=${id}` :
         type === "UHK_REGA"       ? `apply-rega.html` :
         type === "UHK_PRESTIGE"   ? `apply-prestige.html` :
         null; // Návraty nemají přihlášku přes web
+
+      // Connect: přehled přihlášek odděleně od formuláře
+      const myApplicationsHref =
+        type === "UHK_CONNECT" ? `my-connect.html?c=${id}` : applyHref;
 
       // Přihlášky (pouze ne-Návraty soutěže)
       const applyActions = applyHref && isOpen ? [
         { label: "Podat přihlášku", href: applyHref, style: "primary", icon: "📝" },
       ] : applyHref ? [
-        { label: "Moje přihlášky",  href: applyHref, style: "ghost",   icon: "📁" },
+        { label: "Moje přihlášky",  href: myApplicationsHref, style: "ghost",   icon: "📁" },
       ] : [];
 
       const actionMap = {
@@ -299,15 +307,15 @@
 
         ZADATEL: applyHref ? (isOpen ? [
           { label: "Podat přihlášku", href: applyHref,                  style: "primary",   icon: "📝" },
-          { label: "Moje přihlášky",  href: applyHref,                  style: "ghost",     icon: "📁" },
+          { label: "Moje přihlášky",  href: myApplicationsHref,          style: "ghost",     icon: "📁" },
         ] : [
-          { label: "Moje přihlášky",  href: applyHref,                  style: "ghost",     icon: "📁" },
+          { label: "Moje přihlášky",  href: myApplicationsHref,          style: "ghost",     icon: "📁" },
         ]) : [
           { label: "Soutěž nepřijímá přihlášky", href: "#",            style: "ghost",     icon: "📋" },
         ],
 
         RESITEL: applyHref ? [
-          { label: "Moje přihlášky",  href: applyHref,                  style: "primary",   icon: "📁" },
+          { label: "Moje přihlášky",  href: myApplicationsHref,         style: "primary",   icon: "📁" },
           { label: "Zprávy",          href: "my-projects.html",         style: "ghost",     icon: "📄" },
         ] : [
           { label: "Moje projekty",   href: "my-projects.html",         style: "primary",   icon: "📁" },
