@@ -350,13 +350,19 @@
       return "badge-draft";
     }
 
-    function renderSubmittedApplicationView(sub, outcome) {
+    function renderSubmittedApplicationView(sub, outcome, hasOtherDraft) {
       document.getElementById("loadingState")?.remove();
       document.querySelector(".progress-wrap")?.style.setProperty("opacity", "0.45");
       const badge = document.getElementById("statusBadge");
       badge.textContent = sub.status || "—";
       badge.className = "badge " + statusToBadgeClass(sub.status);
       const st = String(sub.status || "").toUpperCase();
+      const draftNote = hasOtherDraft
+        ? `<p style="font-size:13px;color:#2F4A8A;margin-top:18px;padding:14px 16px;background:var(--navy-lite);border-radius:var(--r);text-align:left;line-height:1.5;border:1px solid #D0D8EE;">
+            Máte také rozpracovaný <strong>koncept (draft)</strong>.
+            <a href="apply-connect.html?c=${encodeURIComponent(COMPETITION_ID)}" style="color:var(--navy);font-weight:600;white-space:nowrap;">Pokračovat v konceptu →</a>
+          </p>`
+        : "";
       let outcomeBlock = "";
       if (outcome && outcome.decision) {
         outcomeBlock = `
@@ -379,7 +385,11 @@
           <p style="font-size:13px;color:var(--muted);margin-bottom:8px;">ID přihlášky: <span style="font-family:'DM Mono',monospace;">${escapeHtml(sub.application_id)}</span></p>
           <p style="font-size:13px;color:var(--muted);margin-bottom:4px;">Aktuální stav: <strong>${escapeHtml(sub.status)}</strong></p>
           ${outcomeBlock}
-          <a href="dashboard.html" class="btn btn-primary" style="margin-top:12px;">← Zpět na rozcestník</a>
+          ${draftNote}
+          <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:20px;">
+            <a href="my-connect.html?c=${encodeURIComponent(COMPETITION_ID)}" class="btn btn-ghost">← Moje přihlášky</a>
+            <a href="dashboard.html" class="btn btn-primary">Rozcestník</a>
+          </div>
         </div>`;
     }
 
@@ -952,6 +962,8 @@
         url.searchParams.set("competitionId", COMPETITION_ID);
         url.searchParams.set("applicantEmail", user.email);
         url.searchParams.set("token", session?.token || "");
+        const focusApp = new URLSearchParams(location.search).get("app");
+        if (focusApp) url.searchParams.set("applicationId", focusApp.trim());
         const res  = await fetch(url.toString());
         const data = await res.json();
         if (data.error) return false;
@@ -963,7 +975,11 @@
         }
 
         if (data.submittedApplication && !data.draft) {
-          renderSubmittedApplicationView(data.submittedApplication, data.prorektorOutcome);
+          renderSubmittedApplicationView(
+            data.submittedApplication,
+            data.prorektorOutcome,
+            !!data.hasOtherDraft
+          );
           return true;
         }
 
