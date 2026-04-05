@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Moje přihlášky – UHK Connect</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #1C2E5A; --navy-mid: #2F4A8A; --navy-lite: #E8EDF8;
+      --border: #E2E0D8; --muted: #6B6A63;
+      --bg: #F8F7F4; --white: #FFFFFF;
+      --r: 8px; --r-lg: 12px;
+      --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+      --green: #1E6B45; --green-lite: #E6F4EE;
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--navy); min-height: 100vh; font-size: 15px; line-height: 1.6; }
+    .topbar { background: var(--navy); height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 100; }
+    .topbar__logo { display: flex; align-items: center; gap: 10px; }
+    .topbar__logo img { height: 26px; opacity: .9; }
+    .topbar__title { font-size: 14px; font-weight: 500; color: rgba(255,255,255,.8); }
+    .topbar__right { display: flex; align-items: center; gap: 10px; }
+    .topbar__user { font-size: 13px; color: rgba(255,255,255,.5); }
+    .topbar__user strong { color: rgba(255,255,255,.85); font-weight: 500; }
+    .btn-back { background: none; border: 1px solid rgba(255,255,255,.2); color: rgba(255,255,255,.6); font-family: 'DM Mono', monospace; font-size: 11px; padding: 5px 12px; border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; transition: all .15s; }
+    .btn-back:hover { color: white; border-color: rgba(255,255,255,.4); }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 28px 24px 64px; }
+    h1 { font-size: 22px; font-weight: 600; margin-bottom: 8px; }
+    .sub { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+    .section-title { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--navy-mid); margin: 28px 0 12px; }
+    .section-title:first-of-type { margin-top: 0; }
+    .panel { background: var(--white); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow); overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); background: #FAFAF8; }
+    tr:last-child td { border-bottom: none; }
+    .mono { font-family: 'DM Mono', monospace; font-size: 12px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 100px; font-size: 11px; font-weight: 600; }
+    .badge--draft { background: #E6F1FB; color: #0C447C; }
+    .badge--final { background: var(--green-lite); color: var(--green); }
+    .btn-row { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--r); font-size: 13px; font-weight: 500; background: var(--navy); color: white; text-decoration: none; }
+    .btn-row:hover { background: var(--navy-mid); }
+    .alert { padding: 14px 16px; border-radius: var(--r); margin-bottom: 20px; font-size: 14px; }
+    .alert--err { background: #FEF2F2; border: 1px solid #FECACA; color: #991B1B; }
+    .alert--info { background: var(--navy-lite); border: 1px solid #D0D8EE; color: #1C2E5A; }
+    .empty { padding: 24px 16px; text-align: center; color: var(--muted); font-size: 14px; }
+    .spinner { width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--navy); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 12px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-box { padding: 40px; text-align: center; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar__logo">
+      <img src="../img/uhk-abb-w.png" alt="UHK">
+      <span class="topbar__title">UHK Connect – Moje přihlášky</span>
+    </div>
+    <div class="topbar__right">
+      <div class="topbar__user">Přihlášen: <strong id="topbarName">—</strong></div>
+      <a href="dashboard.html" class="btn-back">← Rozcestník</a>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <h1 id="pageTitle">Moje přihlášky</h1>
+    <p class="sub" id="pageSub">Přehled konceptů a odeslaných přihlášek včetně stavu v řízení a výsledku po zápisu stanoviska prorektora.</p>
+
+    <div id="msgErr" class="alert alert--err" style="display:none;"></div>
+
+    <div id="loading" class="panel loading-box">
+      <div class="spinner"></div>
+      <p>Načítám přehled…</p>
+    </div>
+
+    <div id="content" style="display:none;">
+      <p class="section-title">Koncepty (neodesláno)</p>
+      <div class="panel" id="draftWrap">
+        <div id="draftEmpty" class="empty" style="display:none;">Žádný uložený koncept.</div>
+        <table id="draftTable" style="display:none;">
+          <thead>
+            <tr>
+              <th>Verze</th>
+              <th>Název / projekt</th>
+              <th>ID</th>
+              <th>Stav</th>
+              <th>Výsledek</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="draftBody"></tbody>
+        </table>
+      </div>
+
+      <p class="section-title">Finální přihlášky (podané)</p>
+      <div class="panel" id="finalWrap">
+        <div id="finalEmpty" class="empty" style="display:none;">Zatím žádná podaná přihláška.</div>
+        <table id="finalTable" style="display:none;">
+          <thead>
+            <tr>
+              <th>Verze</th>
+              <th>Název / projekt</th>
+              <th>ID</th>
+              <th>Stav</th>
+              <th>Výsledek prorektora</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="finalBody"></tbody>
+        </table>
+      </div>
+
+      <p class="sub" style="margin-top:24px;">
+        <a id="linkApply" href="#" class="btn-row" style="margin-right:10px;">Otevřít formulář přihlášky</a>
+        Úpravy konceptu a podání probíhají v jednom formuláři; tato stránka slouží jen k přehledu.
+      </p>
+    </div>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/api.js"></script>
+  <script>
+    const user = Auth.requireLogin(["ZADATEL", "RESITEL", "ADMIN", "TESTER"]);
+    document.getElementById("topbarName").textContent = user.name || user.email;
+
+    const params = new URLSearchParams(location.search);
+    const competitionId = params.get("c");
+    const applyHref = competitionId ? `apply-connect.html?c=${encodeURIComponent(competitionId)}` : "apply-connect.html";
+    document.getElementById("linkApply").href = applyHref;
+
+    function escapeHtml(s) {
+      return String(s == null ? "" : s)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    function rowHtml(r) {
+      const title = escapeHtml(r.project_title || "—");
+      const id = escapeHtml(r.application_id || "—");
+      const wf = escapeHtml(r.workflow_label || "—");
+      const res = escapeHtml(r.result_label || "—");
+      const isDraft = r.version_kind === "DRAFT";
+      const ver = isDraft
+        ? '<span class="badge badge--draft">Koncept</span>'
+        : '<span class="badge badge--final">Finální</span>';
+      return `<tr>
+        <td>${ver}</td>
+        <td>${title}</td>
+        <td class="mono">${id}</td>
+        <td>${wf}</td>
+        <td>${res}</td>
+        <td><a class="btn-row" href="${applyHref}">Formulář</a></td>
+      </tr>`;
+    }
+
+    function showSection(kind, rows) {
+      const emptyEl = document.getElementById(kind + "Empty");
+      const tableEl = document.getElementById(kind + "Table");
+      const bodyEl = document.getElementById(kind + "Body");
+      if (!rows.length) {
+        emptyEl.style.display = "block";
+        tableEl.style.display = "none";
+        return;
+      }
+      emptyEl.style.display = "none";
+      tableEl.style.display = "table";
+      bodyEl.innerHTML = rows.map(rowHtml).join("");
+    }
+
+    (async function load() {
+      if (!competitionId) {
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("content").style.display = "block";
+        const e = document.getElementById("msgErr");
+        e.style.display = "block";
+        e.textContent = "Chybí identifikátor soutěže. Otevřete stránku z rozcestníku (odkaz Moje přihlášky u soutěže Connect).";
+        return;
+      }
+
+      try {
+        const data = await API.getConnectMyApplications(competitionId);
+        if (data && data.error) throw new Error(data.error);
+        const apps = (data && data.applications) || [];
+        const drafts = apps.filter(a => a.version_kind === "DRAFT");
+        const finals = apps.filter(a => a.version_kind !== "DRAFT");
+
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("content").style.display = "block";
+        showSection("draft", drafts);
+        showSection("final", finals);
+      } catch (err) {
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("content").style.display = "block";
+        const e = document.getElementById("msgErr");
+        e.style.display = "block";
+        e.textContent = err.message || "Nepodařilo se načíst přehled.";
+      }
+    })();
+  </script>
+</body>
+</html>
