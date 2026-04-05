@@ -87,7 +87,10 @@ function doGet(e) {
       case "getUsers":         return corsResponse(getUsers(p.token));
       case "getUserRoles":     return corsResponse(getUserRoles(p.email, p.token));
       case "getNavratyReviews": return corsResponse(getNavratyAllReviews(p.competitionId, p.token));
-      case "getDraft":         return corsResponse(getDraft(p.competitionId, p.applicantEmail, p.token));
+      case "getDraft":
+        return corsResponse(
+          getDraft(p.competitionId, p.applicantEmail, p.token, p.applicationId || p.app || "")
+        );
       case "ping":             return corsResponse({ success: true, message: "API běží ✓" });
       default:                 return corsResponse({ error: "Neznámá akce: " + (p.action || "chybí") });
     }
@@ -541,23 +544,8 @@ function getApplications(competitionId, token, filters) {
 
   // Sjednoť e-mail a status (Sheets / JSON někdy vrací jiné klíče nebo mezery)
   rows = rows.map(function (r) {
-    var em =
-      r.applicant_email ||
-      r.applicantEmail ||
-      r["Applicant email"] ||
-      r["E-mail žadatele"] ||
-      r.email ||
-      "";
-    var out = {};
-    for (var k in r) if (Object.prototype.hasOwnProperty.call(r, k)) out[k] = r[k];
-    out.applicant_email = String(em).trim();
-    out.status = normalizeApplicationWorkflowStatus_(out);
-    var fd = String(r.form_data_json || r.form_data || "").trim();
-    if (!fd || fd === "{}") {
-      var wrongCol = String(r.coordinator_email || r.project_title || "").trim();
-      if (wrongCol.charAt(0) === "{") fd = wrongCol;
-    }
-    out.form_data_json = fd;
+    var out = applicationsSheetRowNormalize_(r);
+    delete out.__subAtFromStatusCol;
     return out;
   });
 
@@ -741,6 +729,39 @@ function connectApplicantResultLabel_(outcome) {
 }
 
 /**
+ * Jednotný řádek z listu APPLICATIONS: e-mail, form_data_json (včetně JSONu ve špatném sloupci),
+ * normální status, volitelně datum z buňky stav (pro podání).
+ */
+function applicationsSheetRowNormalize_(r) {
+  var em =
+    r.applicant_email ||
+    r.applicantEmail ||
+    r["Applicant email"] ||
+    r["E-mail žadatele"] ||
+    r.email ||
+    "";
+  var out = {};
+  for (var k in r) if (Object.prototype.hasOwnProperty.call(r, k)) out[k] = r[k];
+  out.applicant_email = String(em).trim();
+  var fd = String(r.form_data_json || r.form_data || "").trim();
+  if (!fd || fd === "{}") {
+    var wrongCol = String(r.coordinator_email || r.project_title || "").trim();
+    if (wrongCol.charAt(0) === "{") fd = wrongCol;
+  }
+  out.form_data_json = fd;
+  var subAtFromStatusCol = null;
+  ["status", "Status", "stav", "Stav", "STAV"].forEach(function (key) {
+    if (!Object.prototype.hasOwnProperty.call(r, key)) return;
+    var val = r[key];
+    if (val !== undefined && val !== null && val !== "" && isLikelyGoogleDateOrMisplacedValue_(val))
+      subAtFromStatusCol = val;
+  });
+  out.__subAtFromStatusCol = subAtFromStatusCol;
+  out.status = normalizeApplicationWorkflowStatus_(out);
+  return out;
+}
+
+/**
  * Přehled přihlášek přihlášeného žadatele v Connect (drafty + podané) se stavem a výsledkem prorektora.
  */
 function getConnectMyApplications(competitionId, token) {
@@ -752,35 +773,7 @@ function getConnectMyApplications(competitionId, token) {
   const sheet = ss.getSheetByName(SHEETS.APPLICATIONS);
   if (!sheet) return { success: true, applications: [] };
 
-  let rows = sheetToObjects(sheet);
-  rows = rows.map(function (r) {
-    var em =
-      r.applicant_email ||
-      r.applicantEmail ||
-      r["Applicant email"] ||
-      r["E-mail žadatele"] ||
-      r.email ||
-      "";
-    var out = {};
-    for (var k in r) if (Object.prototype.hasOwnProperty.call(r, k)) out[k] = r[k];
-    out.applicant_email = String(em).trim();
-    out.status = normalizeApplicationWorkflowStatus_(out);
-    var fd = String(r.form_data_json || r.form_data || "").trim();
-    if (!fd || fd === "{}") {
-      var wrongCol = String(r.coordinator_email || r.project_title || "").trim();
-      if (wrongCol.charAt(0) === "{") fd = wrongCol;
-    }
-    var subAtFromStatusCol = null;
-    ["status", "Status", "stav", "Stav", "STAV"].forEach(function (key) {
-      if (!Object.prototype.hasOwnProperty.call(r, key)) return;
-      var val = r[key];
-      if (val !== undefined && val !== null && val !== "" && isLikelyGoogleDateOrMisplacedValue_(val))
-        subAtFromStatusCol = val;
-    });
-    out.__subAtFromStatusCol = subAtFromStatusCol;
-    out.form_data_json = fd;
-    return out;
-  });
+  let rows = sheetToObjects(sheet).map(applicationsSheetRowNormalize_);
   rows = rows.filter(function (r) {
     return String(r.applicant_email || "").toLowerCase().trim() === me;
   });
@@ -792,10 +785,13 @@ function getConnectMyApplications(competitionId, token) {
     var outcome = isDraft ? null : findProrektorOutcomeForApp_(ss, id);
     var hasPr = !!(outcome && outcome.decision);
     var subRaw = readSubmittedAtCell_(r) || r.__subAtFromStatusCol;
-    var subParsed = parseSubmittedAt_(subRaw) || parseSubmittedAt_(r.updated_at);
+    var subParsed =
+      parseSubmittedAt_(subRaw) ||
+      parseSubmittedAt_(r.updated_at) ||
+      parseSubmittedAt_(r.created_at);
     var listDate = isDraft
       ? parseSubmittedAt_(r.updated_at) || parseSubmittedAt_(r.created_at)
-      : subParsed;
+      : subParsed || parseSubmittedAt_(r.created_at) || parseSubmittedAt_(r.updated_at);
     return {
       application_id: id,
       status: st,
@@ -1351,6 +1347,13 @@ function fmtDate(date) {
 function parseSubmittedAt_(val) {
   if (val === null || val === undefined || val === "") return null;
   if (val instanceof Date && !isNaN(val.getTime())) return val;
+  if (typeof val === "number" && !isNaN(val) && val > 20000 && val < 80000) {
+    var epoch = new Date(1899, 11, 30);
+    var whole = Math.floor(val);
+    var frac = val - whole;
+    var d = new Date(epoch.getTime() + whole * 86400000 + frac * 86400000);
+    return isNaN(d.getTime()) ? null : d;
+  }
   const s = String(val).trim();
   if (!s) return null;
   const m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?/);
@@ -2029,13 +2032,20 @@ function saveDraft(body) {
 /** Název projektu z řádku APPLICATIONS. */
 function applicationRowTitle_(row) {
   if (!row) return "";
-  if (row.project_title) return String(row.project_title);
+  var pt = row.project_title != null ? String(row.project_title).trim() : "";
+  if (pt && pt.charAt(0) !== "{") return pt;
   try {
-    const fd = JSON.parse(String(row.form_data_json || "{}"));
-    return String(fd.project_title || row.application_id || "");
-  } catch (e) {
-    return String(row.application_id || "");
-  }
+    var fd = JSON.parse(String(row.form_data_json || "{}"));
+    if (fd.project_title) return String(fd.project_title).trim();
+  } catch (e) { /* ignore */ }
+  try {
+    var scan = String(row.coordinator_email || "").trim();
+    if (scan.charAt(0) === "{") {
+      var fd2 = JSON.parse(scan);
+      if (fd2.project_title) return String(fd2.project_title).trim();
+    }
+  } catch (e2) { /* ignore */ }
+  return String(row.application_id || "").trim();
 }
 
 /** Poslední řádek prorektora (PROREKTOR_DECISION) pro přihlášku, nejnovější podle submitted_at. */
@@ -2077,15 +2087,25 @@ function applicantNonDraftRows_(rows, applicantLower) {
 
 function pickLatestApplicationRow_(list) {
   if (!list || !list.length) return null;
+  function rowTime(r) {
+    return (
+      parseSubmittedAt_(readSubmittedAtCell_(r) || r.__subAtFromStatusCol || r.submitted_at) ||
+      parseSubmittedAt_(r.updated_at) ||
+      parseSubmittedAt_(r.created_at) ||
+      new Date(0)
+    );
+  }
   return list.slice().sort(function (a, b) {
-    const ta = parseSubmittedAt_(a.submitted_at) || parseSubmittedAt_(a.updated_at) || new Date(0);
-    const tb = parseSubmittedAt_(b.submitted_at) || parseSubmittedAt_(b.updated_at) || new Date(0);
-    return tb - ta;
+    return rowTime(b) - rowTime(a);
   })[0];
 }
 
-/** Načte draft přihlášky pro žadatele + případně poslední podanou přihlášku a výsledek prorektora. */
-function getDraft(competitionId, applicantEmail, token) {
+/**
+ * Načte draft přihlášky pro žadatele + případně podanou přihlášku a výsledek prorektora.
+ * Volitelně applicationId / app (GET): konkrétní podaná přihláška → draft se nevrátí (zobrazí se přehled podání),
+ * i když existuje rozpracovaný koncept (hasOtherDraft).
+ */
+function getDraft(competitionId, applicantEmail, token, focusApplicationId) {
   const auth = requireAuth(token);
   const applicant = String(applicantEmail || "").toLowerCase().trim();
   if (!applicant || applicant !== auth.email)
@@ -2095,13 +2115,39 @@ function getDraft(competitionId, applicantEmail, token) {
   const sheet = ss.getSheetByName("📥 APPLICATIONS");
   if (!sheet) return { success: true, draft: null, submittedApplication: null, prorektorOutcome: null };
 
-  const rows = sheetToObjects(sheet);
-  const draft = rows.find(r =>
-    String(r.applicant_email || "").toLowerCase() === String(applicantEmail || "").toLowerCase() &&
-    String(r.status || "").toUpperCase() === "DRAFT"
-  );
+  const rows = sheetToObjects(sheet).map(applicationsSheetRowNormalize_);
+  const draft = rows.find(function (r) {
+    return String(r.applicant_email || "").toLowerCase().trim() === applicant && r.status === "DRAFT";
+  });
 
-  const nonDraft = applicantNonDraftRows_(rows, applicant);
+  const focusId = String(focusApplicationId || "").trim();
+  if (focusId) {
+    var focused = rows.find(function (r) {
+      return (
+        String(r.application_id || "").trim() === focusId &&
+        String(r.applicant_email || "").toLowerCase().trim() === applicant
+      );
+    });
+    if (focused && focused.status !== "DRAFT") {
+      var outcomeF = findProrektorOutcomeForApp_(ss, focusId);
+      return {
+        success: true,
+        draft: null,
+        submittedApplication: {
+          application_id: focusId,
+          status: focused.status,
+          project_title: applicationRowTitle_(focused),
+          submitted_at: readSubmittedAtCell_(focused) || focused.submitted_at || "",
+        },
+        prorektorOutcome: outcomeF,
+        hasOtherDraft: !!draft,
+      };
+    }
+  }
+
+  const nonDraft = rows.filter(function (r) {
+    return String(r.applicant_email || "").toLowerCase().trim() === applicant && r.status !== "DRAFT";
+  });
   const latestSub = pickLatestApplicationRow_(nonDraft);
   let prorektorOutcome = null;
   let submittedSummary = null;
@@ -2109,7 +2155,7 @@ function getDraft(competitionId, applicantEmail, token) {
     prorektorOutcome = findProrektorOutcomeForApp_(ss, latestSub.application_id);
     submittedSummary = {
       application_id: latestSub.application_id,
-      status: String(latestSub.status || "").toUpperCase(),
+      status: latestSub.status,
       project_title: applicationRowTitle_(latestSub),
     };
   }
