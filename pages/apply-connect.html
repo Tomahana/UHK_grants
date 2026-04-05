@@ -280,7 +280,7 @@
     const user = Auth.requireLogin(["ZADATEL","RESITEL","ADMIN","TESTER"]);
     document.getElementById("topbarName").textContent = user.name || user.email;
 
-    const COMPETITION_ID = "uhk_connect_2026_v2";
+    const COMPETITION_ID = new URLSearchParams(location.search).get("c") || "uhk_connect_2026_v2";
     const MAX_BUDGET = 80000;
 
     /** Milníky dle výzvy UHK Connect (synchronizováno s poli formuláře a config). */
