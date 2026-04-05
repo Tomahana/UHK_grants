@@ -548,11 +548,10 @@ function getApplications(competitionId, token, filters) {
       r["E-mail žadatele"] ||
       r.email ||
       "";
-    var st = String(r.status != null ? r.status : "").trim().toUpperCase();
     var out = {};
     for (var k in r) if (Object.prototype.hasOwnProperty.call(r, k)) out[k] = r[k];
     out.applicant_email = String(em).trim();
-    out.status = st;
+    out.status = normalizeApplicationWorkflowStatus_(out);
     var fd = String(r.form_data_json || r.form_data || "").trim();
     if (!fd || fd === "{}") {
       var wrongCol = String(r.coordinator_email || r.project_title || "").trim();
@@ -581,6 +580,140 @@ function getApplications(competitionId, token, filters) {
   return { applications: rows };
 }
 
+/** Známé kódy stavu v listu APPLICATIONS. */
+var CONNECT_WORKFLOW_STATUS_CODES_ = {
+  DRAFT: true,
+  SUBMITTED: true,
+  FORMAL_CHECK: true,
+  TO_REVIEW: true,
+  IN_REVIEW: true,
+  APPROVED: true,
+  REJECTED: true,
+  WITHDRAWN: true,
+};
+
+/** Buněka obsahuje datum (Sheets Date / výchozí řetězec z JS Date), ne text IN_REVIEW atd. */
+function isLikelyGoogleDateOrMisplacedValue_(val) {
+  if (val instanceof Date && !isNaN(val.getTime())) return true;
+  var s = String(val).trim();
+  if (!s) return false;
+  if (/GMT[+-]\d{4}/.test(s)) return true;
+  if (/^[A-Z]{3},\s+[A-Z]{3}\s+\d{1,2}\s+\d{4}/i.test(s)) return true;
+  return false;
+}
+
+/**
+ * Hodnota ze sloupce stav/status. Nejdřív „stav“ (častěji text), pak „status“;
+ * přeskakuje buňky s datem (prohozený sloupec / formát Google Sheets).
+ */
+function readRawApplicationStatusCell_(row) {
+  var preferred = ["stav", "Stav", "STAV", "status", "Status", "application_status", "stav_prihlasky"];
+  var i, k, v;
+  for (i = 0; i < preferred.length; i++) {
+    k = preferred[i];
+    if (!Object.prototype.hasOwnProperty.call(row, k)) continue;
+    v = row[k];
+    if (v === undefined || v === null || v === "") continue;
+    if (!isLikelyGoogleDateOrMisplacedValue_(v)) return v;
+  }
+  for (k in row) {
+    if (!Object.prototype.hasOwnProperty.call(row, k)) continue;
+    var kn = String(k)
+      .trim()
+      .toLowerCase()
+      .replace(/[áä]/g, "a");
+    if (kn === "status" || kn === "stav") {
+      v = row[k];
+      if (v === undefined || v === null || v === "") continue;
+      if (!isLikelyGoogleDateOrMisplacedValue_(v)) return v;
+    }
+  }
+  for (k in row) {
+    if (!Object.prototype.hasOwnProperty.call(row, k)) continue;
+    var kn2 = String(k)
+      .trim()
+      .toLowerCase()
+      .replace(/[áä]/g, "a");
+    if (kn2 === "status" || kn2 === "stav") {
+      v = row[k];
+      if (v !== undefined && v !== null && v !== "") return v;
+    }
+  }
+  return null;
+}
+
+function rowHasTimestampLikeSubmitted_(row) {
+  var preferred = ["submitted_at", "datum_podani", "Datum podání", "datum podani", "Datum podani"];
+  var i, k, v;
+  for (i = 0; i < preferred.length; i++) {
+    k = preferred[i];
+    if (!Object.prototype.hasOwnProperty.call(row, k)) continue;
+    v = row[k];
+    if (v !== undefined && v !== null && v !== "") return true;
+  }
+  for (k in row) {
+    if (!Object.prototype.hasOwnProperty.call(row, k)) continue;
+    var kn = String(k)
+      .toLowerCase()
+      .replace(/[áä]/g, "a")
+      .replace(/\s+/g, "_");
+    if (
+      kn.indexOf("submitted") !== -1 ||
+      kn === "datum_podani" ||
+      kn.indexOf("podani") !== -1 ||
+      kn.indexOf("odeslano") !== -1
+    ) {
+      v = row[k];
+      if (v !== undefined && v !== null && v !== "") return true;
+    }
+  }
+  return false;
+}
+
+/** První neprázdná hodnota sloupce data podání (různé názvy záhlaví). */
+function readSubmittedAtCell_(row) {
+  var preferred = ["submitted_at", "datum_podani", "Datum podání", "datum podani", "Datum podani"];
+  var i, k, v;
+  for (i = 0; i < preferred.length; i++) {
+    k = preferred[i];
+    if (!Object.prototype.hasOwnProperty.call(row, k)) continue;
+    v = row[k];
+    if (v !== undefined && v !== null && v !== "") return v;
+  }
+  for (k in row) {
+    if (!Object.prototype.hasOwnProperty.call(row, k)) continue;
+    var kn = String(k)
+      .toLowerCase()
+      .replace(/[áä]/g, "a")
+      .replace(/\s+/g, "_");
+    if (
+      kn.indexOf("submitted") !== -1 ||
+      kn === "datum_podani" ||
+      (kn.indexOf("datum") !== -1 && kn.indexOf("podani") !== -1)
+    ) {
+      v = row[k];
+      if (v !== undefined && v !== null && v !== "") return v;
+    }
+  }
+  return null;
+}
+
+/**
+ * Textový kód workflow (DRAFT, SUBMITTED, …). Ošetří Date v „stav“ i prohozené sloupce.
+ */
+function normalizeApplicationWorkflowStatus_(row) {
+  var raw = readRawApplicationStatusCell_(row);
+  if (raw !== null && !isLikelyGoogleDateOrMisplacedValue_(raw)) {
+    var u = String(raw)
+      .trim()
+      .toUpperCase();
+    if (CONNECT_WORKFLOW_STATUS_CODES_[u]) return u;
+  }
+  if (rowHasTimestampLikeSubmitted_(row)) return "SUBMITTED";
+  if (raw !== null && isLikelyGoogleDateOrMisplacedValue_(raw)) return "SUBMITTED";
+  return "DRAFT";
+}
+
 /** Stav průběhu pro žadatele (Connect). */
 function connectApplicantWorkflowLabel_(status, hasProrektorOutcome) {
   var st = String(status || "").toUpperCase();
@@ -594,7 +727,7 @@ function connectApplicantWorkflowLabel_(status, hasProrektorOutcome) {
   if (st === "REJECTED")
     return hasProrektorOutcome ? "Rozhodnutí zapsáno" : "Zamítnuto";
   if (st === "WITHDRAWN") return "Staženo";
-  return st || "—";
+  return "—";
 }
 
 /** Výsledek pro žadatele (jen po zápisu prorektora). */
@@ -628,16 +761,23 @@ function getConnectMyApplications(competitionId, token) {
       r["E-mail žadatele"] ||
       r.email ||
       "";
-    var st = String(r.status != null ? r.status : "").trim().toUpperCase();
     var out = {};
     for (var k in r) if (Object.prototype.hasOwnProperty.call(r, k)) out[k] = r[k];
     out.applicant_email = String(em).trim();
-    out.status = st;
+    out.status = normalizeApplicationWorkflowStatus_(out);
     var fd = String(r.form_data_json || r.form_data || "").trim();
     if (!fd || fd === "{}") {
       var wrongCol = String(r.coordinator_email || r.project_title || "").trim();
       if (wrongCol.charAt(0) === "{") fd = wrongCol;
     }
+    var subAtFromStatusCol = null;
+    ["status", "Status", "stav", "Stav", "STAV"].forEach(function (key) {
+      if (!Object.prototype.hasOwnProperty.call(r, key)) return;
+      var val = r[key];
+      if (val !== undefined && val !== null && val !== "" && isLikelyGoogleDateOrMisplacedValue_(val))
+        subAtFromStatusCol = val;
+    });
+    out.__subAtFromStatusCol = subAtFromStatusCol;
     out.form_data_json = fd;
     return out;
   });
@@ -651,6 +791,11 @@ function getConnectMyApplications(competitionId, token) {
     var isDraft = st === "DRAFT";
     var outcome = isDraft ? null : findProrektorOutcomeForApp_(ss, id);
     var hasPr = !!(outcome && outcome.decision);
+    var subRaw = readSubmittedAtCell_(r) || r.__subAtFromStatusCol;
+    var subParsed = parseSubmittedAt_(subRaw) || parseSubmittedAt_(r.updated_at);
+    var listDate = isDraft
+      ? parseSubmittedAt_(r.updated_at) || parseSubmittedAt_(r.created_at)
+      : subParsed;
     return {
       application_id: id,
       status: st,
@@ -661,6 +806,7 @@ function getConnectMyApplications(competitionId, token) {
       updated_at: r.updated_at || "",
       submitted_at: r.submitted_at || "",
       created_at: r.created_at || "",
+      submitted_at_label: formatCsDateTime_(listDate),
     };
   });
 
@@ -679,7 +825,7 @@ function getConnectMyApplications(competitionId, token) {
     return (sb.getTime ? sb.getTime() : 0) - (sa.getTime ? sa.getTime() : 0);
   });
 
-  return { success: true, applications: list };
+  return { success: true, applications: list, viewer_email: me, scope: "own_rows_only" };
 }
 
 function changeStatus(body) {
