@@ -74,6 +74,15 @@ const API = {
     return this.get("getConnectMyApplications", { competitionId });
   },
 
+  /** Pravidla a checklist povinných výstupů po Podpořeno/Kráceno (Connect). */
+  async getConnectPostAward(competitionId, applicationId) {
+    return this.get("getConnectPostAward", { competitionId, applicationId });
+  },
+
+  async saveConnectPostAward(competitionId, applicationId, checklist) {
+    return this.post("saveConnectPostAward", { competitionId, applicationId, checklist });
+  },
+
   /** Změna statusu přihlášky */
   async changeStatus(competitionId, applicationId, newStatus, note = "") {
     return this.post("changeStatus", { competitionId, applicationId, newStatus, note });
