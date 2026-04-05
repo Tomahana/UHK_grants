@@ -160,6 +160,13 @@
     .badge { display: inline-block; padding: 3px 10px; border-radius: 100px; font-size: 11px; font-weight: 600; }
     .badge-draft { background: #E6F1FB; color: #0C447C; }
     .badge-submitted { background: var(--green-lite); color: var(--green); }
+    .badge-review { background: var(--gold-lite); color: #92400E; }
+    .badge-rejected { background: var(--red-lite); color: var(--red); }
+    .outcome-card { background: linear-gradient(180deg,#F0F4FC 0%,#E8EDF8 100%); border: 1px solid #C8D4EC; border-radius: var(--r-lg); padding: 16px; }
+    .outcome-card h3 { font-size: 12px; font-weight: 700; color: var(--navy-mid); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 10px; }
+    .outcome-dec { font-size: 16px; font-weight: 600; color: var(--navy); margin-bottom: 10px; line-height: 1.35; }
+    .outcome-comment { font-size: 13px; line-height: 1.55; color: var(--navy); white-space: pre-wrap; }
+    .outcome-meta { font-size: 11px; color: var(--muted); margin-top: 10px; }
 
     .vyzva-list { list-style: none; padding: 0; margin: 0; font-size: 12px; line-height: 1.45; color: var(--navy); }
     .vyzva-list li { padding: 10px 0; border-bottom: 1px solid var(--border); }
@@ -227,10 +234,18 @@
         </p>
       </div>
 
+      <div class="sidebar-card outcome-card" id="prorektorOutcomeCard" style="display:none;">
+        <h3>Stanovisko prorektora</h3>
+        <p class="outcome-meta" id="outcomeAppRef" style="margin-top:0;margin-bottom:8px;"></p>
+        <div class="outcome-dec" id="outcomeDecision">—</div>
+        <div class="outcome-comment" id="outcomeComment"></div>
+        <p class="outcome-meta" id="outcomeDate"></p>
+      </div>
+
       <div class="sidebar-card">
         <h3>Termíny výzvy</h3>
         <ul class="vyzva-list" id="connectVyzvaList"></ul>
-        <p class="vyzva-footnote">Údaje odpovídají zadání soutěže UHK Connect (výzva č. 2); pro závazné znění použijte oficiální dokument na webu UHK / pokyny OVĚTZ.</p>
+        <p class="vyzva-footnote">Údaje odpovídají zadání soutěže UHK Connect (výzva č. 2); pro závazné znění použijte oficiální dokument na webu UHK / pokyny OVTZ</p>
       </div>
 
       <div class="sidebar-card">
@@ -276,7 +291,7 @@
       milestones: [
         { title: "Příjem přihlášek", dateLabel: "do 14. 10. 2026", note: "elektronicky, uzávěrka dle výzvy (obvykle konec dne)" },
         { title: "Formální kontrola", dateLabel: "říjen 2026", note: "bezprostředně po uzávěrce přihlášek" },
-        { title: "Hodnocení a rozhodnutí", dateLabel: "říjen – listopad 2026", note: "dle harmonogramu OVĚTZ" },
+        { title: "Hodnocení a rozhodnutí", dateLabel: "říjen – listopad 2026", note: "dle harmonogramu OVTZ" },
         { title: "Začátek podporované aktivity", dateLabel: "nejpozději 1. 11. 2026", note: "datum zahájení uvedené v přihlášce" },
         { title: "Konec podporované aktivity", dateLabel: "nejpozději 15. 11. 2026", note: "datum ukončení uvedené v přihlášce" },
         { title: "Závěrečná zpráva / vyúčtování", dateLabel: "dle pokynů po schválení", note: "termín v grantové dokumentaci / výzvě" },
@@ -287,6 +302,85 @@
       if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
       const [y, m, d] = iso.split("-").map(Number);
       return `${d}. ${m}. ${y}`;
+    }
+
+    function escapeHtml(s) {
+      return String(s == null ? "" : s)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    function formatOutcomeDate(s) {
+      if (!s) return "";
+      const t = String(s).trim();
+      const m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (m) return `${Number(m[3])}. ${Number(m[2])}. ${m[1]}${t.length > 10 ? " · " + t.slice(11, 19) : ""}`;
+      return t;
+    }
+
+    function fillProrektorOutcomeCard(outcome, submittedApp) {
+      const card = document.getElementById("prorektorOutcomeCard");
+      if (!card) return;
+      if (!outcome || !outcome.decision) {
+        card.style.display = "none";
+        return;
+      }
+      card.style.display = "block";
+      const ref = document.getElementById("outcomeAppRef");
+      if (ref) ref.textContent = submittedApp && submittedApp.application_id
+        ? "Přihláška " + submittedApp.application_id
+        : "";
+      document.getElementById("outcomeDecision").textContent = outcome.decisionLabel || outcome.decision || "—";
+      const comEl = document.getElementById("outcomeComment");
+      comEl.textContent = outcome.comment || "";
+      comEl.style.display = outcome.comment ? "block" : "none";
+      const dt = document.getElementById("outcomeDate");
+      dt.textContent = outcome.decidedAt ? "Zapsáno: " + formatOutcomeDate(outcome.decidedAt) : "";
+    }
+
+    function hideProrektorOutcomeCard() {
+      const card = document.getElementById("prorektorOutcomeCard");
+      if (card) card.style.display = "none";
+    }
+
+    function statusToBadgeClass(st) {
+      const u = String(st || "").toUpperCase();
+      if (u === "APPROVED") return "badge-submitted";
+      if (u === "REJECTED") return "badge-rejected";
+      if (u === "IN_REVIEW" || u === "TO_REVIEW" || u === "FORMAL_CHECK") return "badge-review";
+      return "badge-draft";
+    }
+
+    function renderSubmittedApplicationView(sub, outcome) {
+      document.getElementById("loadingState")?.remove();
+      document.querySelector(".progress-wrap")?.style.setProperty("opacity", "0.45");
+      const badge = document.getElementById("statusBadge");
+      badge.textContent = sub.status || "—";
+      badge.className = "badge " + statusToBadgeClass(sub.status);
+      const st = String(sub.status || "").toUpperCase();
+      let outcomeBlock = "";
+      if (outcome && outcome.decision) {
+        outcomeBlock = `
+          <div class="outcome-card" style="text-align:left;margin:24px 0;">
+            <h3 style="margin-bottom:8px;">Stanovisko prorektora</h3>
+            <div class="outcome-dec">${escapeHtml(outcome.decisionLabel || outcome.decision)}</div>
+            ${outcome.comment ? `<div class="outcome-comment">${escapeHtml(outcome.comment)}</div>` : ""}
+            ${outcome.decidedAt ? `<p class="outcome-meta">${escapeHtml("Zapsáno: " + formatOutcomeDate(outcome.decidedAt))}</p>` : ""}
+          </div>`;
+      } else if (st === "APPROVED" || st === "REJECTED") {
+        outcomeBlock = `<p style="font-size:14px;color:var(--muted);line-height:1.5;margin:20px 0;">Jakmile bude rozhodnutí prorektora zapsáno, zobrazí se zde i v postranním panelu po obnovení stránky.</p>`;
+      } else {
+        outcomeBlock = `<p style="font-size:14px;color:var(--muted);line-height:1.5;margin:20px 0;">Po dokončení hodnocení a rozhodnutí prorektora se zde zobrazí závěr a komentář.</p>`;
+      }
+      const icon = st === "REJECTED" ? "📋" : "✅";
+      document.getElementById("formPanel").innerHTML = `
+        <div style="padding:40px 28px;text-align:center;max-width:580px;margin:0 auto;">
+          <div style="font-size:44px;margin-bottom:14px;">${icon}</div>
+          <h2 style="font-size:20px;color:var(--navy);margin-bottom:8px;">${escapeHtml(sub.project_title || "Vaše přihláška")}</h2>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:8px;">ID přihlášky: <span style="font-family:'DM Mono',monospace;">${escapeHtml(sub.application_id)}</span></p>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:4px;">Aktuální stav: <strong>${escapeHtml(sub.status)}</strong></p>
+          ${outcomeBlock}
+          <a href="dashboard.html" class="btn btn-primary" style="margin-top:12px;">← Zpět na rozcestník</a>
+        </div>`;
     }
 
     function renderConnectVyzvaSidebar() {
@@ -354,8 +448,12 @@
       formFields = getLocalFields();
       const jumpFinalize = new URLSearchParams(location.search).get("finalize") === "1";
       renderProgress();
+      const submittedOnly = await loadDraft();
+      if (submittedOnly) {
+        if (jumpFinalize) window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
       renderSection(currentSection);
-      await loadDraft();
       if (jumpFinalize) {
         currentSection = STEPS.length - 1;
         renderProgress();
@@ -856,6 +954,19 @@
         url.searchParams.set("token", session?.token || "");
         const res  = await fetch(url.toString());
         const data = await res.json();
+        if (data.error) return false;
+
+        if (data.prorektorOutcome && data.prorektorOutcome.decision) {
+          fillProrektorOutcomeCard(data.prorektorOutcome, data.submittedApplication);
+        } else {
+          hideProrektorOutcomeCard();
+        }
+
+        if (data.submittedApplication && !data.draft) {
+          renderSubmittedApplicationView(data.submittedApplication, data.prorektorOutcome);
+          return true;
+        }
+
         if (data.draft) {
           formData = data.draft.formData || {};
           draftId  = data.draft.id || data.draft.application_id || null;
@@ -864,7 +975,10 @@
           updateChecklist();
           showToast("Načten uložený draft.");
         }
-      } catch {}
+        return false;
+      } catch {
+        return false;
+      }
     }
 
     // ── Odeslání přihlášky ──────────────────────────────────────
@@ -908,7 +1022,7 @@
             <div style="font-size:48px;margin-bottom:16px;">✅</div>
             <h2 style="font-family:'DM Sans',sans-serif;font-size:22px;color:var(--navy);margin-bottom:8px;">Přihláška odeslána!</h2>
             <p style="font-size:14px;color:var(--muted);margin-bottom:24px;">Vaše přihláška do soutěže UHK Connect 2026 byla úspěšně podána.<br>
-            O dalším postupu Vás informujeme e-mailem.</p>
+            O dalším postupu Vás informujeme e-mailem. Po rozhodnutí prorektora uvidíte závěr a komentář zde (Moje přihlášky) po opětovném otevření této stránky.</p>
             <a href="dashboard.html" class="btn btn-primary">← Zpět na rozcestník</a>
           </div>`;
         document.getElementById("statusBadge").textContent = "SUBMITTED";
