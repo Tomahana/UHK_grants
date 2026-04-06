@@ -121,8 +121,8 @@
             })
             .join("")
         : "";
-    const zzDraft = escapeHtml(c.final_report_draft || "");
-    const zzFinalized = String(c.final_report_final_saved_at || "").trim().length > 0;
+    const zzClosed = String(c.completion_saved_at || "").trim().length > 0;
+    const zzDraft = escapeHtml(String(c.final_report_draft || c.final_report_final || ""));
     const dzf = c.deliverable_zprava_fulfilled ? " checked" : "";
     const dvf = c.deliverable_vystup_fulfilled ? " checked" : "";
     const daf = c.deliverable_aktivita_fulfilled ? " checked" : "";
@@ -139,29 +139,29 @@
         '<button type="button" class="btn btn-primary" id="postawardSaveConsentBtn">Uložit souhlas</button>' +
         '<span class="postaward-mail" id="postawardConsentStatus"></span>' +
         "</div>";
-    const completionActions = readOnly
+    const completionActions = readOnly || zzClosed
       ? ""
       : '<div class="postaward-actions">' +
-        '<button type="button" class="btn btn-primary" id="postawardSaveCompletionBtn">Uložit finální potvrzení řešitele</button>' +
+        '<button type="button" class="btn btn-primary" id="postawardSaveCompletionBtn">Uložit finální uzavření projektu</button>' +
         '<span class="postaward-mail" id="postawardCompletionStatus"></span>' +
         "</div>";
     var zzSection = "";
-    if (zzFinalized) {
+    if (zzClosed) {
       zzSection =
         '<div class="postaward-zz">' +
-        '<h5 style="font-size:13px;font-weight:700;color:var(--navy);margin:0 0 8px;">Závěrečná zpráva (finalizováno)</h5>' +
-        '<p class="postaward-mail" style="margin-bottom:12px;">Text byl v aplikaci uzavřen. Datum uložení: <strong>' +
-        escapeHtml(String(c.final_report_final_saved_at || "—")) +
+        '<h5 style="font-size:13px;font-weight:700;color:var(--navy);margin:0 0 8px;">Závěrečná zpráva (součást finálního uzavření projektu)</h5>' +
+        '<p class="postaward-mail" style="margin-bottom:12px;">Datum finálního uzavření projektu: <strong>' +
+        escapeHtml(String(c.completion_saved_at || "—")) +
         "</strong></p>" +
         '<div class="postaward-zz-final-readonly" style="white-space:pre-wrap;padding:14px;border:1px solid var(--border);border-radius:var(--r);background:rgba(255,255,255,.95);font-size:13px;line-height:1.55;max-height:480px;overflow:auto;">' +
-        escapeHtml(String(c.final_report_final || "")) +
+        escapeHtml(String(c.final_report_final || c.final_report_draft || "")) +
         "</div>" +
         "</div>";
     } else {
       zzSection =
         '<div class="postaward-zz">' +
         '<h5 style="font-size:13px;font-weight:700;color:var(--navy);margin:0 0 8px;">Závěrečná zpráva – koncept</h5>' +
-        '<p style="font-size:12px;color:var(--muted);margin:0 0 12px;line-height:1.45;">Pište průběžně; <strong>koncept se ukládá automaticky</strong> stejně jako u přihlášky (30 s od poslední úpravy). Kdykoli můžete odejít a <strong>vrátit se k rozpracovanému textu</strong>. Tlačítkem <strong>Uložit koncept nyní</strong> uložíte okamžitě. Až bude text hotový (alespoň 80 znaků, po souhlasu v části 1), <strong>finalizujte</strong> závěrečnou zprávu – tím ji uzavřete v evidenci soutěže. Rozsah dle přílohy výzvy (např. cca 3 strany).</p>' +
+        '<p style="font-size:12px;color:var(--muted);margin:0 0 12px;line-height:1.45;">Pište průběžně; <strong>koncept se ukládá automaticky</strong> stejně jako u přihlášky (30 s od poslední úpravy). Kdykoli můžete odejít a <strong>vrátit se k rozpracovanému textu</strong>. Tlačítkem <strong>Uložit koncept nyní</strong> uložíte okamžitě. Text závěrečné zprávy se v evidenci soutěže uzavře až při uložení <strong>finálního uzavření projektu</strong> níže (po souhlasu v části 1, text alespoň 80 znaků). Rozsah dle přílohy výzvy (např. cca 3 strany).</p>' +
         '<label for="pa_zz_draft">Text závěrečné zprávy</label>' +
         '<textarea id="pa_zz_draft" placeholder="Průběžně pište závěrečnou zprávu…"' +
         (readOnly ? " disabled" : "") +
@@ -178,12 +178,7 @@
             (c.zz_draft_saved_at
               ? "Koncept na serveru naposledy: <strong>" + escapeHtml(c.zz_draft_saved_at) + "</strong>"
               : '<span style="opacity:.85">Koncept zatím nebyl uložen na server – začněte psát nebo uložte ručně.</span>') +
-            "</p>" +
-            '<div style="margin-top:20px;padding-top:16px;border-top:1px dashed #D4C4A8;">' +
-            '<p style="font-size:12px;color:var(--navy-mid);margin:0 0 12px;line-height:1.45;">Finalizace uloží text jako závěrečnou zprávu projektu v soutěži. Poté doplňte rozpočet, výstupy a uložte <strong>finální potvrzení řešitele</strong> níže.</p>' +
-            '<button type="button" class="btn btn-primary" id="postawardFinalizeZzBtn">Finalizovat závěrečnou zprávu</button>' +
-            '<span class="postaward-mail" id="postawardFinalizeZzStatus" style="margin-left:10px;"></span>' +
-            "</div>") +
+            "</p>") +
         "</div>";
     }
 
@@ -383,7 +378,7 @@
       notes +
       "</textarea>" +
       (c.completion_saved_at
-        ? '<p class="postaward-mail" style="margin-top:10px;">Potvrzení řešitele naposledy uloženo: <strong>' +
+        ? '<p class="postaward-mail" style="margin-top:10px;">Finální uzavření projektu uloženo: <strong>' +
           escapeHtml(c.completion_saved_at) +
           "</strong></p>"
         : "") +
@@ -494,7 +489,7 @@
         if (statusEl) statusEl.textContent = "Uloženo ✓";
         var msg = "Uloženo.";
         if (section === "consent") msg = "Souhlas uložen.";
-        else if (section === "completion") msg = "Finální potvrzení uloženo.";
+        else if (section === "completion") msg = "Finální uzavření projektu uloženo.";
         else if (section === "report_draft") msg = "Koncept závěrečné zprávy uložen.";
         else if (section === "report_final") msg = "Závěrečná zpráva je finalizována.";
         showToast(msg);
@@ -520,8 +515,8 @@
         );
       });
     }
-    var zzFinalizedBind =
-      data.checklist && String(data.checklist.final_report_final_saved_at || "").trim().length > 0;
+    var zzClosedBind =
+      data.checklist && String(data.checklist.completion_saved_at || "").trim().length > 0;
     var zzAutosaveTimer = null;
     var zzDraftDirty = false;
     var zzSaveSilentInFlight = false;
@@ -532,7 +527,7 @@
       });
     }
     var draftEl = document.getElementById("pa_zz_draft");
-    if (!zzFinalizedBind && draftEl) {
+    if (!zzClosedBind && draftEl) {
       function scheduleZzAutosave() {
         zzDraftDirty = true;
         clearTimeout(zzAutosaveTimer);
@@ -583,35 +578,6 @@
         });
       }
 
-      var btnFin = document.getElementById("postawardFinalizeZzBtn");
-      if (btnFin) {
-        btnFin.addEventListener("click", function () {
-          var elz = document.getElementById("pa_zz_draft");
-          var txt = (elz && elz.value) || "";
-          if (String(txt).trim().length < 80) {
-            showToast("Doplňte text závěrečné zprávy (alespoň 80 znaků) před finalizací.", "err");
-            return;
-          }
-          clearTimeout(zzAutosaveTimer);
-          zzAutosaveTimer = null;
-          zzDraftDirty = true;
-          void (async function () {
-            await saveZzDraftSilent();
-            elz = document.getElementById("pa_zz_draft");
-            txt = (elz && elz.value) || "";
-            if (String(txt).trim().length < 80) {
-              showToast("Text je příliš krátký pro finalizaci.", "err");
-              return;
-            }
-            saveSection(
-              "report_final",
-              { final_report_final: txt, final_report_draft: txt },
-              document.getElementById("postawardFinalizeZzStatus"),
-              btnFin
-            );
-          })();
-        });
-      }
     }
 
     if (btnF) {
@@ -620,6 +586,7 @@
         saveSection(
           "completion",
           {
+            final_report_draft: document.getElementById("pa_zz_draft")?.value || "",
             deliverable_zprava_fulfilled: !!document.getElementById("pa_del_zpr")?.checked,
             deliverable_zprava_note: document.getElementById("pa_del_zpr_note")?.value || "",
             deliverable_vystup_fulfilled: !!document.getElementById("pa_del_vys")?.checked,
@@ -673,7 +640,7 @@
               showToast(err.message || "Nahrání selhalo: " + file.name, "err");
             }
           }
-          if (ok > 0) showToast("Nahráno souborů: " + ok + ". Nezapomeňte uložit finální potvrzení řešitele.");
+          if (ok > 0) showToast("Nahráno souborů: " + ok + ". Nezapomeňte uložit finální uzavření projektu.");
         })();
       });
     }
