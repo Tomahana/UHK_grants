@@ -76,7 +76,8 @@ const Auth = {
   isLoggedIn() {
     const s = this._getSession();
     if (!s) return false;
-    if (Date.now() - s.loginAt > 8 * 60 * 60 * 1000) {
+    /** Sladěno s platností tokenu na serveru (UHK_AppScript_v5 verifyToken). */
+    if (Date.now() - s.loginAt > 24 * 60 * 60 * 1000) {
       this.logout(false); return false;
     }
     return true;
