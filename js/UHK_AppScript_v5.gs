@@ -13,6 +13,11 @@
  *
  *  Přílohy Connect (část 2): účet „Execute as“ webové aplikace musí mít právo
  *  přidávat soubory do složky CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID (Google Disk).
+ *
+ *  Archiv PDF (podání / hodnocení+prorektor / uzavření Connect): v listu CONFIG klíč
+ *  archive_drive_folder_id = ID složky na Disku pro danou soutěž (jinak u Connect fallback
+ *  na CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID). Po nasazení kódu s DocumentApp může být
+ *  potřeba znovu autorizovat skript (rozsah Dokumenty Google + Disk).
  * ============================================================
  */
 
@@ -58,6 +63,14 @@ const CONNECT_COMPETITION_ID = "uhk_connect_2026_v2";
 /** Složka Google Disk pro přílohy Connect (část 2). Účet „Execute as“ webové aplikace musí mít v ní právo přidávat soubory. */
 const CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID = "1oJ7qujZhIBygFYgiN5Im7fmpKbeADDDi";
 
+/**
+ * Archiv PDF podání / hodnocení / uzavření do složky soutěže na Disku.
+ * V listu CONFIG nastavte archive_drive_folder_id na ID cílové složky (Google Disk).
+ * Pokud klíč chybí, u soutěže CONNECT se použije CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID.
+ * Školní e-mail žadatele je v dokumentech uveden jako stabilní identifikátor pro analytiku napříč roky.
+ */
+var UHK_ARCHIVE_MAX_PLAIN_CHARS = 95000;
+var UHK_ARCHIVE_MAX_ZZ_IN_PDF = 14000;
 
 // ============================================================
 // CORS – každá odpověď musí mít správný MIME type
@@ -1493,7 +1506,257 @@ function saveConnectPostAward(body) {
     writeAudit(ss, "CONNECT_POSTAWARD_SAVE", applicationId, "", JSON.stringify(next).slice(0, 500), me);
   } catch (aud) { /* ignore */ }
 
+  if (section === "completion") {
+    try {
+      uhkTryArchiveConnectClosurePdf_(ss, competitionId, applicationId, next, row);
+    } catch (archE) {
+      console.error("uhkTryArchiveConnectClosurePdf_: " + archE.message);
+    }
+  }
+
   return { success: true, checklist: next };
+}
+
+function uhkGetArchiveFolder_(ss, competitionId) {
+  var cfg = getConfigMap(ss);
+  var raw = String(cfg["archive_drive_folder_id"] || cfg["archive_folder_id"] || "").trim();
+  var folderId = raw;
+  if (!folderId && String(competitionId || "").trim() === CONNECT_COMPETITION_ID)
+    folderId = CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID;
+  if (!folderId) return null;
+  try {
+    return DriveApp.getFolderById(folderId);
+  } catch (e) {
+    console.error("uhkGetArchiveFolder_: " + e.message);
+    return null;
+  }
+}
+
+function uhkArchivePdfFileBase_(applicationId, stageTag) {
+  var app = String(applicationId || "neznamo").replace(/[^a-zA-Z0-9._\-]/g, "_");
+  var stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd_HHmmss");
+  return app + "_" + stamp + "_" + stageTag + ".pdf";
+}
+
+function uhkFormDataToPlain_(formData, maxLen) {
+  var cap = maxLen != null ? maxLen : UHK_ARCHIVE_MAX_PLAIN_CHARS;
+  try {
+    var s = JSON.stringify(formData, null, 2);
+    if (s.length > cap) s = s.slice(0, cap) + "\n\n[… text zkrácen …]";
+    return s;
+  } catch (e) {
+    return String(formData).slice(0, cap);
+  }
+}
+
+function uhkProrektorDecisionLabel_(dec) {
+  var d = String(dec || "").toUpperCase();
+  if (d === "SUPPORT" || d === "FUND") return "Podpora / financování (plná)";
+  if (d === "CUT" || d === "FUND_REDUCED") return "Krácení rozpočtu / financování se snížením";
+  if (d === "REJECT") return "Nepodpořeno / zamítnuto";
+  return d || "—";
+}
+
+function uhkFindApplicationRowByAnyId_(ss, applicationOrProjectId) {
+  var tid = String(applicationOrProjectId || "").trim();
+  if (!tid) return null;
+  var sheet = ss.getSheetByName(SHEETS.APPLICATIONS);
+  if (!sheet) return null;
+  var rows = sheetToObjects(sheet).map(applicationsSheetRowNormalize_);
+  for (var i = 0; i < rows.length; i++) {
+    var r = rows[i];
+    var a = String(r.application_id || r.applicationId || "").trim();
+    var p = String(r.project_id || "").trim();
+    if (a === tid || p === tid) return r;
+  }
+  return null;
+}
+
+function uhkCommissionReviewsPlain_(ss, applicationId) {
+  var sheet = ss.getSheetByName(SHEETS.REVIEWS);
+  if (!sheet) return "(List hodnocení nenalezen.)";
+  var rows = sheetToObjects(sheet);
+  var aid = String(applicationId || "").trim();
+  var list = rows.filter(function (r) {
+    var rid = connectReviewAppId_(r);
+    if (rid !== aid) return false;
+    if (String(r.comment_internal || "").trim() === "PROREKTOR_DECISION") return false;
+    var st = Number(r.score_total);
+    var rec = String(r.recommendation || "").trim();
+    var pub = String(r.comment_public || "").trim();
+    if (!(isFinite(st) && st > 0) && !rec && !pub) return false;
+    return true;
+  });
+  if (!list.length)
+    return "(Žádné samostatné záznamy hodnoticí komise – např. jen rozhodnutí prorektora, nebo hodnocení ještě nebylo zapsáno.)";
+  list.sort(function (a, b) {
+    var ta = parseSubmittedAt_(a.submitted_at) || new Date(0);
+    var tb = parseSubmittedAt_(b.submitted_at) || new Date(0);
+    return ta - tb;
+  });
+  var lines = [];
+  list.forEach(function (r, idx) {
+    lines.push("── Hodnotitel č. " + (idx + 1) + " ──");
+    lines.push("Identifikace: " + String(r.reviewer_email || r.reviewerEmail || "").trim());
+    lines.push("Datum zápisu: " + String(r.submitted_at || ""));
+    lines.push("Součet bodů (Connect K1–K5): " + String(r.score_total != null ? r.score_total : "—"));
+    lines.push("Doporučení / značka: " + String(r.recommendation || "—"));
+    var pub = String(r.comment_public || "").trim();
+    if (pub) lines.push("Veřejný komentář:\n" + pub);
+    lines.push("");
+  });
+  return lines.join("\n");
+}
+
+function uhkBudgetLinesPlain_(linesObj) {
+  if (!linesObj || typeof linesObj !== "object") return "—";
+  var parts = [];
+  CONNECT_BUDGET_LINE_KEYS.forEach(function (k) {
+    if (!Object.prototype.hasOwnProperty.call(linesObj, k)) return;
+    var n = Number(linesObj[k]);
+    if (!isFinite(n) || n <= 0) return;
+    var lab = CONNECT_BUDGET_LINE_LABELS[k] || k;
+    parts.push(lab + ": " + n + " Kč");
+  });
+  return parts.length ? parts.join("\n") : "—";
+}
+
+/** Dočasný Google dokument → PDF blob; původní dokument přesune do koše. */
+function uhkCreatePdfBlobFromPlainText_(title, plainBody) {
+  var t = String(title || "Dokument").slice(0, 240);
+  var body = String(plainBody || "");
+  if (body.length > UHK_ARCHIVE_MAX_PLAIN_CHARS) body = body.slice(0, UHK_ARCHIVE_MAX_PLAIN_CHARS) + "\n\n[… zbytek textu zkrácen …]";
+  var doc = DocumentApp.create("tmp_" + Utilities.getUuid().replace(/-/g, "").slice(0, 20));
+  var bodyEl = doc.getBody();
+  bodyEl.clear();
+  bodyEl.appendParagraph(t).setHeading(DocumentApp.ParagraphHeading.HEADING1);
+  var pos = 0;
+  var chunk = 7500;
+  while (pos < body.length) {
+    bodyEl.appendParagraph(body.slice(pos, pos + chunk));
+    pos += chunk;
+  }
+  var fileId = doc.getId();
+  var driveFile = DriveApp.getFileById(fileId);
+  var pdfBlob = driveFile.getAs(MimeType.PDF);
+  try {
+    driveFile.setTrashed(true);
+  } catch (trE) { /* ignore */ }
+  return pdfBlob;
+}
+
+function uhkSavePdfToArchive_(folder, fileName, title, plainBody, ss, auditAction, auditId, extraAudit) {
+  if (!folder) return null;
+  var pdfBlob = uhkCreatePdfBlobFromPlainText_(title, plainBody);
+  pdfBlob.setName(fileName);
+  var created = folder.createFile(pdfBlob);
+  try {
+    writeAudit(ss, auditAction || "ARCHIVE_PDF", auditId || "", created.getId(), fileName, extraAudit || "");
+  } catch (aud) { /* ignore */ }
+  return created.getUrl();
+}
+
+function uhkTryArchiveFinalSubmissionPdf_(ss, competitionId, applicationId, formData, applicantEmail, applicantName, submittedAt) {
+  var folder = uhkGetArchiveFolder_(ss, competitionId);
+  if (!folder) return;
+  var appRow = uhkFindApplicationRowByAnyId_(ss, applicationId);
+  var em = String(applicantEmail || (appRow && appRow.applicant_email) || "").trim();
+  var nm = String(applicantName || (appRow && appRow.applicant_name) || "").trim();
+  var title = "Finální podání přihlášky – " + String(applicationId);
+  var lines = [];
+  lines.push("Soutěž (competitionId): " + String(competitionId));
+  lines.push("ID přihlášky / projektu: " + String(applicationId));
+  lines.push("Školní e-mail žadatele (stabilní identifikátor): " + em);
+  lines.push("Jméno žadatele: " + nm);
+  lines.push("Datum a čas podání: " + String(submittedAt || fmtDate(new Date())));
+  lines.push("");
+  lines.push("── Obsah formuláře (JSON) ──");
+  lines.push(uhkFormDataToPlain_(formData || {}, UHK_ARCHIVE_MAX_PLAIN_CHARS));
+  var fn = uhkArchivePdfFileBase_(applicationId, "1_finalni_podani");
+  uhkSavePdfToArchive_(folder, fn, title, lines.join("\n"), ss, "ARCHIVE_FINAL_SUBMISSION", applicationId, em);
+}
+
+function uhkTryArchiveProrektorEvaluationPdf_(ss, competitionId, applicationId) {
+  var folder = uhkGetArchiveFolder_(ss, competitionId);
+  if (!folder) return;
+  var appRow = uhkFindApplicationRowByAnyId_(ss, applicationId);
+  var fd = appRow ? connectParseFormDataObject_(appRow) : {};
+  var outcome = findProrektorOutcomeForApp_(ss, applicationId);
+  var em = String((appRow && appRow.applicant_email) || "").trim();
+  var title = "Hodnocení komise a vyjádření prorektora – " + String(applicationId);
+  var lines = [];
+  lines.push("Soutěž (competitionId): " + String(competitionId));
+  lines.push("ID přihlášky / projektu: " + String(applicationId));
+  lines.push("Školní e-mail žadatele: " + em);
+  lines.push("Název projektu (z přihlášky): " + String(fd.project_title || (appRow && appRow.project_title) || "—"));
+  lines.push("");
+  lines.push("── Přehled hodnocení komise ──");
+  lines.push(uhkCommissionReviewsPlain_(ss, applicationId));
+  lines.push("");
+  lines.push("── Rozhodnutí prorektora ──");
+  if (!outcome) {
+    lines.push("(Rozhodnutí prorektora v systému nenalezeno.)");
+  } else {
+    lines.push("Datum rozhodnutí: " + String(outcome.decidedAt || "—"));
+    lines.push("Výsledek: " + uhkProrektorDecisionLabel_(outcome.decision) + " (" + String(outcome.decision) + ")");
+    lines.push("Schválená / navrhovaná částka (Kč): " + String(outcome.supported_amount_czk != null ? outcome.supported_amount_czk : "—"));
+    lines.push("Schválené položky rozpočtu:");
+    lines.push(uhkBudgetLinesPlain_(outcome.budget_lines));
+    lines.push("");
+    lines.push("Stanovisko / komentář prorektora:");
+    lines.push(String(outcome.comment || "—"));
+  }
+  var fn = uhkArchivePdfFileBase_(applicationId, "2_hodnoceni_prorektor");
+  uhkSavePdfToArchive_(folder, fn, title, lines.join("\n"), ss, "ARCHIVE_PROREKTOR_EVAL", applicationId, em);
+}
+
+function uhkTryArchiveConnectClosurePdf_(ss, competitionId, applicationId, checklist, appRow) {
+  var folder = uhkGetArchiveFolder_(ss, competitionId);
+  if (!folder) return;
+  var fd = appRow ? connectParseFormDataObject_(appRow) : {};
+  var outcome = findProrektorOutcomeForApp_(ss, applicationId);
+  var em = String((appRow && appRow.applicant_email) || "").trim();
+  var title = "Závěrečné uzavření projektu (Connect) – " + String(applicationId);
+  var zz = String(checklist.final_report_final || checklist.final_report_draft || "").trim();
+  if (zz.length > UHK_ARCHIVE_MAX_ZZ_IN_PDF) zz = zz.slice(0, UHK_ARCHIVE_MAX_ZZ_IN_PDF) + "\n\n[… závěrečná zpráva v PDF zkrácena; plný text je v systému …]";
+  var lines = [];
+  lines.push("Soutěž (competitionId): " + String(competitionId));
+  lines.push("ID přihlášky: " + String(applicationId));
+  lines.push("Školní e-mail řešitele: " + em);
+  lines.push("Název projektu: " + String(fd.project_title || (appRow && appRow.project_title) || "—"));
+  lines.push("Datum finálního uzavření v aplikaci: " + String(checklist.completion_saved_at || "—"));
+  lines.push("Souhlas části 1 uložen: " + String(checklist.consent_saved_at || "—"));
+  lines.push("");
+  lines.push("── Schválená podpora (prorektor) ──");
+  if (outcome) {
+    lines.push("Rozhodnutí: " + uhkProrektorDecisionLabel_(outcome.decision));
+    lines.push("Částka (Kč): " + String(outcome.supported_amount_czk != null ? outcome.supported_amount_czk : "—"));
+  } else lines.push("—");
+  lines.push("");
+  lines.push("── Skutečně vyčerpaná částka (řádky) ──");
+  lines.push("Součet / celkem: " + String(checklist.budget_actual_spent_czk != null ? checklist.budget_actual_spent_czk : "—") + " Kč");
+  lines.push(uhkBudgetLinesPlain_(checklist.budget_actual_lines));
+  lines.push("Zdůvodnění odchylky rozpočtu: " + String(checklist.budget_variance_explanation || "—"));
+  lines.push("");
+  lines.push("── Povinné výstupy (prohlášení) ──");
+  lines.push("Závěrečná zpráva splněna: " + (checklist.deliverable_zprava_fulfilled ? "ano" : "ne"));
+  lines.push("Poznámka: " + String(checklist.deliverable_zprava_note || ""));
+  lines.push("Výstup spolupráce: " + (checklist.deliverable_vystup_fulfilled ? "ano" : "ne") + " – " + String(checklist.deliverable_vystup_note || ""));
+  lines.push("Potvrzení aktivity: " + (checklist.deliverable_aktivita_fulfilled ? "ano" : "ne") + " – " + String(checklist.deliverable_aktivita_note || ""));
+  lines.push("Diseminace: " + (checklist.dissemination_fulfilled ? "ano" : "ne"));
+  lines.push("Podklady administrátorce: " + (checklist.package_emailed_declared ? "ano" : "ne"));
+  lines.push("Seznámení s následky: " + (checklist.consequences_acknowledged ? "ano" : "ne"));
+  lines.push("");
+  lines.push("── Přílohy (manifest) ──");
+  lines.push(String(checklist.attachments_manifest || "—"));
+  lines.push("");
+  lines.push("── Poznámka řešitele ──");
+  lines.push(String(checklist.notes || "—"));
+  lines.push("");
+  lines.push("── Text závěrečné zprávy (evidence v soutěži) ──");
+  lines.push(zz || "—");
+  var fn = uhkArchivePdfFileBase_(applicationId, "3_uzavreni_projektu");
+  uhkSavePdfToArchive_(folder, fn, title, lines.join("\n"), ss, "ARCHIVE_CONNECT_CLOSURE", applicationId, em);
 }
 
 /**
@@ -2119,6 +2382,11 @@ function saveConnectProrektorDecision(body) {
     note: statusNote || undefined,
   });
   writeAudit(ss, "CONNECT_PROREKTOR", appId, "", decision, auth.email);
+  try {
+    uhkTryArchiveProrektorEvaluationPdf_(ss, competitionId, appId);
+  } catch (archE) {
+    console.error("uhkTryArchiveProrektorEvaluationPdf_ (Connect): " + archE.message);
+  }
   return { success: true, newStatus: newStatus };
 }
 
@@ -3003,6 +3271,12 @@ function saveProrekorDecision(body) {
 
   writeAudit(ss, "PROREKTOR_DECISION", body.projectId, "",
     body.decision, reviewerEmail);
+  try {
+    var compNav = String(body.competitionId || "uhk_navraty_2026").trim();
+    uhkTryArchiveProrektorEvaluationPdf_(ss, compNav, body.projectId);
+  } catch (archE) {
+    console.error("uhkTryArchiveProrektorEvaluationPdf_ (Návraty): " + archE.message);
+  }
   return { success: true };
 }
 
@@ -3286,6 +3560,7 @@ function submitApplication(body) {
   const sCol  = findCol(COL, "status", "stav");
   const fCol  = findCol(COL, "form_data_json", "form_data", "data_json", "json_data", "formdata", "prihlaska_json");
   const subCol= findCol(COL, "submitted_at", "datum_podani");
+  const idCol = findCol(COL, "application_id", "id", "app_id", "project_id");
   if (eCol < 0 || sCol < 0 || fCol < 0)
     throw new Error("List APPLICATIONS: chybí potřebná záhlaví (applicant_email, status, form_data_json).");
 
@@ -3293,6 +3568,7 @@ function submitApplication(body) {
     const rowEmail  = String(data[i][eCol] || "").toLowerCase();
     const rowStatus = String(data[i][sCol] || "").toUpperCase();
     if (rowEmail === body.applicantEmail?.toLowerCase() && rowStatus === "DRAFT") {
+      const appId = idCol >= 0 ? String(data[i][idCol] || "").trim() : String(data[i][0] || "").trim();
       sheet.getRange(i + 1, sCol + 1).setValue("SUBMITTED");
       sheet.getRange(i + 1, fCol + 1).setValue(JSON.stringify(body.formData || {}));
       sheet.getRange(i + 1, subCol + 1).setValue(fmtDate(new Date()));
@@ -3312,6 +3588,21 @@ function submitApplication(body) {
           );
         }
       } catch(e) { console.error("Email error:", e.message); }
+      const subAt = fmtDate(new Date());
+      try {
+        if (appId)
+          uhkTryArchiveFinalSubmissionPdf_(
+            ss,
+            body.competitionId,
+            appId,
+            body.formData || {},
+            body.applicantEmail,
+            body.applicantName,
+            subAt
+          );
+      } catch (archE) {
+        console.error("uhkTryArchiveFinalSubmissionPdf_: " + archE.message);
+      }
       return { success: true };
     }
   }
@@ -3334,6 +3625,19 @@ function submitApplication(body) {
     note: "",
     project_title: fd2.project_title ? String(fd2.project_title) : "",
   });
+  try {
+    uhkTryArchiveFinalSubmissionPdf_(
+      ss,
+      body.competitionId,
+      newId,
+      fd2,
+      body.applicantEmail,
+      body.applicantName,
+      now
+    );
+  } catch (archE) {
+    console.error("uhkTryArchiveFinalSubmissionPdf_: " + archE.message);
+  }
   return { success: true };
 }
 
