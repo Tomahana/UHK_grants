@@ -50,7 +50,11 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-box { padding: 40px; text-align: center; color: var(--muted); }
     .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .table-scroll table { min-width: 640px; }
+    .table-scroll table { min-width: 920px; }
+    .cell-muted { color: var(--muted); font-size: 13px; }
+    .cell-yes { color: var(--green); font-weight: 600; }
+    .cell-no { color: #991B1B; font-weight: 600; }
+    .cell-warn { color: #B45309; font-size: 12px; }
     .wf-pill {
       display: inline-block; max-width: 280px; line-height: 1.35;
       padding: 5px 10px; border-radius: 100px; font-size: 12px; font-weight: 500;
@@ -107,6 +111,9 @@
               <th>ID</th>
               <th>Stav v řízení</th>
               <th>Výsledek</th>
+              <th>Komentář PR</th>
+              <th>Akceptace kom.</th>
+              <th>Souhlas řeš./částka</th>
               <th>Upraveno</th>
               <th></th>
             </tr>
@@ -126,6 +133,9 @@
               <th>ID</th>
               <th>Stav v řízení</th>
               <th>Výsledek prorektora</th>
+              <th>Komentář prorektora</th>
+              <th>Akceptace komentáře</th>
+              <th>Souhlas (řešení + částka)</th>
               <th>Podáno</th>
               <th></th>
             </tr>
@@ -168,6 +178,22 @@
       return "wf-pill";
     }
 
+    function needsApplicantDeclarations(r) {
+      const x = String(r.result_label || "");
+      return x === "Podpořeno" || x === "Kráceno";
+    }
+    function triStateHtml(v, needs) {
+      if (!needs) return '<span class="cell-muted">—</span>';
+      if (v === true) return '<span class="cell-yes">Ano</span>';
+      if (v === false) return '<span class="cell-no">Ne</span>';
+      return '<span class="cell-warn">V detailu podání</span>';
+    }
+    function prorektorCommentCell(r) {
+      if (r.version_kind === "DRAFT") return '<span class="cell-muted">—</span>';
+      const t = (r.prorektor_comment_excerpt || r.prorektor_comment_public || "").trim();
+      if (!t) return '<span class="cell-muted">—</span>';
+      return `<span style="line-height:1.4;">${escapeHtml(t)}</span>`;
+    }
     function rowHtml(r) {
       const title = escapeHtml(r.project_title || "—");
       const id = escapeHtml(r.application_id || "—");
@@ -184,12 +210,19 @@
         ? applyHref
         : `${applyHref}${sep}app=${encodeURIComponent(r.application_id || "")}`;
       const formLabel = isDraft ? "Formulář" : "Detail podání";
+      const needDecl = needsApplicantDeclarations(r);
+      const prCom = prorektorCommentCell(r);
+      const acc = triStateHtml(r.accepts_prorektor_comment, needDecl);
+      const agr = triStateHtml(r.agrees_solution_and_budget, needDecl);
       return `<tr>
         <td>${ver}</td>
         <td>${title}</td>
         <td class="mono">${id}</td>
         <td><span class="${wfClass}">${wfText}</span></td>
         <td>${res}</td>
+        <td>${prCom}</td>
+        <td>${acc}</td>
+        <td>${agr}</td>
         <td class="meta-date">${dateStr}</td>
         <td><a class="btn-row" href="${formHref}">${formLabel}</a></td>
       </tr>`;
