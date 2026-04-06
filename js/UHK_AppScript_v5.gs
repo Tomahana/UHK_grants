@@ -1441,8 +1441,8 @@ function saveConnectPostAward(body) {
   } else if (section === "completion") {
     if (!String(prev.consent_saved_at || "").trim())
       throw new Error("Nejdřív uložte souhlas v části 1 (stanovisko prorektora a schválená podpora).");
-    if (!String(prev.final_report_final_saved_at || "").trim())
-      throw new Error("Nejdřív finalizujte závěrečnou zprávu (tlačítko výše), poté doplňte rozpočet a výstupy.");
+    if (String(prev.completion_saved_at || "").trim())
+      throw new Error("Projekt je již finálně uzavřen v aplikaci. Pro změny kontaktujte administrátora soutěže.");
     var fdRow = connectParseFormDataObject_(row);
     var reqB = Number(fdRow.budget_total) || 0;
     var plannedAmt = connectEffectiveSupportedCzk_(outcome, reqB);
@@ -1477,6 +1477,11 @@ function saveConnectPostAward(body) {
       throw new Error(
         "Zaškrtněte potvrzení diseminační aktivity, odeslání podkladů administrátorce a seznámení s následky."
       );
+    next.final_report_final = String(next.final_report_draft || "").slice(0, 12000);
+    next.final_report_draft = next.final_report_final;
+    if (String(next.final_report_final || "").trim().length < 80)
+      throw new Error("Závěrečná zpráva v aplikaci: doplňte text (alespoň 80 znaků).");
+    next.final_report_final_saved_at = fmtDate(new Date());
     next.completion_saved_at = fmtDate(new Date());
   }
 
