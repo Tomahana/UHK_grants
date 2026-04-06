@@ -110,7 +110,7 @@
       ℹ️ Změny se ukládají do CONFIG listů jednotlivých Sheets souborů. Po uložení se projeví okamžitě v aplikaci.
     </div>
     <div class="alert alert--info" id="cfgApiWarn" style="display:none;background:#FEF3C7;border-color:#FDE68A;color:#92400E;">
-      ⚠️ <strong>Nepodařilo se načíst CONFIG ze skriptu</strong> (chybí akce <code>getCompetitionConfig</code> v nasazeném Web App nebo chyba přístupu). Zobrazují se výchozí hodnoty – po opravě deploye obnovte stránku. Podrobnosti v konzoli (F12).
+      <div id="cfgApiWarnBody"></div>
     </div>
 
     <!-- Záložky soutěží -->
@@ -144,6 +144,14 @@
     let configs = {};  // competitionId → config objekt
     let activeTab = null;
 
+    function escapeHtmlCfg(s) {
+      return String(s == null ? "" : s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
     function mergeConfig(comp, apiConfig) {
       const base = getDefaultConfig(comp);
       if (!apiConfig || typeof apiConfig !== "object") return base;
@@ -161,14 +169,16 @@
       const competitions = FALLBACK_COMPETITIONS;
       let apiProblems = [];
 
+      const session = Auth._getSession();
+      const tok = session?.token || "";
+
       // Načti config pro každou soutěž
       for (const comp of competitions) {
         try {
-          const session = Auth._getSession();
           const url = new URL(API_URL);
           url.searchParams.set("action", "getCompetitionConfig");
           url.searchParams.set("competitionId", comp.id);
-          url.searchParams.set("token", session.token);
+          url.searchParams.set("token", tok);
           const res  = await fetch(url.toString());
           const data = await res.json();
           if (data.error) {
@@ -185,7 +195,33 @@
 
       if (apiProblems.length) {
         console.warn("[admin-competitions] getCompetitionConfig:", apiProblems);
-        if (warnEl) warnEl.style.display = "block";
+        if (warnEl) {
+          warnEl.style.display = "block";
+          const body = document.getElementById("cfgApiWarnBody");
+          if (body) {
+            const joined = apiProblems.join(" | ");
+            let hint = "";
+            if (/Token vypršel|Nepřihlášen|Chybí token/i.test(joined)) {
+              hint =
+                "<p style=\"margin-top:8px;line-height:1.5;\"><strong>Platnost přihlášení vypršela</strong> (server odmítl token). <a href=\"../login.html\" style=\"color:#92400E;font-weight:600;\">Přihlaste se znovu</a> a vraťte se na tuto stránku.</p>";
+            } else if (/Neznámá akce/i.test(joined)) {
+              hint =
+                "<p style=\"margin-top:8px;line-height:1.5;\">V nasazeném Web App chybí GET akce <code>getCompetitionConfig</code>. Zkopírujte aktuální <code>js/UHK_AppScript_v5.gs</code> do projektu Apps Script (případně použijte doplněný <code>backend-FINAL.gs</code>) a znovu <strong>Nasazení → spravovat nasazení → Upravit → nová verze</strong>.</p>";
+            } else if (/Neznámé competition_id|CONFIG list nenalezen/i.test(joined)) {
+              hint =
+                "<p style=\"margin-top:8px;line-height:1.5;\">Zkontrolujte v Apps Scriptu mapu <code>SPREADSHEET_IDS</code> a existenci listu <code>📋 CONFIG</code> v příslušném spreadsheetu.</p>";
+            } else {
+              hint =
+                "<p style=\"margin-top:8px;line-height:1.5;\">Zkontrolujte konzoli (F12), URL Web App v <code>config.js</code> a nasazení (Execute as: já, Who has access: Anyone).</p>";
+            }
+            body.innerHTML =
+              "<strong>⚠️ Nepodařilo se načíst CONFIG ze skriptu u některé soutěže.</strong> Zobrazují se výchozí hodnoty." +
+              hint +
+              "<p style=\"margin-top:8px;font-size:12px;opacity:.9;font-family:monospace;word-break:break-all;\">" +
+              apiProblems.map((x) => escapeHtmlCfg(x)).join("<br>") +
+              "</p>";
+          }
+        }
       }
 
       renderTabs(competitions);
@@ -361,7 +397,7 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             action:        "updateConfig",
-            token:         session.token,
+            token:         session?.token || "",
             competitionId: activeTab,
             updates,
           }),
