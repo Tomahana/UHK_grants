@@ -249,10 +249,10 @@
       <div class="fund-rows">
         <div class="fund-row"><span class="fund-lbl">Alokováno celkem</span><span class="fund-val" id="fundAlloc">—</span></div>
         <div class="fund-row"><span class="fund-lbl">Přiděleno (po rozhodnutí prorektora)</span><span class="fund-val" id="fundAssigned">—</span></div>
-        <div class="fund-row"><span class="fund-lbl">Využito (potvrzení žadatele)</span><span class="fund-val" id="fundAccepted">—</span></div>
+        <div class="fund-row"><span class="fund-lbl">Využito (po souhlasu žadatele)</span><span class="fund-val" id="fundAccepted">—</span></div>
         <div class="fund-row fund-row--rest"><span class="fund-lbl">Zbývá z alokace</span><span class="fund-val" id="fundRemaining">—</span></div>
       </div>
-      <p style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.45;">Přiděleno = součet žádaného rozpočtu (budget_total) u schválených projektů s výsledkem Podpořit nebo Krátit. Využito = stejné přihlášky po zaškrtnutí „Seznámení s následky“ v checklistu po schválení. U krácení může být skutečná částka nižší než v přihlášce.</p>
+      <p style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.45;">Přiděleno = součet schválených částek (u Podpořit obvykle žádost, u Krátit částka zadaná prorektorem). Využito = stejné projekty po uložení souhlasu žadatele v části 1 detailu přihlášky (závazná podpora se započítá jako čerpaná kapacita z pohledu žadatele).</p>
     </div>
     <div class="sc">
       <h3>Aktuální skóre</h3>
@@ -667,6 +667,7 @@ function renderPr(){
     if(!(aid in prDecisionPick)&&saved&&saved.recommendation)
       prDecisionPick[aid]=saved.recommendation;
     const pick=prDecisionPick[aid]||(saved&&saved.recommendation)||"";
+    const planned=Number(app._f?.budget_total||0);
     const rb=(d)=>`<button type="button" class="rb rb-pr-dec ${pick===d?RECSEL[d]:""}" id="prd-${sid}-${d}" data-app-id="${escAttr(aid)}" data-dec="${d}"><span class="ri">${d==="SUPPORT"?"✓":d==="CUT"?"◐":"✕"}</span><div class="rl">${d==="SUPPORT"?"Podpořit":d==="CUT"?"Krátit rozpočet":"Nepodpořit"}</div></button>`;
     return`<div class="prc" id="prc-${sid}">
       <div class="prt">${esc(app._f?.project_title||aid)}</div>
@@ -674,8 +675,15 @@ function renderPr(){
       ${renderPrKomiseHtml(aid)}
       <div class="pr-fin">
         <div class="sep"><div class="sep-line"></div><div class="sep-lbl">Vaše rozhodnutí (prorektor)</div><div class="sep-line"></div></div>
-        <p style="font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.45;">Vyberte závěr a případně doplňte komentář (uvidí ho žadatel u schválení / zamítnutí dle stavu přihlášky).</p>
+        <p style="font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.45;">Vyberte závěr. U <strong>Krátit rozpočet</strong> uveďte schválenou částku (≤ plánovaného rozpočtu v přihlášce). U <strong>Podpořit</strong> se bere schválená podpora jako celkový rozpočet z přihlášky. Komentář uvidí žadatel u přihlášky.</p>
         <div class="rec-row">${rb("SUPPORT")}${rb("CUT")}${rb("REJECT")}</div>
+        <div style="margin:14px 0;padding:12px 14px;background:var(--navy-lite);border-radius:8px;border:1px solid var(--border);font-size:13px;">
+          <div style="margin-bottom:8px;"><span style="color:var(--muted);">Plánovaný rozpočet v přihlášce: </span><strong style="font-family:'DM Mono',monospace;">${planned.toLocaleString("cs-CZ")} Kč</strong></div>
+          <div id="pr-cut-field-${sid}" style="display:${String(pick).toUpperCase()==="CUT"?"flex":"none"};flex-wrap:wrap;align-items:center;gap:10px;">
+            <label class="fl" for="pr-supported-${sid}" style="margin:0;">Schválená částka po krácení (Kč)</label>
+            <input type="number" class="ca" id="pr-supported-${sid}" min="1" step="1" placeholder="např. 45000" style="max-width:160px;padding:8px 10px;margin:0;" data-planned="${planned}">
+          </div>
+        </div>
         <label class="fl">Komentář k rozhodnutí</label>
         <textarea class="ca" id="pr-com-${sid}" placeholder="Závěrečné stanovisko…"></textarea>
         <div style="display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap;">
@@ -693,6 +701,12 @@ function renderPr(){
     if(!ta)return;
     const saved=prorektorSavedDecision(aid);
     if(saved&&saved.comment_public!=null&&saved.comment_public!=="")ta.value=String(saved.comment_public);
+    const sup=document.getElementById("pr-supported-"+sid);
+    if(sup&&saved&&String(saved.recommendation||"").toUpperCase()==="CUT"){
+      const raw=saved.prorektor_supported_czk!=null&&String(saved.prorektor_supported_czk).trim()!==""?saved.prorektor_supported_czk:saved.comment_k1;
+      const v=Number(raw);
+      if(isFinite(v)&&v>0)sup.value=String(Math.round(v));
+    }
   });
 }
 
@@ -705,6 +719,8 @@ function prPickDec(appId,dec){
     if(!el)return;
     el.className="rb rb-pr-dec"+(dec===d?(d==="SUPPORT"?" sel-s":d==="CUT"?" sel-c":" sel-r"):"");
   });
+  const cutField=document.getElementById("pr-cut-field-"+sid);
+  if(cutField)cutField.style.display=dec==="CUT"?"flex":"none";
 }
 
 let _prPanelBound=false;
@@ -731,11 +747,45 @@ async function submitProrektorDecision(appId){
   const sid=safeDomId(appId);
   const ta=document.getElementById("pr-com-"+sid);
   const comment=ta?ta.value.trim():"";
+  const app=apps.find(a=>String(a.application_id||"").trim()===appId);
+  const planned=Number(app?._f?.budget_total||0);
+  let supportedAmountCzk;
+  if(dec==="CUT"){
+    const inp=document.getElementById("pr-supported-"+sid);
+    supportedAmountCzk=inp?Number(inp.value):NaN;
+    if(!isFinite(supportedAmountCzk)||supportedAmountCzk<=0){
+      showToast("U Krátit rozpočet zadejte schválenou částku v Kč (větší než 0).","err");
+      return;
+    }
+    if(planned>0&&supportedAmountCzk>planned){
+      showToast("Krácená částka nesmí být vyšší než rozpočet v přihlášce.","err");
+      return;
+    }
+  }else if(dec==="SUPPORT"){
+    supportedAmountCzk=planned;
+    if(!isFinite(supportedAmountCzk)||supportedAmountCzk<=0){
+      showToast("V přihlášce chybí platný celkový rozpočet.","err");
+      return;
+    }
+  }
   try{
-    await postWebAppReliable({action:"saveConnectProrektorDecision",token:Auth._getSession()?.token||"",competitionId:CID,applicationId:appId,decision:dec,comment},async()=>{
+    await postWebAppReliable({
+      action:"saveConnectProrektorDecision",
+      token:Auth._getSession()?.token||"",
+      competitionId:CID,
+      applicationId:appId,
+      decision:dec,
+      comment,
+      supportedAmountCzk:dec==="REJECT"?undefined:supportedAmountCzk,
+    },async()=>{
       const list=await fetchConnectReviews();
       const row=list.find(r=>connectAppId(r)===appId&&isProrektorDecisionRow(r));
-      return !!(row&&String(row.recommendation||"").toUpperCase()===String(dec||"").toUpperCase());
+      if(!row||String(row.recommendation||"").toUpperCase()!==String(dec||"").toUpperCase())return false;
+      if(dec==="REJECT")return true;
+      const want=Math.round(Number(supportedAmountCzk));
+      const raw=row.prorektor_supported_czk!=null&&String(row.prorektor_supported_czk).trim()!==""?row.prorektor_supported_czk:row.comment_k1;
+      const got=Math.round(Number(raw));
+      return want===got;
     });
     await loadData();
     showToast("Rozhodnutí uloženo ✓");
