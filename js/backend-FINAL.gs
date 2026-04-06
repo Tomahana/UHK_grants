@@ -67,6 +67,8 @@ function doGet(e) {
         return corsResponse(verifyToken(p.token));
       case "getCompetitions":
         return corsResponse(getCompetitions(p.token));
+      case "getCompetitionConfig":
+        return corsResponse(getCompetitionConfigAction(p.competitionId, p.token));
       case "getFormFields":
         return corsResponse(getFormFields(p.competitionId, p.token));
       case "getApplicationStatus":
@@ -317,6 +319,28 @@ function requireAuth(token, allowedRoles) {
 // ============================================================
 // SOUTĚŽE – načte seznam z CONFIG listů
 // ============================================================
+
+/** Viditelnost na rozcestníku: prázdná hodnota = viditelné. FALSE / 0 / NE = skryté pro ne-adminy. */
+function configDashboardVisible(cfg) {
+  const v = cfg["dashboard_visible"];
+  if (v === undefined || v === null || v === "") return true;
+  if (v === false) return false;
+  if (v === true) return true;
+  const s = String(v).trim().toUpperCase();
+  if (s === "FALSE" || s === "0" || s === "NE") return false;
+  return true;
+}
+
+function absorbConfigRow(cfg, row) {
+  const a = String(row[0] !== undefined && row[0] !== null ? row[0] : "").trim();
+  const b = String(row[1] !== undefined && row[1] !== null ? row[1] : "").trim();
+  if (b) {
+    cfg[b] = row[2];
+    return;
+  }
+  if (a && /^[a-z][a-z0-9_]*$/i.test(a)) cfg[a] = row[1];
+}
+
 function getCompetitions(token) {
   requireAuth(token);
   const result = [];
@@ -330,9 +354,7 @@ function getCompetitions(token) {
       // CONFIG má záhlaví key/value v sloupcích B/C od řádku 5
       const data  = sheet.getDataRange().getValues();
       const cfg   = {};
-      data.forEach(row => {
-        if (row[1]) cfg[String(row[1]).trim()] = row[2];
-      });
+      data.forEach(row => absorbConfigRow(cfg, row));
 
       // Počet přihlášek
       let appCount = 0;
@@ -351,6 +373,7 @@ function getCompetitions(token) {
         allocation:        Number(cfg["total_allocation_czk"]) || 0,
         maxBudget:         Number(cfg["max_budget_czk"])        || 0,
         applicationsCount: appCount,
+        dashboardVisible:  configDashboardVisible(cfg),
       });
     } catch (err) {
       logError("getCompetitions:" + compId, err);
@@ -358,6 +381,18 @@ function getCompetitions(token) {
   });
 
   return result;
+}
+
+/** Celý CONFIG list jako objekt (administrace soutěží – stejné jako UHK_AppScript_v5). */
+function getCompetitionConfigAction(competitionId, token) {
+  requireAuth(token);
+  if (!competitionId) throw new Error("chybí competitionId");
+  const ss = getSpreadsheet(competitionId);
+  const sheet = ss.getSheetByName(SHEETS.CONFIG);
+  if (!sheet) throw new Error("CONFIG list nenalezen pro: " + competitionId);
+  const cfg = {};
+  sheet.getDataRange().getValues().forEach(row => absorbConfigRow(cfg, row));
+  return { success: true, competitionId: competitionId, config: cfg };
 }
 
 
