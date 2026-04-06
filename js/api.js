@@ -84,8 +84,16 @@ const API = {
     return this.get("getConnectPostAward", { competitionId, applicationId });
   },
 
-  async saveConnectPostAward(competitionId, applicationId, checklist) {
-    return this.post("saveConnectPostAward", { competitionId, applicationId, checklist });
+  /** saveSection: "consent" | "completion" | undefined (uloží vše najednou, časové značky dle sekce). */
+  async saveConnectPostAward(competitionId, applicationId, checklist, saveSection) {
+    const body = { competitionId, applicationId, checklist };
+    if (saveSection) body.saveSection = saveSection;
+    return this.post("saveConnectPostAward", body);
+  },
+
+  /** Connect: export souhlasů, checklistu a příloh pro správce (JSON řádků). */
+  async getConnectDeliverablesExport(competitionId) {
+    return this.get("getConnectDeliverablesExport", { competitionId });
   },
 
   /** Změna statusu přihlášky */
