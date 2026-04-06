@@ -527,7 +527,42 @@ function getCompetitions(token) {
 
       let appCount = 0;
       const appSheet = ss.getSheetByName(SHEETS.APPLICATIONS);
-      if (appSheet) appCount = Math.max(0, appSheet.getLastRow() - HEADER_ROW);
+      if (appSheet) {
+        var arows = sheetToObjects(appSheet).map(applicationsSheetRowNormalize_);
+        appCount = arows.filter(function (r) {
+          var id = String(r.application_id || "").trim();
+          if (!id) return false;
+          var st = String(r.status || "").toUpperCase().trim();
+          return st !== "DRAFT";
+        }).length;
+      }
+
+      var cfgType = cfg["competition_type"] || "UHK_CONNECT";
+      if (
+        appCount === 0 &&
+        (cfgType === "OP_JAK_NAVRATY" || compId === "uhk_navraty_2026")
+      ) {
+        var ps = getProjectsSheet_(ss);
+        if (ps) {
+          var pdata = ps.getDataRange().getValues();
+          if (pdata.length) {
+            var hix = findProjectsHeaderRowIndex(pdata);
+            var PCOL = mapColumns(pdata[hix]);
+            for (var pi = hix + 1; pi < pdata.length; pi++) {
+              var prow = pdata[pi];
+              var pidx = findCol(PCOL, "project_id", "id");
+              if (pidx < 0) continue;
+              var pid = cellToString_(prow[pidx]);
+              var pstCi = findCol(PCOL, "status");
+              var pst =
+                pstCi >= 0 ? cellToString_(prow[pstCi]) || "ACTIVE" : "ACTIVE";
+              if (!pid) continue;
+              if (String(pst).toUpperCase() === "INACTIVE") continue;
+              appCount++;
+            }
+          }
+        }
+      }
 
       result.push({
         id:                compId,
@@ -824,14 +859,221 @@ function applicationsSheetRowNormalize_(r) {
 }
 
 /** Verze textů pravidel (změna = řešitel může znovu potvrdit seznámení). */
-var CONNECT_POSTAWARD_RULES_VERSION = "2026-04-06";
+var CONNECT_POSTAWARD_RULES_VERSION = "2026-04-07";
+
+/** Položky rozpočtu Connect (shodné s formulářem přihlášky). */
+var CONNECT_BUDGET_LINE_KEYS = [
+  "budget_travel",
+  "budget_accommodation",
+  "budget_meals",
+  "budget_local",
+  "budget_fee",
+  "budget_publication",
+  "budget_personnel",
+];
+
+var CONNECT_BUDGET_LINE_LABELS = {
+  budget_travel: "Jízdné",
+  budget_accommodation: "Ubytování",
+  budget_meals: "Stravné",
+  budget_local: "Místní doprava",
+  budget_fee: "Poplatek (konference / workshop)",
+  budget_publication: "Publikační náklady",
+  budget_personnel: "Osobní náklady (DPP)",
+};
+
+/**
+ * Klíče polí přihlášky Connect – pokud v JSON chybí nebo je prázdný, doplní se z pojmenovaných sloupců
+ * na listu APPLICATIONS (ruční úpravy, import, starší zápis).
+ */
+var CONNECT_APPLICATION_FORM_MERGE_KEYS = [
+  "project_title",
+  "faculty",
+  "department",
+  "applicant_type",
+  "phd_year",
+  "research_focus",
+  "recent_outputs",
+  "activity_type",
+  "activity_goal",
+  "partner_institution",
+  "partner_country",
+  "partner_contact",
+  "cooperation_history",
+  "activity_start",
+  "activity_end",
+  "expected_output",
+  "output_description",
+  "output_impact",
+  "budget_travel",
+  "budget_accommodation",
+  "budget_meals",
+  "budget_local",
+  "budget_fee",
+  "budget_publication",
+  "budget_personnel",
+  "budget_total",
+  "budget_justification",
+  "attach_invitation",
+  "declaration",
+];
+
+function connectFormFieldEmpty_(v) {
+  if (v === undefined || v === null) return true;
+  if (typeof v === "string" && String(v).trim() === "") return true;
+  return false;
+}
+
+/** Doplní fd hodnotami ze stejnojmenných sloupců řádku (jen kde je ve fd mezera). */
+function connectMergeApplicationRowIntoFormData_(row, fd) {
+  if (!row || !fd || typeof fd !== "object") return fd;
+  CONNECT_APPLICATION_FORM_MERGE_KEYS.forEach(function (k) {
+    if (!Object.prototype.hasOwnProperty.call(row, k)) return;
+    var cell = row[k];
+    if (connectFormFieldEmpty_(cell)) return;
+    if (connectFormFieldEmpty_(fd[k])) fd[k] = cell;
+  });
+  if (connectFormFieldEmpty_(fd.project_title) && row.project_title != null) {
+    var pt = String(row.project_title).trim();
+    if (pt && pt.charAt(0) !== "{") fd.project_title = pt;
+  }
+  if (connectFormFieldEmpty_(fd.output_description) && !connectFormFieldEmpty_(fd.expected_output))
+    fd.output_description = String(fd.expected_output);
+  if (
+    connectFormFieldEmpty_(fd.output_description) &&
+    row.expected_output != null &&
+    !connectFormFieldEmpty_(row.expected_output)
+  )
+    fd.output_description = String(row.expected_output);
+  return fd;
+}
+
+function connectSumBudgetLinesObj_(lines) {
+  if (!lines || typeof lines !== "object") return 0;
+  var s = 0;
+  CONNECT_BUDGET_LINE_KEYS.forEach(function (k) {
+    if (Object.prototype.hasOwnProperty.call(lines, k))
+      s += Math.max(0, Math.round(Number(lines[k]) || 0));
+  });
+  return s;
+}
+
+function connectParseProrektorBudgetLinesJson_(r) {
+  if (!r || r.prorektor_budget_lines_json == null || !String(r.prorektor_budget_lines_json).trim())
+    return null;
+  try {
+    var o = JSON.parse(String(r.prorektor_budget_lines_json));
+    return o && typeof o === "object" ? o : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/** Schválené řádky: z JSON prorektora, jinak odvození z žádosti / poměrné krácení. */
+function connectResolveOfficialBudgetLines_(outcome, fd) {
+  var parsed =
+    outcome && outcome.budget_lines && typeof outcome.budget_lines === "object"
+      ? outcome.budget_lines
+      : null;
+  if (parsed && connectSumBudgetLinesObj_(parsed) > 0) return parsed;
+  var dec = outcome && outcome.decision ? String(outcome.decision).toUpperCase() : "";
+  var sup = outcome && outcome.supported_amount_czk ? Number(outcome.supported_amount_czk) : 0;
+  if (dec === "SUPPORT") {
+    var o = {};
+    CONNECT_BUDGET_LINE_KEYS.forEach(function (k) {
+      var n = Math.round(Number(fd[k]) || 0);
+      if (n > 0) o[k] = n;
+    });
+    return o;
+  }
+  if (dec === "CUT" && sup > 0) return connectProportionalCutLinesFromForm_(fd, sup);
+  var o2 = {};
+  CONNECT_BUDGET_LINE_KEYS.forEach(function (k) {
+    var n = Math.round(Number(fd[k]) || 0);
+    if (n > 0) o2[k] = n;
+  });
+  return o2;
+}
+
+/** Poměrné rozdělení kráceného celku podle položek žádosti (záloha, pokud chybí detail od prorektora). */
+function connectProportionalCutLinesFromForm_(fd, supportedTotal) {
+  var requested = {};
+  var reqSum = 0;
+  CONNECT_BUDGET_LINE_KEYS.forEach(function (k) {
+    var n = Math.max(0, Math.round(Number(fd[k]) || 0));
+    if (n > 0) {
+      requested[k] = n;
+      reqSum += n;
+    }
+  });
+  var target = Math.round(Number(supportedTotal) || 0);
+  if (reqSum <= 0 || target <= 0) return {};
+  var keys = Object.keys(requested);
+  var o = {};
+  var remaining = target;
+  keys.forEach(function (k, i) {
+    if (i === keys.length - 1) {
+      o[k] = Math.max(0, Math.min(requested[k], remaining));
+      return;
+    }
+    var v = Math.floor((requested[k] * target) / reqSum);
+    v = Math.max(0, Math.min(v, requested[k], remaining));
+    o[k] = v;
+    remaining -= v;
+  });
+  return o;
+}
+
+/** Normalizace vstupu od prorektora: jen známé klíče, ≤ žádost, nezáporné. */
+function connectNormalizeProrektorBudgetLines_(input, fd, isCut) {
+  var out = {};
+  CONNECT_BUDGET_LINE_KEYS.forEach(function (k) {
+    var req = Math.max(0, Math.round(Number(fd[k]) || 0));
+    if (req <= 0) return;
+    if (isCut) {
+      var v = input && Object.prototype.hasOwnProperty.call(input, k) ? Number(input[k]) : NaN;
+      if (!isFinite(v)) v = 0;
+      v = Math.round(Math.max(0, Math.min(v, req)));
+      out[k] = v;
+    } else {
+      out[k] = req;
+    }
+  });
+  return out;
+}
+
+function connectBudgetRowsForApi_(fd, officialLines) {
+  var rows = [];
+  var sumAppr = 0;
+  CONNECT_BUDGET_LINE_KEYS.forEach(function (k) {
+    var req = Math.max(0, Math.round(Number(fd[k]) || 0));
+    var appr = officialLines && officialLines[k] != null ? Math.round(Number(officialLines[k]) || 0) : 0;
+    if (req <= 0 && appr <= 0) return;
+    sumAppr += appr;
+    rows.push({
+      key: k,
+      label: CONNECT_BUDGET_LINE_LABELS[k] || k,
+      requested: req,
+      approved: appr,
+    });
+  });
+  var reqT = Number(fd.budget_total) || 0;
+  if (reqT > 0 || sumAppr > 0 || rows.length)
+    rows.push({
+      key: "budget_total",
+      label: "Celkem",
+      requested: reqT,
+      approved: sumAppr > 0 ? sumAppr : reqT,
+    });
+  return rows;
+}
 
 /** Nejpozdější termín odevzdání dle výzvy (30. 11. 2026 konec dne, lokální TZ skriptu). */
 function connectPostAwardHardCapDate_() {
   return new Date(2026, 10, 30, 23, 59, 59);
 }
 
-/** JSON z přihlášky (form_data_json + fallback sloupce). */
+/** JSON z přihlášky (form_data_json + fallback buňky + sloupce stejné jako klíče formuláře). */
 function connectParseFormDataObject_(row) {
   if (!row) return {};
   var raw = String(row.form_data_json || row.form_data || "").trim();
@@ -839,11 +1081,19 @@ function connectParseFormDataObject_(row) {
     var w = String(row.coordinator_email || row.project_title || "").trim();
     if (w.charAt(0) === "{") raw = w;
   }
-  try {
-    return JSON.parse(raw || "{}");
-  } catch (e) {
-    return {};
+  if (!raw || raw === "{}") {
+    var n = String(row.note || "").trim();
+    if (n.charAt(0) === "{") raw = n;
   }
+  var fd = {};
+  try {
+    fd = JSON.parse(raw || "{}");
+  } catch (e) {
+    fd = {};
+  }
+  if (!fd || typeof fd !== "object") fd = {};
+  connectMergeApplicationRowIntoFormData_(row, fd);
+  return fd;
 }
 
 /** Datum ukončení aktivity z přihlášky (YYYY-MM-DD) nebo "". */
@@ -990,6 +1240,14 @@ function getConnectPostAward(competitionId, applicationId, token) {
   var fd = connectParseFormDataObject_(row);
   var budgetRequested = Number(fd.budget_total) || 0;
   var budgetOfficial = connectEffectiveSupportedCzk_(outcome, budgetRequested);
+  var officialLines = connectResolveOfficialBudgetLines_(outcome, fd);
+  var budgetRows = connectBudgetRowsForApi_(fd, officialLines);
+  var promisedSummary = {
+    project_title: String(fd.project_title || applicationRowTitle_(row) || "").slice(0, 500),
+    activity_goal: String(fd.activity_goal || "").slice(0, 2000),
+    output_description: String(fd.output_description || fd.expected_output || "").slice(0, 2000),
+    budget_justification: String(fd.budget_justification || "").slice(0, 3000),
+  };
 
   return {
     success: true,
@@ -1002,6 +1260,8 @@ function getConnectPostAward(competitionId, applicationId, token) {
     outcomeComment: outcome && outcome.comment ? String(outcome.comment) : "",
     budgetRequestedCzk: budgetRequested,
     budgetOfficialCzk: budgetOfficial,
+    budgetRows: budgetRows,
+    promisedSummary: promisedSummary,
     coordinatorEmail: String(coord).trim(),
     activityEndIso: actIso,
     deadlines: deadline,
@@ -1025,6 +1285,18 @@ function getConnectPostAward(competitionId, applicationId, token) {
       deliverable_aktivita_note: String(checklist.deliverable_aktivita_note || "").slice(0, 3000),
       budget_actual_spent_czk: Number(checklist.budget_actual_spent_czk) || 0,
       budget_variance_explanation: String(checklist.budget_variance_explanation || "").slice(0, 2000),
+      final_report_draft: String(checklist.final_report_draft || "").slice(0, 12000),
+      final_report_final: String(checklist.final_report_final || "").slice(0, 12000),
+      zz_draft_saved_at: checklist.zz_draft_saved_at || "",
+      final_report_final_saved_at: checklist.final_report_final_saved_at || "",
+      budget_actual_lines:
+        checklist.budget_actual_lines && typeof checklist.budget_actual_lines === "object"
+          ? checklist.budget_actual_lines
+          : {},
+      budget_line_notes:
+        checklist.budget_line_notes && typeof checklist.budget_line_notes === "object"
+          ? checklist.budget_line_notes
+          : {},
     },
     canEdit: owner,
   };
@@ -1080,6 +1352,36 @@ function saveConnectPostAward(body) {
     var p = Number(prevObj[key]);
     return isFinite(p) ? p : 0;
   }
+  function pickBudgetActualLines_(obj, prevObj) {
+    if (!Object.prototype.hasOwnProperty.call(obj, "budget_actual_lines")) {
+      return prevObj.budget_actual_lines && typeof prevObj.budget_actual_lines === "object"
+        ? prevObj.budget_actual_lines
+        : {};
+    }
+    var raw = obj.budget_actual_lines;
+    if (!raw || typeof raw !== "object") return {};
+    var o = {};
+    CONNECT_BUDGET_LINE_KEYS.forEach(function (k2) {
+      if (!Object.prototype.hasOwnProperty.call(raw, k2)) return;
+      o[k2] = Math.max(0, Math.round(Number(raw[k2]) || 0));
+    });
+    return o;
+  }
+  function pickLineNotes_(obj, prevObj) {
+    if (!Object.prototype.hasOwnProperty.call(obj, "budget_line_notes")) {
+      return prevObj.budget_line_notes && typeof prevObj.budget_line_notes === "object"
+        ? prevObj.budget_line_notes
+        : {};
+    }
+    var raw = obj.budget_line_notes;
+    if (!raw || typeof raw !== "object") return {};
+    var o = {};
+    CONNECT_BUDGET_LINE_KEYS.forEach(function (k2) {
+      if (!Object.prototype.hasOwnProperty.call(raw, k2)) return;
+      o[k2] = String(raw[k2] != null ? raw[k2] : "").slice(0, 600);
+    });
+    return o;
+  }
   var next = {
     dissemination_fulfilled: pickBool_(c, prev, "dissemination_fulfilled"),
     package_emailed_declared: pickBool_(c, prev, "package_emailed_declared"),
@@ -1100,6 +1402,12 @@ function saveConnectPostAward(body) {
     deliverable_aktivita_note: pickStr_(c, prev, "deliverable_aktivita_note", 3000),
     budget_actual_spent_czk: pickNumBudget_(c, prev, "budget_actual_spent_czk"),
     budget_variance_explanation: pickStr_(c, prev, "budget_variance_explanation", 2000),
+    budget_actual_lines: pickBudgetActualLines_(c, prev),
+    budget_line_notes: pickLineNotes_(c, prev),
+    final_report_draft: pickStr_(c, prev, "final_report_draft", 12000),
+    final_report_final: pickStr_(c, prev, "final_report_final", 12000),
+    zz_draft_saved_at: String(prev.zz_draft_saved_at || ""),
+    final_report_final_saved_at: String(prev.final_report_final_saved_at || ""),
   };
   if (section === "consent") {
     if (!next.accepts_prorektor_public_comment || !next.agrees_solution_and_budget)
@@ -1107,6 +1415,16 @@ function saveConnectPostAward(body) {
         "Pro uložení souhlasu zaškrtněte obě políčka: přijetí stanoviska/komentáře prorektora a souhlas s řešením a výší podpory."
       );
     next.consent_saved_at = fmtDate(new Date());
+  } else if (section === "report_draft") {
+    next.final_report_draft = pickStr_(c, prev, "final_report_draft", 12000);
+    next.zz_draft_saved_at = fmtDate(new Date());
+  } else if (section === "report_final") {
+    if (!String(prev.consent_saved_at || "").trim())
+      throw new Error("Nejdřív uložte souhlas v části 1.");
+    next.final_report_final = pickStr_(c, prev, "final_report_final", 12000);
+    if (String(next.final_report_final || "").trim().length < 80)
+      throw new Error("Finální závěrečná zpráva v aplikaci: doplňte text (alespoň 80 znaků).");
+    next.final_report_final_saved_at = fmtDate(new Date());
   } else if (section === "completion") {
     if (!String(prev.consent_saved_at || "").trim())
       throw new Error("Nejdřív uložte souhlas v části 1 (stanovisko prorektora a schválená podpora).");
@@ -1130,7 +1448,9 @@ function saveConnectPostAward(body) {
       next.deliverable_aktivita_note,
       "Potvrzení aktivity"
     );
-    var actAmt = Number(next.budget_actual_spent_czk) || 0;
+    var actLineSum = connectSumBudgetLinesObj_(next.budget_actual_lines);
+    var actAmt = actLineSum > 0 ? actLineSum : Number(next.budget_actual_spent_czk) || 0;
+    next.budget_actual_spent_czk = actAmt;
     if (actAmt < 0) throw new Error("Skutečně vyčerpaná částka nemůže být záporná.");
     if (Math.abs(actAmt - plannedAmt) > 0.5) {
       if (String(next.budget_variance_explanation || "").trim().length < 15)
@@ -1513,6 +1833,15 @@ function ensureConnectProrektorAmountColumn_(sheet) {
   sheet.getRange(HEADER_ROW, sheet.getLastColumn() + 1).setValue("prorektor_supported_czk");
 }
 
+function ensureConnectProrektorBudgetLinesColumn_(sheet) {
+  var data = sheet.getDataRange().getValues();
+  if (data.length < HEADER_ROW) return;
+  var hdrs = data[HEADER_ROW - 1];
+  var COL = mapColumns(hdrs);
+  if (findCol(COL, "prorektor_budget_lines_json", "prorektor_budget_json") >= 0) return;
+  sheet.getRange(HEADER_ROW, sheet.getLastColumn() + 1).setValue("prorektor_budget_lines_json");
+}
+
 function appendReviewsRowFromMap_(sheet, map) {
   const data = sheet.getDataRange().getValues();
   const hdrs = data[HEADER_ROW - 1];
@@ -1545,6 +1874,7 @@ function appendReviewsRowFromMap_(sheet, map) {
   putMany(map.comment_k4, "comment_k4", "k4_comment");
   putMany(map.comment_k5, "comment_k5", "k5_comment");
   putMany(map.prorektor_supported_czk, "prorektor_supported_czk", "supported_budget_czk");
+  putMany(map.prorektor_budget_lines_json, "prorektor_budget_lines_json", "prorektor_budget_json");
   putMany(map.poradi, "poradi", "rank");
   putMany(map.conflict, "conflict", "stret_zajmu");
   sheet.appendRow(row);
@@ -1606,6 +1936,7 @@ function saveConnectProrektorDecision(body) {
     throw new Error("Neplatné rozhodnutí (očekáváno SUPPORT, CUT nebo REJECT).");
   const ss = getSpreadsheet(competitionId);
   let budgetRequested = 0;
+  var fdApp = {};
   const appSheet = ss.getSheetByName(SHEETS.APPLICATIONS);
   if (appSheet) {
     const arows = sheetToObjects(appSheet).map(applicationsSheetRowNormalize_);
@@ -1613,27 +1944,35 @@ function saveConnectProrektorDecision(body) {
       return String(r.application_id || "").trim() === appId;
     });
     if (arow) {
-      const fd = connectParseFormDataObject_(arow);
-      budgetRequested = Number(fd.budget_total) || 0;
+      fdApp = connectParseFormDataObject_(arow);
+      budgetRequested = Number(fdApp.budget_total) || 0;
     }
   }
-  let supported = parseConfigNumberCzk_(body.supportedAmountCzk);
+  var normalizedLines = {};
+  var supported = 0;
   if (decision === "CUT") {
+    normalizedLines = connectNormalizeProrektorBudgetLines_(body.budgetLines, fdApp, true);
+    supported = connectSumBudgetLinesObj_(normalizedLines);
     if (supported <= 0)
-      throw new Error("U rozhodnutí Krátit rozpočet uveďte schválenou (krácenou) částku v Kč větší než 0.");
+      throw new Error("U krácení rozpočtu vyplňte schválené částky u jednotlivých položek (součet musí být větší než 0).");
     if (budgetRequested > 0 && supported > budgetRequested)
       throw new Error(
-        "Krácená částka nemůže být vyšší než celkový rozpočet v přihlášce (" + budgetRequested + " Kč)."
+        "Součet schválených položek (" + supported + " Kč) nemůže překročit celkový rozpočet v přihlášce (" +
+          budgetRequested +
+          " Kč)."
       );
   } else if (decision === "SUPPORT") {
+    normalizedLines = connectNormalizeProrektorBudgetLines_(body.budgetLines, fdApp, false);
+    supported = connectSumBudgetLinesObj_(normalizedLines);
     if (supported <= 0) supported = budgetRequested;
     if (supported <= 0) throw new Error("V přihlášce chybí platný celkový rozpočet – schválenou částku nelze určit.");
-  } else {
-    supported = 0;
   }
   const sheet = ss.getSheetByName(SHEETS.REVIEWS);
   if (!sheet) throw new Error("List REVIEWS nenalezen.");
-  if (decision === "SUPPORT" || decision === "CUT") ensureConnectProrektorAmountColumn_(sheet);
+  if (decision === "SUPPORT" || decision === "CUT") {
+    ensureConnectProrektorAmountColumn_(sheet);
+    ensureConnectProrektorBudgetLinesColumn_(sheet);
+  }
   deleteProrektorConnectDecisionsForApp_(sheet, appId);
   appendReviewsRowFromMap_(sheet, {
     review_id: Utilities.getUuid(),
@@ -1650,6 +1989,7 @@ function saveConnectProrektorDecision(body) {
     comment_public: note,
     comment_internal: "PROREKTOR_DECISION",
     prorektor_supported_czk: decision === "REJECT" ? "" : Math.round(supported),
+    prorektor_budget_lines_json: decision === "REJECT" ? "" : JSON.stringify(normalizedLines),
   });
   const newStatus = decision === "REJECT" ? "REJECTED" : "APPROVED";
   const statusNote = decision === "CUT"
@@ -2645,13 +2985,18 @@ function connectProrektorSupportedFromReviewRow_(r) {
 }
 
 /**
- * Platná schválená podpora: Podpořit = částka z rozhodnutí (comment_k1) nebo žádost; Krátit = jen z rozhodnutí.
+ * Platná schválená podpora: součet řádků z JSON, jinak sloupec prorektor_supported_czk / žádost.
  */
 function connectEffectiveSupportedCzk_(outcome, budgetRequested) {
   var req = Number(budgetRequested) || 0;
   if (req < 0) req = 0;
   if (!outcome || !outcome.decision) return 0;
   var dec = String(outcome.decision).toUpperCase();
+  var bl = outcome.budget_lines;
+  if (bl && typeof bl === "object") {
+    var ls = connectSumBudgetLinesObj_(bl);
+    if (ls > 0) return ls;
+  }
   var fromRow = Number(outcome.supported_amount_czk) || 0;
   if (dec === "SUPPORT") return fromRow > 0 ? fromRow : req;
   if (dec === "CUT") return fromRow > 0 ? fromRow : 0;
@@ -2686,12 +3031,14 @@ function findProrektorOutcomeForApp_(ss, applicationId) {
   if (dec === "SUPPORT") label = "Podpořit";
   else if (dec === "CUT") label = "Krátit rozpočet";
   else if (dec === "REJECT") label = "Nepodpořit";
+  var bl = connectParseProrektorBudgetLinesJson_(r);
   return {
     decision: dec,
     decisionLabel: label,
     comment: String(r.comment_public || "").trim(),
     decidedAt: r.submitted_at ? String(r.submitted_at) : "",
     supported_amount_czk: connectProrektorSupportedFromReviewRow_(r),
+    budget_lines: bl,
   };
 }
 
