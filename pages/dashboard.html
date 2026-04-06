@@ -316,12 +316,13 @@
       // Connect: přehled přihlášek odděleně od formuláře
       const myApplicationsHref =
         type === "UHK_CONNECT" ? `my-connect.html?c=${id}` : applyHref;
+      const myListLabel = type === "UHK_CONNECT" ? "Moje projekty" : "Moje přihlášky";
 
       // Přihlášky (pouze ne-Návraty soutěže)
       const applyActions = applyHref && isOpen ? [
         { label: "Podat přihlášku", href: applyHref, style: "primary", icon: "📝" },
       ] : applyHref ? [
-        { label: "Moje přihlášky",  href: myApplicationsHref, style: "ghost",   icon: "📁" },
+        { label: myListLabel,  href: myApplicationsHref, style: "ghost",   icon: "📁" },
       ] : [];
 
       const actionMap = {
@@ -356,15 +357,15 @@
 
         ZADATEL: applyHref ? (isOpen ? [
           { label: "Podat přihlášku", href: applyHref,                  style: "primary",   icon: "📝" },
-          { label: "Moje přihlášky",  href: myApplicationsHref,          style: "ghost",     icon: "📁" },
+          { label: myListLabel,  href: myApplicationsHref,          style: "ghost",     icon: "📁" },
         ] : [
-          { label: "Moje přihlášky",  href: myApplicationsHref,          style: "ghost",     icon: "📁" },
+          { label: myListLabel,  href: myApplicationsHref,          style: "ghost",     icon: "📁" },
         ]) : [
           { label: "Soutěž nepřijímá přihlášky", href: "#",            style: "ghost",     icon: "📋" },
         ],
 
         RESITEL: applyHref ? [
-          { label: "Moje přihlášky",  href: myApplicationsHref,         style: "primary",   icon: "📁" },
+          { label: myListLabel,  href: myApplicationsHref,         style: "primary",   icon: "📁" },
           { label: "Zprávy",          href: "my-projects.html",         style: "ghost",     icon: "📄" },
         ] : [
           { label: "Moje projekty",   href: "my-projects.html",         style: "primary",   icon: "📁" },
