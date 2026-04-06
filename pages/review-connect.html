@@ -121,7 +121,12 @@
     .empty{padding:36px;text-align:center;color:var(--muted);font-size:13px}
     .spin{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--navy);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px}
     @keyframes spin{to{transform:rotate(360deg)}}
-    .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);color:white;font-size:14px;font-weight:500;padding:12px 24px;border-radius:100px;z-index:9999;transition:transform .3s cubic-bezier(.34,1.56,.64,1);white-space:nowrap}
+    .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);color:white;font-size:14px;font-weight:500;padding:12px 22px;border-radius:16px;z-index:9999;transition:transform .3s cubic-bezier(.34,1.56,.64,1);white-space:normal;max-width:min(520px,92vw);text-align:center;line-height:1.4}
+    .fund-rows{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+    .fund-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:13px}
+    .fund-row--rest{padding-top:6px;margin-top:4px;border-top:1px solid var(--border);font-weight:600}
+    .fund-lbl{color:var(--muted);flex:1;min-width:0;line-height:1.35}
+    .fund-val{font-family:'DM Mono',monospace;font-weight:600;color:var(--navy);text-align:right;white-space:nowrap}
     .toast.show{transform:translateX(-50%) translateY(0)}
     .fl{font-size:13px;font-weight:500;color:var(--navy);display:block;margin-bottom:6px}
     .fh{font-size:12px;color:var(--muted);margin-bottom:6px}
@@ -239,6 +244,16 @@
       <div style="font-size:14px;font-weight:600;color:var(--navy);margin-bottom:6px;line-height:1.35;" id="sName">—</div>
       <div style="font-size:13px;color:var(--muted);line-height:1.45;">5 kritérií · max. 25 bodů · škála u každého kritéria 1–5</div>
     </div>
+    <div class="sc" id="connectFundingPanel" style="display:none;">
+      <h3>Rozpočet výzvy (Connect)</h3>
+      <div class="fund-rows">
+        <div class="fund-row"><span class="fund-lbl">Alokováno celkem</span><span class="fund-val" id="fundAlloc">—</span></div>
+        <div class="fund-row"><span class="fund-lbl">Přiděleno (po rozhodnutí prorektora)</span><span class="fund-val" id="fundAssigned">—</span></div>
+        <div class="fund-row"><span class="fund-lbl">Využito (potvrzení žadatele)</span><span class="fund-val" id="fundAccepted">—</span></div>
+        <div class="fund-row fund-row--rest"><span class="fund-lbl">Zbývá z alokace</span><span class="fund-val" id="fundRemaining">—</span></div>
+      </div>
+      <p style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.45;">Přiděleno = součet žádaného rozpočtu (budget_total) u schválených projektů s výsledkem Podpořit nebo Krátit. Využito = stejné přihlášky po zaškrtnutí „Seznámení s následky“ v checklistu po schválení. U krácení může být skutečná částka nižší než v přihlášce.</p>
+    </div>
     <div class="sc">
       <h3>Aktuální skóre</h3>
       <div class="scells">
@@ -324,23 +339,75 @@ function safeDomId(id) {
   return (enc || "x") + "_" + (h >>> 0).toString(36);
 }
 
-/** POST na Web App – bez no-cors (opaque odpověď by znemožnila kontrolu chyb a může rozbít odeslání JSON). */
-async function postWebApp(payload) {
-  const res = await fetch(API_URL, {
+/**
+ * POST z externí domény: CORS často blokuje čtení odpovědi → Failed to fetch.
+ * no-cors + text/plain je „simple request“; tělo zůstane JSON pro doPost (parse z postData.contents).
+ * Úspěch ověříme následným GET (getConnectReviews / getApplications).
+ */
+async function postWebAppReliable(payload, verifyAsync) {
+  await fetch(API_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    mode: "no-cors",
+    headers: { "Content-Type": "text/plain;charset=UTF-8" },
     body: JSON.stringify(payload),
   });
-  const text = await res.text();
-  let data;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    throw new Error(text ? text.slice(0, 200) : "Neplatná odpověď serveru.");
+  for (let i = 0; i < 7; i++) {
+    await new Promise((r) => setTimeout(r, i === 0 ? 400 : 550));
+    try {
+      if (await verifyAsync()) return;
+    } catch (e) { /* síť / timeout */ }
   }
-  if (data && data.error) throw new Error(data.error);
-  if (!res.ok) throw new Error("HTTP " + res.status);
-  return data;
+  throw new Error(
+    "Odesláno, ale nepodařilo se ověřit uložení včas. Obnovte stránku tlačítkem ↺ a zkontrolujte záznam."
+  );
+}
+
+async function fetchConnectReviews() {
+  const s = Auth._getSession(),
+    u = new URL(API_URL);
+  u.searchParams.set("action", "getConnectReviews");
+  u.searchParams.set("competitionId", CID);
+  u.searchParams.set("token", s?.token || "");
+  const d = await (await fetch(u.toString())).json();
+  return d.reviews || [];
+}
+
+async function fetchApplicationsList() {
+  const s = Auth._getSession(),
+    u = new URL(API_URL);
+  u.searchParams.set("action", "getApplications");
+  u.searchParams.set("competitionId", CID);
+  u.searchParams.set("token", s?.token || "");
+  const d = await (await fetch(u.toString())).json();
+  return Array.isArray(d) ? d : d.applications || [];
+}
+
+function fmtKc(n) {
+  return Number(n || 0).toLocaleString("cs-CZ") + " Kč";
+}
+
+async function refreshFundingSummary() {
+  const panel = document.getElementById("connectFundingPanel");
+  if (!panel) return;
+  try {
+    const s = Auth._getSession(),
+      u = new URL(API_URL);
+    u.searchParams.set("action", "getConnectFundingSummary");
+    u.searchParams.set("competitionId", CID);
+    u.searchParams.set("token", s?.token || "");
+    const j = await (await fetch(u.toString())).json();
+    if (!j.success || !j.supported) {
+      panel.style.display = "none";
+      return;
+    }
+    panel.style.display = "block";
+    document.getElementById("fundAlloc").textContent = fmtKc(j.allocationCzk);
+    document.getElementById("fundAssigned").textContent = fmtKc(j.assignedCzk);
+    document.getElementById("fundAccepted").textContent = fmtKc(j.acceptedCzk);
+    document.getElementById("fundRemaining").textContent = fmtKc(j.remainingCzk);
+  } catch (e) {
+    panel.style.display = "none";
+  }
 }
 
 async function loadData(){
@@ -369,6 +436,7 @@ async function loadData(){
   document.getElementById("listSub").textContent = sub;
   const lsp = document.getElementById("listSubPro");
   if (lsp) lsp.textContent = sub;
+  refreshFundingSummary();
 }
 
 function myRev(id){return revs.find(r=>r.project_id===id&&r.reviewer_email===user.email)}
@@ -506,14 +574,19 @@ async function submitReview(){
     score_total:tot,recommendation:rec,
     comment_public:document.getElementById("cPub").value,
     comment_internal:document.getElementById("cInt").value,...notes};
+  const pid=String(cur.application_id||"").trim();
+  const expectRec=rec;
   try{
-    await postWebApp(payload);
-    const idx=revs.findIndex(r=>r.project_id===cur.application_id&&r.reviewer_email===user.email);
-    if(idx>=0)Object.assign(revs[idx],{...payload,score_total:tot});
-    else revs.push({...payload,project_id:cur.application_id,score_total:tot});
+    await postWebAppReliable(payload, async () => {
+      const list=await fetchConnectReviews();
+      const em=String(user.email||"").toLowerCase();
+      const row=list.find(r=>connectAppId(r)===pid&&!isProrektorDecisionRow(r)&&String(r.reviewer_email||"").toLowerCase()===em);
+      return !!(row&&String(row.recommendation||"").toUpperCase()===String(expectRec||"").toUpperCase()&&Number(row.score_total)===Number(tot));
+    });
+    revs=await fetchConnectReviews();
     showToast("Hodnocení uloženo – "+tot+"/25 bodů ✓");
     btn.disabled=false;btn.textContent="Uložit hodnocení";
-    renderList();renderRes();selApp(cur.application_id);
+    renderList();renderRes();refreshFundingSummary();selApp(cur.application_id);
   }catch(e){btn.disabled=false;btn.textContent="Uložit hodnocení";showToast(e.message||"Chyba při ukládání.","err")}
 }
 
@@ -646,19 +719,26 @@ async function submitProrektorDecision(appId){
   const ta=document.getElementById("pr-com-"+sid);
   const comment=ta?ta.value.trim():"";
   try{
-    await postWebApp({action:"saveConnectProrektorDecision",token:Auth._getSession()?.token||"",competitionId:CID,applicationId:appId,decision:dec,comment});
-    const idx=revs.findIndex(r=>connectAppId(r)===appId&&isProrektorDecisionRow(r));
-    const row={project_id:appId,application_id:appId,reviewer_email:user.email,recommendation:dec,comment_public:comment,comment_internal:"PROREKTOR_DECISION",score_total:0,submitted_at:new Date().toISOString().slice(0,19).replace("T"," ")};
-    if(idx>=0)revs[idx]=row;else revs.push(row);
+    await postWebAppReliable({action:"saveConnectProrektorDecision",token:Auth._getSession()?.token||"",competitionId:CID,applicationId:appId,decision:dec,comment},async()=>{
+      const list=await fetchConnectReviews();
+      const row=list.find(r=>connectAppId(r)===appId&&isProrektorDecisionRow(r));
+      return !!(row&&String(row.recommendation||"").toUpperCase()===String(dec||"").toUpperCase());
+    });
+    await loadData();
     showToast("Rozhodnutí uloženo ✓");
-    renderPr();renderList();renderRes();
   }catch(e){showToast(e.message||"Chyba při ukládání.","err")}
 }
 
 async function prDec(id,dec){
+  const aid=String(id||"").trim(),st=String(dec||"").trim();
   try{
-    await postWebApp({action:"updateApplicationStatus",token:Auth._getSession()?.token||"",competitionId:CID,applicationId:id,newStatus:dec,coordinatorEmail:user.email});
-    showToast("Rozhodnutí uloženo ✓");
+    await postWebAppReliable({action:"updateApplicationStatus",token:Auth._getSession()?.token||"",competitionId:CID,applicationId:aid,newStatus:st,coordinatorEmail:user.email},async()=>{
+      const list=await fetchApplicationsList();
+      const app=list.find(a=>String(a.application_id||"").trim()===aid);
+      return !!(app&&String(app.status||"").toUpperCase()===st.toUpperCase());
+    });
+    await loadData();
+    showToast("Stav uložen ✓");
   }catch(e){showToast(e.message||"Chyba.","err")}
 }
 
