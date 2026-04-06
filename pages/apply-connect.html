@@ -428,6 +428,8 @@
       const dis = c.dissemination_fulfilled ? " checked" : "";
       const pkg = c.package_emailed_declared ? " checked" : "";
       const ack = c.consequences_acknowledged ? " checked" : "";
+      const accCom = c.accepts_prorektor_public_comment ? " checked" : "";
+      const agrBud = c.agrees_solution_and_budget ? " checked" : "";
       const notes = escapeHtml(c.notes || "");
       const readOnly = !data.canEdit;
       const roNote = readOnly
@@ -448,6 +450,22 @@
           <h3>Povinné výstupy a závěrečná zpráva</h3>
           <p class="postaward-sub">Platí pro projekty se stanoviskem <strong>${escapeHtml(data.outcomeLabel || "")}</strong>. Závazné znění má výzva UHK Connect a přílohy (např. vzor závěrečné zprávy).</p>
           ${roNote}
+          <div class="postaward-rules" style="margin-top:6px;">
+            <p><strong>Stanovisko prorektora a váš souhlas</strong></p>
+            ${
+              data.outcomeComment
+                ? `<p class="postaward-expl" style="background:white;padding:10px 12px;border-radius:var(--r);border:1px solid var(--border);color:var(--navy);margin-bottom:10px;"><strong>Komentář prorektora (uvidíte i v přehledu přihlášek):</strong><br>${escapeHtml(String(data.outcomeComment))}</p>`
+                : `<p class="postaward-expl" style="margin-bottom:10px;">U této přihlášky není ve veřejném poli uveden textový komentář prorektora.</p>`
+            }
+            <label class="postaward-task">
+              <input type="checkbox" id="pa_accept_comment"${accCom}${readOnly ? " disabled" : ""}>
+              <span>Beru na vědomí a souhlasím s komentářem prorektora (uvedeným výše; pokud komentář chybí, potvrzuji, že jsem s tím seznámen/a).</span>
+            </label>
+            <label class="postaward-task">
+              <input type="checkbox" id="pa_agree_budget"${agrBud}${readOnly ? " disabled" : ""}>
+              <span>Souhlasím s řešením projektu a s výší podporované částky dle rozhodnutí prorektora.</span>
+            </label>
+          </div>
           <p class="postaward-deadline">Termín odevzdání (závěrečná zpráva + výstupy e-mailem): <span>${escapeHtml(d.dueLabel || "—")}</span></p>
           ${d.activityEndLabel ? `<p class="postaward-expl">Plánované ukončení aktivity v přihlášce: <strong>${escapeHtml(d.activityEndLabel)}</strong>. Nejpozdější konečný termín dle výzvy: <strong>${escapeHtml(d.hardCapLabel || "")}</strong>.</p>` : ""}
           ${d.explanation ? `<p class="postaward-expl">${escapeHtml(d.explanation)}</p>` : ""}
@@ -508,6 +526,8 @@
             dissemination_fulfilled: !!document.getElementById("pa_dis")?.checked,
             package_emailed_declared: !!document.getElementById("pa_pkg")?.checked,
             consequences_acknowledged: !!document.getElementById("pa_ack")?.checked,
+            accepts_prorektor_public_comment: !!document.getElementById("pa_accept_comment")?.checked,
+            agrees_solution_and_budget: !!document.getElementById("pa_agree_budget")?.checked,
             notes: document.getElementById("pa_notes")?.value || "",
           };
           const res = await API.saveConnectPostAward(COMPETITION_ID, applicationId, checklist);
