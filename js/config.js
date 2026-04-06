@@ -124,13 +124,13 @@ const FALLBACK_COMPETITIONS = [
   },
   {
     id:          "uhk_prestige_2026",
-    name:        "UHK Prestige 2026",
+    name:        "UHK Prestige – výzva č. 1/2026",
     type:        "UHK_PRESTIGE",
-    status:      "DRAFT",
-    description: "Prestižní granty Univerzity Hradec Králové – připravuje se.",
-    deadline:    "",
-    allocation:  0,
-    maxBudget:   0,
+    status:      "OPEN",
+    description: "Příprava návrhu do ERC nebo Horizon Europe; alokace výzvy 4 M Kč, max. 1 M Kč na projekt v roce 1.",
+    deadline:    "2026-05-04",
+    allocation:  4000000,
+    maxBudget:   1000000,
   },
 ];
 
