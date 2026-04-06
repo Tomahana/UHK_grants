@@ -185,13 +185,17 @@
             continue;
           }
           slot.style.display = "block";
+          const allocShow = Number(data.allocationCzk) || Number(comp.allocation) || 0;
+          const assignedShow = Number(data.assignedCzk) || 0;
+          const acceptedShow = Number(data.acceptedCzk) || 0;
+          const remainingShow = Math.max(0, allocShow - assignedShow);
           slot.innerHTML = `
             <div style="font-weight:600;color:#1C2E5A;margin-bottom:6px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;">Rozpočet výzvy</div>
             <div style="display:grid;gap:4px;">
-              <div>Alokováno <strong>${formatCZK(data.allocationCzk)}</strong></div>
-              <div>Přiděleno (prorektor) <strong>${formatCZK(data.assignedCzk)}</strong></div>
-              <div>Využito (žadatel) <strong>${formatCZK(data.acceptedCzk)}</strong></div>
-              <div>Zbývá z alokace <strong>${formatCZK(data.remainingCzk)}</strong></div>
+              <div>Alokováno <strong>${formatCZK(allocShow)}</strong></div>
+              <div>Přiděleno (prorektor) <strong>${formatCZK(assignedShow)}</strong></div>
+              <div>Využito (žadatel) <strong>${formatCZK(acceptedShow)}</strong></div>
+              <div>Zbývá z alokace <strong>${formatCZK(remainingShow)}</strong></div>
             </div>
             <div style="font-size:10px;opacity:.75;margin-top:6px;line-height:1.4;">Využito = potvrzení následků v checklistu po schválení.</div>`;
         } catch (e) {
