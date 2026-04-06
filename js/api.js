@@ -176,3 +176,8 @@ const API = {
     return this.get("getReviews", { competitionId, applicationId });
   },
 };
+
+/** Dostupné i pro skripty v jiném lexikálním oboru (např. IIFE v connect-postaward-panel.js). */
+if (typeof globalThis !== "undefined") {
+  globalThis.API = API;
+}
