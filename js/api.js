@@ -86,9 +86,69 @@ const API = {
 
   /** saveSection: "consent" | "completion" | undefined (uloží vše najednou, časové značky dle sekce). */
   async saveConnectPostAward(competitionId, applicationId, checklist, saveSection) {
-    const body = { competitionId, applicationId, checklist };
-    if (saveSection) body.saveSection = saveSection;
-    return this.post("saveConnectPostAward", body);
+    const session = Auth._getSession();
+    let prevConsent = "";
+    let prevCompletion = "";
+    try {
+      const before = await this.get("getConnectPostAward", { competitionId, applicationId });
+      if (before && before.checklist) {
+        prevConsent = String(before.checklist.consent_saved_at || "");
+        prevCompletion = String(before.checklist.completion_saved_at || "");
+      }
+    } catch (e) {
+      /* ignore */
+    }
+    const payload = {
+      action: "saveConnectPostAward",
+      token: session?.token,
+      competitionId,
+      applicationId,
+      checklist,
+    };
+    if (saveSection) payload.saveSection = saveSection;
+    await fetch(API_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain;charset=UTF-8" },
+      body: JSON.stringify(payload),
+    });
+    for (let i = 0; i < 7; i++) {
+      await new Promise((r) => setTimeout(r, i === 0 ? 400 : 550));
+      try {
+        const data = await this.get("getConnectPostAward", { competitionId, applicationId });
+        if (data.error || !data.checklist) continue;
+        const ch = data.checklist;
+        if (saveSection === "consent") {
+          const at = String(ch.consent_saved_at || "");
+          if (
+            at &&
+            at !== prevConsent &&
+            ch.accepts_prorektor_public_comment &&
+            ch.agrees_solution_and_budget
+          ) {
+            return { success: true, checklist: ch };
+          }
+        } else if (saveSection === "completion") {
+          const at = String(ch.completion_saved_at || "");
+          if (!at || at === prevCompletion) continue;
+          const m =
+            !!ch.dissemination_fulfilled === !!checklist.dissemination_fulfilled &&
+            !!ch.package_emailed_declared === !!checklist.package_emailed_declared &&
+            !!ch.consequences_acknowledged === !!checklist.consequences_acknowledged &&
+            String(ch.attachments_manifest || "") === String(checklist.attachments_manifest || "") &&
+            String(ch.notes || "") === String(checklist.notes || "");
+          if (m) return { success: true, checklist: ch };
+        } else {
+          return { success: true, checklist: ch };
+        }
+      } catch (e) {
+        /* ignore */
+      }
+    }
+    return {
+      error:
+        "Odesláno, ale nepodařilo se ověřit uložení včas. Obnovte stránku a zkontrolujte stav.",
+    };
   },
 
   /** Connect: export souhlasů, checklistu a příloh pro správce (JSON řádků). */
