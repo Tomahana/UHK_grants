@@ -165,12 +165,18 @@
         "</a></p>"
       : "<p class=\"postaward-mail\">E-mail administrátorky doplníte v CONFIG listu (coordinator_email) nebo kontaktujte OVTZ.</p>";
 
+    var folderHref = String(data.attachmentsDriveFolderUrl || "").trim();
+    if (!/^https:\/\/drive\.google\.com\//.test(folderHref)) {
+      folderHref = "https://drive.google.com/drive/folders/1oJ7qujZhIBygFYgiN5Im7fmpKbeADDDi";
+    }
     const attachPicker = readOnly
       ? ""
       : '<div class="pa-attach-picker">' +
-        '<label class="pa-attach-picker__lbl" for="pa_attach_files">Vybrat soubory z počítače (názvy se dopíší do seznamu)</label>' +
+        '<label class="pa-attach-picker__lbl" for="pa_attach_files">Nahrát soubory na sdílený Disk (složka soutěže)</label>' +
         '<input type="file" id="pa_attach_files" multiple>' +
-        '<p class="pa-attach-picker__hint">Soubory se do Google tabulky <strong>nahrávají jen přes váš Disk / e-mail</strong>. Zde přidáte do pole níže jen názvy a velikosti; poté nahrajte soubory na úložiště a doplňte odkazy.</p>' +
+        '<p class="pa-attach-picker__hint">Soubory se uloží do <a href="' +
+        folderHref +
+        '" target="_blank" rel="noopener">této složky na Google Disku</a>. Do pole níže se dopíše název souboru a odkaz (max. 18 MB na soubor). Můžete také zapsat další položky ručně nebo doplnit poznámku.</p>' +
         "</div>";
 
     const part1Hint =
@@ -563,13 +569,35 @@
       paFiles.addEventListener("change", function () {
         var ta = document.getElementById("pa_attachments");
         if (!ta || !this.files || !this.files.length) return;
-        var lines = Array.prototype.map
-          .call(this.files, function (f) {
-            return f.name + " (" + Math.round(f.size / 1024) + " kB)";
-          })
-          .join("\n");
-        ta.value = ta.value.trim() ? ta.value.trim() + "\n" + lines : lines;
+        var files = Array.prototype.slice.call(this.files);
         this.value = "";
+        var client = api();
+        if (typeof client.uploadConnectPostAwardAttachment !== "function") {
+          showToast("Chybí upload v api.js – aktualizujte frontend.", "err");
+          return;
+        }
+        var maxB = 18 * 1024 * 1024;
+        (async function () {
+          var ok = 0;
+          showToast("Nahrávám " + files.length + " soubor(ů)…");
+          for (var i = 0; i < files.length; i++) {
+            var file = files[i];
+            if (file.size > maxB) {
+              showToast("Příliš velký soubor (max. 18 MB): " + file.name, "err");
+              continue;
+            }
+            try {
+              var res = await client.uploadConnectPostAwardAttachment(competitionId, applicationId, file);
+              if (res && res.error) throw new Error(res.error);
+              var line = (res && res.name ? res.name : file.name) + " → " + (res && res.url ? res.url : "");
+              ta.value = ta.value.trim() ? ta.value.trim() + "\n" + line : line;
+              ok++;
+            } catch (err) {
+              showToast(err.message || "Nahrání selhalo: " + file.name, "err");
+            }
+          }
+          if (ok > 0) showToast("Nahráno souborů: " + ok + ". Nezapomeňte uložit finální potvrzení řešitele.");
+        })();
       });
     }
   }
