@@ -10,6 +10,9 @@
  *  4. Deploy → New deployment → Web App
  *     Execute as: Me | Who has access: Anyone
  *  5. Zkopíruj URL → vlož do js/config.js
+ *
+ *  Přílohy Connect (část 2): účet „Execute as“ webové aplikace musí mít právo
+ *  přidávat soubory do složky CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID (Google Disk).
  * ============================================================
  */
 
@@ -51,6 +54,9 @@ const ADMIN_EMAIL = "hana.tomaskova@uhk.cz";
 
 /** ID soutěže Connect (měsíční workflow + notifikace komise) */
 const CONNECT_COMPETITION_ID = "uhk_connect_2026_v2";
+
+/** Složka Google Disk pro přílohy Connect (část 2). Účet „Execute as“ webové aplikace musí mít v ní právo přidávat soubory. */
+const CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID = "1oJ7qujZhIBygFYgiN5Im7fmpKbeADDDi";
 
 
 // ============================================================
@@ -136,6 +142,8 @@ function doPost(e) {
       case "saveDraft":        return corsResponse(saveDraft(body));
       case "saveConnectPostAward":
         return corsResponse(saveConnectPostAward(body));
+      case "uploadConnectPostAwardAttachment":
+        return corsResponse(uploadConnectPostAwardAttachment(body));
       default:                 return corsResponse({ error: "Neznámá POST akce: " + body.action });
     }
   } catch (err) {
@@ -1256,6 +1264,8 @@ function getConnectPostAward(competitionId, applicationId, token) {
     applicable: true,
     rulesVersion: CONNECT_POSTAWARD_RULES_VERSION,
     applicationId: aid,
+    attachmentsDriveFolderUrl:
+      "https://drive.google.com/drive/folders/" + CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID,
     projectTitle: applicationRowTitle_(row),
     outcomeDecision: dec,
     outcomeLabel: dec === "SUPPORT" ? "Podpořeno" : "Kráceno",
@@ -1476,6 +1486,87 @@ function saveConnectPostAward(body) {
   } catch (aud) { /* ignore */ }
 
   return { success: true, checklist: next };
+}
+
+/**
+ * Nahraje jeden soubor do sdílené složky na Disku (Connect – část 2).
+ * body: token, competitionId, applicationId, fileName, mimeType, fileBase64 (čistý base64 nebo data URL)
+ */
+function uploadConnectPostAwardAttachment(body) {
+  var auth = requireAuth(body.token);
+  var competitionId = body.competitionId;
+  var applicationId = String(body.applicationId || "").trim();
+  var fileName = String(body.fileName || "soubor").trim();
+  var mimeType = String(body.mimeType || "application/octet-stream").trim();
+  var b64 = body.fileBase64;
+
+  if (!competitionId || !applicationId) throw new Error("chybí competitionId nebo applicationId");
+  if (!b64 || typeof b64 !== "string") throw new Error("chybí obsah souboru.");
+
+  var ss = getSpreadsheet(competitionId);
+  var sheet = ss.getSheetByName(SHEETS.APPLICATIONS);
+  if (!sheet) throw new Error("List APPLICATIONS nenalezen.");
+
+  var rowNum = findApplicationsSheetRowNumber_(sheet, applicationId);
+  if (rowNum < 0) throw new Error("Přihláška nenalezena.");
+
+  var rows = sheetToObjects(sheet).map(applicationsSheetRowNormalize_);
+  var row = rows.find(function (r) {
+    return String(r.application_id || "").trim() === applicationId;
+  });
+  if (!row) throw new Error("Přihláška nenalezena.");
+
+  var me = String(auth.email || "").toLowerCase().trim();
+  if (String(row.applicant_email || "").toLowerCase().trim() !== me)
+    throw new Error("Nahrávat přílohy může jen žadatel/řešitel uvedený u přihlášky.");
+
+  var outcome = findProrektorOutcomeForApp_(ss, applicationId);
+  var dec = outcome && outcome.decision ? String(outcome.decision).toUpperCase() : "";
+  if (dec !== "SUPPORT" && dec !== "CUT")
+    throw new Error("Přílohy lze nahrávat jen u podpořených nebo krácených projektů.");
+
+  var maxBytes = 18 * 1024 * 1024;
+  var rawB64 = String(b64).replace(/\s/g, "");
+  var idx = rawB64.indexOf("base64,");
+  if (idx >= 0) rawB64 = rawB64.slice(idx + 7);
+
+  var bytes;
+  try {
+    bytes = Utilities.base64Decode(rawB64);
+  } catch (e) {
+    throw new Error("Neplatný formát souboru.");
+  }
+  if (!bytes || bytes.length < 1) throw new Error("Prázdný soubor.");
+  if (bytes.length > maxBytes) throw new Error("Soubor je příliš velký (max. 18 MB).");
+
+  var safe = fileName.replace(/[^a-zA-Z0-9._\-]/g, "_").replace(/_+/g, "_").slice(0, 120);
+  if (!safe) safe = "soubor";
+  var stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd_HHmmss");
+  var finalName = applicationId + "_" + stamp + "_" + safe;
+
+  var folder;
+  try {
+    folder = DriveApp.getFolderById(CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID);
+  } catch (e) {
+    throw new Error("Složka pro přílohy na Disku není dostupná. Kontaktujte administrátora.");
+  }
+
+  var blob = Utilities.newBlob(bytes, mimeType, finalName);
+  var driveFile = folder.createFile(blob);
+  driveFile.setName(finalName);
+
+  try {
+    writeAudit(ss, "CONNECT_POSTAWARD_UPLOAD", applicationId, driveFile.getId(), finalName, me);
+  } catch (aud) {
+    /* ignore */
+  }
+
+  return {
+    success: true,
+    name: driveFile.getName(),
+    url: driveFile.getUrl(),
+    id: driveFile.getId(),
+  };
 }
 
 /**
