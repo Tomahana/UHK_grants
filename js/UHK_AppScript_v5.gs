@@ -380,7 +380,9 @@ function verifyToken(token) {
     if (checksum(raw) !== sum) return { valid: false, reason: "Neplatný podpis." };
 
     const age = Date.now() - Number(parts[2]);
-    if (age > 8 * 3600 * 1000) return { valid: false, reason: "Token vypršel." };
+    /** Platnost přihlášení (server) – sladěno s auth.js (session). */
+    var TOKEN_MAX_AGE_MS = 24 * 3600 * 1000;
+    if (age > TOKEN_MAX_AGE_MS) return { valid: false, reason: "Token vypršel." };
 
     return {
       valid: true,
