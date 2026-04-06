@@ -130,14 +130,7 @@ const API = {
           }
         } else if (saveSection === "completion") {
           const at = String(ch.completion_saved_at || "");
-          if (!at || at === prevCompletion) continue;
-          const m =
-            !!ch.dissemination_fulfilled === !!checklist.dissemination_fulfilled &&
-            !!ch.package_emailed_declared === !!checklist.package_emailed_declared &&
-            !!ch.consequences_acknowledged === !!checklist.consequences_acknowledged &&
-            String(ch.attachments_manifest || "") === String(checklist.attachments_manifest || "") &&
-            String(ch.notes || "") === String(checklist.notes || "");
-          if (m) return { success: true, checklist: ch };
+          if (at && at !== prevCompletion) return { success: true, checklist: ch };
         } else {
           return { success: true, checklist: ch };
         }
