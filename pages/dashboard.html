@@ -173,7 +173,6 @@
       const sess = Auth._getSession();
       if (!sess || !sess.token) return;
       for (const comp of list) {
-        if (comp.type !== "UHK_CONNECT") continue;
         const card = document.querySelector(".comp-card[data-comp-id=\"" + comp.id.replace(/\\/g, "\\\\").replace(/"/g, '\\"') + "\"]");
         const slot = card && card.querySelector(".connect-funding-slot");
         if (!slot) continue;
@@ -189,6 +188,10 @@
           const assignedShow = Number(data.assignedCzk) || 0;
           const acceptedShow = Number(data.acceptedCzk) || 0;
           const remainingShow = Math.max(0, allocShow - assignedShow);
+          const foot =
+            data.detailLevel === "connect"
+              ? "Přiděleno = schválené částky od prorektora. Využito (žadatel) = po uložení souhlasu s přidělením (část 1) u přihlášky – započítá se schválená podpora."
+              : "Alokace z CONFIG této výzvy. Řádky přiděleno / využito (žadatel) v plné podobě sleduje aplikace u soutěže UHK Connect; u ostatních výzev doplňte čerpání v evidenci mimo tento přehled.";
           slot.innerHTML = `
             <div style="font-weight:600;color:#1C2E5A;margin-bottom:6px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;">Rozpočet výzvy</div>
             <div style="display:grid;gap:4px;">
@@ -197,7 +200,7 @@
               <div>Využito (žadatel) <strong>${formatCZK(acceptedShow)}</strong></div>
               <div>Zbývá z alokace <strong>${formatCZK(remainingShow)}</strong></div>
             </div>
-            <div style="font-size:10px;opacity:.75;margin-top:6px;line-height:1.4;">Využito = potvrzení následků v checklistu po schválení.</div>`;
+            <div style="font-size:10px;opacity:.75;margin-top:6px;line-height:1.4;">${foot}</div>`;
         } catch (e) {
           slot.innerHTML = "<span style=\"opacity:.65\">Přehled rozpočtu se nepodařilo načíst.</span>";
           slot.style.display = "block";
@@ -240,6 +243,7 @@
 
       const statusInfo = COMP_STATUSES[comp.status] || { label: comp.status, icon: "●" };
       const actions    = getActionsForRole(role, comp);
+      const showFundingSlot = ["ADMIN", "PROREKTOR", "KOMISAR", "KOMISAŘ", "TESTER", "READONLY"].includes(role);
 
       card.innerHTML = `
         <div class="comp-card__header">
@@ -276,7 +280,7 @@
                 <span class="meta-val">${comp.applicationsCount}</span>
               </div>` : ""}
           </div>
-          ${comp.type === "UHK_CONNECT" ? `
+          ${showFundingSlot ? `
           <div class="connect-funding-slot" style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(28,46,90,.1);font-size:12px;color:#6B6A63;line-height:1.5;">
             <span style="opacity:.65">Načítám přehled rozpočtu…</span>
           </div>` : ""}
