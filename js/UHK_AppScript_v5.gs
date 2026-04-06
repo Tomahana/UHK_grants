@@ -2040,8 +2040,8 @@ function sendStatusEmail(toEmail, appId, status, projectTitle) {
     SUBMITTED:    "Vaše přihláška byla úspěšně přijata a čeká na formální kontrolu.",
     FORMAL_CHECK: "Probíhá formální kontrola Vaší přihlášky.",
     IN_REVIEW:    "Vaše přihláška byla předána hodnoticímu panelu.",
-    APPROVED:     "Gratulujeme! Vaše přihláška byla schválena k financování. Stanovisko prorektora a komentář si můžete po přihlášení přečíst u přihlášky UHK Connect (Moje přihlášky).",
-    REJECTED:     "Vaše přihláška nebyla v tomto kole podpořena. Zdůvodnění od prorektora najdete po přihlášení u přihlášky UHK Connect (Moje přihlášky).",
+    APPROVED:     "Gratulujeme! Vaše přihláška byla schválena k financování. Stanovisko prorektora a komentář si můžete po přihlášení přečíst u přihlášky UHK Connect (Moje projekty).",
+    REJECTED:     "Vaše přihláška nebyla v tomto kole podpořena. Zdůvodnění od prorektora najdete po přihlášení u přihlášky UHK Connect (Moje projekty).",
     WITHDRAWN:    "Vaše přihláška byla stažena ze soutěže.",
   };
   if (!subjects[status]) return;
