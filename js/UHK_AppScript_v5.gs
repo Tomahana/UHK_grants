@@ -1661,27 +1661,41 @@ function getConnectReviews(competitionId, token) {
 }
 
 /**
- * Connect: alokace z CONFIG; přiděleno = součet schválených částek (Podpořit/Krátit, včetně krácení z comment_k1);
- * využito = stejné přihlášky po uložení souhlasu žadatele (consent_saved_at) – započítá se schválená částka.
- * Zbývá = alokace − přiděleno.
+ * Rozpočet výzvy pro rozcestník: alokace z CONFIG u všech soutěží v SPREADSHEET_IDS.
+ * Plný výpočet přiděleno / využito (žadatel) jen u UHK Connect (prorektor + souhlas v části 1).
+ * Ostatní výzvy: alokace + zbývá = alokace (řádky přiděleno/využito 0, dokud nebude obdobná logika).
  */
 function getConnectFundingSummary(competitionId, token) {
   const auth = requireAuth(token);
   if (!authHasAnyRole_(auth, ["ADMIN", "PROREKTOR", "KOMISAR", "KOMISAŘ", "TESTER", "READONLY"]))
     throw new Error("Nedostatečná oprávnění.");
   const comp = String(competitionId || "").trim();
-  if (comp !== CONNECT_COMPETITION_ID)
-    return { success: true, supported: false };
+  if (!SPREADSHEET_IDS[comp]) return { success: true, supported: false };
 
   const ss = getSpreadsheet(comp);
   const cfg = getConfigMap(ss);
   const allocation = readTotalAllocationCzkFromCfg_(cfg);
+
+  if (comp !== CONNECT_COMPETITION_ID) {
+    return {
+      success: true,
+      supported: true,
+      detailLevel: "allocation_only",
+      allocationCzk: allocation,
+      assignedCzk: 0,
+      acceptedCzk: 0,
+      remainingCzk: Math.max(0, allocation),
+      assignedCount: 0,
+      acceptedCount: 0,
+    };
+  }
 
   const sheet = ss.getSheetByName(SHEETS.APPLICATIONS);
   if (!sheet) {
     return {
       success: true,
       supported: true,
+      detailLevel: "connect",
       allocationCzk: allocation,
       assignedCzk: 0,
       acceptedCzk: 0,
@@ -1721,6 +1735,7 @@ function getConnectFundingSummary(competitionId, token) {
   return {
     success: true,
     supported: true,
+    detailLevel: "connect",
     allocationCzk: allocation,
     assignedCzk: assigned,
     acceptedCzk: accepted,
