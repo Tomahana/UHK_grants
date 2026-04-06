@@ -1437,9 +1437,12 @@ function saveConnectPostAward(body) {
     if (String(next.final_report_final || "").trim().length < 80)
       throw new Error("Finální závěrečná zpráva v aplikaci: doplňte text (alespoň 80 znaků).");
     next.final_report_final_saved_at = fmtDate(new Date());
+    next.final_report_draft = next.final_report_final;
   } else if (section === "completion") {
     if (!String(prev.consent_saved_at || "").trim())
       throw new Error("Nejdřív uložte souhlas v části 1 (stanovisko prorektora a schválená podpora).");
+    if (!String(prev.final_report_final_saved_at || "").trim())
+      throw new Error("Nejdřív finalizujte závěrečnou zprávu (tlačítko výše), poté doplňte rozpočet a výstupy.");
     var fdRow = connectParseFormDataObject_(row);
     var reqB = Number(fdRow.budget_total) || 0;
     var plannedAmt = connectEffectiveSupportedCzk_(outcome, reqB);
