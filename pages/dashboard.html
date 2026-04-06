@@ -141,6 +141,7 @@
       }));
       if (!isAdmin) competitions = competitions.filter(c => c._visible);
       renderCompetitions(competitions, isAdmin);
+      enrichConnectFunding(competitions);
 
       // API aktualizace na pozadí – přidá reálné počty přihlášek
       try {
@@ -158,10 +159,45 @@
           if (!live.some(c => c.id === "uhk_navraty_2026")) live.unshift(NAVRATY_CARD);
           if (!isAdmin) live = live.filter(c => c._visible);
           renderCompetitions(live, isAdmin);
+          enrichConnectFunding(live);
         }
       } catch(e) {
         // Fallback už je zobrazen – nic nedělej
         console.info("API timeout/chyba, zobrazuji fallback:", e.message);
+      }
+    }
+
+    async function enrichConnectFunding(list) {
+      const can = ["ADMIN", "PROREKTOR", "KOMISAR", "KOMISAŘ", "TESTER", "READONLY"].includes(user.role);
+      if (!can || !list || !list.length) return;
+      const sess = Auth._getSession();
+      if (!sess || !sess.token) return;
+      for (const comp of list) {
+        if (comp.type !== "UHK_CONNECT") continue;
+        const card = document.querySelector(".comp-card[data-comp-id=\"" + comp.id.replace(/\\/g, "\\\\").replace(/"/g, '\\"') + "\"]");
+        const slot = card && card.querySelector(".connect-funding-slot");
+        if (!slot) continue;
+        try {
+          const data = await API.getConnectFundingSummary(comp.id);
+          if (!data || data.error || !data.supported) {
+            slot.innerHTML = "";
+            slot.style.display = "none";
+            continue;
+          }
+          slot.style.display = "block";
+          slot.innerHTML = `
+            <div style="font-weight:600;color:#1C2E5A;margin-bottom:6px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;">Rozpočet výzvy</div>
+            <div style="display:grid;gap:4px;">
+              <div>Alokováno <strong>${formatCZK(data.allocationCzk)}</strong></div>
+              <div>Přiděleno (prorektor) <strong>${formatCZK(data.assignedCzk)}</strong></div>
+              <div>Využito (žadatel) <strong>${formatCZK(data.acceptedCzk)}</strong></div>
+              <div>Zbývá z alokace <strong>${formatCZK(data.remainingCzk)}</strong></div>
+            </div>
+            <div style="font-size:10px;opacity:.75;margin-top:6px;line-height:1.4;">Využito = potvrzení následků v checklistu po schválení.</div>`;
+        } catch (e) {
+          slot.innerHTML = "<span style=\"opacity:.65\">Přehled rozpočtu se nepodařilo načíst.</span>";
+          slot.style.display = "block";
+        }
       }
     }
 
@@ -196,6 +232,7 @@
     function buildCompetitionCard(comp, role) {
       const card = document.createElement("div");
       card.className = `comp-card comp-card--${comp.status.toLowerCase()} fade-in`;
+      card.dataset.compId = comp.id;
 
       const statusInfo = COMP_STATUSES[comp.status] || { label: comp.status, icon: "●" };
       const actions    = getActionsForRole(role, comp);
@@ -235,6 +272,10 @@
                 <span class="meta-val">${comp.applicationsCount}</span>
               </div>` : ""}
           </div>
+          ${comp.type === "UHK_CONNECT" ? `
+          <div class="connect-funding-slot" style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(28,46,90,.1);font-size:12px;color:#6B6A63;line-height:1.5;">
+            <span style="opacity:.65">Načítám přehled rozpočtu…</span>
+          </div>` : ""}
         </div>
         <div class="comp-card__actions">
           ${actions.map(a => `
