@@ -401,10 +401,23 @@ async function refreshFundingSummary() {
       return;
     }
     panel.style.display = "block";
-    document.getElementById("fundAlloc").textContent = fmtKc(j.allocationCzk);
-    document.getElementById("fundAssigned").textContent = fmtKc(j.assignedCzk);
-    document.getElementById("fundAccepted").textContent = fmtKc(j.acceptedCzk);
-    document.getElementById("fundRemaining").textContent = fmtKc(j.remainingCzk);
+    let alloc = Number(j.allocationCzk) || 0;
+    const assigned = Number(j.assignedCzk) || 0;
+    const accepted = Number(j.acceptedCzk) || 0;
+    if (!alloc) {
+      const u2 = new URL(API_URL);
+      u2.searchParams.set("action", "getCompetitions");
+      u2.searchParams.set("token", s?.token || "");
+      const compsRaw = await (await fetch(u2.toString())).json();
+      const arr = Array.isArray(compsRaw) ? compsRaw : compsRaw.competitions || [];
+      const c = arr.find((x) => x.id === CID);
+      if (c) alloc = Number(c.allocation) || 0;
+    }
+    const remaining = Math.max(0, alloc - assigned);
+    document.getElementById("fundAlloc").textContent = fmtKc(alloc);
+    document.getElementById("fundAssigned").textContent = fmtKc(assigned);
+    document.getElementById("fundAccepted").textContent = fmtKc(accepted);
+    document.getElementById("fundRemaining").textContent = fmtKc(remaining);
   } catch (e) {
     panel.style.display = "none";
   }
