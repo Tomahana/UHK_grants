@@ -89,11 +89,15 @@ const API = {
     const session = Auth._getSession();
     let prevConsent = "";
     let prevCompletion = "";
+    let prevZzDraft = "";
+    let prevFinalAt = "";
     try {
       const before = await this.get("getConnectPostAward", { competitionId, applicationId });
       if (before && before.checklist) {
         prevConsent = String(before.checklist.consent_saved_at || "");
         prevCompletion = String(before.checklist.completion_saved_at || "");
+        prevZzDraft = String(before.checklist.zz_draft_saved_at || "");
+        prevFinalAt = String(before.checklist.final_report_final_saved_at || "");
       }
     } catch (e) {
       /* ignore */
@@ -131,6 +135,12 @@ const API = {
         } else if (saveSection === "completion") {
           const at = String(ch.completion_saved_at || "");
           if (at && at !== prevCompletion) return { success: true, checklist: ch };
+        } else if (saveSection === "report_draft") {
+          const at = String(ch.zz_draft_saved_at || "");
+          if (at && at !== prevZzDraft) return { success: true, checklist: ch };
+        } else if (saveSection === "report_final") {
+          const at = String(ch.final_report_final_saved_at || "");
+          if (at && at !== prevFinalAt) return { success: true, checklist: ch };
         } else {
           return { success: true, checklist: ch };
         }
