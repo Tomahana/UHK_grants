@@ -122,7 +122,7 @@
             .join("")
         : "";
     const zzDraft = escapeHtml(c.final_report_draft || "");
-    const zzFinal = escapeHtml(c.final_report_final || "");
+    const zzFinalized = String(c.final_report_final_saved_at || "").trim().length > 0;
     const dzf = c.deliverable_zprava_fulfilled ? " checked" : "";
     const dvf = c.deliverable_vystup_fulfilled ? " checked" : "";
     const daf = c.deliverable_aktivita_fulfilled ? " checked" : "";
@@ -145,18 +145,48 @@
         '<button type="button" class="btn btn-primary" id="postawardSaveCompletionBtn">Uložit finální potvrzení řešitele</button>' +
         '<span class="postaward-mail" id="postawardCompletionStatus"></span>' +
         "</div>";
-    const zzDraftActions = readOnly
-      ? ""
-      : '<div class="postaward-actions">' +
-        '<button type="button" class="btn btn-secondary" id="postawardSaveZzDraftBtn">Uložit koncept ZZ</button>' +
-        '<span class="postaward-mail" id="postawardZzDraftStatus"></span>' +
+    var zzSection = "";
+    if (zzFinalized) {
+      zzSection =
+        '<div class="postaward-zz">' +
+        '<h5 style="font-size:13px;font-weight:700;color:var(--navy);margin:0 0 8px;">Závěrečná zpráva (finalizováno)</h5>' +
+        '<p class="postaward-mail" style="margin-bottom:12px;">Text byl v aplikaci uzavřen. Datum uložení: <strong>' +
+        escapeHtml(String(c.final_report_final_saved_at || "—")) +
+        "</strong></p>" +
+        '<div class="postaward-zz-final-readonly" style="white-space:pre-wrap;padding:14px;border:1px solid var(--border);border-radius:var(--r);background:rgba(255,255,255,.95);font-size:13px;line-height:1.55;max-height:480px;overflow:auto;">' +
+        escapeHtml(String(c.final_report_final || "")) +
+        "</div>" +
         "</div>";
-    const zzFinalActions = readOnly
-      ? ""
-      : '<div class="postaward-actions">' +
-        '<button type="button" class="btn btn-primary" id="postawardSaveZzFinalBtn">Uložit finální ZZ</button>' +
-        '<span class="postaward-mail" id="postawardZzFinalStatus"></span>' +
+    } else {
+      zzSection =
+        '<div class="postaward-zz">' +
+        '<h5 style="font-size:13px;font-weight:700;color:var(--navy);margin:0 0 8px;">Závěrečná zpráva – koncept</h5>' +
+        '<p style="font-size:12px;color:var(--muted);margin:0 0 12px;line-height:1.45;">Pište průběžně; <strong>koncept se ukládá automaticky</strong> stejně jako u přihlášky (30 s od poslední úpravy). Kdykoli můžete odejít a <strong>vrátit se k rozpracovanému textu</strong>. Tlačítkem <strong>Uložit koncept nyní</strong> uložíte okamžitě. Až bude text hotový (alespoň 80 znaků, po souhlasu v části 1), <strong>finalizujte</strong> závěrečnou zprávu – tím ji uzavřete v evidenci soutěže. Rozsah dle přílohy výzvy (např. cca 3 strany).</p>' +
+        '<label for="pa_zz_draft">Text závěrečné zprávy</label>' +
+        '<textarea id="pa_zz_draft" placeholder="Průběžně pište závěrečnou zprávu…"' +
+        (readOnly ? " disabled" : "") +
+        ">" +
+        zzDraft +
+        "</textarea>" +
+        (readOnly
+          ? ""
+          : '<div class="postaward-actions" style="margin-top:10px;">' +
+            '<button type="button" class="btn btn-secondary" id="postawardSaveZzDraftManualBtn">Uložit koncept nyní</button>' +
+            '<span class="postaward-mail" id="postawardZzDraftStatus" style="margin-left:10px;"></span>' +
+            "</div>" +
+            '<p class="postaward-mail" id="pa_zz_serverHint">' +
+            (c.zz_draft_saved_at
+              ? "Koncept na serveru naposledy: <strong>" + escapeHtml(c.zz_draft_saved_at) + "</strong>"
+              : '<span style="opacity:.85">Koncept zatím nebyl uložen na server – začněte psát nebo uložte ručně.</span>') +
+            "</p>" +
+            '<div style="margin-top:20px;padding-top:16px;border-top:1px dashed #D4C4A8;">' +
+            '<p style="font-size:12px;color:var(--navy-mid);margin:0 0 12px;line-height:1.45;">Finalizace uloží text jako závěrečnou zprávu projektu v soutěži. Poté doplňte rozpočet, výstupy a uložte <strong>finální potvrzení řešitele</strong> níže.</p>' +
+            '<button type="button" class="btn btn-primary" id="postawardFinalizeZzBtn">Finalizovat závěrečnou zprávu</button>' +
+            '<span class="postaward-mail" id="postawardFinalizeZzStatus" style="margin-left:10px;"></span>' +
+            "</div>") +
         "</div>";
+    }
+
     const mailLine = mailHref
       ? '<p class="postaward-mail">Do příloh zapisujte zejména export z Magionu a povinné výstupy (soubory / odkazy). Text závěrečné zprávy pište v aplikaci výše. Případně e-mail: <a href="' +
         mailHref +
@@ -258,32 +288,7 @@
       '<h5 style="font-size:12px;margin:14px 0 8px;color:var(--navy-mid);">Rozpočet: žádost → schváleno (prorektor)</h5>' +
       budgetTable1 +
       "</div>" +
-      '<div class="postaward-zz">' +
-      '<h5 style="font-size:13px;font-weight:700;color:var(--navy);margin:0 0 8px;">Závěrečná zpráva – text v aplikaci</h5>' +
-      '<p style="font-size:12px;color:var(--muted);margin:0 0 12px;line-height:1.45;">Nejdřív můžete ukládat <strong>koncept</strong>, poté po doplnění obsahu uložte <strong>finální znění</strong> (po souhlasu v části 1). Doporučení k rozsahu má příloha výzvy (např. cca 3 strany).</p>' +
-      '<label for="pa_zz_draft">Koncept závěrečné zprávy (draft)</label>' +
-      '<textarea id="pa_zz_draft" placeholder="Pracovní verze…"' +
-      (readOnly ? " disabled" : "") +
-      ">" +
-      zzDraft +
-      "</textarea>" +
-      zzDraftActions +
-      (c.zz_draft_saved_at
-        ? '<p class="postaward-mail">Koncept naposledy uložen: <strong>' + escapeHtml(c.zz_draft_saved_at) + "</strong></p>"
-        : "") +
-      '<label for="pa_zz_final">Finální závěrečná zpráva</label>' +
-      '<textarea id="pa_zz_final" placeholder="Finální text pro uzavření projektu v soutěži…"' +
-      (readOnly ? " disabled" : "") +
-      ">" +
-      zzFinal +
-      "</textarea>" +
-      zzFinalActions +
-      (c.final_report_final_saved_at
-        ? '<p class="postaward-mail">Finální ZZ naposledy uložena: <strong>' +
-          escapeHtml(c.final_report_final_saved_at) +
-          "</strong></p>"
-        : "") +
-      "</div>" +
+      zzSection +
       '<p style="font-size:12px;font-weight:600;color:var(--navy);margin:20px 0 8px;">Reálný stav oproti schválenému rozpočtu</p>' +
       '<p style="font-size:11px;color:var(--muted);margin:0 0 10px;line-height:1.45;">U každé položky uveďte skutečně vyčerpanou částku a případně poznámku. Součet by měl odpovídat schválené podpoře <strong>' +
       offB.toLocaleString("cs-CZ") +
@@ -459,8 +464,6 @@
     const remount = callbacks.remount;
     const btnC = document.getElementById("postawardSaveConsentBtn");
     const btnF = document.getElementById("postawardSaveCompletionBtn");
-    const btnZd = document.getElementById("postawardSaveZzDraftBtn");
-    const btnZf = document.getElementById("postawardSaveZzFinalBtn");
 
     function collectBudgetActualFromDom() {
       const lines = {};
@@ -492,8 +495,8 @@
         var msg = "Uloženo.";
         if (section === "consent") msg = "Souhlas uložen.";
         else if (section === "completion") msg = "Finální potvrzení uloženo.";
-        else if (section === "report_draft") msg = "Koncept ZZ uložen.";
-        else if (section === "report_final") msg = "Finální ZZ uložena.";
+        else if (section === "report_draft") msg = "Koncept závěrečné zprávy uložen.";
+        else if (section === "report_final") msg = "Závěrečná zpráva je finalizována.";
         showToast(msg);
         await remount();
       } catch (e) {
@@ -517,26 +520,100 @@
         );
       });
     }
-    if (btnZd) {
-      btnZd.addEventListener("click", function () {
-        saveSection(
-          "report_draft",
-          { final_report_draft: document.getElementById("pa_zz_draft")?.value || "" },
-          document.getElementById("postawardZzDraftStatus"),
-          btnZd
-        );
+    var zzFinalizedBind =
+      data.checklist && String(data.checklist.final_report_final_saved_at || "").trim().length > 0;
+    var zzAutosaveTimer = null;
+    var zzDraftDirty = false;
+    var zzSaveSilentInFlight = false;
+    if (callbacks.registerZzCleanup) {
+      callbacks.registerZzCleanup(function () {
+        clearTimeout(zzAutosaveTimer);
+        zzAutosaveTimer = null;
       });
     }
-    if (btnZf) {
-      btnZf.addEventListener("click", function () {
-        saveSection(
-          "report_final",
-          { final_report_final: document.getElementById("pa_zz_final")?.value || "" },
-          document.getElementById("postawardZzFinalStatus"),
-          btnZf
-        );
-      });
+    var draftEl = document.getElementById("pa_zz_draft");
+    if (!zzFinalizedBind && draftEl) {
+      function scheduleZzAutosave() {
+        zzDraftDirty = true;
+        clearTimeout(zzAutosaveTimer);
+        zzAutosaveTimer = setTimeout(function () {
+          void saveZzDraftSilent();
+        }, 30000);
+      }
+      draftEl.addEventListener("input", scheduleZzAutosave);
+      draftEl.addEventListener("change", scheduleZzAutosave);
+
+      async function saveZzDraftSilent() {
+        if (!zzDraftDirty || zzSaveSilentInFlight) return;
+        var el = document.getElementById("pa_zz_draft");
+        if (!el) return;
+        zzSaveSilentInFlight = true;
+        var st = document.getElementById("postawardZzDraftStatus");
+        var hint = document.getElementById("pa_zz_serverHint");
+        if (st) st.textContent = "Ukládám koncept…";
+        try {
+          var res = await api().saveConnectPostAward(
+            competitionId,
+            applicationId,
+            { final_report_draft: el.value },
+            "report_draft"
+          );
+          if (res.error) throw new Error(res.error);
+          zzDraftDirty = false;
+          if (st) st.textContent = "";
+          var at = res.checklist && res.checklist.zz_draft_saved_at ? res.checklist.zz_draft_saved_at : "";
+          if (hint && at) {
+            hint.innerHTML = "Koncept na serveru naposledy: <strong>" + escapeHtml(at) + "</strong>";
+          } else if (hint) {
+            hint.innerHTML = '<span style="opacity:.85">Koncept uložen.</span>';
+          }
+        } catch (e) {
+          if (st) st.textContent = "";
+          showToast(e.message || "Koncept se nepodařilo uložit", "err");
+        } finally {
+          zzSaveSilentInFlight = false;
+        }
+      }
+
+      var btnMan = document.getElementById("postawardSaveZzDraftManualBtn");
+      if (btnMan) {
+        btnMan.addEventListener("click", function () {
+          zzDraftDirty = true;
+          void saveZzDraftSilent();
+        });
+      }
+
+      var btnFin = document.getElementById("postawardFinalizeZzBtn");
+      if (btnFin) {
+        btnFin.addEventListener("click", function () {
+          var elz = document.getElementById("pa_zz_draft");
+          var txt = (elz && elz.value) || "";
+          if (String(txt).trim().length < 80) {
+            showToast("Doplňte text závěrečné zprávy (alespoň 80 znaků) před finalizací.", "err");
+            return;
+          }
+          clearTimeout(zzAutosaveTimer);
+          zzAutosaveTimer = null;
+          zzDraftDirty = true;
+          void (async function () {
+            await saveZzDraftSilent();
+            elz = document.getElementById("pa_zz_draft");
+            txt = (elz && elz.value) || "";
+            if (String(txt).trim().length < 80) {
+              showToast("Text je příliš krátký pro finalizaci.", "err");
+              return;
+            }
+            saveSection(
+              "report_final",
+              { final_report_final: txt, final_report_draft: txt },
+              document.getElementById("postawardFinalizeZzStatus"),
+              btnFin
+            );
+          })();
+        });
+      }
     }
+
     if (btnF) {
       btnF.addEventListener("click", function () {
         var collected = collectBudgetActualFromDom();
@@ -623,10 +700,23 @@
         applicantLine: applicantLine,
       };
       rootEl.innerHTML = buildConnectPostAwardPanel(data, mode, ctx);
-      const remount = function () {
+      const mountState = { zzCleanup: null };
+      const remount = async function () {
+        if (mountState.zzCleanup) {
+          try {
+            mountState.zzCleanup();
+          } catch (err) {}
+          mountState.zzCleanup = null;
+        }
         return mount(rootEl, competitionId, applicationId, mode, callbacks);
       };
-      bindConnectPostAwardForm(data, applicationId, competitionId, { showToast: showToast, remount: remount });
+      bindConnectPostAwardForm(data, applicationId, competitionId, {
+        showToast: showToast,
+        remount: remount,
+        registerZzCleanup: function (fn) {
+          mountState.zzCleanup = fn;
+        },
+      });
     } catch (e) {
       rootEl.innerHTML = '<p style="font-size:13px;color:#991B1B;">' + escapeHtml(e.message) + "</p>";
     }
