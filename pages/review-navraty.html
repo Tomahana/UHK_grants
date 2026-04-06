@@ -76,12 +76,16 @@
     .score-max { font-size: 16px; color: rgba(196,154,42,.6); }
 
     /* Kritéria */
-    .criterion-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--ink-10); }
-    .criterion-row:last-child { border-bottom: none; padding-bottom: 0; }
-    .criterion-row:first-child { padding-top: 0; }
+    .criterion-block { padding: 16px 0; border-bottom: 1px solid var(--ink-10); }
+    .criterion-block:first-of-type { padding-top: 0; }
+    .criterion-block:last-of-type { border-bottom: none; padding-bottom: 0; }
+    .criterion-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .criterion-main { flex: 1 1 220px; min-width: 0; }
     .criterion-name { font-weight: 600; font-size: 14px; color: var(--ink); margin-bottom: 2px; }
-    .criterion-desc { font-size: 12px; color: var(--ink-60); line-height: 1.4; }
-    .star-rating { display: flex; gap: 4px; flex-shrink: 0; }
+    .criterion-desc { font-size: 12px; color: var(--ink-60); line-height: 1.45; }
+    .criterion-note-label { font-size: 11px; color: var(--ink-60); margin: 10px 0 4px; display: block; font-weight: 500; }
+    textarea.criterion-note { min-height: 64px; margin-top: 0; font-size: 13px; line-height: 1.45; }
+    .star-rating { display: flex; gap: 4px; flex-shrink: 0; margin-left: auto; }
     .star-rating input[type="radio"] { display: none; }
     .star-rating label { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: var(--r); border: 1.5px solid var(--ink-20); font-family: 'DM Mono', monospace; font-size: 13px; color: var(--ink-60); transition: all .15s; user-select: none; }
     .star-rating label:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
@@ -103,6 +107,7 @@
     }
     textarea.form-field:focus, select.form-field:focus, input.form-field:focus { border-color: var(--accent); }
     textarea.form-field { min-height: 90px; }
+    textarea.form-field.criterion-note { min-height: 64px; }
     select.form-field { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%230f1923' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 40px; cursor: pointer; }
     .ranking-row { display: flex; align-items: center; gap: 12px; }
     .ranking-row input.form-field { width: 80px; text-align: center; font-family: 'DM Mono', monospace; font-size: 20px; }
@@ -203,7 +208,8 @@
       .topbar { padding: 0 16px; }
       .topbar__page, .topbar__user .topbar__role { display: none; }
       .page, .dash-page { padding: 24px 16px 60px; }
-      .criterion-row { flex-direction: column; }
+      .criterion-row { flex-direction: column; align-items: stretch; }
+      .criterion-block .star-rating { margin-left: 0; width: 100%; justify-content: flex-start; flex-wrap: wrap; }
       .project-card-right { gap: 8px; }
       .star-rating label { width: 32px; height: 32px; font-size: 12px; }
     }
@@ -382,74 +388,94 @@
           <span class="scale-pill scale-pill--max">5 = maximum</span>
         </div>
 
-        <div class="criterion-row">
-          <div>
-            <div class="criterion-name">K1 — Vědecká kvalita</div>
-            <div class="criterion-desc">Originalita, metodologická rigoróznost, teoretický základ</div>
+        <div class="criterion-block">
+          <div class="criterion-row">
+            <div class="criterion-main">
+              <div class="criterion-name">K1 — Vědecká kvalita</div>
+              <div class="criterion-desc">Originalita, metodologická rigoróznost, teoretický základ</div>
+            </div>
+            <div class="star-rating" id="stars-k1">
+              <input type="radio" name="k1" id="k1-1" value="1"><label for="k1-1" onclick="calcScore()">1</label>
+              <input type="radio" name="k1" id="k1-2" value="2"><label for="k1-2" onclick="calcScore()">2</label>
+              <input type="radio" name="k1" id="k1-3" value="3"><label for="k1-3" onclick="calcScore()">3</label>
+              <input type="radio" name="k1" id="k1-4" value="4"><label for="k1-4" onclick="calcScore()">4</label>
+              <input type="radio" name="k1" id="k1-5" value="5"><label for="k1-5" onclick="calcScore()">5</label>
+            </div>
           </div>
-          <div class="star-rating" id="stars-k1">
-            <input type="radio" name="k1" id="k1-1" value="1"><label for="k1-1" onclick="calcScore()">1</label>
-            <input type="radio" name="k1" id="k1-2" value="2"><label for="k1-2" onclick="calcScore()">2</label>
-            <input type="radio" name="k1" id="k1-3" value="3"><label for="k1-3" onclick="calcScore()">3</label>
-            <input type="radio" name="k1" id="k1-4" value="4"><label for="k1-4" onclick="calcScore()">4</label>
-            <input type="radio" name="k1" id="k1-5" value="5"><label for="k1-5" onclick="calcScore()">5</label>
-          </div>
+          <label class="criterion-note-label" for="note-k1">Poznámka / doplnění k bodování (K1)</label>
+          <textarea class="form-field criterion-note" id="note-k1" placeholder="Volitelně – stručná připomínka k tomuto kritériu; součást textu sdíleného s žadatelem."></textarea>
         </div>
 
-        <div class="criterion-row">
-          <div>
-            <div class="criterion-name">K2 — Proveditelnost</div>
-            <div class="criterion-desc">Reálnost harmonogramu, dostupnost zdrojů, zkušenosti žadatele</div>
+        <div class="criterion-block">
+          <div class="criterion-row">
+            <div class="criterion-main">
+              <div class="criterion-name">K2 — Proveditelnost</div>
+              <div class="criterion-desc">Reálnost harmonogramu, dostupnost zdrojů, zkušenosti žadatele</div>
+            </div>
+            <div class="star-rating">
+              <input type="radio" name="k2" id="k2-1" value="1"><label for="k2-1" onclick="calcScore()">1</label>
+              <input type="radio" name="k2" id="k2-2" value="2"><label for="k2-2" onclick="calcScore()">2</label>
+              <input type="radio" name="k2" id="k2-3" value="3"><label for="k2-3" onclick="calcScore()">3</label>
+              <input type="radio" name="k2" id="k2-4" value="4"><label for="k2-4" onclick="calcScore()">4</label>
+              <input type="radio" name="k2" id="k2-5" value="5"><label for="k2-5" onclick="calcScore()">5</label>
+            </div>
           </div>
-          <div class="star-rating">
-            <input type="radio" name="k2" id="k2-1" value="1"><label for="k2-1" onclick="calcScore()">1</label>
-            <input type="radio" name="k2" id="k2-2" value="2"><label for="k2-2" onclick="calcScore()">2</label>
-            <input type="radio" name="k2" id="k2-3" value="3"><label for="k2-3" onclick="calcScore()">3</label>
-            <input type="radio" name="k2" id="k2-4" value="4"><label for="k2-4" onclick="calcScore()">4</label>
-            <input type="radio" name="k2" id="k2-5" value="5"><label for="k2-5" onclick="calcScore()">5</label>
-          </div>
+          <label class="criterion-note-label" for="note-k2">Poznámka / doplnění k bodování (K2)</label>
+          <textarea class="form-field criterion-note" id="note-k2" placeholder="Volitelně – stručná připomínka k tomuto kritériu; součást textu sdíleného s žadatelem."></textarea>
         </div>
 
-        <div class="criterion-row">
-          <div>
-            <div class="criterion-name">K3 — Dopad a přínos</div>
-            <div class="criterion-desc">Vědecký a společenský dopad, přínos pro UHK</div>
+        <div class="criterion-block">
+          <div class="criterion-row">
+            <div class="criterion-main">
+              <div class="criterion-name">K3 — Dopad a relevance (obor / společnost)</div>
+              <div class="criterion-desc">Přínos pro poznání v oboru, širší dopad výsledků, přenos znalostí mimo vlastní tým (bez hodnocení institucionálního přínosu pro UHK – ten je v K5)</div>
+            </div>
+            <div class="star-rating">
+              <input type="radio" name="k3" id="k3-1" value="1"><label for="k3-1" onclick="calcScore()">1</label>
+              <input type="radio" name="k3" id="k3-2" value="2"><label for="k3-2" onclick="calcScore()">2</label>
+              <input type="radio" name="k3" id="k3-3" value="3"><label for="k3-3" onclick="calcScore()">3</label>
+              <input type="radio" name="k3" id="k3-4" value="4"><label for="k3-4" onclick="calcScore()">4</label>
+              <input type="radio" name="k3" id="k3-5" value="5"><label for="k3-5" onclick="calcScore()">5</label>
+            </div>
           </div>
-          <div class="star-rating">
-            <input type="radio" name="k3" id="k3-1" value="1"><label for="k3-1" onclick="calcScore()">1</label>
-            <input type="radio" name="k3" id="k3-2" value="2"><label for="k3-2" onclick="calcScore()">2</label>
-            <input type="radio" name="k3" id="k3-3" value="3"><label for="k3-3" onclick="calcScore()">3</label>
-            <input type="radio" name="k3" id="k3-4" value="4"><label for="k3-4" onclick="calcScore()">4</label>
-            <input type="radio" name="k3" id="k3-5" value="5"><label for="k3-5" onclick="calcScore()">5</label>
-          </div>
+          <label class="criterion-note-label" for="note-k3">Poznámka / doplnění k bodování (K3)</label>
+          <textarea class="form-field criterion-note" id="note-k3" placeholder="Volitelně – stručná připomínka k tomuto kritériu; součást textu sdíleného s žadatelem."></textarea>
         </div>
 
-        <div class="criterion-row">
-          <div>
-            <div class="criterion-name">K4 — Rozpočet</div>
-            <div class="criterion-desc">Přiměřenost nákladů, efektivita využití prostředků</div>
+        <div class="criterion-block">
+          <div class="criterion-row">
+            <div class="criterion-main">
+              <div class="criterion-name">K4 — Rozpočet</div>
+              <div class="criterion-desc">Přiměřenost nákladů, efektivita využití prostředků</div>
+            </div>
+            <div class="star-rating">
+              <input type="radio" name="k4" id="k4-1" value="1"><label for="k4-1" onclick="calcScore()">1</label>
+              <input type="radio" name="k4" id="k4-2" value="2"><label for="k4-2" onclick="calcScore()">2</label>
+              <input type="radio" name="k4" id="k4-3" value="3"><label for="k4-3" onclick="calcScore()">3</label>
+              <input type="radio" name="k4" id="k4-4" value="4"><label for="k4-4" onclick="calcScore()">4</label>
+              <input type="radio" name="k4" id="k4-5" value="5"><label for="k4-5" onclick="calcScore()">5</label>
+            </div>
           </div>
-          <div class="star-rating">
-            <input type="radio" name="k4" id="k4-1" value="1"><label for="k4-1" onclick="calcScore()">1</label>
-            <input type="radio" name="k4" id="k4-2" value="2"><label for="k4-2" onclick="calcScore()">2</label>
-            <input type="radio" name="k4" id="k4-3" value="3"><label for="k4-3" onclick="calcScore()">3</label>
-            <input type="radio" name="k4" id="k4-4" value="4"><label for="k4-4" onclick="calcScore()">4</label>
-            <input type="radio" name="k4" id="k4-5" value="5"><label for="k4-5" onclick="calcScore()">5</label>
-          </div>
+          <label class="criterion-note-label" for="note-k4">Poznámka / doplnění k bodování (K4)</label>
+          <textarea class="form-field criterion-note" id="note-k4" placeholder="Volitelně – stručná připomínka k tomuto kritériu; součást textu sdíleného s žadatelem."></textarea>
         </div>
 
-        <div class="criterion-row">
-          <div>
-            <div class="criterion-name">K5 — Přínos UHK</div>
-            <div class="criterion-desc">Strategická relevance, soulad s prioritami instituce</div>
+        <div class="criterion-block">
+          <div class="criterion-row">
+            <div class="criterion-main">
+              <div class="criterion-name">K5 — Strategický přínos pro UHK</div>
+              <div class="criterion-desc">Soulad s prioritami univerzity a fakulty, posílení profilu UHK, zapojení studentů či týmů, přínos pro výuku nebo rozvoj kapacit</div>
+            </div>
+            <div class="star-rating">
+              <input type="radio" name="k5" id="k5-1" value="1"><label for="k5-1" onclick="calcScore()">1</label>
+              <input type="radio" name="k5" id="k5-2" value="2"><label for="k5-2" onclick="calcScore()">2</label>
+              <input type="radio" name="k5" id="k5-3" value="3"><label for="k5-3" onclick="calcScore()">3</label>
+              <input type="radio" name="k5" id="k5-4" value="4"><label for="k5-4" onclick="calcScore()">4</label>
+              <input type="radio" name="k5" id="k5-5" value="5"><label for="k5-5" onclick="calcScore()">5</label>
+            </div>
           </div>
-          <div class="star-rating">
-            <input type="radio" name="k5" id="k5-1" value="1"><label for="k5-1" onclick="calcScore()">1</label>
-            <input type="radio" name="k5" id="k5-2" value="2"><label for="k5-2" onclick="calcScore()">2</label>
-            <input type="radio" name="k5" id="k5-3" value="3"><label for="k5-3" onclick="calcScore()">3</label>
-            <input type="radio" name="k5" id="k5-4" value="4"><label for="k5-4" onclick="calcScore()">4</label>
-            <input type="radio" name="k5" id="k5-5" value="5"><label for="k5-5" onclick="calcScore()">5</label>
-          </div>
+          <label class="criterion-note-label" for="note-k5">Poznámka / doplnění k bodování (K5)</label>
+          <textarea class="form-field criterion-note" id="note-k5" placeholder="Volitelně – stručná připomínka k tomuto kritériu; součást textu sdíleného s žadatelem."></textarea>
         </div>
       </div>
 
@@ -458,15 +484,18 @@
         <div class="card-title"><div class="card-num">2</div>Závěr hodnocení</div>
 
         <div class="field-group">
-          <label class="field-label">Pořadí přihlášky</label>
+          <label class="field-label">Pořadí přihlášky (projektu)</label>
           <div class="ranking-row">
             <input type="number" class="form-field" id="poradi" min="1" max="99" step="1" placeholder="1">
-            <span class="ranking-hint">1 = nejlepší</span>
+            <span class="ranking-hint">1 = nejlepší ve vašem osobním žebříčku</span>
           </div>
+          <p style="font-size:12px;color:var(--ink-60);line-height:1.45;margin-top:8px;max-width:42rem;">
+            Jedná se o <strong>subjektivní pořadí projektu</strong> podle vašeho uvážení v rámci soutěže; slouží k přehledu pro komisi, není závazným pořadím výsledného žebříčku.
+          </p>
         </div>
 
         <div class="field-group">
-          <label class="field-label">Doporučení komise</label>
+          <label class="field-label">Doporučení člena komise</label>
           <select class="form-field" id="doporuceni">
             <option value="">— Vyberte —</option>
             <option value="FUND">✓ Financovat</option>
@@ -476,8 +505,8 @@
         </div>
 
         <div class="field-group">
-          <label class="field-label">Zdůvodnění doporučení <span style="color:var(--accent)">*</span></label>
-          <textarea class="form-field" id="zduvodneni" placeholder="Stručné zdůvodnění hodnocení – bude sdíleno se žadatelem…"></textarea>
+          <label class="field-label">Závěrečné shrnutí připomínek k projektu <span style="color:var(--accent)">*</span></label>
+          <textarea class="form-field" id="zaverecneShrnuti" placeholder="Celkový závěr vašeho hodnocení – shrnutí hlavních připomínek k projektu; bude sdíleno se žadatelem společně s poznámkami u jednotlivých kritérií (vyplněnými výše)."></textarea>
         </div>
 
         <div class="field-group">
@@ -856,15 +885,47 @@
     }
 
     // ── RESET FORMULÁŘE ──────────────────────────────────────────
+    const NAVRATY_CRIT_NOTE_LABELS = [
+      ["k1", "K1 – Vědecká kvalita"],
+      ["k2", "K2 – Proveditelnost"],
+      ["k3", "K3 – Dopad a relevance (obor / společnost)"],
+      ["k4", "K4 – Rozpočet"],
+      ["k5", "K5 – Strategický přínos pro UHK"],
+    ];
+
+    /** Složí comment_public: poznámky ke kritériím + závěrečné shrnutí (jeden sloupce v Sheets). */
+    function buildNavratyCommentPublic() {
+      const parts = [];
+      NAVRATY_CRIT_NOTE_LABELS.forEach(([key, label]) => {
+        const el = document.getElementById("note-" + key);
+        const t = el ? el.value.trim() : "";
+        if (t) parts.push(label + ":\n" + t);
+      });
+      const blokK = parts.length
+        ? "—— Poznámky u jednotlivých kritérií ——\n\n" + parts.join("\n\n") + "\n\n"
+        : "";
+      const sumEl = document.getElementById("zaverecneShrnuti");
+      const sum = sumEl ? sumEl.value.trim() : "";
+      const blokS = sum
+        ? "—— Závěrečné shrnutí připomínek k projektu ——\n\n" + sum
+        : "";
+      return [blokK, blokS].filter(Boolean).join("");
+    }
+
     function resetForm() {
       document.getElementById("selProjekt").value = "";
       document.getElementById("projectInfo").classList.remove("visible");
       ["k1","k2","k3","k4","k5"].forEach(k => {
         document.querySelectorAll(`input[name="${k}"]`).forEach(r => r.checked = false);
       });
+      NAVRATY_CRIT_NOTE_LABELS.forEach(([key]) => {
+        const n = document.getElementById("note-" + key);
+        if (n) n.value = "";
+      });
       document.getElementById("liveScore").textContent = "—";
-      ["poradi","doporuceni","zduvodneni","poznamka"].forEach(id => {
-        document.getElementById(id).value = "";
+      ["poradi","doporuceni","zaverecneShrnuti","poznamka"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = "";
       });
     }
 
@@ -880,14 +941,17 @@
       }
 
       const doporuceni = document.getElementById("doporuceni").value;
-      if (!doporuceni) { showToast("Vyberte doporučení.", "err"); return; }
+      if (!doporuceni) { showToast("Vyberte doporučení člena komise.", "err"); return; }
 
-      const zduvodneni = document.getElementById("zduvodneni").value.trim();
-      if (!zduvodneni) { showToast("Vyplňte zdůvodnění doporučení.", "err"); return; }
+      const zaverecneShrnuti = document.getElementById("zaverecneShrnuti").value.trim();
+      if (!zaverecneShrnuti) {
+        showToast("Vyplňte závěrečné shrnutí připomínek k projektu.", "err");
+        return;
+      }
 
       const scores = { clarity: k1, quality: k2, budget: k3, profile: k4, outputs: k5 };
       const comments = {
-        public:   zduvodneni,
+        public:   buildNavratyCommentPublic(),
         internal: document.getElementById("poznamka").value,
       };
       const poradi = document.getElementById("poradi").value;
