@@ -74,6 +74,11 @@ const API = {
     return this.get("getConnectMyApplications", { competitionId });
   },
 
+  /** Connect: alokace, přiděleno po prorektorovi, potvrzeno žadatelem, zbývá (jen soutěž uhk_connect_2026_v2). */
+  async getConnectFundingSummary(competitionId) {
+    return this.get("getConnectFundingSummary", { competitionId });
+  },
+
   /** Pravidla a checklist povinných výstupů po Podpořeno/Kráceno (Connect). */
   async getConnectPostAward(competitionId, applicationId) {
     return this.get("getConnectPostAward", { competitionId, applicationId });
