@@ -81,6 +81,8 @@ function doGet(e) {
       case "getReviews":       return corsResponse(getReviews(p.competitionId, p.applicationId, p.token));
       case "getConnectReviews":
         return corsResponse(getConnectReviews(p.competitionId, p.token));
+      case "getConnectFundingSummary":
+        return corsResponse(getConnectFundingSummary(p.competitionId, p.token));
       case "getConnectMyApplications":
         return corsResponse(getConnectMyApplications(p.competitionId, p.token));
       case "getConnectPostAward":
@@ -397,6 +399,17 @@ function requireAuth(token) {
   const v = verifyToken(token);
   if (!v.valid) throw new Error("Nepřihlášen: " + v.reason);
   return v;
+}
+
+/** Porovnání role z tokenu s povoleným seznamem (bez závislosti na velikosti písmen / mezerách). */
+function authHasAnyRole_(auth, allowedRoles) {
+  const want = {};
+  (allowedRoles || []).forEach(function (x) {
+    want[String(x).trim().toUpperCase()] = true;
+  });
+  return (auth.roles || []).some(function (r) {
+    return want[String(r).trim().toUpperCase()];
+  });
 }
 
 
@@ -1071,7 +1084,7 @@ function getConnectMyApplications(competitionId, token) {
 
 function changeStatus(body) {
   const auth = requireAuth(body.token);
-  if (!auth.roles.some(r => ["ADMIN","PROREKTOR","KOMISAR"].includes(r)))
+  if (!authHasAnyRole_(auth, ["ADMIN", "PROREKTOR", "KOMISAR", "KOMISAŘ", "TESTER"]))
     throw new Error("Nedostatečná oprávnění.");
 
   const ss    = getSpreadsheet(body.competitionId);
@@ -1081,9 +1094,12 @@ function changeStatus(body) {
   const data    = sheet.getDataRange().getValues();
   const headers = data[HEADER_ROW - 1];
   const COL     = mapColumns(headers);
+  const idCol   = findCol(COL, "application_id", "id", "app_id");
+  if (idCol < 0) throw new Error("List APPLICATIONS: chybí sloupec application_id.");
+  const wantId  = String(body.applicationId || "").trim();
 
   for (let i = HEADER_ROW; i < data.length; i++) {
-    if (data[i][findCol(COL, "application_id")] !== body.applicationId) continue;
+    if (String(data[i][idCol] || "").trim() !== wantId) continue;
     const r = i + 1;
     const setCell = (names, val) => {
       const c = findCol(COL, ...names);
@@ -1154,7 +1170,7 @@ function connectReviewAppId_(r) {
 /** Všechna hodnocení Connect z ⭐ REVIEWS (frontend: getConnectReviews). */
 function getConnectReviews(competitionId, token) {
   const auth = requireAuth(token);
-  if (!auth.roles.some(r => ["ADMIN", "PROREKTOR", "KOMISAR", "TESTER", "READONLY"].includes(r)))
+  if (!authHasAnyRole_(auth, ["ADMIN", "PROREKTOR", "KOMISAR", "KOMISAŘ", "TESTER", "READONLY"]))
     throw new Error("Nedostatečná oprávnění.");
   const sheet = getSpreadsheet(competitionId).getSheetByName(SHEETS.REVIEWS);
   if (!sheet) return { success: true, reviews: [] };
@@ -1166,6 +1182,75 @@ function getConnectReviews(competitionId, token) {
     return o;
   });
   return { success: true, reviews: reviews };
+}
+
+/**
+ * Connect: alokace z CONFIG (total_allocation_czk), přiděleno = součet budget_total u APPROVED
+ * s rozhodnutím prorektora Podpořit/Krátit; využito = stejné přihlášky se consequences_acknowledged v connect_postaward_json.
+ * Zbývá = alokace − přiděleno (kapacita fondu pro další schválení).
+ */
+function getConnectFundingSummary(competitionId, token) {
+  const auth = requireAuth(token);
+  if (!authHasAnyRole_(auth, ["ADMIN", "PROREKTOR", "KOMISAR", "KOMISAŘ", "TESTER", "READONLY"]))
+    throw new Error("Nedostatečná oprávnění.");
+  const comp = String(competitionId || "").trim();
+  if (comp !== CONNECT_COMPETITION_ID)
+    return { success: true, supported: false };
+
+  const ss = getSpreadsheet(comp);
+  const cfg = getConfigMap(ss);
+  const allocation = Number(cfg["total_allocation_czk"]) || 0;
+
+  const sheet = ss.getSheetByName(SHEETS.APPLICATIONS);
+  if (!sheet) {
+    return {
+      success: true,
+      supported: true,
+      allocationCzk: allocation,
+      assignedCzk: 0,
+      acceptedCzk: 0,
+      remainingCzk: Math.max(0, allocation),
+      assignedCount: 0,
+      acceptedCount: 0,
+    };
+  }
+
+  const rows = sheetToObjects(sheet).map(applicationsSheetRowNormalize_);
+  let assigned = 0;
+  let accepted = 0;
+  let assignedCount = 0;
+  let acceptedCount = 0;
+
+  rows.forEach(function (row) {
+    const st = String(row.status || "").toUpperCase().trim();
+    if (st !== "APPROVED") return;
+    const id = String(row.application_id || "").trim();
+    if (!id) return;
+    const outcome = findProrektorOutcomeForApp_(ss, id);
+    const dec = outcome && outcome.decision ? String(outcome.decision).toUpperCase() : "";
+    if (dec !== "SUPPORT" && dec !== "CUT") return;
+    const fd = connectParseFormDataObject_(row);
+    let amt = Number(fd.budget_total) || 0;
+    if (amt < 0) amt = 0;
+    assigned += amt;
+    assignedCount++;
+    const pa = readConnectPostawardChecklist_(row);
+    if (pa.consequences_acknowledged) {
+      accepted += amt;
+      acceptedCount++;
+    }
+  });
+
+  return {
+    success: true,
+    supported: true,
+    allocationCzk: allocation,
+    assignedCzk: assigned,
+    acceptedCzk: accepted,
+    remainingCzk: Math.max(0, allocation - assigned),
+    assignedCount: assignedCount,
+    acceptedCount: acceptedCount,
+  };
 }
 
 function deleteConnectReviewsByReviewer_(sheet, applicationId, reviewerEmail) {
@@ -1242,7 +1327,7 @@ function appendReviewsRowFromMap_(sheet, map) {
 /** Hodnocení komise – upsert řádku v ⭐ REVIEWS (formulář review-connect). */
 function submitConnectReview(body) {
   const auth = requireAuth(body.token);
-  if (!auth.roles.some(r => ["ADMIN", "KOMISAR", "KOMISAŘ", "TESTER"].includes(r)))
+  if (!authHasAnyRole_(auth, ["ADMIN", "KOMISAR", "KOMISAŘ", "TESTER"]))
     throw new Error("Hodnocení komise mohou ukládat jen členové komise nebo správce.");
   const competitionId = body.competitionId;
   const projectId = String(body.projectId || "").trim();
@@ -1284,7 +1369,7 @@ function submitConnectReview(body) {
 /** Finální rozhodnutí prorektora u Connect + změna stavu přihlášky. */
 function saveConnectProrektorDecision(body) {
   const auth = requireAuth(body.token);
-  if (!auth.roles.some(r => ["ADMIN", "PROREKTOR"].includes(r)))
+  if (!authHasAnyRole_(auth, ["ADMIN", "PROREKTOR", "TESTER"]))
     throw new Error("Rozhodnutí může ukládat pouze prorektor nebo správce.");
   const competitionId = body.competitionId;
   const appId = String(body.applicationId || "").trim();
