@@ -3,6 +3,19 @@
  * Volání Google Apps Script Web App
  */
 
+function fileToBase64_(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => {
+      const s = String(r.result || "");
+      const i = s.indexOf(",");
+      resolve(i >= 0 ? s.slice(i + 1) : s);
+    };
+    r.onerror = () => reject(new Error("Soubor se nepodařilo načíst."));
+    r.readAsDataURL(file);
+  });
+}
+
 const API = {
 
   // ── GET požadavek ──────────────────────────────────────────
@@ -82,6 +95,25 @@ const API = {
   /** Pravidla a checklist povinných výstupů po Podpořeno/Kráceno (Connect). */
   async getConnectPostAward(competitionId, applicationId) {
     return this.get("getConnectPostAward", { competitionId, applicationId });
+  },
+
+  /**
+   * Nahraj přílohu části 2 Connect na sdílený Google Disk (viz CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID v Apps Script).
+   * Max. 18 MB na soubor; může jen řešitel u přihlášky u projektu Podpořeno/Kráceno.
+   */
+  async uploadConnectPostAwardAttachment(competitionId, applicationId, file) {
+    const max = 18 * 1024 * 1024;
+    if (!file || file.size > max) {
+      return { error: "Soubor je příliš velký nebo chybí (max. 18 MB)." };
+    }
+    const fileBase64 = await fileToBase64_(file);
+    return this.post("uploadConnectPostAwardAttachment", {
+      competitionId,
+      applicationId,
+      fileName: file.name,
+      mimeType: file.type || "application/octet-stream",
+      fileBase64,
+    });
   },
 
   /** saveSection: "consent" | "completion" | undefined (uloží vše najednou, časové značky dle sekce). */
