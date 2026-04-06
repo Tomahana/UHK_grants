@@ -2,6 +2,7 @@
  * Spusť tuto funkci JEDNOU ručně v Apps Script editoru:
  * importConnectFormFields()
  * importRegaFormFields()
+ * importPrestigeFormFields()
  */
 
 function importConnectFormFields() {
@@ -115,4 +116,60 @@ function importRegaFormFields() {
   sheet.autoResizeColumns(1, 8);
 
   SpreadsheetApp.getUi().alert("✅ FORM_FIELDS pro ReGa importovány (" + (rows.length-4) + " polí)");
+}
+
+function importPrestigeFormFields() {
+  const ss    = SpreadsheetApp.openById("1qmx2gFETaYJVdZmhkGUvdGdukARlQZXnepVPYJSuemk");
+  let sheet   = ss.getSheetByName("📝 FORM_FIELDS");
+  if (!sheet) sheet = ss.insertSheet("📝 FORM_FIELDS");
+  sheet.clearContents();
+
+  const rows = [
+    ["","","","","","","",""],
+    ["","","","","","","",""],
+    ["","","","","","","",""],
+    ["field_id","field_label","field_type","required","order","placeholder","options","help_text"],
+    ["section_ident","Identifikace záměru","section_header","","1","","",""],
+    ["project_title","Název záměru (CZ / EN)","text","TRUE","2","Pracovní název přípravy návrhu do ERC nebo Horizon Europe","",""],
+    ["target_scheme","Cílová soutěž a schéma","select","TRUE","3","","ERC Starting Grant;ERC Consolidator Grant;ERC Advanced Grant;ERC Synergy Grant;Horizon Europe – RIA;Horizon Europe – IA;Horizon Europe – IMDA;Jiná prestižní výzva (dle výzvy UHK Prestige)",""],
+    ["planned_submission_date","Předpokládaný termín podání návrhu","date","TRUE","4","","","Reálný termín cílové výzvy v rámci harmonogramu projektu"],
+    ["support_year1_request","Požadovaná podpora – rok 1 (Kč)","number","TRUE","5","např. 450000","","Horní limit 1 000 000 Kč na projekt a rok (11 měsíců) dle výzvy"],
+    ["faculty","Součást UHK / pracoviště","select","TRUE","6","","PřF;PdF;FF;FIM;FVZ;REKTORÁT",""],
+    ["department","Katedra / ústav","text","TRUE","7","","",""],
+    ["section_concept","Concept note a excelence","section_header","","8","","",""],
+    ["concept_note","Shrnutí záměru a concept note (max. 2 strany – text)","textarea","TRUE","9","Cíl, vhodnost cílové soutěže, co bude dopracováno, plán externího review / agentury…","","Odpovídá oddílům 1 a 2 šablony žádosti (příloha č. 1 výzvy)"],
+    ["excellence_top5","TOP výsledky relevantní pro cílovou soutěž (max. 5)","textarea","TRUE","10","Název, časopis/výstup, rok, DOI/odkaz, vazba na cílový projekt…","","Mezinárodní zkušenost / leadership můžete doplnit do textu"],
+    ["prev_erc_he","Předchozí podání do ERC nebo Horizon Europe (pokud existuje)","textarea","FALSE","11","Cílová soutěž, výsledek hodnocení, hlavní kritika posudků, jak nová verze odpoví…","","Pokud jste již podávali – povinné dle šablony; jinak „neaplikuje se“"],
+    ["section_strategy","Strategie podání","section_header","","12","","",""],
+    ["strategy_why_call","Proč je zvolená cílová soutěž vhodná","textarea","TRUE","13","","",""],
+    ["strategy_work_packages","Jaké části návrhu budou připravovány v projektu Prestige","textarea","TRUE","14","","",""],
+    ["strategy_external_review","Plán externího review / agentury (pokud plánujete)","textarea","FALSE","15","","",""],
+    ["section_milestones","Milníky","section_header","","16","","",""],
+    ["milestones_summary","Stručný přehled klíčových milníků (M1–M5)","textarea","TRUE","17","Viz příloha č. 3 – zde stručný souhrn vazby na harmonogram","","Detailní tabulku doplňte v příloze č. 3 (soubor)"],
+    ["section_budget","Rozpočet roku 1","section_header","","18","","",""],
+    ["budget_personnel","A. Osobní náklady (max. 40 %, max. 0,3 FTE řešitele)","number","FALSE","19","","","DPP/DPČ, odvody, FKSP – dle přílohy č. 2 výzvy"],
+    ["budget_agency","B. Agenturní / mentoringová podpora","number","FALSE","20","","",""],
+    ["budget_training","C. Vzdělávání a školení","number","FALSE","21","","",""],
+    ["budget_travel","D. Cestovné","number","FALSE","22","","",""],
+    ["budget_material","E. Materiál / data / analytické služby","number","FALSE","23","","",""],
+    ["budget_other","F. Ostatní způsobilé náklady","number","FALSE","24","","","Např. publikační poplatky, jazyková korektura"],
+    ["budget_justification","Odůvodnění rozpočtu","textarea","TRUE","25","","","Vazba jednotlivých položek na plánovanou aktivitu; součet položek A–F v aplikaci, max. 1 000 000 Kč"],
+    ["section_attachments","Povinné přílohy (sken / PDF)","section_header","","26","","",""],
+    ["attach_annex1","Příloha č. 1 – šablona žádosti vč. concept note","file","TRUE","27","","pdf,doc,docx","Vyplněná šablona dle výzvy"],
+    ["attach_annex2","Příloha č. 2 – rozpočet roku 1 + věcné odůvodnění","file","TRUE","28","","pdf,xlsx,xls",""],
+    ["attach_annex3","Příloha č. 3 – milníky","file","TRUE","29","","pdf,xlsx,xls,doc,docx",""],
+    ["attach_checklist6","Příloha č. 6 – checklist způsobilosti","file","TRUE","30","","pdf,doc,docx","ERC / Horizon Europe dle výzvy"],
+    ["declaration","Prohlášení","checkbox","TRUE","31","","","Beru na vědomí povinnost podání návrhu do cílové prestižní soutěže a dokladování, průběžnou zprávu k 30. 11. 2026 a podmínky výzvy UHK Prestige 1/2026."],
+  ];
+
+  sheet.getRange(1, 1, rows.length, 8).setValues(rows);
+  sheet.getRange(4, 1, 1, 8).setBackground("#1C2E5A").setFontColor("white").setFontWeight("bold");
+  const sectionOneBasedRows = [5, 12, 16, 20, 22, 30];
+  sectionOneBasedRows.forEach(r => {
+    sheet.getRange(r, 1, 1, 8).setBackground("#E8EDF8").setFontWeight("bold");
+  });
+  sheet.setFrozenRows(4);
+  sheet.autoResizeColumns(1, 8);
+
+  SpreadsheetApp.getUi().alert("✅ FORM_FIELDS pro Prestige importovány (" + (rows.length - 4) + " polí)");
 }
