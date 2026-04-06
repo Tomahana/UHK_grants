@@ -5,6 +5,12 @@
 (function (global) {
   "use strict";
 
+  /** api.js používá `const API` – není na window; nesmíme volat global.API. */
+  function api() {
+    if (typeof API !== "undefined" && API && typeof API.getConnectPostAward === "function") return API;
+    throw new Error("Chybí API – načtěte api.js před connect-postaward-panel.js.");
+  }
+
   function escapeHtml(s) {
     return String(s == null ? "" : s)
       .replace(/&/g, "&amp;")
@@ -470,7 +476,7 @@
       btnEl.disabled = true;
       if (statusEl) statusEl.textContent = "Ukládám…";
       try {
-        const res = await global.API.saveConnectPostAward(competitionId, applicationId, checklist, section);
+        const res = await api().saveConnectPostAward(competitionId, applicationId, checklist, section);
         if (res.error) throw new Error(res.error);
         if (statusEl) statusEl.textContent = "Uloženo ✓";
         var msg = "Uloženo.";
@@ -571,7 +577,7 @@
     rootEl.style.display = "block";
     rootEl.innerHTML = '<p style="font-size:13px;color:var(--muted);padding:12px;">Načítám data…</p>';
     try {
-      const data = await global.API.getConnectPostAward(competitionId, applicationId);
+      const data = await api().getConnectPostAward(competitionId, applicationId);
       if (data.error) throw new Error(data.error);
       if (!data.applicable) {
         rootEl.innerHTML = "";
