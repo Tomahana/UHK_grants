@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Moje přihlášky – UHK Connect</title>
+  <title>Moje projekty – UHK Connect</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
@@ -51,6 +51,7 @@
     .loading-box { padding: 40px; text-align: center; color: var(--muted); }
     .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .table-scroll table { min-width: 920px; }
+    #closeoutTable { min-width: 640px; }
     .cell-muted { color: var(--muted); font-size: 13px; }
     .cell-yes { color: var(--green); font-weight: 600; }
     .cell-no { color: #991B1B; font-weight: 600; }
@@ -68,13 +69,24 @@
     .meta-date { font-size: 13px; color: var(--navy); white-space: nowrap; }
     .foot-actions { margin-top: 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
     .foot-hint { font-size: 13px; color: var(--muted); max-width: 520px; line-height: 1.45; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0 0; padding-bottom: 10px; border-bottom: 2px solid var(--navy); }
+    .tab {
+      font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; padding: 10px 16px; border-radius: var(--r) var(--r) 0 0;
+      border: 1px solid var(--border); background: var(--white); color: var(--navy-mid); cursor: pointer; transition: background .15s, color .15s;
+    }
+    .tab:hover { background: var(--navy-lite); color: var(--navy); }
+    .tab--on { background: var(--navy); color: white; border-color: var(--navy); }
+    .tab--on:hover { background: var(--navy-mid); color: white; }
+    .btn-row--ghost { background: var(--white); color: var(--navy); border: 1.5px solid var(--border); }
+    .btn-row--ghost:hover { background: var(--navy-lite); border-color: var(--navy-mid); }
+    .btn-stack { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
   </style>
 </head>
 <body>
   <header class="topbar">
     <div class="topbar__logo">
       <img src="../img/uhk-abb-w.png" alt="UHK">
-      <span class="topbar__title">UHK Connect – Moje přihlášky</span>
+      <span class="topbar__title">UHK Connect – Moje projekty</span>
     </div>
     <div class="topbar__right">
       <div class="topbar__user">Přihlášen: <strong id="topbarName">—</strong></div>
@@ -83,14 +95,14 @@
   </header>
 
   <div class="wrap">
-    <h1 id="pageTitle">Moje přihlášky</h1>
+    <h1 id="pageTitle">Moje projekty</h1>
     <p class="sub" id="pageSub">
-      Koncepty a odeslané přihlášky: stav v řízení a po rozhodnutí prorektora výsledek (podpořeno / kráceno / nepodpořeno).
+      Dvě části: <strong>přehled žádostí</strong> (koncepty a podané přihlášky) a <strong>závěrečná fáze</strong> (část 2 po Podpořeno / Kráceno). Stav v řízení a výsledek prorektora.
     </p>
 
     <div id="scopeNote" class="alert alert--info" style="display:none;"></div>
     <div id="postawardHint" class="alert alert--info" style="display:none;">
-      U projektů se stanoviskem <strong>Podpořeno</strong> nebo <strong>Kráceno</strong> otevřete u řádku <strong>Detail podání</strong> — zobrazí se lhůty a povinné výstupy (diseminace, závěrečná zpráva, e-mail administrátorce).
+      U projektů <strong>Podpořeno</strong> / <strong>Kráceno</strong>: v přehledu použijte <strong>Část 1 – souhlas</strong> (detail podání) a <strong>Část 2 – závěr</strong> (samostatná stránka se závěrečnou zprávou, výstupy a vyúčtováním). Záložka <strong>2. Závěrečná fáze</strong> shrnuje jen tyto projekty.
     </div>
     <div id="msgErr" class="alert alert--err" style="display:none;"></div>
 
@@ -100,6 +112,12 @@
     </div>
 
     <div id="content" style="display:none;">
+      <nav class="tabs" id="mainTabs" aria-label="Části přehledu">
+        <button type="button" class="tab tab--on" data-tab="overview" role="tab" aria-selected="true">1. Přehled žádostí</button>
+        <button type="button" class="tab" data-tab="closeout" role="tab" aria-selected="false">2. Závěrečná fáze</button>
+      </nav>
+
+      <div id="panel-overview" role="tabpanel">
       <p class="section-title">Koncepty (neodesláno)</p>
       <div class="panel table-scroll" id="draftWrap">
         <div id="draftEmpty" class="empty" style="display:none;">Žádný uložený koncept.</div>
@@ -115,7 +133,7 @@
               <th>Akceptace kom.</th>
               <th>Souhlas řeš./částka</th>
               <th>Upraveno</th>
-              <th></th>
+              <th>Postup</th>
             </tr>
           </thead>
           <tbody id="draftBody"></tbody>
@@ -137,7 +155,7 @@
               <th>Akceptace komentáře</th>
               <th>Souhlas (řešení + částka)</th>
               <th>Podáno</th>
-              <th></th>
+              <th>Postup</th>
             </tr>
           </thead>
           <tbody id="finalBody"></tbody>
@@ -147,6 +165,29 @@
       <div class="foot-actions">
         <a id="linkApply" href="#" class="btn-row">Otevřít formulář přihlášky</a>
         <p class="foot-hint">Úpravy konceptu a finální podání jsou ve formuláři; tato stránka je jen přehled pod vaším účtem.</p>
+      </div>
+      </div>
+
+      <div id="panel-closeout" style="display:none;" role="tabpanel">
+        <p class="section-title" style="margin-top:20px;">Závěrečná zpráva, výstupy a vyúčtování</p>
+        <p class="sub" style="margin-top:-8px;margin-bottom:16px;max-width:640px;">
+          Pouze projekty se stanoviskem <strong>Podpořeno</strong> nebo <strong>Kráceno</strong>. Část 1 (souhlas s rozpočtem) je v detailu podání; část 2 je na přehledné samostatné stránce.
+        </p>
+        <div class="panel table-scroll" id="closeoutWrap">
+          <div id="closeoutEmpty" class="empty" style="display:none;">Žádný projekt ve fázi závěrečné zprávy (část 2 platí až po rozhodnutí Podpořeno nebo Kráceno).</div>
+          <table id="closeoutTable" style="display:none;">
+            <thead>
+              <tr>
+                <th>Název / projekt</th>
+                <th>ID</th>
+                <th>Výsledek</th>
+                <th>Část 1</th>
+                <th>Část 2</th>
+              </tr>
+            </thead>
+            <tbody id="closeoutBody"></tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
@@ -211,6 +252,20 @@
         : `${applyHref}${sep}app=${encodeURIComponent(r.application_id || "")}`;
       const formLabel = isDraft ? "Formulář" : "Detail podání";
       const needDecl = needsApplicantDeclarations(r);
+      const closeoutHref =
+        competitionId && r.application_id
+          ? `connect-closeout.html?c=${encodeURIComponent(competitionId)}&app=${encodeURIComponent(r.application_id)}`
+          : "#";
+      let actionCell;
+      if (needDecl && !isDraft) {
+        actionCell =
+          `<div class="btn-stack">` +
+          `<a class="btn-row" href="${formHref}">Část 1 – souhlas</a>` +
+          `<a class="btn-row btn-row--ghost" href="${closeoutHref}">Část 2 – závěr</a>` +
+          `</div>`;
+      } else {
+        actionCell = `<a class="btn-row" href="${formHref}">${formLabel}</a>`;
+      }
       const prCom = prorektorCommentCell(r);
       const acc = triStateHtml(r.accepts_prorektor_comment, needDecl);
       const agr = triStateHtml(r.agrees_solution_and_budget, needDecl);
@@ -224,9 +279,59 @@
         <td>${acc}</td>
         <td>${agr}</td>
         <td class="meta-date">${dateStr}</td>
-        <td><a class="btn-row" href="${formHref}">${formLabel}</a></td>
+        <td>${actionCell}</td>
       </tr>`;
     }
+
+    function rowHtmlCloseout(r) {
+      const title = escapeHtml(r.project_title || "—");
+      const id = escapeHtml(r.application_id || "—");
+      const res = escapeHtml(r.result_label || "—");
+      const sep = applyHref.includes("?") ? "&" : "?";
+      const formHref = `${applyHref}${sep}app=${encodeURIComponent(r.application_id || "")}`;
+      const closeoutHref = `connect-closeout.html?c=${encodeURIComponent(competitionId)}&app=${encodeURIComponent(r.application_id || "")}`;
+      return `<tr>
+        <td>${title}</td>
+        <td class="mono">${id}</td>
+        <td>${res}</td>
+        <td><a class="btn-row" href="${formHref}">Část 1 – souhlas</a></td>
+        <td><a class="btn-row btn-row--ghost" href="${closeoutHref}">Část 2 – závěr</a></td>
+      </tr>`;
+    }
+
+    function showCloseoutSection(rows) {
+      const emptyEl = document.getElementById("closeoutEmpty");
+      const tableEl = document.getElementById("closeoutTable");
+      const bodyEl = document.getElementById("closeoutBody");
+      if (!emptyEl || !tableEl || !bodyEl) return;
+      if (!rows.length) {
+        emptyEl.style.display = "block";
+        tableEl.style.display = "none";
+        return;
+      }
+      emptyEl.style.display = "none";
+      tableEl.style.display = "table";
+      bodyEl.innerHTML = rows.map(rowHtmlCloseout).join("");
+    }
+
+    function switchMyConnectTab(tab) {
+      const tabs = document.querySelectorAll("#mainTabs .tab");
+      tabs.forEach(function (b) {
+        const on = b.getAttribute("data-tab") === tab;
+        b.classList.toggle("tab--on", on);
+        b.setAttribute("aria-selected", on ? "true" : "false");
+      });
+      const po = document.getElementById("panel-overview");
+      const pc = document.getElementById("panel-closeout");
+      if (po) po.style.display = tab === "overview" ? "block" : "none";
+      if (pc) pc.style.display = tab === "closeout" ? "block" : "none";
+    }
+
+    document.getElementById("mainTabs").addEventListener("click", function (e) {
+      const btn = e.target.closest(".tab");
+      if (!btn) return;
+      switchMyConnectTab(btn.getAttribute("data-tab") || "overview");
+    });
 
     function showSection(kind, rows) {
       const emptyEl = document.getElementById(kind + "Empty");
@@ -248,7 +353,7 @@
         document.getElementById("content").style.display = "block";
         const e = document.getElementById("msgErr");
         e.style.display = "block";
-        e.textContent = "Chybí identifikátor soutěže. Otevřete stránku z rozcestníku (odkaz Moje přihlášky u soutěže Connect).";
+        e.textContent = "Chybí identifikátor soutěže. Otevřete stránku z rozcestníku (odkaz Moje projekty u soutěže Connect).";
         return;
       }
 
@@ -278,6 +383,11 @@
         if (hintPa) hintPa.style.display = needsPost ? "block" : "none";
         showSection("draft", drafts);
         showSection("final", finals);
+        const closeoutRows = finals.filter(function (a) {
+          return needsApplicantDeclarations(a);
+        });
+        showCloseoutSection(closeoutRows);
+        if (params.get("tab") === "closeout") switchMyConnectTab("closeout");
       } catch (err) {
         document.getElementById("loading").style.display = "none";
         document.getElementById("content").style.display = "block";
