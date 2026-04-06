@@ -200,6 +200,20 @@
     .postaward-deliv { margin: 14px 0; padding: 12px 14px; background: rgba(255,255,255,.7); border-radius: var(--r); border: 1px solid rgba(28,46,90,.08); }
     .postaward-deliv-title { font-size: 12px; font-weight: 600; color: var(--navy); margin-bottom: 8px; }
     .postaward-deliv .postaward-notes { min-height: 56px; margin-top: 6px; }
+    .postaward-part { margin: 22px 0; padding: 18px 16px; background: rgba(255,255,255,.55); border-radius: var(--r-lg); border: 1px solid rgba(28,46,90,.1); }
+    .postaward-part-title { font-size: 15px; font-weight: 700; color: var(--navy); margin: 0 0 14px; }
+    .postaward-sep-big { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #7A5A10; margin: 28px 0 16px; padding-top: 20px; border-top: 2px solid #D4C4A8; }
+    .pa-budget-tbl { width: 100%; border-collapse: collapse; font-size: 13px; margin: 12px 0 16px; background: white; border-radius: var(--r); overflow: hidden; }
+    .pa-budget-tbl th, .pa-budget-tbl td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+    .pa-budget-tbl th { background: #FAFAF8; font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); }
+    .pa-budget-tbl .pa-budget-tot td { background: var(--navy-lite); font-weight: 600; }
+    .pa-budget-tbl--real .pa-act-inp { max-width: 120px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px; font-family: 'DM Mono', monospace; }
+    .pa-budget-tbl--real .pa-note-inp { width: 100%; min-height: 44px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; resize: vertical; }
+    .postaward-promised { margin: 16px 0; padding: 14px; background: rgba(255,255,255,.75); border-radius: var(--r); border: 1px dashed var(--border); }
+    .postaward-promised h5 { font-size: 12px; margin: 12px 0 8px; color: var(--navy-mid); }
+    .postaward-zz { margin: 18px 0; padding: 14px; background: white; border: 1px solid var(--border); border-radius: var(--r-lg); }
+    .postaward-zz label { display: block; font-size: 12px; font-weight: 600; margin: 12px 0 6px; color: var(--navy); }
+    .postaward-zz textarea { width: 100%; min-height: 140px; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: var(--r); font-family: 'DM Sans', sans-serif; font-size: 13px; line-height: 1.5; }
 
     .vyzva-list { list-style: none; padding: 0; margin: 0; font-size: 12px; line-height: 1.45; color: var(--navy); }
     .vyzva-list li { padding: 10px 0; border-bottom: 1px solid var(--border); }
@@ -445,23 +459,46 @@
       const notes = escapeHtml(c.notes || "");
       const att = escapeHtml(c.attachments_manifest || "");
       const readOnly = !data.canEdit;
-      const reqB = Number(data.budgetRequestedCzk) || 0;
       const offB = Number(data.budgetOfficialCzk) || 0;
-      const showTwoBudgets =
-        data.outcomeDecision === "CUT" ||
-        (reqB > 0 && offB > 0 && Math.abs(reqB - offB) > 0.5);
-      const budgetStrip = `<div class="postaward-budget-strip">
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--navy-mid);margin-bottom:10px;">Rozpočet před souhlasem (část 1)</div>
-          ${
-            showTwoBudgets
-              ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
-                  <div><span style="color:var(--muted);display:block;font-size:11px;">Plánovaný rozpočet v přihlášce</span><strong style="font-family:'DM Mono',monospace;">${reqB.toLocaleString("cs-CZ")} Kč</strong></div>
-                  <div><span style="color:var(--muted);display:block;font-size:11px;">Schválená / krácená podpora (prorektor)</span><strong style="font-family:'DM Mono',monospace;color:var(--navy);">${offB.toLocaleString("cs-CZ")} Kč</strong></div>
-                </div>`
-              : `<div style="font-size:13px;"><span style="color:var(--muted);">Schválená podpora: </span><strong style="font-family:'DM Mono',monospace;">${offB.toLocaleString("cs-CZ")} Kč</strong></div>`
-          }
-          <p style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.45;">Po uložení souhlasu v části 1 se tato schválená částka stává závazným rozpočtem projektu pro závěrečné vyúčtování v části 2.</p>
-        </div>`;
+      const part1Title =
+        data.outcomeDecision === "CUT"
+          ? "Část 1 – Souhlas s krácením rozpočtu projektu"
+          : "Část 1 – Souhlas s přidělením projektu";
+      const agreeBudgetLabel =
+        data.outcomeDecision === "CUT"
+          ? "Souhlasím se schváleným krácením rozpočtu podle položek v tabulce výše a s řešením projektu v tomto rozsahu."
+          : "Souhlasím s přidělením projektu a se schváleným rozpočtem podle položek v tabulce výše.";
+      const br = data.budgetRows || [];
+      const brDetail = br.filter((x) => x.key !== "budget_total");
+      const brTotal = br.find((x) => x.key === "budget_total");
+      const budgetTable1Rows =
+        brDetail.length > 0
+          ? brDetail
+              .map(
+                (r) =>
+                  `<tr><td>${escapeHtml(r.label)}</td><td style="text-align:right;font-family:'DM Mono',monospace">${Number(r.requested || 0).toLocaleString("cs-CZ")}</td><td style="text-align:right;font-family:'DM Mono',monospace;font-weight:600">${Number(r.approved || 0).toLocaleString("cs-CZ")}</td></tr>`
+              )
+              .join("")
+          : "";
+      const budgetTable1Total = brTotal
+        ? `<tr class="pa-budget-tot"><td><strong>${escapeHtml(brTotal.label)}</strong></td><td style="text-align:right;font-family:'DM Mono',monospace"><strong>${Number(brTotal.requested || 0).toLocaleString("cs-CZ")}</strong></td><td style="text-align:right;font-family:'DM Mono',monospace"><strong>${Number(brTotal.approved || 0).toLocaleString("cs-CZ")}</strong></td></tr>`
+        : "";
+      const budgetTable1 = `<table class="pa-budget-tbl"><thead><tr><th>Položka</th><th style="text-align:right">V žádosti (Kč)</th><th style="text-align:right">Schváleno (Kč)</th></tr></thead><tbody>${budgetTable1Rows}${budgetTable1Total}</tbody></table><p style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.45;">Tabulka odpovídá rozpočtu v přihlášce a schválení prorektora po položkách. Po uložení souhlasu jde o závazný rozpočet pro část 2.</p>`;
+      const ps = data.promisedSummary || {};
+      const blA = c.budget_actual_lines && typeof c.budget_actual_lines === "object" ? c.budget_actual_lines : {};
+      const blN = c.budget_line_notes && typeof c.budget_line_notes === "object" ? c.budget_line_notes : {};
+      const realBudgetRows =
+        brDetail.length > 0
+          ? brDetail
+              .map((r) => {
+                const av = blA[r.key] != null && blA[r.key] !== "" ? blA[r.key] : "";
+                const nt = escapeHtml(String(blN[r.key] != null ? blN[r.key] : ""));
+                return `<tr><td>${escapeHtml(r.label)}</td><td style="text-align:right;font-family:'DM Mono',monospace">${Number(r.approved || 0).toLocaleString("cs-CZ")}</td><td><input type="number" min="0" step="1" class="pa-act-inp" id="pa_act_${r.key}" value="${av !== "" ? escapeHtml(String(av)) : ""}"${readOnly ? " disabled" : ""}></td><td><textarea class="pa-note-inp" id="pa_note_${r.key}" placeholder="Odchylka / komentář k položce…"${readOnly ? " disabled" : ""}>${nt}</textarea></td></tr>`;
+              })
+              .join("")
+          : "";
+      const zzDraft = escapeHtml(c.final_report_draft || "");
+      const zzFinal = escapeHtml(c.final_report_final || "");
       const dzf = c.deliverable_zprava_fulfilled ? " checked" : "";
       const dvf = c.deliverable_vystup_fulfilled ? " checked" : "";
       const daf = c.deliverable_aktivita_fulfilled ? " checked" : "";
@@ -482,26 +519,40 @@
       const completionActions = readOnly
         ? ""
         : `<div class="postaward-actions">
-            <button type="button" class="btn btn-primary" id="postawardSaveCompletionBtn">Uložit potvrzení řešitele</button>
+            <button type="button" class="btn btn-primary" id="postawardSaveCompletionBtn">Uložit finální potvrzení řešitele</button>
             <span class="postaward-mail" id="postawardCompletionStatus"></span>
           </div>`;
+      const zzDraftActions = readOnly
+        ? ""
+        : `<div class="postaward-actions">
+            <button type="button" class="btn btn-secondary" id="postawardSaveZzDraftBtn">Uložit koncept ZZ</button>
+            <span class="postaward-mail" id="postawardZzDraftStatus"></span>
+          </div>`;
+      const zzFinalActions = readOnly
+        ? ""
+        : `<div class="postaward-actions">
+            <button type="button" class="btn btn-primary" id="postawardSaveZzFinalBtn">Uložit finální ZZ</button>
+            <span class="postaward-mail" id="postawardZzFinalStatus"></span>
+          </div>`;
       const mailLine = mailHref
-        ? `<p class="postaward-mail">Odevzdání probíhá e-mailem administrátorce soutěže: <a href="${mailHref}">${escapeHtml(mail)}</a></p>`
+        ? `<p class="postaward-mail">Do příloh zapisujte zejména export z Magionu a povinné výstupy (soubory / odkazy). Text závěrečné zprávy pište v aplikaci výše. Případně e-mail: <a href="${mailHref}">${escapeHtml(mail)}</a></p>`
         : `<p class="postaward-mail">E-mail administrátorky doplníte v CONFIG listu (coordinator_email) nebo kontaktujte OVTZ.</p>`;
 
       return `
         <div class="postaward-wrap">
-          <h3>Povinné výstupy a závěrečná zpráva</h3>
-          <p class="postaward-sub">Platí pro projekty se stanoviskem <strong>${escapeHtml(data.outcomeLabel || "")}</strong>. Závazné znění má výzva UHK Connect a přílohy (např. vzor závěrečné zprávy).</p>
+          <h3>Po schválení přihlášky</h3>
+          <p class="postaward-sub">Stránka je rozdělena na <strong>část 1 (souhlas)</strong> a <strong>část 2 (závěrečná zpráva, výstupy, vyúčtování)</strong>. Platí pro stanovisko <strong>${escapeHtml(data.outcomeLabel || "")}</strong>.</p>
           ${roNote}
-          ${budgetStrip}
 
-          <div class="postaward-block postaward-block--consent">
-            <div class="postaward-block-title">1. Stanovisko prorektora a váš souhlas</div>
-            <p class="postaward-block-hint">Tuto část vyplňte <strong>brzy po obdržení rozhodnutí</strong>. Jde o samostatný krok – <strong>nezávisí</strong> na potvrzeních po ukončení aktivity níže.</p>
+          <div class="postaward-part postaward-part--1">
+            <h4 class="postaward-part-title">${part1Title}</h4>
+            <p class="postaward-block-hint" style="margin-bottom:12px;">Vyplňte <strong>brzy po rozhodnutí prorektora</strong>. Tato část je nezávislá na závěrečném vyúčtování níže.</p>
+            ${budgetTable1}
+            <div class="postaward-block postaward-block--consent" style="margin-top:0;">
+              <div class="postaward-block-title">Stanovisko prorektora</div>
             ${
               data.outcomeComment
-                ? `<p class="postaward-expl" style="background:white;padding:10px 12px;border-radius:var(--r);border:1px solid var(--border);color:var(--navy);margin-bottom:10px;"><strong>Komentář prorektora (také v přehledu Moje přihlášky):</strong><br>${escapeHtml(String(data.outcomeComment))}</p>`
+                ? `<p class="postaward-expl" style="background:white;padding:10px 12px;border-radius:var(--r);border:1px solid var(--border);color:var(--navy);margin-bottom:10px;"><strong>Komentář prorektora (také v Moje přihlášky):</strong><br>${escapeHtml(String(data.outcomeComment))}</p>`
                 : `<p class="postaward-expl" style="margin-bottom:10px;">U této přihlášky není ve veřejném poli uveden textový komentář prorektora.</p>`
             }
             <label class="postaward-task">
@@ -510,37 +561,61 @@
             </label>
             <label class="postaward-task">
               <input type="checkbox" id="pa_agree_budget"${agrBud}${readOnly ? " disabled" : ""}>
-              <span>Souhlasím s řešením projektu a s výší podporované částky dle rozhodnutí prorektora.</span>
+              <span>${agreeBudgetLabel}</span>
             </label>
             ${c.consent_saved_at ? `<p class="postaward-mail" style="margin-top:10px;">Souhlas naposledy uložen: <strong>${escapeHtml(c.consent_saved_at)}</strong></p>` : ""}
             ${consentActions}
           </div>
-
-          <div class="postaward-sep-title">Pravidla a lhůty (přečtěte před ukončením projektu)</div>
-          <p class="postaward-deadline">Termín odevzdání (závěrečná zpráva + výstupy e-mailem): <span>${escapeHtml(d.dueLabel || "—")}</span></p>
-          ${d.activityEndLabel ? `<p class="postaward-expl">Plánované ukončení aktivity v přihlášce: <strong>${escapeHtml(d.activityEndLabel)}</strong>. Nejpozdější konečný termín dle výzvy: <strong>${escapeHtml(d.hardCapLabel || "")}</strong>.</p>` : ""}
-          ${d.explanation ? `<p class="postaward-expl">${escapeHtml(d.explanation)}</p>` : ""}
-          <div class="postaward-info">
-            <p><strong>1. Povinná diseminační aktivita (panelová diskuze)</strong></p>
-            <p>Řešitel se účastní panelové diskuse k průběhu výjezdu, přínosu spolupráce a dopadům pro výzkum/rozvoj UHK — na <em>Young Scientists Conference</em> nebo <em>PhD Summitu</em> (dle programu UHK).</p>
-            <ol type="a" style="margin:8px 0 8px 20px;padding:0;">
-              <li>Za splnění se považuje aktivní účast (prezentace vstupů do diskuse).</li>
-              <li>Pokud se diskuze v daném roce neuskuteční nebo se řešitel nemůže z objektivních důvodů zúčastnit, předloží <strong>náhradní doložení</strong> v rozsahu stanoveném OVTZ (např. krátké vystoupení na interním semináři / nahraná 5–7min prezentace).</li>
-            </ol>
-            <p><strong>2. Závěrečná zpráva a výstupy</strong> (lhůta viz výše; podklady evidujete v části 2 v této aplikaci)</p>
-            <p style="font-size:12px;color:var(--muted);">Dle výzvy jde o: závěrečnou zprávu v požadované kvalitě (viz příloha výzvy), alespoň jeden výstup spolupráce a potvrzení o uskutečněné aktivitě. Nejpozději do <strong>30.&nbsp;11.&nbsp;2026</strong> předáte podklady administrátorce; níže v části 2 potvrdíte splnění jednotlivých bodů nebo jejich neplnění zdůvodníte.</p>
           </div>
-          ${mailLine}
 
-          <div class="postaward-block postaward-block--completion">
-            <div class="postaward-block-title">2. Závěrečné potvrzení řešitele</div>
-            <p class="postaward-block-hint">Vyplňte <strong>až po ukončení aktivity</strong>, po uložení <strong>souhlasu v části 1</strong> a po splnění lhůt. Povinné výstupy a rozpočet vyúčtujete přímo zde; e-mail administrátorce můžete použít souběžně pro předání souborů.</p>
+          <div class="postaward-sep-big">Část 2 – závěrečná zpráva, výstupy a vyúčtování</div>
 
-            <p style="font-size:12px;font-weight:600;color:var(--navy);margin:16px 0 8px;">Povinné výstupy – potvrzení v aplikaci</p>
+          <div class="postaward-part postaward-part--2">
+            <p class="postaward-deadline">Lhůta pro dokončení povinností (vč. předání podkladů administrátorce): <span>${escapeHtml(d.dueLabel || "—")}</span></p>
+            ${d.activityEndLabel ? `<p class="postaward-expl">Plánované ukončení aktivity v přihlášce: <strong>${escapeHtml(d.activityEndLabel)}</strong>. Konečný termín dle výzvy: <strong>${escapeHtml(d.hardCapLabel || "")}</strong>.</p>` : ""}
+            ${d.explanation ? `<p class="postaward-expl">${escapeHtml(d.explanation)}</p>` : ""}
+
+            <div class="postaward-promised">
+              <h5 style="font-size:13px;font-weight:700;color:var(--navy);margin:0 0 10px;">Slíbeno – výtažek z žádosti a schválený rozpočet</h5>
+              <p style="font-size:13px;line-height:1.5;margin:6px 0;"><strong>Název projektu:</strong> ${escapeHtml(ps.project_title || data.projectTitle || "—")}</p>
+              <p style="font-size:13px;line-height:1.5;margin:6px 0;"><strong>Cíl / záměr aktivity:</strong><br>${escapeHtml(ps.activity_goal || "—")}</p>
+              <p style="font-size:13px;line-height:1.5;margin:6px 0;"><strong>Plánované výstupy (z přihlášky):</strong><br>${escapeHtml(ps.output_description || "—")}</p>
+              <p style="font-size:13px;line-height:1.5;margin:6px 0;"><strong>Odůvodnění rozpočtu v žádosti:</strong><br>${escapeHtml(ps.budget_justification || "—")}</p>
+              <h5 style="font-size:12px;margin:14px 0 8px;color:var(--navy-mid);">Rozpočet: žádost → schváleno (prorektor)</h5>
+              ${budgetTable1}
+            </div>
+
+            <div class="postaward-zz">
+              <h5 style="font-size:13px;font-weight:700;color:var(--navy);margin:0 0 8px;">Závěrečná zpráva – text v aplikaci</h5>
+              <p style="font-size:12px;color:var(--muted);margin:0 0 12px;line-height:1.45;">Nejdřív můžete ukládat <strong>koncept</strong>, poté po doplnění obsahu uložte <strong>finální znění</strong> (po souhlasu v části 1). Doporučení k rozsahu má příloha výzvy (např. cca 3 strany).</p>
+              <label for="pa_zz_draft">Koncept závěrečné zprávy (draft)</label>
+              <textarea id="pa_zz_draft" placeholder="Pracovní verze…"${readOnly ? " disabled" : ""}>${zzDraft}</textarea>
+              ${zzDraftActions}
+              ${c.zz_draft_saved_at ? `<p class="postaward-mail">Koncept naposledy uložen: <strong>${escapeHtml(c.zz_draft_saved_at)}</strong></p>` : ""}
+              <label for="pa_zz_final">Finální závěrečná zpráva</label>
+              <textarea id="pa_zz_final" placeholder="Finální text pro uzavření projektu v soutěži…"${readOnly ? " disabled" : ""}>${zzFinal}</textarea>
+              ${zzFinalActions}
+              ${c.final_report_final_saved_at ? `<p class="postaward-mail">Finální ZZ naposledy uložena: <strong>${escapeHtml(c.final_report_final_saved_at)}</strong></p>` : ""}
+            </div>
+
+            <p style="font-size:12px;font-weight:600;color:var(--navy);margin:20px 0 8px;">Reálný stav oproti schválenému rozpočtu</p>
+            <p style="font-size:11px;color:var(--muted);margin:0 0 10px;line-height:1.45;">U každé položky uveďte skutečně vyčerpanou částku a případně poznámku. Součet by měl odpovídat schválené podpoře <strong>${offB.toLocaleString("cs-CZ")} Kč</strong>; při odchylce doplňte celkové zdůvodnění níže.</p>
+            <table class="pa-budget-tbl pa-budget-tbl--real"><thead><tr><th>Položka</th><th style="text-align:right">Schváleno (Kč)</th><th>Skutečně (Kč)</th><th>Poznámka</th></tr></thead><tbody>${realBudgetRows}</tbody></table>
+            <label class="postaward-task" style="display:block;margin-top:14px;margin-bottom:6px;"><span style="font-weight:600;">Celkové zdůvodnění odchylky rozpočtu</span> <span style="color:var(--muted);font-weight:400;">(povinné, pokud se součet skutečných částek liší od schválené podpory)</span></label>
+            <textarea class="postaward-notes" id="pa_budget_variance" placeholder="např. neučerpáno u ubytování z důvodu…"${readOnly ? " disabled" : ""}>${bVar}</textarea>
+
+            <div class="postaward-info" style="margin-top:22px;">
+            <p><strong>Diseminační aktivita (panelová diskuze)</strong></p>
+            <p style="font-size:12px;color:var(--muted);">Young Scientists Conference / PhD Summit nebo náhradní doložení dle OVTZ.</p>
+            <p><strong>Další povinné výstupy</strong> (lhůta a rozsah dle výzvy; stav potvrzujete níže)</p>
+            </div>
+            ${mailLine}
+
+            <p style="font-size:12px;font-weight:600;color:var(--navy);margin:16px 0 8px;">Povinné výstupy – stav plnění</p>
             <p style="font-size:11px;color:var(--muted);margin:0 0 10px;line-height:1.45;">U každého bodu zaškrtněte splnění, nebo uveďte krátké vysvětlení (min. 15 znaků), proč výstup splněn nebyl.</p>
             <div class="postaward-deliv">
-              <div class="postaward-deliv-title">Závěrečná zpráva (kvalita dle výzvy, cca max. 3 strany)</div>
-              <label class="postaward-task"><input type="checkbox" id="pa_del_zpr"${dzf}${readOnly ? " disabled" : ""}><span>Výstup splněn / odevzdán v požadované podobě</span></label>
+              <div class="postaward-deliv-title">Závěrečná zpráva (text výše v aplikaci + rozsah dle výzvy)</div>
+              <label class="postaward-task"><input type="checkbox" id="pa_del_zpr"${dzf}${readOnly ? " disabled" : ""}><span>Potvrzuji, že závěrečná zpráva v aplikaci odpovídá požadavkům výzvy a je připravena / odevzdána v potřebné podobě.</span></label>
               <textarea class="postaward-notes" id="pa_del_zpr_note" placeholder="Pokud nesplněno: důvod, náhradní postup, termín…"${readOnly ? " disabled" : ""}>${dzn}</textarea>
             </div>
             <div class="postaward-deliv">
@@ -554,13 +629,6 @@
               <textarea class="postaward-notes" id="pa_del_akt_note" placeholder="Pokud nesplněno: vysvětlete…"${readOnly ? " disabled" : ""}>${dan}</textarea>
             </div>
 
-            <p style="font-size:12px;font-weight:600;color:var(--navy);margin:18px 0 8px;">Závěrečné vyúčtování rozpočtu</p>
-            <p style="font-size:11px;color:var(--muted);margin:0 0 10px;line-height:1.45;">Schválená podpora (po souhlasu v části 1): <strong style="font-family:'DM Mono',monospace;">${offB.toLocaleString("cs-CZ")} Kč</strong>. Uveďte skutečně vyčerpanou částku; pokud se liší od schválené podpory, zdůvodněte.</p>
-            <label class="postaward-task" style="display:block;margin-bottom:6px;"><span style="font-weight:600;">Skutečně vyčerpáno (Kč)</span></label>
-            <input type="number" min="0" step="1" class="postaward-notes" id="pa_budget_actual" style="min-height:auto;max-width:220px;font-family:'DM Mono',monospace;" value="${bAct || ""}"${readOnly ? " disabled" : ""}>
-            <label class="postaward-task" style="display:block;margin-top:12px;margin-bottom:6px;"><span style="font-weight:600;">Zdůvodnění odchylky od schválené částky</span> <span style="color:var(--muted);font-weight:400;">(povinné, pokud se částky liší)</span></label>
-            <textarea class="postaward-notes" id="pa_budget_variance" placeholder="např. neučerpáno z důvodu… / vyšší náklady kvůli…"${readOnly ? " disabled" : ""}>${bVar}</textarea>
-
             <p style="font-size:12px;font-weight:600;color:var(--navy);margin:20px 0 8px;">Další potvrzení dle výzvy</p>
             <label class="postaward-task">
               <input type="checkbox" id="pa_dis"${dis}${readOnly ? " disabled" : ""}>
@@ -568,14 +636,14 @@
             </label>
             <label class="postaward-task">
               <input type="checkbox" id="pa_pkg"${pkg}${readOnly ? " disabled" : ""}>
-              <span>Potvrzuji, že jsem ve lhůtě odeslal(a) administrátorce e-mailem požadovaný balíček: <strong>závěrečná zpráva + výstup spolupráce + potvrzení aktivity</strong> (nebo že tak učiním do výše uvedeného termínu).</span>
+              <span>Potvrzuji předání / odeslání podkladů administrátorce (vč. příloh výše): výstup spolupráce, potvrzení aktivity a související soubory dle výzvy – závěrečná zpráva je evidována jako text v této aplikaci.</span>
             </label>
             <label class="postaward-task">
               <input type="checkbox" id="pa_ack"${ack}${readOnly ? " disabled" : ""}>
               <span>Seznámil(a) jsem se s následky nedodržení podmínek uvedenými níže.</span>
             </label>
-            <p style="margin-top:14px;font-size:12px;font-weight:600;color:var(--navy);">Povinné přílohy a odkazy (pro administrátora)</p>
-            <p style="font-size:12px;color:var(--muted);margin:4px 0 8px;line-height:1.45;">Uveďte názvy souborů, odkazy na sdílené úložiště (např. Google Drive) nebo poznámku, že zásilka šla výhradně e-mailem. Správce si data stáhne v přehledu exportu.</p>
+            <p style="margin-top:14px;font-size:12px;font-weight:600;color:var(--navy);">Přílohy (Magion, povinné výstupy)</p>
+            <p style="font-size:12px;color:var(--muted);margin:4px 0 8px;line-height:1.45;">Sem uvádějte zejména <strong>export z Magionu</strong> a soubory / odkazy k <strong>povinným výstupům</strong> (neplní funkci textu ZZ – ten je v aplikaci). Názvy souborů, odkazy na úložiště nebo poznámku k e-mailové zásilce.</p>
             <textarea class="postaward-notes" id="pa_attachments" placeholder="např. Závěrečná_zpráva_APP-123.pdf (odkaz: …); Výstup_MoU.pdf …"${readOnly ? " disabled" : ""}>${att}</textarea>
             <p style="margin-top:12px;font-size:12px;color:var(--muted);">Další poznámka pro vás / OVTZ (nepovinné):</p>
             <textarea class="postaward-notes" id="pa_notes" placeholder="např. datum odeslání, doplňující informace…"${readOnly ? " disabled" : ""}>${notes}</textarea>
@@ -598,6 +666,26 @@
       if (!data.canEdit) return;
       const btnC = document.getElementById("postawardSaveConsentBtn");
       const btnF = document.getElementById("postawardSaveCompletionBtn");
+      const btnZd = document.getElementById("postawardSaveZzDraftBtn");
+      const btnZf = document.getElementById("postawardSaveZzFinalBtn");
+
+      function collectBudgetActualFromDom() {
+        const lines = {};
+        const notes = {};
+        (data.budgetRows || [])
+          .filter((x) => x.key !== "budget_total")
+          .forEach((r) => {
+            const act = document.getElementById("pa_act_" + r.key);
+            const nt = document.getElementById("pa_note_" + r.key);
+            if (act && act.value !== "") {
+              const n = Number(act.value);
+              if (isFinite(n) && n >= 0) lines[r.key] = Math.round(n);
+            }
+            if (nt && nt.value.trim()) notes[r.key] = nt.value.trim();
+          });
+        return { budget_actual_lines: lines, budget_line_notes: notes };
+      }
+
       async function saveSection(section, checklist, statusEl, btnEl) {
         if (!btnEl) return;
         btnEl.disabled = true;
@@ -606,7 +694,12 @@
           const res = await API.saveConnectPostAward(COMPETITION_ID, applicationId, checklist, section);
           if (res.error) throw new Error(res.error);
           if (statusEl) statusEl.textContent = "Uloženo ✓";
-          showToast(section === "consent" ? "Souhlas uložen." : "Potvrzení řešitele uloženo.");
+          let msg = "Uloženo.";
+          if (section === "consent") msg = "Souhlas uložen.";
+          else if (section === "completion") msg = "Finální potvrzení uloženo.";
+          else if (section === "report_draft") msg = "Koncept ZZ uložen.";
+          else if (section === "report_final") msg = "Finální ZZ uložena.";
+          showToast(msg);
           await mountConnectPostAward(applicationId);
         } catch (e) {
           if (statusEl) statusEl.textContent = "";
@@ -628,10 +721,29 @@
           );
         });
       }
+      if (btnZd) {
+        btnZd.addEventListener("click", function () {
+          saveSection(
+            "report_draft",
+            { final_report_draft: document.getElementById("pa_zz_draft")?.value || "" },
+            document.getElementById("postawardZzDraftStatus"),
+            btnZd
+          );
+        });
+      }
+      if (btnZf) {
+        btnZf.addEventListener("click", function () {
+          saveSection(
+            "report_final",
+            { final_report_final: document.getElementById("pa_zz_final")?.value || "" },
+            document.getElementById("postawardZzFinalStatus"),
+            btnZf
+          );
+        });
+      }
       if (btnF) {
         btnF.addEventListener("click", function () {
-          const actEl = document.getElementById("pa_budget_actual");
-          const actVal = actEl && actEl.value !== "" ? Number(actEl.value) : 0;
+          const { budget_actual_lines, budget_line_notes } = collectBudgetActualFromDom();
           saveSection(
             "completion",
             {
@@ -641,7 +753,8 @@
               deliverable_vystup_note: document.getElementById("pa_del_vys_note")?.value || "",
               deliverable_aktivita_fulfilled: !!document.getElementById("pa_del_akt")?.checked,
               deliverable_aktivita_note: document.getElementById("pa_del_akt_note")?.value || "",
-              budget_actual_spent_czk: isFinite(actVal) ? actVal : 0,
+              budget_actual_lines,
+              budget_line_notes,
               budget_variance_explanation: document.getElementById("pa_budget_variance")?.value || "",
               dissemination_fulfilled: !!document.getElementById("pa_dis")?.checked,
               package_emailed_declared: !!document.getElementById("pa_pkg")?.checked,
