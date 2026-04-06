@@ -3,66 +3,1051 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>UHK Prestige – přihláška</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <title>Přihláška – UHK Prestige</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'DM Sans', sans-serif; background: #F8F7F4; color: #1C2E5A; margin: 0; min-height: 100vh; display: flex; flex-direction: column; }
-    .topbar { background: #1C2E5A; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; }
-    .topbar img { height: 26px; opacity: .9; }
-    .topbar-title { font-size: 14px; font-weight: 500; color: rgba(255,255,255,.8); }
-    .btn-back { background: none; border: 1px solid rgba(255,255,255,.2); color: rgba(255,255,255,.6); font-family: 'DM Mono', monospace; font-size: 11px; padding: 5px 12px; border-radius: 4px; cursor: pointer; text-decoration: none; }
-    .content { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
-    .card { background: white; border: 1px solid #E2E0D8; border-radius: 12px; padding: 48px; max-width: 560px; width: 100%; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
-    .icon { font-size: 48px; margin-bottom: 20px; }
-    h1 { font-size: 22px; font-weight: 500; margin-bottom: 12px; }
-    p { font-size: 14px; color: #6B6A63; line-height: 1.6; margin-bottom: 8px; }
-    .badge { display: inline-block; background: #EDE9FE; color: #5B21B6; font-size: 12px; font-weight: 600; padding: 4px 14px; border-radius: 100px; margin-bottom: 24px; }
-    .info-box { background: #F8F7F4; border: 1px solid #E2E0D8; border-radius: 8px; padding: 16px; margin: 24px 0; text-align: left; }
-    .info-box h3 { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #1C2E5A; }
-    .info-row { font-size: 13px; color: #6B6A63; padding: 4px 0; display: flex; gap: 8px; }
-    .info-row strong { color: #1C2E5A; min-width: 140px; }
-    .btn-home { display: inline-block; background: #1C2E5A; color: white; padding: 11px 24px; border-radius: 8px; font-size: 14px; font-weight: 500; text-decoration: none; margin-top: 8px; }
-    .contact { margin-top: 24px; font-size: 12px; color: #6B6A63; }
-    .contact a { color: #1C2E5A; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #1C2E5A; --navy-mid: #2F4A8A; --navy-lite: #E8EDF8;
+      --gold: #C49A2A; --gold-lite: #FDF6E3;
+      --green: #1E6B45; --green-lite: #E6F4EE;
+      --red: #991B1B; --red-lite: #FEF2F2;
+      --border: #E2E0D8; --muted: #6B6A63;
+      --bg: #F8F7F4; --white: #FFFFFF;
+      --r: 8px; --r-lg: 12px;
+      --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--navy); min-height: 100vh; font-size: 15px; line-height: 1.6; }
+
+    /* TOPBAR */
+    .topbar { background: var(--navy); height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 100; }
+    .topbar__logo { display: flex; align-items: center; gap: 10px; }
+    .topbar__logo img { height: 26px; opacity: .9; }
+    .topbar__title { font-size: 14px; font-weight: 500; color: rgba(255,255,255,.8); }
+    .topbar__right { display: flex; align-items: center; gap: 10px; }
+    .topbar__user { font-size: 13px; color: rgba(255,255,255,.5); }
+    .topbar__user strong { color: rgba(255,255,255,.85); font-weight: 500; }
+    .btn-back { background: none; border: 1px solid rgba(255,255,255,.2); color: rgba(255,255,255,.6); font-family: 'DM Mono', monospace; font-size: 11px; padding: 5px 12px; border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; transition: all .15s; }
+    .btn-back:hover { color: white; border-color: rgba(255,255,255,.4); }
+
+    /* PROGRESS BAR */
+    .progress-wrap { background: white; border-bottom: 1px solid var(--border); padding: 0 24px; }
+    .progress-inner { max-width: 860px; margin: 0 auto; display: flex; align-items: center; gap: 0; }
+    .progress-step { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 12px 8px; position: relative; cursor: pointer; }
+    .progress-step::after { content: ''; position: absolute; right: 0; top: 50%; width: 1px; height: 24px; background: var(--border); transform: translateY(-50%); }
+    .progress-step:last-child::after { display: none; }
+    .progress-dot { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border); background: white; display: flex; align-items: center; justify-content: center; font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; color: var(--muted); margin-bottom: 4px; transition: all .2s; }
+    .progress-step.done .progress-dot { background: var(--green); border-color: var(--green); color: white; }
+    .progress-step.active .progress-dot { background: var(--navy); border-color: var(--navy); color: white; }
+    .progress-label { font-size: 11px; color: var(--muted); text-align: center; font-weight: 500; }
+    .progress-step.active .progress-label { color: var(--navy); }
+    .progress-step.done .progress-label { color: var(--green); }
+
+    /* LAYOUT */
+    .app-layout { max-width: 860px; margin: 0 auto; padding: 32px 24px 80px; display: grid; grid-template-columns: 1fr 280px; gap: 24px; align-items: start; }
+    @media (max-width: 700px) { .app-layout { grid-template-columns: 1fr; } .sidebar { display: none; } }
+
+    /* FORM PANEL */
+    .form-panel { background: white; border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow); overflow: hidden; }
+    .section-header { background: var(--gold-lite); border-bottom: 1px solid #E8D88A; padding: 16px 24px; }
+    .section-header h2 { font-size: 15px; font-weight: 600; color: #7A5A10; }
+    .section-header p { font-size: 13px; color: #92400E; margin-top: 2px; opacity: .9; }
+    .form-body { padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+
+    /* FIELD */
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field-label { font-size: 13px; font-weight: 500; color: var(--navy); display: flex; align-items: center; gap: 4px; }
+    .field-required { color: #C41E1E; font-size: 14px; line-height: 1; }
+    .field-help { font-size: 12px; color: var(--muted); }
+    .field input[type="text"], .field input[type="email"], .field input[type="number"], .field input[type="date"],
+    .field select, .field textarea {
+      width: 100%; padding: 10px 12px; border: 1.5px solid var(--border);
+      border-radius: var(--r); font-family: 'DM Sans', sans-serif; font-size: 14px;
+      color: var(--navy); background: white; outline: none; transition: border-color .15s, box-shadow .15s;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus {
+      border-color: var(--navy-mid); box-shadow: 0 0 0 3px rgba(47,74,138,.1);
+    }
+    .field input.error, .field select.error, .field textarea.error { border-color: var(--red); }
+    .field textarea { min-height: 96px; resize: vertical; line-height: 1.5; }
+    .field select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%231C2E5A' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; cursor: pointer; }
+    .field-error { font-size: 12px; color: var(--red); display: none; }
+    .field-error.show { display: block; }
+
+    /* RADIO GROUP */
+    .radio-group { display: flex; flex-direction: column; gap: 8px; }
+    .radio-option { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: var(--r); cursor: pointer; transition: all .15s; }
+    .radio-option:hover { border-color: var(--navy-mid); background: var(--navy-lite); }
+    .radio-option input[type="radio"] { accent-color: var(--navy); width: 16px; height: 16px; cursor: pointer; flex-shrink: 0; }
+    .radio-option.selected { border-color: var(--navy); background: var(--navy-lite); }
+    .radio-label { font-size: 14px; color: var(--navy); line-height: 1.3; }
+
+    /* CHECKBOX */
+    .checkbox-wrap { display: flex; align-items: flex-start; gap: 10px; padding: 14px; border: 1.5px solid var(--border); border-radius: var(--r); }
+    .checkbox-wrap input[type="checkbox"] { accent-color: var(--navy); width: 18px; height: 18px; cursor: pointer; flex-shrink: 0; margin-top: 1px; }
+    .checkbox-label { font-size: 13px; color: var(--navy); line-height: 1.5; }
+
+    /* FILE */
+    .file-zone { border: 2px dashed var(--border); border-radius: var(--r); padding: 20px; text-align: center; cursor: pointer; transition: all .15s; }
+    .file-zone:hover { border-color: var(--navy-mid); background: var(--navy-lite); }
+    .file-zone-icon { font-size: 24px; margin-bottom: 6px; }
+    .file-zone-text { font-size: 13px; color: var(--muted); }
+    .file-zone-hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .file-zone input[type="file"] { display: none; }
+    .file-selected { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--green-lite); border-radius: var(--r); margin-top: 8px; font-size: 13px; color: var(--green); }
+
+    /* BUDGET TABLE */
+    .budget-table { border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
+    .budget-row { display: grid; grid-template-columns: 1fr 140px; align-items: center; border-bottom: 1px solid var(--border); }
+    .budget-row:last-child { border-bottom: none; background: var(--navy-lite); }
+    .budget-label { padding: 10px 14px; font-size: 13px; color: var(--navy); }
+    .budget-label.total { font-weight: 600; }
+    .budget-input { border: none; border-left: 1px solid var(--border); padding: 10px 12px; font-family: 'DM Mono', monospace; font-size: 13px; text-align: right; color: var(--navy); background: transparent; width: 100%; outline: none; }
+    .budget-input:focus { background: var(--navy-lite); }
+    .budget-total-val { padding: 10px 12px; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 600; color: var(--navy); text-align: right; border-left: 1px solid var(--border); }
+
+    /* SECTION DIVIDER */
+    .section-divider { display: flex; align-items: center; gap: 12px; padding: 4px 0; }
+    .section-divider-line { flex: 1; height: 1px; background: var(--border); }
+    .section-divider-label { font-size: 12px; font-weight: 600; color: var(--navy); letter-spacing: .05em; text-transform: uppercase; background: var(--navy-lite); padding: 4px 12px; border-radius: 100px; border: 1px solid #D0D8EE; white-space: nowrap; }
+
+    /* BUTTONS */
+    .form-footer { padding: 20px 24px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #FAFAF8; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border-radius: var(--r); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all .15s; text-decoration: none; }
+    .btn-primary { background: var(--navy); color: white; }
+    .btn-primary:hover { background: var(--navy-mid); }
+    .btn-primary:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+    .btn-secondary { background: white; color: var(--navy); border: 1.5px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--navy); background: var(--navy-lite); }
+    .btn-ghost { background: transparent; color: var(--muted); font-size: 13px; padding: 8px 12px; }
+    .btn-ghost:hover { color: var(--navy); }
+
+    /* SAVE STATUS */
+    .save-status { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; font-family: 'DM Mono', monospace; }
+    .save-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); }
+    .save-dot.saving { background: var(--gold); animation: pulse .8s infinite; }
+    .save-dot.saved { background: var(--green); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    /* SIDEBAR */
+    .sidebar { display: flex; flex-direction: column; gap: 16px; }
+    .sidebar-card { background: white; border: 1px solid var(--border); border-radius: var(--r-lg); padding: 18px; box-shadow: var(--shadow); }
+    .sidebar-card h3 { font-size: 13px; font-weight: 600; color: var(--navy); margin-bottom: 10px; }
+    .sidebar-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+    .sidebar-item:last-child { border-bottom: none; }
+    .sidebar-key { color: var(--muted); }
+    .sidebar-val { color: var(--navy); font-weight: 500; text-align: right; }
+    .checklist-item { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 12px; color: var(--muted); }
+    .checklist-item.done { color: var(--green); }
+    .checklist-dot { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 9px; }
+    .checklist-item.done .checklist-dot { background: var(--green); border-color: var(--green); color: white; }
+    .budget-summary { font-size: 22px; font-weight: 600; color: var(--navy); font-family: 'DM Mono', monospace; margin-bottom: 4px; }
+    .budget-limit { font-size: 12px; color: var(--muted); }
+    .budget-bar-wrap { height: 6px; background: var(--border); border-radius: 3px; margin-top: 10px; }
+    .budget-bar { height: 6px; border-radius: 3px; background: var(--navy); transition: width .3s; }
+    .budget-bar.over { background: var(--red); }
+
+    /* LOADING */
+    .loading-state { padding: 48px 24px; text-align: center; color: var(--muted); }
+    .spinner { width: 28px; height: 28px; border: 2px solid var(--border); border-top-color: var(--navy); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 12px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* TOAST */
+    .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px); color: white; font-size: 14px; font-weight: 500; padding: 12px 24px; border-radius: 100px; z-index: 9999; transition: transform .3s cubic-bezier(.34,1.56,.64,1); white-space: nowrap; }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 100px; font-size: 11px; font-weight: 600; }
+    .badge-draft { background: #E6F1FB; color: #0C447C; }
+    .badge-submitted { background: var(--green-lite); color: var(--green); }
+    .badge-review { background: var(--gold-lite); color: #92400E; }
+    .badge-rejected { background: var(--red-lite); color: var(--red); }
+    .outcome-card { background: linear-gradient(180deg,#F0F4FC 0%,#E8EDF8 100%); border: 1px solid #C8D4EC; border-radius: var(--r-lg); padding: 16px; }
+    .outcome-card h3 { font-size: 12px; font-weight: 700; color: var(--navy-mid); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 10px; }
+    .outcome-dec { font-size: 16px; font-weight: 600; color: var(--navy); margin-bottom: 10px; line-height: 1.35; }
+    .outcome-comment { font-size: 13px; line-height: 1.55; color: var(--navy); white-space: pre-wrap; }
+    .outcome-meta { font-size: 11px; color: var(--muted); margin-top: 10px; }
+
+    .vyzva-list { list-style: none; padding: 0; margin: 0; font-size: 12px; line-height: 1.45; color: var(--navy); }
+    .vyzva-list li { padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .vyzva-list li:last-child { border-bottom: none; }
+    .vyzva-list strong { display: block; font-size: 12px; margin-bottom: 2px; }
+    .vyzva-list .vyzva-date { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--navy-mid); }
+    .vyzva-list .vyzva-note { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .vyzva-footnote { font-size: 11px; color: var(--muted); margin-top: 12px; line-height: 1.4; }
   </style>
 </head>
 <body>
+
   <header class="topbar">
-    <div style="display:flex;align-items:center;gap:10px;">
+    <div class="topbar__logo">
       <img src="../img/uhk-abb-w.png" alt="UHK">
-      <span class="topbar-title">UHK Prestige 2026</span>
+      <span class="topbar__title">UHK Prestige – Přihláška (Výzva 1/2026)</span>
     </div>
-    <a href="dashboard.html" class="btn-back">← Rozcestník</a>
+    <div class="topbar__right">
+      <div class="topbar__user">Přihlášen: <strong id="topbarName">—</strong></div>
+      <a href="dashboard.html" class="btn-back">← Rozcestník</a>
+    </div>
   </header>
 
-  <div class="content">
-    <div class="card">
-      <div class="icon">🏆</div>
-      <span class="badge">Výzva se připravuje</span>
-      <h1>UHK Prestige 2026</h1>
-      <p>Přihláška do soutěže UHK Prestige bude dostupná po vyhlášení výzvy.</p>
-      <p>Sledujte webové stránky UHK v sekci <strong>Interní celouniverzitní projekty</strong>.</p>
+  <!-- Progress -->
+  <div class="progress-wrap">
+    <div class="progress-inner" id="progressBar"></div>
+  </div>
 
-      <div class="info-box">
-        <h3>Předpokládané parametry</h3>
-        <div class="info-row"><strong>Typ soutěže:</strong> Prestižní granty UHK</div>
-        <div class="info-row"><strong>Stav výzvy:</strong> Příprava – výzva dosud nebyla vyhlášena</div>
-        <div class="info-row"><strong>Správce soutěže:</strong> Oddělení vědy a transferu znalostí</div>
-        <div class="info-row"><strong>Kontakt:</strong> <a href="mailto:ovtz@uhk.cz">ovtz@uhk.cz</a></div>
+  <div class="app-layout">
+    <!-- Hlavní formulář -->
+    <div>
+      <div class="form-panel" id="formPanel">
+        <div class="loading-state" id="loadingState">
+          <div class="spinner"></div>
+          <p>Načítám formulář…</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-card">
+        <h3>Stav přihlášky</h3>
+        <div style="margin-bottom:12px;">
+          <span class="badge badge-draft" id="statusBadge">DRAFT</span>
+        </div>
+        <div class="sidebar-item">
+          <span class="sidebar-key">Soutěž</span>
+          <span class="sidebar-val">UHK Prestige</span>
+        </div>
+        <div class="sidebar-item">
+          <span class="sidebar-key">Uzávěrka přihlášek</span>
+          <span class="sidebar-val" id="sidebarDeadlineApply">4. 5. 2026</span>
+        </div>
+        <div class="sidebar-item">
+          <span class="sidebar-key">Max. podpora (rok 1)</span>
+          <span class="sidebar-val">1 000 000 Kč</span>
+        </div>
+        <div class="sidebar-item">
+          <span class="sidebar-key">Uloženo</span>
+          <span class="sidebar-val" id="lastSaved">—</span>
+        </div>
+        <p class="vyzva-footnote" style="margin-top:12px;margin-bottom:0;">
+          Koncept se ukládá <strong>automaticky po 30 s</strong> nečinnosti; ručně použijte „Uložit draft“.
+        </p>
       </div>
 
-      <a href="dashboard.html" class="btn-home">← Zpět na rozcestník</a>
+      <div class="sidebar-card outcome-card" id="prorektorOutcomeCard" style="display:none;">
+        <h3>Stanovisko prorektora</h3>
+        <p class="outcome-meta" id="outcomeAppRef" style="margin-top:0;margin-bottom:8px;"></p>
+        <div class="outcome-dec" id="outcomeDecision">—</div>
+        <div class="outcome-comment" id="outcomeComment"></div>
+        <p class="outcome-meta" id="outcomeDate"></p>
+      </div>
 
-      <div class="contact">
-        Otázky: <a href="mailto:veronika.hruzova@uhk.cz">veronika.hruzova@uhk.cz</a> · +420 777 147 670
+      <div class="sidebar-card">
+        <h3>Termíny výzvy (1/2026)</h3>
+        <ul class="vyzva-list" id="prestigeVyzvaList"></ul>
+        <p class="vyzva-footnote">Elektronické podání dle Vyhlášení výzvy č. 1/2026 UHK Prestige. Podvýzva <strong>Horizon No-Cost Entry</strong> (výzva 2/2026) bude v aplikaci doplněna – zatím viz samostatný dokument výzvy.</p>
+      </div>
+
+      <div class="sidebar-card">
+        <h3>Rozpočet</h3>
+        <div class="budget-summary" id="budgetDisplay">0 Kč</div>
+        <div class="budget-limit">z max. 1 000 000 Kč (rok 1)</div>
+        <div class="budget-bar-wrap">
+          <div class="budget-bar" id="budgetBar" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div class="sidebar-card">
+        <h3>Kontrolní seznam</h3>
+        <div id="checklist"></div>
+      </div>
+
+      <div class="sidebar-card" style="background:var(--gold-lite);border-color:#E8D88A;">
+        <h3 style="color:#7A5A10;">Potřebujete pomoc?</h3>
+        <p style="font-size:12px;color:#7A5A10;line-height:1.5;">Ing. Veronika Hrůzová<br>
+          <a href="mailto:veronika.hruzova@uhk.cz" style="color:#7A5A10;">veronika.hruzova@uhk.cz</a><br>
+          +420 777 147 670</p>
       </div>
     </div>
   </div>
 
+  <div class="toast" id="toast"></div>
+
   <script src="../js/config.js"></script>
   <script src="../js/auth.js"></script>
+  <script src="../js/api.js"></script>
   <script>
-    Auth.requireLogin();
+
+    const user = Auth.requireLogin(["ZADATEL","RESITEL","ADMIN","TESTER"]);
+    document.getElementById("topbarName").textContent = user.name || user.email;
+
+    const COMPETITION_ID = new URLSearchParams(location.search).get("c") || "uhk_prestige_2026";
+    const MAX_BUDGET = 1000000;
+
+    /** Milníky dle výzvy UHK Prestige 1/2026 (příprava ERC / Horizon Europe). */
+    const PRESTIGE_VYZVA = {
+      DEADLINE_APPLY_ISO: "2026-05-04",
+      milestones: [
+        { title: "Příjem žádostí", dateLabel: "do 4. 5. 2026 (8:00)", note: "elektronicky přes tuto aplikaci" },
+        { title: "Formální kontrola", dateLabel: "2 pracovní dny", note: "možnost doplnění" },
+        { title: "Hodnocení panelem", dateLabel: "10 pracovních dnů", note: "dle výzvy" },
+        { title: "Zahájení řešení – rok 1", dateLabel: "1. 6. 2026", note: "" },
+        { title: "Milník M1 – rozpracovaný draft", dateLabel: "30. 9. 2026", note: "" },
+        { title: "Ukončení čerpání r. 1 + průběžná zpráva", dateLabel: "30. 11. 2026", note: "rozhodnutí o pokračování do r. 2 do 20. 12. 2026" },
+        { title: "Milníky M3–M5 a podání do cílové soutěže", dateLabel: "2027", note: "dle výzvy a termínu ERC/HE" },
+        { title: "Závěrečná zpráva", dateLabel: "do 3 měsíců po podání návrhu", note: "dle výzvy" },
+      ],
+    };
+
+    function formatCsDateFromIso(iso) {
+      if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
+      const [y, m, d] = iso.split("-").map(Number);
+      return `${d}. ${m}. ${y}`;
+    }
+
+    function escapeHtml(s) {
+      return String(s == null ? "" : s)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    function formatOutcomeDate(s) {
+      if (!s) return "";
+      const t = String(s).trim();
+      const m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (m) return `${Number(m[3])}. ${Number(m[2])}. ${m[1]}${t.length > 10 ? " · " + t.slice(11, 19) : ""}`;
+      return t;
+    }
+
+    function fillProrektorOutcomeCard(outcome, submittedApp) {
+      const card = document.getElementById("prorektorOutcomeCard");
+      if (!card) return;
+      if (!outcome || !outcome.decision) {
+        card.style.display = "none";
+        return;
+      }
+      card.style.display = "block";
+      const ref = document.getElementById("outcomeAppRef");
+      if (ref) ref.textContent = submittedApp && submittedApp.application_id
+        ? "Přihláška " + submittedApp.application_id
+        : "";
+      document.getElementById("outcomeDecision").textContent = outcome.decisionLabel || outcome.decision || "—";
+      const comEl = document.getElementById("outcomeComment");
+      comEl.textContent = outcome.comment || "";
+      comEl.style.display = outcome.comment ? "block" : "none";
+      const dt = document.getElementById("outcomeDate");
+      dt.textContent = outcome.decidedAt ? "Zapsáno: " + formatOutcomeDate(outcome.decidedAt) : "";
+    }
+
+    function hideProrektorOutcomeCard() {
+      const card = document.getElementById("prorektorOutcomeCard");
+      if (card) card.style.display = "none";
+    }
+
+    function statusToBadgeClass(st) {
+      const u = String(st || "").toUpperCase();
+      if (u === "APPROVED") return "badge-submitted";
+      if (u === "REJECTED") return "badge-rejected";
+      if (u === "IN_REVIEW" || u === "TO_REVIEW" || u === "FORMAL_CHECK") return "badge-review";
+      return "badge-draft";
+    }
+
+    function renderSubmittedApplicationView(sub, outcome, hasOtherDraft) {
+      document.getElementById("loadingState")?.remove();
+      document.querySelector(".progress-wrap")?.style.setProperty("opacity", "0.45");
+      const badge = document.getElementById("statusBadge");
+      badge.textContent = sub.status || "—";
+      badge.className = "badge " + statusToBadgeClass(sub.status);
+      const st = String(sub.status || "").toUpperCase();
+      const draftNote = hasOtherDraft
+        ? `<p style="font-size:13px;color:#2F4A8A;margin-top:18px;padding:14px 16px;background:var(--navy-lite);border-radius:var(--r);text-align:left;line-height:1.5;border:1px solid #D0D8EE;">
+            Máte také rozpracovaný <strong>koncept (draft)</strong>.
+            <a href="apply-prestige.html?c=${encodeURIComponent(COMPETITION_ID)}" style="color:var(--navy);font-weight:600;white-space:nowrap;">Pokračovat v konceptu →</a>
+          </p>`
+        : "";
+      let outcomeBlock = "";
+      if (outcome && outcome.decision) {
+        outcomeBlock = `
+          <div class="outcome-card" style="text-align:left;margin:24px 0;">
+            <h3 style="margin-bottom:8px;">Stanovisko prorektora</h3>
+            <div class="outcome-dec">${escapeHtml(outcome.decisionLabel || outcome.decision)}</div>
+            ${outcome.comment ? `<div class="outcome-comment">${escapeHtml(outcome.comment)}</div>` : ""}
+            ${outcome.decidedAt ? `<p class="outcome-meta">${escapeHtml("Zapsáno: " + formatOutcomeDate(outcome.decidedAt))}</p>` : ""}
+          </div>`;
+      } else if (st === "APPROVED" || st === "REJECTED") {
+        outcomeBlock = `<p style="font-size:14px;color:var(--muted);line-height:1.5;margin:20px 0;">Jakmile bude rozhodnutí prorektora zapsáno, zobrazí se zde i v postranním panelu po obnovení stránky.</p>`;
+      } else {
+        outcomeBlock = `<p style="font-size:14px;color:var(--muted);line-height:1.5;margin:20px 0;">Po dokončení hodnocení a rozhodnutí prorektora se zde zobrazí závěr a komentář.</p>`;
+      }
+      const icon = st === "REJECTED" ? "📋" : "✅";
+      document.getElementById("formPanel").innerHTML = `
+        <div style="padding:40px 28px;text-align:center;max-width:860px;margin:0 auto;">
+          <div style="font-size:44px;margin-bottom:14px;">${icon}</div>
+          <h2 style="font-size:20px;color:var(--navy);margin-bottom:8px;">${escapeHtml(sub.project_title || "Vaše přihláška")}</h2>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:8px;">ID přihlášky: <span style="font-family:'DM Mono',monospace;">${escapeHtml(sub.application_id)}</span></p>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:4px;">Aktuální stav: <strong>${escapeHtml(sub.status)}</strong></p>
+          ${outcomeBlock}
+          ${draftNote}
+          <div id="postawardRoot" style="display:none;"></div>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:20px;">
+            <a href="my-projects.html" class="btn btn-ghost">← Moje projekty</a>
+            <a href="dashboard.html" class="btn btn-primary">Rozcestník</a>
+          </div>
+        </div>`;
+    }
+
+    function renderPrestigeVyzvaSidebar() {
+      const ul = document.getElementById("prestigeVyzvaList");
+      if (!ul) return;
+      ul.innerHTML = PRESTIGE_VYZVA.milestones.map((m) => `
+        <li>
+          <strong>${m.title}</strong>
+          <div class="vyzva-date">${m.dateLabel}</div>
+          ${m.note ? `<div class="vyzva-note">${m.note}</div>` : ""}
+        </li>
+      `).join("");
+      const sd = document.getElementById("sidebarDeadlineApply");
+      if (sd) sd.textContent = formatCsDateFromIso(PRESTIGE_VYZVA.DEADLINE_APPLY_ISO);
+    }
+
+    // Stav formuláře
+    let formFields  = [];
+    let formData    = {};
+    let draftId     = null;
+    let saveTimer   = null;
+    let isDirty     = false;
+    let currentSection = 0;
+
+    const STEPS = [
+      { label: "Identifikace", fields: ["section_ident","project_title","target_scheme","planned_submission_date","support_year1_request","faculty","department"] },
+      { label: "Concept & excelence", fields: ["section_concept","concept_note","excellence_top5","prev_erc_he"] },
+      { label: "Strategie & milníky", fields: ["section_strategy","strategy_why_call","strategy_work_packages","strategy_external_review","section_milestones","milestones_summary"] },
+      { label: "Rozpočet", fields: ["section_budget","budget_personnel","budget_agency","budget_training","budget_travel","budget_material","budget_other","budget_justification"] },
+      { label: "Přílohy", fields: ["section_attachments","attach_annex1","attach_annex2","attach_annex3","attach_checklist6","declaration"] },
+    ];
+
+    // ── Pole formuláře – definována lokálně, nezávisle na API ─
+    async function loadFormFields() {
+      // Vždy používej lokální definici – API je jen pro případné budoucí rozšíření
+      formFields = getLocalFields();
+      const jumpFinalize = new URLSearchParams(location.search).get("finalize") === "1";
+      renderProgress();
+      const submittedOnly = await loadDraft();
+      if (submittedOnly) {
+        if (jumpFinalize) window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+      renderSection(currentSection);
+      if (jumpFinalize) {
+        currentSection = STEPS.length - 1;
+        renderProgress();
+        renderSection(currentSection);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    }
+
+    function getLocalFields() {
+      return [
+        { field_id:"section_ident", field_label:"Identifikace záměru", field_type:"section_header" },
+        { field_id:"project_title", field_label:"Název záměru (CZ / EN)", field_type:"text", required:"TRUE", placeholder:"Pracovní název přípravy návrhu do ERC nebo Horizon Europe" },
+        { field_id:"target_scheme", field_label:"Cílová soutěž a schéma", field_type:"select", required:"TRUE",
+          options:"ERC Starting Grant;ERC Consolidator Grant;ERC Advanced Grant;ERC Synergy Grant;Horizon Europe – RIA;Horizon Europe – IA;Horizon Europe – IMDA;Jiná prestižní výzva (dle výzvy UHK Prestige)" },
+        { field_id:"planned_submission_date", field_label:"Předpokládaný termín podání návrhu", field_type:"date", required:"TRUE", help_text:"Reálný termín cílové výzvy v rámci harmonogramu projektu" },
+        { field_id:"support_year1_request", field_label:"Požadovaná podpora – rok 1 (Kč)", field_type:"number", required:"TRUE", placeholder:"např. 450000", help_text:"Horní limit 1 000 000 Kč na projekt a rok (11 měsíců) dle výzvy – žádáte o částku v této výši, nikoli automaticky plný limit" },
+        { field_id:"faculty", field_label:"Součást UHK / pracoviště", field_type:"select", required:"TRUE", options:"PřF;PdF;FF;FIM;FVZ;REKTORÁT" },
+        { field_id:"department", field_label:"Katedra / ústav", field_type:"text", required:"TRUE" },
+        { field_id:"section_concept", field_label:"Concept note a excelence", field_type:"section_header" },
+        { field_id:"concept_note", field_label:"Shrnutí záměru a concept note (max. 2 strany – text)", field_type:"textarea", required:"TRUE", placeholder:"Cíl, vhodnost cílové soutěže, co bude dopracováno, plán externího review / agentury…", help_text:"Odpovídá oddílům 1 a 2 šablony žádosti (příloha č. 1 výzvy)" },
+        { field_id:"excellence_top5", field_label:"TOP výsledky relevantní pro cílovou soutěž (max. 5)", field_type:"textarea", required:"TRUE", placeholder:"Název, časopis/výstup, rok, DOI/odkaz, vazba na cílový projekt…", help_text:"Mezinárodní zkušenost / leadership můžete doplnit do textu" },
+        { field_id:"prev_erc_he", field_label:"Předchozí podání do ERC nebo Horizon Europe (pokud existuje)", field_type:"textarea", required:"FALSE", placeholder:"Cílová soutěž, výsledek hodnocení, hlavní kritika posudků, jak nová verze odpoví…", help_text:"Pokud jste již podávali – povinné vyplnění dle šablony; jinak uveďte „neaplikuje se“" },
+        { field_id:"section_strategy", field_label:"Strategie podání", field_type:"section_header" },
+        { field_id:"strategy_why_call", field_label:"Proč je zvolená cílová soutěž vhodná", field_type:"textarea", required:"TRUE" },
+        { field_id:"strategy_work_packages", field_label:"Jaké části návrhu budou připravovány v projektu Prestige", field_type:"textarea", required:"TRUE" },
+        { field_id:"strategy_external_review", field_label:"Plán externího review / agentury (pokud plánujete)", field_type:"textarea", required:"FALSE" },
+        { field_id:"section_milestones", field_label:"Milníky", field_type:"section_header" },
+        { field_id:"milestones_summary", field_label:"Stručný přehled klíčových milníků (M1–M5)", field_type:"textarea", required:"TRUE", placeholder:"Viz příloha č. 3 – zde stručný souhrn vazby na harmonogram", help_text:"Detailní tabulku doplňte v příloze č. 3 (soubor)" },
+        { field_id:"section_budget", field_label:"Rozpočet roku 1", field_type:"section_header" },
+        { field_id:"budget_personnel", field_label:"A. Osobní náklady (max. 40 %, max. 0,3 FTE řešitele)", field_type:"number", required:"FALSE", help_text:"DPP/DPČ, odměna – dle přílohy č. 2" },
+        { field_id:"budget_agency", field_label:"B. Agenturní / mentoringová podpora", field_type:"number", required:"FALSE" },
+        { field_id:"budget_training", field_label:"C. Vzdělávání a školení", field_type:"number", required:"FALSE" },
+        { field_id:"budget_travel", field_label:"D. Cestovné", field_type:"number", required:"FALSE" },
+        { field_id:"budget_material", field_label:"E. Materiál / data / analytické služby", field_type:"number", required:"FALSE" },
+        { field_id:"budget_other", field_label:"F. Ostatní způsobilé náklady", field_type:"number", required:"FALSE", help_text:"Např. publikační poplatky, jazyková korektura" },
+        { field_id:"section_attachments", field_label:"Povinné přílohy (sken / PDF)", field_type:"section_header" },
+        { field_id:"attach_annex1", field_label:"Příloha č. 1 – šablona žádosti vč. concept note", field_type:"file", required:"TRUE", options:"pdf,doc,docx", help_text:"Vyplněná šablona dle výzvy" },
+        { field_id:"attach_annex2", field_label:"Příloha č. 2 – rozpočet roku 1 + věcné odůvodnění", field_type:"file", required:"TRUE", options:"pdf,xlsx,xls", help_text:"Tabulka dle výzvy" },
+        { field_id:"attach_annex3", field_label:"Příloha č. 3 – milníky", field_type:"file", required:"TRUE", options:"pdf,xlsx,xls,doc,docx", help_text:"Tabulka milníků" },
+        { field_id:"attach_checklist6", field_label:"Příloha č. 6 – checklist způsobilosti", field_type:"file", required:"TRUE", options:"pdf,doc,docx", help_text:"ERC / Horizon Europe dle výzvy" },
+        { field_id:"declaration", field_label:"Prohlášení", field_type:"checkbox", required:"TRUE", help_text:"Beru na vědomí povinnost podání návrhu do cílové prestižní soutěže a dokladování, průběžnou zprávu k 30. 11. 2026 a podmínky výzvy UHK Prestige 1/2026. Potvrzuji správnost údajů." },
+      ];
+    }
+
+    // ── Progress bar ────────────────────────────────────────────
+    function renderProgress() {
+      document.getElementById("progressBar").innerHTML = STEPS.map((s, i) => `
+        <div class="progress-step ${i < currentSection ? "done" : i === currentSection ? "active" : ""}"
+          onclick="goToSection(${i})">
+          <div class="progress-dot">${i < currentSection ? "✓" : i + 1}</div>
+          <div class="progress-label">${s.label}</div>
+        </div>`).join("");
+    }
+
+    function goToSection(i) {
+      if (i > currentSection) {
+        if (!validateSection()) return;
+      }
+      saveDraftSilent();
+      currentSection = i;
+      renderProgress();
+      renderSection(currentSection);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    // ── Render sekce ────────────────────────────────────────────
+    function renderSection(idx) {
+      const step   = STEPS[idx];
+      const fields = formFields.filter(f => step.fields.includes(f.field_id));
+      const panel  = document.getElementById("formPanel");
+
+      let html = `
+        <div class="section-header">
+          <h2>${step.label}</h2>
+          <p>Krok ${idx + 1} z ${STEPS.length}</p>
+        </div>
+        <div class="form-body" id="formBody">`;
+
+      // Speciální render pro krok Rozpočet
+      if (step.label === "Rozpočet") {
+        html += renderBudgetTable();
+        // budget_justification je součástí renderBudgetTable - neopakovat!
+      } else {
+        fields.forEach(f => {
+          html += renderField(f);
+        });
+      }
+
+      html += `</div>
+        <div class="form-footer">
+          <div class="save-status">
+            <div class="save-dot" id="saveDot"></div>
+            <span id="saveStatusText">Neuloženo</span>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            ${idx > 0 ? `<button class="btn btn-secondary" onclick="prevSection()">← Zpět</button>` : ""}
+            <button type="button" class="btn btn-ghost" onclick="saveDraftManual()" title="Uloží rozpracovanou přihlášku jako koncept (draft) na server.">Uložit draft</button>
+            ${idx < STEPS.length - 1
+              ? `<button class="btn btn-primary" onclick="nextSection()">Pokračovat →</button>`
+              : `<button class="btn btn-primary" id="submitBtn" onclick="submitApplication()">Odeslat přihlášku →</button>`}
+          </div>
+        </div>`;
+
+      panel.innerHTML = html;
+      restoreValues(fields);
+      if (step.label === "Rozpočet") syncBudgetTotalsFromDom({ markDirty: false });
+      else updateBudgetSidebarFromFormData();
+      updateChecklist();
+    }
+
+    function renderField(f) {
+      if (f.field_type === "section_header") {
+        return `<div class="section-divider">
+          <div class="section-divider-line"></div>
+          <div class="section-divider-label">${f.field_label}</div>
+          <div class="section-divider-line"></div>
+        </div>`;
+      }
+
+      const req = f.required === "TRUE" || f.required === true;
+      const val = formData[f.field_id] || "";
+      let input = "";
+
+      if (f.field_type === "textarea") {
+        input = `<textarea id="f-${f.field_id}" placeholder="${f.placeholder||""}" ${req?"required":""}
+          onchange="onFieldChange('${f.field_id}',this.value)">${val}</textarea>`;
+
+      } else if (f.field_type === "select") {
+        const opts = (f.options||"").split(";").filter(Boolean);
+        input = `<select id="f-${f.field_id}" ${req?"required":""}
+          onchange="onFieldChange('${f.field_id}',this.value)">
+          <option value="">— Vyberte —</option>
+          ${opts.map(o => `<option value="${o}" ${val===o?"selected":""}>${o}</option>`).join("")}
+        </select>`;
+
+      } else if (f.field_type === "radio") {
+        const opts = (f.options||"").split(";").filter(Boolean);
+        input = `<div class="radio-group">
+          ${opts.map((o,i) => `
+            <label class="radio-option ${val===o?"selected":""}">
+              <input type="radio" name="${f.field_id}" value="${o}" ${val===o?"checked":""}
+                onchange="onRadioChange('${f.field_id}',this)">
+              <span class="radio-label">${o}</span>
+            </label>`).join("")}
+        </div>`;
+
+      } else if (f.field_type === "checkbox") {
+        return `<div class="field">
+          <div class="checkbox-wrap">
+            <input type="checkbox" id="f-${f.field_id}" ${val==="true"?"checked":""}
+              onchange="onFieldChange('${f.field_id}',this.checked?'true':'')">
+            <label class="checkbox-label" for="f-${f.field_id}">${f.help_text || f.field_label} ${req?'<span style="color:var(--red)">*</span>':""}</label>
+          </div>
+          <div class="field-error" id="err-${f.field_id}">Toto pole je povinné.</div>
+        </div>`;
+
+      } else if (f.field_type === "file") {
+        const accept = f.options ? f.options.split(",").map(e=>"."+e.trim()).join(",") : "*";
+        return `<div class="field">
+          <label class="field-label">${f.field_label} ${req?'<span class="field-required">*</span>':""}</label>
+          ${f.help_text ? `<div class="field-help">${f.help_text}</div>` : ""}
+          <div class="file-zone" onclick="document.getElementById('f-${f.field_id}').click()">
+            <div class="file-zone-icon">📎</div>
+            <div class="file-zone-text">Klikněte pro výběr souboru</div>
+            <div class="file-zone-hint">Formát: ${f.options||"jakýkoli"}</div>
+            <input type="file" id="f-${f.field_id}" accept="${accept}"
+              onchange="onFileChange('${f.field_id}',this)">
+          </div>
+          <div id="file-info-${f.field_id}" style="display:none;" class="file-selected">
+            <span>✓</span> <span id="file-name-${f.field_id}"></span>
+          </div>
+          <div class="field-error" id="err-${f.field_id}">Nahrajte prosím soubor.</div>
+        </div>`;
+
+      } else {
+        // text, email, number, date (min/max u dat aktivit doplní applyActivityDateConstraints po vykreslení)
+        input = `<input type="${f.field_type}" id="f-${f.field_id}"
+          placeholder="${f.placeholder||""}" value="${val}" ${req?"required":""}
+          onchange="onFieldChange('${f.field_id}',this.value)"
+          ${f.field_type==="number"?"min='0'":""}>`;
+      }
+
+      return `<div class="field">
+        <label class="field-label" for="f-${f.field_id}">
+          ${f.field_label} ${req?'<span class="field-required">*</span>':""}
+        </label>
+        ${f.help_text ? `<div class="field-help">${f.help_text}</div>` : ""}
+        ${input}
+        <div class="field-error" id="err-${f.field_id}">Toto pole je povinné.</div>
+      </div>`;
+    }
+
+    function restoreValues(fields) {
+      // Hodnoty jsou již vloženy v renderField přes value="..." – jen pro jistotu radio
+      fields.filter(f => f.field_type === "radio").forEach(f => {
+        if (formData[f.field_id]) {
+          document.querySelectorAll(`input[name="${f.field_id}"]`).forEach(r => {
+            r.closest(".radio-option")?.classList.toggle("selected", r.value === formData[f.field_id]);
+          });
+        }
+      });
+    }
+
+    // ── Inline rozpočtová tabulka ─────────────────────────────────
+    function renderBudgetTable() {
+      const items = [
+        { id: "budget_personnel", label: "A. Osobní náklady (řešitel / tým, max. 40 %, max. 0,3 FTE řešitele)", help: "DPP/DPČ, odvody, FKSP – dle přílohy č. 2 výzvy", note: "" },
+        { id: "budget_agency",    label: "B. Agenturní / mentoringová podpora", help: "Kritické čtení, příprava částí návrhu, interview training…", note: "" },
+        { id: "budget_training",  label: "C. Vzdělávání a školení", help: "Kurzy, workshopy, letní školy", note: "" },
+        { id: "budget_travel",    label: "D. Cestovné", help: "Doprava, ubytování, stravné (pracovní cesta)", note: "" },
+        { id: "budget_material",  label: "E. Materiál / data / analytické služby", help: "Pilotní aktivity, odborné analýzy", note: "" },
+        { id: "budget_other",     label: "F. Ostatní způsobilé náklady", help: "Např. publikační poplatky, jazyková korektura", note: "" },
+      ];
+
+      const rows = items.map(it => `
+        <tr>
+          <td style="padding:10px 14px;font-size:13px;color:var(--navy);border-bottom:1px solid var(--border);">
+            <div style="display:flex;align-items:center;gap:8px;">
+              ${it.label}
+              ${it.note ? `<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;background:#FEF3C7;color:#92400E;white-space:nowrap;">${it.note}</span>` : ""}
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;">${it.help}</div>
+          </td>
+          <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);width:140px;">
+            <input type="number" id="f-${it.id}" min="0" step="1"
+              value="${formData[it.id]||""}"
+              placeholder="0"
+              oninput="onBudgetInput()"
+              style="width:100%;border:none;padding:10px 12px;font-family:'DM Mono',monospace;font-size:13px;text-align:right;color:var(--navy);background:transparent;outline:none;">
+          </td>
+          <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);padding:10px 12px;font-size:11px;color:var(--muted);width:40px;text-align:center;">Kč</td>
+        </tr>`).join("");
+
+      return `
+        <div class="field">
+          <label class="field-label">Rozpočet přihlášky</label>
+          <div class="field-help">Vyplňte pouze položky které budete čerpat. Součet se počítá automaticky.</div>
+          <div style="padding:10px 14px;background:#FEF3C7;border:1px solid #FDE68A;border-radius:var(--r);font-size:12px;color:#92400E;margin-top:4px;margin-bottom:8px;">
+            ⚠ Součet položek nesmí překročit <strong>1 000 000 Kč</strong> (rok 1). Osobní náklady max. <strong>40 %</strong> schválené podpory a max. <strong>0,3 FTE</strong> řešitele dle výzvy.
+          </div>
+          <div style="border:1.5px solid var(--border);border-radius:var(--r);overflow:hidden;margin-top:4px;">
+            <table style="width:100%;border-collapse:collapse;">
+              <thead>
+                <tr style="background:var(--navy-lite);">
+                  <th style="padding:10px 14px;text-align:left;font-size:12px;font-weight:600;color:var(--navy);border-bottom:1px solid var(--border);">Položka</th>
+                  <th colspan="2" style="padding:10px 14px;text-align:right;font-size:12px;font-weight:600;color:var(--navy);border-bottom:1px solid var(--border);">Požadovaná částka</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+              <tfoot>
+                <tr style="background:var(--navy-lite);">
+                  <td style="padding:12px 14px;font-size:14px;font-weight:600;color:var(--navy);">Celkem</td>
+                  <td colspan="2" style="padding:12px 14px;text-align:right;font-family:'DM Mono',monospace;font-size:16px;font-weight:600;color:var(--navy);border-left:1px solid var(--border);">
+                    <span id="budgetTableTotal">0</span> Kč
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <div id="budgetWarn" style="display:none;margin-top:8px;padding:8px 12px;background:var(--red-lite);border-radius:var(--r);font-size:12px;color:var(--red);">
+            ⚠ Celková podpora překračuje maximum 1 000 000 Kč (rok 1)
+          </div>
+        </div>
+        <div class="field" style="margin-top:16px;">
+          <label class="field-label">Odůvodnění rozpočtu <span class="field-required">*</span></label>
+          <div class="field-help">Vazba jednotlivých položek na plánovanou aktivitu</div>
+          <textarea id="f-budget_justification"
+            placeholder="Jízdné: letenka Praha–Londýn zpátečně dle ceníku ČSA přibližně 8 000 Kč…"
+            onchange="onFieldChange('budget_justification',this.value)"
+            style="min-height:90px;">${formData['budget_justification']||""}</textarea>
+          <div class="field-error" id="err-budget_justification">Toto pole je povinné.</div>
+        </div>`;
+    }
+
+    /** Přepočítá rozpočet z inputů v DOM. Bez rozpočtové tabulky v DOM nic nemění (nehazarduje s budget_total). */
+    function syncBudgetTotalsFromDom(options) {
+      const opts = options || {};
+      if (!document.getElementById("f-budget_personnel")) return;
+      const ids = ["budget_personnel","budget_agency","budget_training","budget_travel","budget_material","budget_other"];
+      let total = 0;
+      ids.forEach(id => {
+        const el = document.getElementById("f-" + id);
+        if (el) {
+          const v = parseFloat(el.value) || 0;
+          formData[id] = el.value;
+          total += v;
+        }
+      });
+      formData["budget_total"] = String(total);
+
+      const tt = document.getElementById("budgetTableTotal");
+      if (tt) tt.textContent = total.toLocaleString("cs-CZ");
+      const warn = document.getElementById("budgetWarn");
+      if (warn) warn.style.display = total > MAX_BUDGET ? "block" : "none";
+      const bd = document.getElementById("budgetDisplay");
+      if (bd) bd.textContent = total.toLocaleString("cs-CZ") + " Kč";
+      const bar = document.getElementById("budgetBar");
+      if (bar) {
+        const pct = Math.min(100, Math.round(total / MAX_BUDGET * 100));
+        bar.style.width = pct + "%";
+        bar.classList.toggle("over", total > MAX_BUDGET);
+      }
+      if (opts.markDirty) {
+        isDirty = true;
+        scheduleAutoSave();
+      }
+    }
+
+    /** Postranní panel rozpočtu z formData (když tabulka rozpočtu není v DOM). */
+    function updateBudgetSidebarFromFormData() {
+      const ids = ["budget_personnel","budget_agency","budget_training","budget_travel","budget_material","budget_other"];
+      let total = 0;
+      ids.forEach(id => {
+        total += parseFloat(String(formData[id] || "").replace(/\s/g, "").replace(",", ".")) || 0;
+      });
+      formData["budget_total"] = String(total);
+      const bd = document.getElementById("budgetDisplay");
+      if (bd) bd.textContent = total.toLocaleString("cs-CZ") + " Kč";
+      const bar = document.getElementById("budgetBar");
+      if (bar) {
+        const pct = Math.min(100, Math.round(total / MAX_BUDGET * 100));
+        bar.style.width = pct + "%";
+        bar.classList.toggle("over", total > MAX_BUDGET);
+      }
+    }
+
+    function onBudgetInput() {
+      syncBudgetTotalsFromDom({ markDirty: true });
+      updateChecklist();
+    }
+
+    // ── Změna hodnoty ──────────────────────────────────────────
+    function onFieldChange(id, val) {
+      formData[id] = val;
+      isDirty = true;
+      scheduleAutoSave();
+      if (String(id).indexOf("budget_") === 0) updateBudget();
+      updateChecklist();
+      clearError(id);
+    }
+
+    function onRadioChange(id, input) {
+      formData[id] = input.value;
+      document.querySelectorAll(`input[name="${id}"]`).forEach(r => {
+        r.closest(".radio-option")?.classList.toggle("selected", r === input);
+      });
+      isDirty = true;
+      scheduleAutoSave();
+      clearError(id);
+    }
+
+    function onFileChange(id, input) {
+      if (input.files[0]) {
+        formData[id] = input.files[0].name;
+        document.getElementById("file-info-" + id).style.display = "flex";
+        document.getElementById("file-name-" + id).textContent = input.files[0].name;
+        isDirty = true;
+        updateChecklist();
+        clearError(id);
+      }
+    }
+
+    function clearError(id) {
+      const el = document.getElementById("err-" + id);
+      if (el) el.classList.remove("show");
+      const inp = document.getElementById("f-" + id);
+      if (inp) inp.classList.remove("error");
+    }
+
+    // ── Validace ────────────────────────────────────────────────
+    function validateSection() {
+      const step   = STEPS[currentSection];
+      const fields = formFields.filter(f =>
+        step.fields.includes(f.field_id) &&
+        (f.required === "TRUE" || f.required === true) &&
+        f.field_type !== "section_header"
+      );
+      let ok = true;
+      fields.forEach(f => {
+        const val = formData[f.field_id] || "";
+        if (!val || val.trim() === "") {
+          const errEl = document.getElementById("err-" + f.field_id);
+          if (errEl) errEl.classList.add("show");
+          const inp = document.getElementById("f-" + f.field_id);
+          if (inp) inp.classList.add("error");
+          ok = false;
+        }
+      });
+      if (!ok) showToast("Vyplňte prosím všechna povinná pole.", "err");
+      if (ok && step.label === "Rozpočet") {
+        const t = parseFloat(String(formData.budget_total || "").replace(/\s/g, "").replace(",", ".")) || 0;
+        if (t <= 0) {
+          showToast("Součet rozpočtu musí být větší než 0 Kč.", "err");
+          return false;
+        }
+        if (t > MAX_BUDGET) {
+          showToast("Součet rozpočtu překračuje maximum " + MAX_BUDGET.toLocaleString("cs-CZ") + " Kč (rok 1).", "err");
+          return false;
+        }
+        const j = (formData.budget_justification || "").trim();
+        if (!j) {
+          const errEl = document.getElementById("err-budget_justification");
+          if (errEl) errEl.classList.add("show");
+          const inp = document.getElementById("f-budget_justification");
+          if (inp) inp.classList.add("error");
+          showToast("Doplňte odůvodnění rozpočtu.", "err");
+          return false;
+        }
+      }
+      return ok;
+    }
+
+    // ── Navigace ────────────────────────────────────────────────
+    function nextSection() {
+      if (!validateSection()) return;
+      saveDraftSilent();
+      currentSection++;
+      renderProgress();
+      renderSection(currentSection);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function prevSection() {
+      saveDraftSilent();
+      currentSection--;
+      renderProgress();
+      renderSection(currentSection);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function updateBudget() {
+      syncBudgetTotalsFromDom({ markDirty: false });
+      updateChecklist();
+    }
+
+    // ── Checklist ────────────────────────────────────────────────
+    function updateChecklist() {
+      const checks = [
+        { label: "Název záměru", done: !!formData.project_title },
+        { label: "Cílová soutěž", done: !!formData.target_scheme },
+        { label: "Concept note (text)", done: !!formData.concept_note },
+        { label: "TOP výsledky", done: !!formData.excellence_top5 },
+        { label: "Rozpočet (součet)", done: !!(formData.budget_total && parseFloat(formData.budget_total) > 0) },
+        { label: "Přílohy 1–3 a č. 6", done: !!(formData.attach_annex1 && formData.attach_annex2 && formData.attach_annex3 && formData.attach_checklist6) },
+        { label: "Prohlášení", done: formData.declaration === "true" },
+      ];
+      document.getElementById("checklist").innerHTML = checks.map(c => `
+        <div class="checklist-item ${c.done?"done":""}">
+          <div class="checklist-dot">${c.done?"✓":""}</div>
+          <span>${c.label}</span>
+        </div>`).join("");
+    }
+
+    // ── Ukládání draftu ─────────────────────────────────────────
+    function scheduleAutoSave() {
+      clearTimeout(saveTimer);
+      const dot = document.getElementById("saveDot");
+      if (dot) { dot.className = "save-dot saving"; }
+      document.getElementById("saveStatusText").textContent = "Neuloženo…";
+      saveTimer = setTimeout(saveDraftSilent, 30000); // pravidelné auto-ukládání draftu po 30 s nečinnosti
+    }
+
+    async function saveDraftSilent() {
+      if (!isDirty) return;
+      await saveDraft(false);
+    }
+
+    async function saveDraftManual() {
+      await saveDraft(true);
+    }
+
+    async function saveDraft(showMessage) {
+      try {
+        const session = Auth._getSession();
+        await fetch(API_URL, {
+          method: "POST", mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "saveDraft",
+            token:  session?.token || "",
+            competitionId: COMPETITION_ID,
+            draftId,
+            formData,
+            applicantEmail: user.email,
+          }),
+        });
+        isDirty = false;
+        const now = new Date().toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" });
+        document.getElementById("lastSaved").textContent = now;
+        const dot = document.getElementById("saveDot");
+        if (dot) dot.className = "save-dot saved";
+        document.getElementById("saveStatusText").textContent = "Uloženo " + now;
+        if (showMessage) showToast("Koncept (draft) uložen ✓");
+      } catch {
+        if (showMessage) showToast("Ukládání selhalo – zkuste znovu.", "err");
+      }
+    }
+
+    async function loadDraft() {
+      try {
+        const session = Auth._getSession();
+        const url = new URL(API_URL);
+        url.searchParams.set("action", "getDraft");
+        url.searchParams.set("competitionId", COMPETITION_ID);
+        url.searchParams.set("applicantEmail", user.email);
+        url.searchParams.set("token", session?.token || "");
+        const focusApp = new URLSearchParams(location.search).get("app");
+        if (focusApp) url.searchParams.set("applicationId", focusApp.trim());
+        const res  = await fetch(url.toString());
+        const data = await res.json();
+        if (data.error) return false;
+
+        if (data.prorektorOutcome && data.prorektorOutcome.decision) {
+          fillProrektorOutcomeCard(data.prorektorOutcome, data.submittedApplication);
+        } else {
+          hideProrektorOutcomeCard();
+        }
+
+        if (data.submittedApplication && !data.draft) {
+          renderSubmittedApplicationView(
+            data.submittedApplication,
+            data.prorektorOutcome,
+            !!data.hasOtherDraft
+          );
+          const sid = data.submittedApplication.application_id;
+          const dec = data.prorektorOutcome && String(data.prorektorOutcome.decision || "").toUpperCase();
+          return true;
+        }
+
+        if (data.draft) {
+          formData = data.draft.formData || {};
+          draftId  = data.draft.id || data.draft.application_id || null;
+          renderSection(currentSection);
+          showToast("Načten uložený draft.");
+        }
+        return false;
+      } catch {
+        return false;
+      }
+    }
+
+    // ── Odeslání přihlášky ──────────────────────────────────────
+    async function submitApplication() {
+      // Validuj poslední sekci
+      if (!validateSection()) return;
+
+      syncBudgetTotalsFromDom({ markDirty: false });
+      const bt = parseFloat(String(formData.budget_total || "").replace(/\s/g, "").replace(",", ".")) || 0;
+      if (bt > MAX_BUDGET) {
+        showToast("Celkový rozpočet překračuje povolené maximum.", "err");
+        return;
+      }
+
+      // Zkontroluj povinné checkbox
+      if (formData.declaration !== "true") {
+        showToast("Potvrďte prosím prohlášení žadatele.", "err"); return;
+      }
+
+      const btn = document.getElementById("submitBtn");
+      btn.disabled = true; btn.textContent = "Odesílám…";
+
+      try {
+        const session = Auth._getSession();
+        await fetch(API_URL, {
+          method: "POST", mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "submitApplication",
+            token:  session?.token || "",
+            competitionId: COMPETITION_ID,
+            draftId,
+            formData,
+            applicantEmail: user.email,
+            applicantName:  user.name || user.email,
+          }),
+        });
+
+        // Úspěch
+        document.getElementById("formPanel").innerHTML = `
+          <div style="padding:48px 32px;text-align:center;">
+            <div style="font-size:48px;margin-bottom:16px;">✅</div>
+            <h2 style="font-family:'DM Sans',sans-serif;font-size:22px;color:var(--navy);margin-bottom:8px;">Přihláška odeslána!</h2>
+            <p style="font-size:14px;color:var(--muted);margin-bottom:24px;">Vaše přihláška do soutěže <strong>UHK Prestige</strong> (Výzva 1/2026) byla úspěšně podána.<br>
+            O dalším postupu Vás informujeme e-mailem. Stav přihlášky sledujte v přehledu <strong>Moje projekty</strong>.</p>
+            <a href="dashboard.html" class="btn btn-primary">← Zpět na rozcestník</a>
+          </div>`;
+        document.getElementById("statusBadge").textContent = "SUBMITTED";
+        document.getElementById("statusBadge").className = "badge badge-submitted";
+        showToast("Přihláška úspěšně odeslána! ✓");
+      } catch {
+        btn.disabled = false; btn.textContent = "Odeslat přihlášku →";
+        showToast("Chyba při odesílání – zkuste znovu.", "err");
+      }
+    }
+
+    // ── Toast ────────────────────────────────────────────────────
+    let toastTimer2;
+    function showToast(msg, type = "ok") {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.style.background = type === "err" ? "#991B1B" : "#1E6B45";
+      t.classList.add("show");
+      clearTimeout(toastTimer2);
+      toastTimer2 = setTimeout(() => t.classList.remove("show"), 4000);
+    }
+
+
+
+    // ── SPUŠTĚNÍ ─────────────────────────────────────────────────
+    renderPrestigeVyzvaSidebar();
+    void loadFormFields();
   </script>
 </body>
 </html>
