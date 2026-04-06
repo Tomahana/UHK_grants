@@ -69,6 +69,7 @@
     .ca:focus{border-color:var(--navy-mid)}
     .rec-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:20px}
     .rb{padding:11px 8px;border:1.5px solid var(--border);border-radius:var(--r);text-align:center;cursor:pointer;font-size:12px;font-weight:500;transition:all .15s;background:white;font-family:'DM Sans',sans-serif}
+    button.rb{margin:0;font:inherit;color:inherit;line-height:inherit}
     .rb:hover{transform:translateY(-1px)}
     .rb.sel-s{background:var(--green);color:white;border-color:var(--green)}
     .rb.sel-c{background:var(--gold-lite);color:#92400E;border-color:var(--gold)}
@@ -308,8 +309,38 @@ function esc(s) {
   return String(s == null ? "" : s)
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
+function escAttr(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+}
 function safeDomId(id) {
-  return String(id).replace(/[^a-zA-Z0-9_-]/g, "_");
+  const s = String(id);
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  const enc = s.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 48);
+  return (enc || "x") + "_" + (h >>> 0).toString(36);
+}
+
+/** POST na Web App – bez no-cors (opaque odpověď by znemožnila kontrolu chyb a může rozbít odeslání JSON). */
+async function postWebApp(payload) {
+  const res = await fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const text = await res.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(text ? text.slice(0, 200) : "Neplatná odpověď serveru.");
+  }
+  if (data && data.error) throw new Error(data.error);
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  return data;
 }
 
 async function loadData(){
@@ -476,14 +507,14 @@ async function submitReview(){
     comment_public:document.getElementById("cPub").value,
     comment_internal:document.getElementById("cInt").value,...notes};
   try{
-    await fetch(API_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+    await postWebApp(payload);
     const idx=revs.findIndex(r=>r.project_id===cur.application_id&&r.reviewer_email===user.email);
     if(idx>=0)Object.assign(revs[idx],{...payload,score_total:tot});
     else revs.push({...payload,project_id:cur.application_id,score_total:tot});
     showToast("Hodnocení uloženo – "+tot+"/25 bodů ✓");
     btn.disabled=false;btn.textContent="Uložit hodnocení";
     renderList();renderRes();selApp(cur.application_id);
-  }catch{btn.disabled=false;btn.textContent="Uložit hodnocení";showToast("Chyba při ukládání.","err")}
+  }catch(e){btn.disabled=false;btn.textContent="Uložit hodnocení";showToast(e.message||"Chyba při ukládání.","err")}
 }
 
 function clearForm(){cur=null;scores={};rec="";document.getElementById("reviewForm").style.display="none"}
@@ -532,24 +563,29 @@ function renderPrKomiseHtml(appId){
 
 function renderPr(){
   const RECSEL={SUPPORT:"sel-s",CUT:"sel-c",REJECT:"sel-r"};
-  const m={};apps.forEach(a=>m[a.application_id]={app:a,revs:[]});
+  const m={};
+  apps.forEach(a=>{
+    const aid=String(a.application_id||"").trim();
+    m[aid]={app:Object.assign({},a,{application_id:aid}),revs:[]};
+  });
   revs.forEach(r=>{
     const pid=connectAppId(r);
     if(m[pid])m[pid].revs.push(r);
   });
   const cards=Object.values(m).map(({app,revs:rv})=>{
+    const aid=app.application_id;
     const kom=rv.filter(r=>!isProrektorDecisionRow(r)&&Number(r.score_total)>0);
     const avg=kom.length?(kom.reduce((s,r)=>s+Number(r.score_total||0),0)/kom.length).toFixed(1):"—";
-    const sid=safeDomId(app.application_id);
-    const saved=prorektorSavedDecision(app.application_id);
-    if(!(app.application_id in prDecisionPick)&&saved&&saved.recommendation)
-      prDecisionPick[app.application_id]=saved.recommendation;
-    const pick=prDecisionPick[app.application_id]||(saved&&saved.recommendation)||"";
-    const rb=(d)=>`<div class="rb ${pick===d?RECSEL[d]:""}" id="prd-${sid}-${d}" onclick="prPickDec(${JSON.stringify(app.application_id)},'${d}')"><span class="ri">${d==="SUPPORT"?"✓":d==="CUT"?"◐":"✕"}</span><div class="rl">${d==="SUPPORT"?"Podpořit":d==="CUT"?"Krátit rozpočet":"Nepodpořit"}</div></div>`;
+    const sid=safeDomId(aid);
+    const saved=prorektorSavedDecision(aid);
+    if(!(aid in prDecisionPick)&&saved&&saved.recommendation)
+      prDecisionPick[aid]=saved.recommendation;
+    const pick=prDecisionPick[aid]||(saved&&saved.recommendation)||"";
+    const rb=(d)=>`<button type="button" class="rb rb-pr-dec ${pick===d?RECSEL[d]:""}" id="prd-${sid}-${d}" data-app-id="${escAttr(aid)}" data-dec="${d}"><span class="ri">${d==="SUPPORT"?"✓":d==="CUT"?"◐":"✕"}</span><div class="rl">${d==="SUPPORT"?"Podpořit":d==="CUT"?"Krátit rozpočet":"Nepodpořit"}</div></button>`;
     return`<div class="prc" id="prc-${sid}">
-      <div class="prt">${esc(app._f?.project_title||app.application_id)}</div>
+      <div class="prt">${esc(app._f?.project_title||aid)}</div>
       <div class="prm"><span>${esc(app.applicant_name||"—")}</span><span>${esc(app._f?.faculty||"—")}</span><span style="font-family:'DM Mono',monospace;">${Number(app._f?.budget_total||0).toLocaleString("cs-CZ")} Kč</span><span>Prům. komise ${avg}/25</span><span>${kom.length} hodnocení</span></div>
-      ${renderPrKomiseHtml(app.application_id)}
+      ${renderPrKomiseHtml(aid)}
       <div class="pr-fin">
         <div class="sep"><div class="sep-line"></div><div class="sep-lbl">Vaše rozhodnutí (prorektor)</div><div class="sep-line"></div></div>
         <p style="font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.45;">Vyberte závěr a případně doplňte komentář (uvidí ho žadatel u schválení / zamítnutí dle stavu přihlášky).</p>
@@ -557,54 +593,73 @@ function renderPr(){
         <label class="fl">Komentář k rozhodnutí</label>
         <textarea class="ca" id="pr-com-${sid}" placeholder="Závěrečné stanovisko…"></textarea>
         <div style="display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap;">
-          <button class="btn btn-n" type="button" onclick="submitProrektorDecision(${JSON.stringify(app.application_id)})">Uložit rozhodnutí</button>
+          <button class="btn btn-n btn-pr-save" type="button" data-app-id="${escAttr(aid)}">Uložit rozhodnutí</button>
           ${saved?`<span class="pr-saved">Již uloženo ${esc(saved.submitted_at||"")}</span>`:""}
         </div>
       </div></div>`;
   }).join("");
   document.getElementById("prBody").innerHTML=cards||'<div class="empty">Žádné přihlášky.</div>';
+  bindProrektorPanelClicks();
   apps.forEach(app=>{
-    const sid=safeDomId(app.application_id);
+    const aid=String(app.application_id||"").trim();
+    const sid=safeDomId(aid);
     const ta=document.getElementById("pr-com-"+sid);
     if(!ta)return;
-    const saved=prorektorSavedDecision(app.application_id);
+    const saved=prorektorSavedDecision(aid);
     if(saved&&saved.comment_public!=null&&saved.comment_public!=="")ta.value=String(saved.comment_public);
   });
 }
 
 function prPickDec(appId,dec){
+  appId=String(appId||"").trim();
   prDecisionPick[appId]=dec;
   const sid=safeDomId(appId);
   ["SUPPORT","CUT","REJECT"].forEach(d=>{
     const el=document.getElementById("prd-"+sid+"-"+d);
     if(!el)return;
-    el.className="rb"+(dec===d?(d==="SUPPORT"?" sel-s":d==="CUT"?" sel-c":" sel-r"):"");
+    el.className="rb rb-pr-dec"+(dec===d?(d==="SUPPORT"?" sel-s":d==="CUT"?" sel-c":" sel-r"):"");
+  });
+}
+
+let _prPanelBound=false;
+function bindProrektorPanelClicks(){
+  const root=document.getElementById("prBody");
+  if(!root||_prPanelBound)return;
+  _prPanelBound=true;
+  root.addEventListener("click",function(ev){
+    const decBtn=ev.target.closest(".rb-pr-dec");
+    if(decBtn&&decBtn.getAttribute("data-dec")){
+      prPickDec(decBtn.getAttribute("data-app-id"),decBtn.getAttribute("data-dec"));
+      return;
+    }
+    const saveBtn=ev.target.closest(".btn-pr-save");
+    if(saveBtn&&saveBtn.getAttribute("data-app-id"))
+      submitProrektorDecision(saveBtn.getAttribute("data-app-id"));
   });
 }
 
 async function submitProrektorDecision(appId){
+  appId=String(appId||"").trim();
   const dec=prDecisionPick[appId];
   if(!dec){showToast("Vyberte Podpořit / Krátit / Nepodpořit.","err");return;}
   const sid=safeDomId(appId);
   const ta=document.getElementById("pr-com-"+sid);
   const comment=ta?ta.value.trim():"";
   try{
-    await fetch(API_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({action:"saveConnectProrektorDecision",token:Auth._getSession()?.token||"",competitionId:CID,applicationId:appId,decision:dec,comment})});
+    await postWebApp({action:"saveConnectProrektorDecision",token:Auth._getSession()?.token||"",competitionId:CID,applicationId:appId,decision:dec,comment});
     const idx=revs.findIndex(r=>connectAppId(r)===appId&&isProrektorDecisionRow(r));
     const row={project_id:appId,application_id:appId,reviewer_email:user.email,recommendation:dec,comment_public:comment,comment_internal:"PROREKTOR_DECISION",score_total:0,submitted_at:new Date().toISOString().slice(0,19).replace("T"," ")};
     if(idx>=0)revs[idx]=row;else revs.push(row);
     showToast("Rozhodnutí uloženo ✓");
     renderPr();renderList();renderRes();
-  }catch(e){showToast("Chyba při ukládání.","err")}
+  }catch(e){showToast(e.message||"Chyba při ukládání.","err")}
 }
 
 async function prDec(id,dec){
   try{
-    await fetch(API_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({action:"updateApplicationStatus",token:Auth._getSession()?.token||"",competitionId:CID,applicationId:id,newStatus:dec,coordinatorEmail:user.email})});
+    await postWebApp({action:"updateApplicationStatus",token:Auth._getSession()?.token||"",competitionId:CID,applicationId:id,newStatus:dec,coordinatorEmail:user.email});
     showToast("Rozhodnutí uloženo ✓");
-  }catch{showToast("Chyba.","err")}
+  }catch(e){showToast(e.message||"Chyba.","err")}
 }
 
 function switchTab(t){
