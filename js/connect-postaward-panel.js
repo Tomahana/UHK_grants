@@ -5,8 +5,12 @@
 (function (global) {
   "use strict";
 
-  /** api.js používá `const API` – není na window; nesmíme volat global.API. */
+  /** api.js nastaví globalThis.API; záložně lexikální API ze stejné stránky. */
   function api() {
+    var g =
+      (typeof globalThis !== "undefined" && globalThis.API) ||
+      (typeof window !== "undefined" && window.API);
+    if (g && typeof g.getConnectPostAward === "function") return g;
     if (typeof API !== "undefined" && API && typeof API.getConnectPostAward === "function") return API;
     throw new Error("Chybí API – načtěte api.js před connect-postaward-panel.js.");
   }
