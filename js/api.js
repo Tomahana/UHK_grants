@@ -196,6 +196,11 @@ const API = {
     return this.post("changeStatus", { competitionId, applicationId, newStatus, note });
   },
 
+  /** ADMIN/TESTER: trvale smazat přihlášku (SUBMITTED i DRAFT) + související řádky v REVIEWS */
+  async adminDeleteApplication(competitionId, applicationId) {
+    return this.post("adminDeleteApplication", { competitionId, applicationId });
+  },
+
   /** Ulož hodnocení */
   async submitReview(competitionId, applicationId, scores, comments, recommendation) {
     return this.post("submitReview", {
