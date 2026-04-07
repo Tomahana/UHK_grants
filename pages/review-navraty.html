@@ -331,15 +331,15 @@
         <span style="font-size:12px;color:var(--ink-60);">reg. č. CZ.02.01.01/00/24_037/0013855 · OP Jan Amos Komenský</span>
       </p>
 
-      <div data-navraty-external-folder class="external-reviews-banner" role="region" aria-label="Oponentní posudky externích hodnotitelů">
+      <div data-navraty-external-folder data-default-folder-url="https://drive.google.com/drive/folders/1BccsPx0kcI7RJFTi4_ptnZIE6V22HKsp" class="external-reviews-banner" role="region" aria-label="Oponentní posudky externích hodnotitelů">
         <div class="external-reviews-banner__icon" aria-hidden="true">📂</div>
         <div>
           <div class="external-reviews-banner__title">Oponentní posudky externích hodnotitelů</div>
           <p class="external-reviews-banner__text">
             Komise zohledňuje při rozhodování také PDF protokoly / posudky v této sdílené složce na Google Disku.
-            Dokumenty do složky nahrává <strong>správce</strong> (oddělení vědy).
+            Dokumenty do složky nahrává <strong>správce</strong> (oddělení vědy). Samostatné odkazy na jednotlivé soubory z Disku se v aplikaci nezobrazují – otevřete složku a vyberte PDF podle názvu nebo čísla přihlášky.
           </p>
-          <a class="external-reviews-banner__btn navraty-external-folder-link" href="#" target="_blank" rel="noopener noreferrer">Otevřít složku na Disku →</a>
+          <a class="external-reviews-banner__btn navraty-external-folder-link" href="https://drive.google.com/drive/folders/1BccsPx0kcI7RJFTi4_ptnZIE6V22HKsp" target="_blank" rel="noopener noreferrer">Otevřít složku na Disku →</a>
         </div>
       </div>
 
@@ -559,12 +559,12 @@
         <div>
           <h2 class="dash-title">Přehled hodnocení</h2>
           <div class="dash-meta" id="dashMeta">Načítám…</div>
-          <div data-navraty-external-folder class="external-reviews-banner" style="margin-top:20px;margin-bottom:0;" role="region" aria-label="Oponentní posudky">
+          <div data-navraty-external-folder data-default-folder-url="https://drive.google.com/drive/folders/1BccsPx0kcI7RJFTi4_ptnZIE6V22HKsp" class="external-reviews-banner" style="margin-top:20px;margin-bottom:0;" role="region" aria-label="Oponentní posudky">
             <div class="external-reviews-banner__icon" aria-hidden="true">📂</div>
             <div>
               <div class="external-reviews-banner__title">Externí oponentní posudky</div>
               <p class="external-reviews-banner__text" style="margin-bottom:10px;">Stejná složka jako u hodnoticího formuláře – podklady pro komisi.</p>
-              <a class="external-reviews-banner__btn navraty-external-folder-link" href="#" target="_blank" rel="noopener noreferrer">Otevřít složku na Disku →</a>
+              <a class="external-reviews-banner__btn navraty-external-folder-link" href="https://drive.google.com/drive/folders/1BccsPx0kcI7RJFTi4_ptnZIE6V22HKsp" target="_blank" rel="noopener noreferrer">Otevřít složku na Disku →</a>
             </div>
           </div>
         </div>
@@ -625,12 +625,12 @@
       <h1 class="prorektor-title">Schvalování projektů</h1>
       <p class="prorektor-desc">Souhrn hodnocení komise. Pro každý projekt uveďte rozhodnutí a zdůvodnění.</p>
 
-      <div data-navraty-external-folder class="external-reviews-banner" role="region" aria-label="Oponentní posudky">
+      <div data-navraty-external-folder data-default-folder-url="https://drive.google.com/drive/folders/1BccsPx0kcI7RJFTi4_ptnZIE6V22HKsp" class="external-reviews-banner" role="region" aria-label="Oponentní posudky">
         <div class="external-reviews-banner__icon" aria-hidden="true">📂</div>
         <div>
           <div class="external-reviews-banner__title">Oponentní posudky externích hodnotitelů</div>
           <p class="external-reviews-banner__text" style="margin-bottom:10px;">Před rozhodnutím si ověřte podklady v sdílené složce (nahrává správce).</p>
-          <a class="external-reviews-banner__btn navraty-external-folder-link" href="#" target="_blank" rel="noopener noreferrer">Otevřít složku na Disku →</a>
+          <a class="external-reviews-banner__btn navraty-external-folder-link" href="https://drive.google.com/drive/folders/1BccsPx0kcI7RJFTi4_ptnZIE6V22HKsp" target="_blank" rel="noopener noreferrer">Otevřít složku na Disku →</a>
         </div>
       </div>
 
@@ -688,17 +688,25 @@
     const IS_PROREKTOR = user.role === "PROREKTOR";
 
     (function wireNavratyExternalReviewsFolder() {
-      const raw = typeof NAVRATY_EXTERNAL_REVIEWS_FOLDER_URL !== "undefined"
+      function normalizeUrl(raw) {
+        const s = String(raw || "").trim();
+        if (!s) return "";
+        return /^https?:\/\//i.test(s) ? s : ("https://" + s);
+      }
+      const configRaw = typeof NAVRATY_EXTERNAL_REVIEWS_FOLDER_URL !== "undefined"
         ? String(NAVRATY_EXTERNAL_REVIEWS_FOLDER_URL || "").trim()
         : "";
-      const url = raw && /^https?:\/\//i.test(raw) ? raw : (raw ? "https://" + raw : "");
+      const configUrl = normalizeUrl(configRaw);
       document.querySelectorAll("[data-navraty-external-folder]").forEach(function (wrap) {
-        if (!url) {
+        const defUrl = normalizeUrl(wrap.getAttribute("data-default-folder-url") || "");
+        const finalUrl = configUrl || defUrl;
+        if (!finalUrl) {
           wrap.style.display = "none";
           return;
         }
+        wrap.style.display = "";
         wrap.querySelectorAll("a.navraty-external-folder-link").forEach(function (a) {
-          a.href = url;
+          a.href = finalUrl;
         });
       });
     })();
