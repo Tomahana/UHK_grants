@@ -631,8 +631,9 @@
       </div>`;
 
     document.getElementById("modalFooter").innerHTML = `
-      <button class="btn btn-outline" onclick="closeModal()">Zavřít</button>
-      <button class="btn btn-navy" onclick="saveNote()">Uložit poznámku</button>`;
+      <button type="button" class="btn btn-outline" style="margin-right:auto;color:var(--red);border-color:#FECACA;" onclick="adminDeleteSelectedApplication()">Smazat přihlášku</button>
+      <button type="button" class="btn btn-outline" onclick="closeModal()">Zavřít</button>
+      <button type="button" class="btn btn-navy" onclick="saveNote()">Uložit poznámku</button>`;
 
     document.getElementById("detailModal").classList.add("open");
   }
@@ -676,6 +677,29 @@
       showToast(`Stav změněn na ${STATUS_FLOW[newStatus]?.label || newStatus} ✓`);
     } catch (err) {
       showToast("Chyba při změně stavu.", "err");
+    }
+  }
+
+  async function adminDeleteSelectedApplication() {
+    if (!currentApp) return;
+    const a = currentApp;
+    const label = COMP_NAMES[a.competition_id] || a.competition_id;
+    const ok = confirm(
+      "Trvale smazat přihlášku " + a.application_id + " (" + label + ")?\n\n" +
+        "Akci nelze vrátit. Pokud existují hodnocení v listu REVIEWS, budou také smazána."
+    );
+    if (!ok) return;
+    try {
+      const data = await API.adminDeleteApplication(a.competition_id, a.application_id);
+      if (data.error) throw new Error(data.error);
+      const idx = allApps.findIndex((x) => x.application_id === a.application_id);
+      if (idx >= 0) allApps.splice(idx, 1);
+      closeModal();
+      updateStats();
+      applyFilters();
+      showToast("Přihláška smazána ✓");
+    } catch (e) {
+      showToast(e.message || "Mazání selhalo.", "err");
     }
   }
 
