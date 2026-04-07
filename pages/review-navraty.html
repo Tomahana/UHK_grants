@@ -200,6 +200,24 @@
     .alert--info { background: var(--blue-light); border: 1px solid rgba(26,74,122,.2); color: var(--blue); }
     .alert--warn { background: var(--gold-light); border: 1px solid rgba(196,154,42,.3); color: #7a5a10; }
 
+    /* Externí oponentní posudky (odkaz na Google Disk) */
+    .external-reviews-banner {
+      display: flex; gap: 16px; align-items: flex-start;
+      padding: 16px 18px; margin-bottom: 24px;
+      background: linear-gradient(135deg, var(--blue-light) 0%, #e0e8f2 100%);
+      border: 1.5px solid rgba(26,74,122,.22); border-radius: 10px;
+    }
+    .external-reviews-banner__icon { font-size: 28px; line-height: 1; flex-shrink: 0; }
+    .external-reviews-banner__title { font-weight: 700; font-size: 14px; color: var(--ink); margin-bottom: 6px; }
+    .external-reviews-banner__text { font-size: 13px; color: var(--ink-60); line-height: 1.5; margin-bottom: 12px; max-width: 52rem; }
+    .external-reviews-banner__btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+      padding: 10px 16px; border-radius: var(--r); text-decoration: none; font-weight: 600;
+      background: var(--blue); color: white; border: none; transition: opacity .15s;
+    }
+    .external-reviews-banner__btn:hover { opacity: .92; color: white; }
+
     /* Toast */
     .toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(80px); color: white; font-size: 14px; font-weight: 500; padding: 14px 28px; border-radius: 100px; z-index: 9999; transition: transform .3s cubic-bezier(.34,1.56,.64,1); white-space: nowrap; }
     .toast.show { transform: translateX(-50%) translateY(0); }
@@ -312,6 +330,18 @@
       <p class="page-desc">Hodnocení projektů v rámci UHK: Return – Research – Restart<br>
         <span style="font-size:12px;color:var(--ink-60);">reg. č. CZ.02.01.01/00/24_037/0013855 · OP Jan Amos Komenský</span>
       </p>
+
+      <div data-navraty-external-folder class="external-reviews-banner" role="region" aria-label="Oponentní posudky externích hodnotitelů">
+        <div class="external-reviews-banner__icon" aria-hidden="true">📂</div>
+        <div>
+          <div class="external-reviews-banner__title">Oponentní posudky externích hodnotitelů</div>
+          <p class="external-reviews-banner__text">
+            Komise zohledňuje při rozhodování také PDF protokoly / posudky v této sdílené složce na Google Disku.
+            Dokumenty do složky nahrává <strong>správce</strong> (oddělení vědy).
+          </p>
+          <a class="external-reviews-banner__btn navraty-external-folder-link" href="#" target="_blank" rel="noopener noreferrer">Otevřít složku na Disku →</a>
+        </div>
+      </div>
 
       <!-- Načítání přihlášek -->
       <div id="loadingApps" class="alert alert--info">
@@ -529,6 +559,14 @@
         <div>
           <h2 class="dash-title">Přehled hodnocení</h2>
           <div class="dash-meta" id="dashMeta">Načítám…</div>
+          <div data-navraty-external-folder class="external-reviews-banner" style="margin-top:20px;margin-bottom:0;" role="region" aria-label="Oponentní posudky">
+            <div class="external-reviews-banner__icon" aria-hidden="true">📂</div>
+            <div>
+              <div class="external-reviews-banner__title">Externí oponentní posudky</div>
+              <p class="external-reviews-banner__text" style="margin-bottom:10px;">Stejná složka jako u hodnoticího formuláře – podklady pro komisi.</p>
+              <a class="external-reviews-banner__btn navraty-external-folder-link" href="#" target="_blank" rel="noopener noreferrer">Otevřít složku na Disku →</a>
+            </div>
+          </div>
         </div>
         <div class="dash-actions">
           <button class="dash-btn dash-btn--blue" onclick="loadDashboard()">↻ Obnovit</button>
@@ -587,6 +625,15 @@
       <h1 class="prorektor-title">Schvalování projektů</h1>
       <p class="prorektor-desc">Souhrn hodnocení komise. Pro každý projekt uveďte rozhodnutí a zdůvodnění.</p>
 
+      <div data-navraty-external-folder class="external-reviews-banner" role="region" aria-label="Oponentní posudky">
+        <div class="external-reviews-banner__icon" aria-hidden="true">📂</div>
+        <div>
+          <div class="external-reviews-banner__title">Oponentní posudky externích hodnotitelů</div>
+          <p class="external-reviews-banner__text" style="margin-bottom:10px;">Před rozhodnutím si ověřte podklady v sdílené složce (nahrává správce).</p>
+          <a class="external-reviews-banner__btn navraty-external-folder-link" href="#" target="_blank" rel="noopener noreferrer">Otevřít složku na Disku →</a>
+        </div>
+      </div>
+
       <!-- Souhrnná statistika -->
       <div class="summary-bar" id="prSummaryBar" style="display:none;">
         <div class="summary-item">
@@ -639,6 +686,22 @@
     const ALLOWED = ["KOMISAR","ADMIN","PROREKTOR","TESTER"];
     const user = Auth.requireLogin(ALLOWED);
     const IS_PROREKTOR = user.role === "PROREKTOR";
+
+    (function wireNavratyExternalReviewsFolder() {
+      const raw = typeof NAVRATY_EXTERNAL_REVIEWS_FOLDER_URL !== "undefined"
+        ? String(NAVRATY_EXTERNAL_REVIEWS_FOLDER_URL || "").trim()
+        : "";
+      const url = raw && /^https?:\/\//i.test(raw) ? raw : (raw ? "https://" + raw : "");
+      document.querySelectorAll("[data-navraty-external-folder]").forEach(function (wrap) {
+        if (!url) {
+          wrap.style.display = "none";
+          return;
+        }
+        wrap.querySelectorAll("a.navraty-external-folder-link").forEach(function (a) {
+          a.href = url;
+        });
+      });
+    })();
 
     // Zobraz info o uživateli
     document.getElementById("topbarName").textContent = user.name || user.email;
