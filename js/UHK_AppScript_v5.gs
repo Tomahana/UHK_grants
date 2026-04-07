@@ -124,6 +124,14 @@ function doGet(e) {
         return corsResponse(
           getDraft(p.competitionId, p.applicantEmail, p.token, p.applicationId || p.app || "")
         );
+      case "adminDeleteApplication":
+        return corsResponse(
+          adminDeleteApplication({
+            token: p.token,
+            competitionId: p.competitionId,
+            applicationId: p.applicationId || p.app || "",
+          })
+        );
       case "ping":             return corsResponse({ success: true, message: "API běží ✓" });
       default:                 return corsResponse({ error: "Neznámá akce: " + (p.action || "chybí") });
     }
