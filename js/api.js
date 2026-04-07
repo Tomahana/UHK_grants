@@ -196,9 +196,12 @@ const API = {
     return this.post("changeStatus", { competitionId, applicationId, newStatus, note });
   },
 
-  /** ADMIN/TESTER: trvale smazat přihlášku (SUBMITTED i DRAFT) + související řádky v REVIEWS */
+  /**
+   * ADMIN/TESTER: trvale smazat přihlášku (SUBMITTED i DRAFT) + související řádky v REVIEWS.
+   * Používá GET (ne POST), aby prohlížeč neposílal CORS preflight – JSON POST na Apps Script často končí „Failed to fetch“.
+   */
   async adminDeleteApplication(competitionId, applicationId) {
-    return this.post("adminDeleteApplication", { competitionId, applicationId });
+    return this.get("adminDeleteApplication", { competitionId, applicationId });
   },
 
   /** Ulož hodnocení */
