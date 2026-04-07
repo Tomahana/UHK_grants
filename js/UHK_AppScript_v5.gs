@@ -60,6 +60,14 @@ const ADMIN_EMAIL = "hana.tomaskova@uhk.cz";
 /** ID soutěže Connect (měsíční workflow + notifikace komise) */
 const CONNECT_COMPETITION_ID = "uhk_connect_2026_v2";
 
+/** Krátký název soutěže do předmětu e-mailu, pokud v CONFIG není competition_name / email_subject_tag */
+const UHK_COMPETITION_EMAIL_SUBJECT_TAGS = {
+  "uhk_connect_2026_v2": "UHK Connect",
+  "uhk_rega_2026_v1": "UHK ReGa",
+  "uhk_prestige_2026": "UHK Prestige",
+  "uhk_navraty_2026": "OP JAK Návraty",
+};
+
 /** Složka Google Disk pro přílohy Connect (část 2). Účet „Execute as“ webové aplikace musí mít v ní právo přidávat soubory. */
 const CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID = "1oJ7qujZhIBygFYgiN5Im7fmpKbeADDDi";
 
@@ -157,6 +165,8 @@ function doPost(e) {
         return corsResponse(saveConnectPostAward(body));
       case "uploadConnectPostAwardAttachment":
         return corsResponse(uploadConnectPostAwardAttachment(body));
+      case "adminDeleteApplication":
+        return corsResponse(adminDeleteApplication(body));
       default:                 return corsResponse({ error: "Neznámá POST akce: " + body.action });
     }
   } catch (err) {
@@ -1953,7 +1963,7 @@ function changeStatus(body) {
     // E-mail žadateli
     const emailAddr = data[i][findCol(COL, "applicant_email")];
     const projectT  = data[i][findCol(COL, "project_title")] || "";
-    if (emailAddr) sendStatusEmail(emailAddr, body.applicationId, body.newStatus, projectT);
+    if (emailAddr) sendStatusEmail(emailAddr, body.applicationId, body.newStatus, projectT, body.competitionId);
     const comp = String(body.competitionId || "").trim();
     const ns = String(body.newStatus || "").toUpperCase();
     const os = String(oldStatus || "").toUpperCase();
@@ -1962,6 +1972,59 @@ function changeStatus(body) {
     return { success: true, oldStatus, newStatus: body.newStatus };
   }
   throw new Error("Přihláška nenalezena: " + body.applicationId);
+}
+
+/**
+ * Trvalé smazání řádku přihlášky (podané i DRAFT) – jen ADMIN / TESTER.
+ * U soutěží s listem REVIEWS smaže i všechna hodnocení k danému application_id.
+ */
+function adminDeleteApplication(body) {
+  const auth = requireAuth(body.token);
+  if (!authHasAnyRole_(auth, ["ADMIN", "TESTER"]))
+    throw new Error("Pouze administrátor může mazat přihlášky.");
+
+  const competitionId = String(body.competitionId || "").trim();
+  const applicationId = String(body.applicationId || "").trim();
+  if (!competitionId || !applicationId)
+    throw new Error("Chybí competitionId nebo applicationId.");
+
+  const ss = getSpreadsheet(competitionId);
+  const appSheet = ss.getSheetByName(SHEETS.APPLICATIONS);
+  if (!appSheet) throw new Error("List APPLICATIONS nenalezen.");
+
+  const data = appSheet.getDataRange().getValues();
+  if (data.length <= HEADER_ROW) throw new Error("Přihláška nenalezena.");
+
+  const COL = mapColumns(data[HEADER_ROW - 1]);
+  const idCol = findCol(COL, "application_id", "id", "app_id");
+  if (idCol < 0) throw new Error("List APPLICATIONS: chybí sloupec application_id.");
+
+  let found = false;
+  for (let i = HEADER_ROW; i < data.length; i++) {
+    if (String(data[i][idCol] || "").trim() !== applicationId) continue;
+    found = true;
+    appSheet.deleteRow(i + 1);
+    break;
+  }
+  if (!found) throw new Error("Přihláška nenalezena: " + applicationId);
+
+  const revSheet = ss.getSheetByName(SHEETS.REVIEWS);
+  if (revSheet) deleteAllReviewsForApplication_(revSheet, applicationId);
+
+  writeAudit(ss, "APPLICATION_DELETED_ADMIN", applicationId, "", "", auth.email);
+  return { success: true };
+}
+
+function deleteAllReviewsForApplication_(sheet, applicationId) {
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= HEADER_ROW) return;
+  const COL = mapColumns(data[HEADER_ROW - 1]);
+  const aid = findCol(COL, "application_id", "project_id", "app_id");
+  if (aid < 0) return;
+  const aidv = String(applicationId || "").trim();
+  for (let i = data.length - 1; i >= HEADER_ROW; i--) {
+    if (String(data[i][aid] || "").trim() === aidv) sheet.deleteRow(i + 1);
+  }
 }
 
 
@@ -2394,28 +2457,51 @@ function saveConnectProrektorDecision(body) {
 // ============================================================
 // E-MAILY
 // ============================================================
-function sendStatusEmail(toEmail, appId, status, projectTitle) {
+
+/** Krátký tag do předmětu e-mailu ([tag] …). Volitelně z CONFIG: email_subject_tag, competition_name. */
+function getCompetitionEmailSubjectTag_(competitionId, ss) {
+  const id = String(competitionId || "").trim();
+  try {
+    if (ss) {
+      const cfg = getConfigMap(ss);
+      let n = String(cfg.email_subject_tag || cfg.competition_name_short || "").trim();
+      if (n) return n.length > 55 ? n.substring(0, 52) + "…" : n;
+      n = String(cfg.competition_name || "").trim();
+      if (n) return n.length > 55 ? n.substring(0, 52) + "…" : n;
+    }
+  } catch (e) { /* fallback */ }
+  return UHK_COMPETITION_EMAIL_SUBJECT_TAGS[id] || "UHK Granty";
+}
+
+function sendStatusEmail(toEmail, appId, status, projectTitle, competitionId) {
+  let ss = null;
+  try {
+    if (competitionId) ss = getSpreadsheet(String(competitionId).trim());
+  } catch (e) { /* neznámé id */ }
+  const tag = getCompetitionEmailSubjectTag_(competitionId, ss);
+
   const subjects = {
-    SUBMITTED:    "[UHK Connect] Přihláška přijata – " + appId,
-    FORMAL_CHECK: "[UHK Connect] Formální kontrola – " + appId,
-    IN_REVIEW:    "[UHK Connect] Předáno hodnoticímu panelu – " + appId,
-    APPROVED:     "[UHK Connect] 🎉 Přihláška schválena – " + appId,
-    REJECTED:     "[UHK Connect] Výsledek hodnocení – " + appId,
-    WITHDRAWN:    "[UHK Connect] Přihláška stažena – " + appId,
+    SUBMITTED:    "[" + tag + "] Přihláška přijata – " + appId,
+    FORMAL_CHECK: "[" + tag + "] Formální kontrola – " + appId,
+    IN_REVIEW:    "[" + tag + "] Předáno hodnoticímu panelu – " + appId,
+    APPROVED:     "[" + tag + "] 🎉 Přihláška schválena – " + appId,
+    REJECTED:     "[" + tag + "] Výsledek hodnocení – " + appId,
+    WITHDRAWN:    "[" + tag + "] Přihláška stažena – " + appId,
   };
   const texts = {
     SUBMITTED:    "Vaše přihláška byla úspěšně přijata a čeká na formální kontrolu.",
     FORMAL_CHECK: "Probíhá formální kontrola Vaší přihlášky.",
     IN_REVIEW:    "Vaše přihláška byla předána hodnoticímu panelu.",
-    APPROVED:     "Gratulujeme! Vaše přihláška byla schválena k financování. Stanovisko prorektora a komentář si můžete po přihlášení přečíst u přihlášky UHK Connect (Moje projekty).",
-    REJECTED:     "Vaše přihláška nebyla v tomto kole podpořena. Zdůvodnění od prorektora najdete po přihlášení u přihlášky UHK Connect (Moje projekty).",
+    APPROVED:     "Gratulujeme! Vaše přihláška byla schválena k financování. Stanovisko a komentář si můžete po přihlášení přečíst v aplikaci UHK Grant Manager (sekce Moje projekty).",
+    REJECTED:     "Vaše přihláška nebyla v tomto kole podpořena. Zdůvodnění a komentář najdete po přihlášení v aplikaci UHK Grant Manager (sekce Moje projekty).",
     WITHDRAWN:    "Vaše přihláška byla stažena ze soutěže.",
   };
   if (!subjects[status]) return;
   try {
     GmailApp.sendEmail(toEmail, subjects[status],
       "Vážená/ý žadateli,\n\n" + texts[status] +
-      "\n\nID přihlášky: " + appId +
+      "\n\nSoutěž: " + tag +
+      "\nID přihlášky: " + appId +
       "\nProjekt: " + (projectTitle || "–") +
       "\n\nDotazy: " + ADMIN_EMAIL +
       "\n\nS pozdravem,\nOddělení vědy a transferu znalostí\nUniverzita Hradec Králové",
@@ -2423,6 +2509,31 @@ function sendStatusEmail(toEmail, appId, status, projectTitle) {
     );
   } catch (err) {
     console.error("sendStatusEmail:", err.message);
+  }
+}
+
+/** E-mail koordinátorovi po finálním podání žádosti (stejná tabulka soutěže → CONFIG). */
+function notifyCoordinatorNewSubmission_(ss, competitionId, applicantName, applicantEmail, formData, applicationId) {
+  try {
+    const cfg = getConfigMap(ss);
+    const coordEmail = cfg["coordinator_email"] || cfg["admin_email"];
+    if (!coordEmail) return;
+    const tag = getCompetitionEmailSubjectTag_(competitionId, ss);
+    const title =
+      formData && formData.project_title ? String(formData.project_title) : "—";
+    GmailApp.sendEmail(
+      coordEmail,
+      "[" + tag + "] Nová přihláška: " + title,
+      "Byla podána nová přihláška do soutěže " + tag + ".\n\n" +
+        "ID přihlášky: " + applicationId + "\n" +
+        "Identifikátor v systému: " + String(competitionId || "") + "\n\n" +
+        "Žadatel: " + (applicantName || "—") + " (" + (applicantEmail || "—") + ")\n" +
+        "Projekt: " + title + "\n\n" +
+        "Přihlaste se do systému pro zobrazení detailu.",
+      { name: "UHK – Grantové soutěže", replyTo: ADMIN_EMAIL }
+    );
+  } catch (e) {
+    console.error("notifyCoordinatorNewSubmission_:", e.message);
   }
 }
 
@@ -2534,7 +2645,7 @@ function onEditHandler(e) {
       "Změněno přímo v Sheets");
     const emailAddr  = sheet.getRange(row, 3).getValue();
     const projectT   = sheet.getRange(row, 11).getValue();
-    if (emailAddr && e.value) sendStatusEmail(emailAddr, appId, e.value, projectT);
+    if (emailAddr && e.value) sendStatusEmail(emailAddr, appId, e.value, projectT, CONNECT_COMPETITION_ID);
     const nv = String(e.value || "").toUpperCase();
     const ov = String(e.oldValue || "").toUpperCase();
     if (nv === "IN_REVIEW" && ov !== "IN_REVIEW")
@@ -3574,20 +3685,14 @@ function submitApplication(body) {
       sheet.getRange(i + 1, subCol + 1).setValue(fmtDate(new Date()));
       writeAudit(ss, "APPLICATION_SUBMITTED", data[i][0], "DRAFT", "SUBMITTED", body.applicantEmail);
 
-      // Odešli email koordinátorce
-      try {
-        const cfg = getConfigMap(ss);
-        const coordEmail = cfg["coordinator_email"] || cfg["admin_email"];
-        if (coordEmail) {
-          GmailApp.sendEmail(coordEmail,
-            "[UHK Granty] Nová přihláška: " + (body.formData?.project_title || data[i][0]),
-            "Byla podána nová přihláška do soutěže " + body.competitionId + ".\n\n" +
-            "Žadatel: " + body.applicantName + " (" + body.applicantEmail + ")\n" +
-            "Projekt: " + (body.formData?.project_title || "—") + "\n\n" +
-            "Přihlaste se do systému pro zobrazení detailu."
-          );
-        }
-      } catch(e) { console.error("Email error:", e.message); }
+      notifyCoordinatorNewSubmission_(
+        ss,
+        body.competitionId,
+        body.applicantName,
+        body.applicantEmail,
+        body.formData || {},
+        appId
+      );
       const subAt = fmtDate(new Date());
       try {
         if (appId)
@@ -3638,6 +3743,14 @@ function submitApplication(body) {
   } catch (archE) {
     console.error("uhkTryArchiveFinalSubmissionPdf_: " + archE.message);
   }
+  notifyCoordinatorNewSubmission_(
+    ss,
+    body.competitionId,
+    body.applicantName,
+    body.applicantEmail,
+    fd2,
+    newId
+  );
   return { success: true };
 }
 
