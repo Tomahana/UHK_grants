@@ -8,6 +8,14 @@
 // Apps Script Web App – Gmail účet uhk.granty@gmail.com
 const API_URL = "https://script.google.com/macros/s/AKfycbyqwthk3rMxMSDQkaKCnwef5GsPBu4C40810zOhZUHEARhVbYb-vqbUMzlY5LfsQkNU/exec";
 
+/**
+ * OP JAK Návraty: sdílená složka Google Disk s oponentními posudky externích hodnotitelů.
+ * Nahrává správce; komise a prorektor z ní vycházejí při rozhodování (review-navraty.html).
+ * Změnou URL upravíte odkaz v celé aplikaci bez úpravy listu Sheets.
+ */
+const NAVRATY_EXTERNAL_REVIEWS_FOLDER_URL =
+  "https://drive.google.com/drive/folders/1BccsPx0kcI7RJFTi4_ptnZIE6V22HKsp";
+
 // ── Role a jejich vlastnosti ───────────────────────────────────
 const ROLES = {
   ADMIN: {
