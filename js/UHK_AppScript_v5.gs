@@ -145,12 +145,37 @@ function doGet(e) {
 // ============================================================
 // POST ROUTER
 // ============================================================
+/** Rozparsuje tělo POST: JSON nebo application/x-www-form-urlencoded (bez CORS preflightu v prohlížeči). */
+function parseDoPostBody_(e) {
+  const raw = e.postData && e.postData.contents != null ? String(e.postData.contents) : "";
+  const ct = e.postData && e.postData.type ? String(e.postData.type).toLowerCase() : "";
+  if (ct.indexOf("application/x-www-form-urlencoded") >= 0) {
+    const o = {};
+    if (raw) {
+      raw.split("&").forEach(function (pair) {
+        const eq = pair.indexOf("=");
+        var k = eq < 0 ? pair : pair.slice(0, eq);
+        var v = eq < 0 ? "" : pair.slice(eq + 1);
+        k = decodeURIComponent(k.replace(/\+/g, " "));
+        v = decodeURIComponent(v.replace(/\+/g, " "));
+        if (k) o[k] = v;
+      });
+    }
+    return o;
+  }
+  try {
+    return JSON.parse(raw || "{}");
+  } catch (err) {
+    throw new Error("Neplatný JSON.");
+  }
+}
+
 function doPost(e) {
   let body = {};
   try {
-    body = JSON.parse(e.postData.contents || "{}");
-  } catch {
-    return corsResponse({ error: "Neplatný JSON." });
+    body = parseDoPostBody_(e);
+  } catch (parseErr) {
+    return corsResponse({ error: parseErr.message || "Neplatné tělo POST." });
   }
   try {
     switch (body.action) {
