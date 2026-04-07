@@ -87,7 +87,7 @@
           <a href="coordinator.html" class="admin-tile">
             <div class="admin-tile__icon">📋</div>
             <div class="admin-tile__label">Správa přihlášek</div>
-            <div class="admin-tile__sub">Kontrola · změna stavů</div>
+            <div class="admin-tile__sub">Přehled · stavy · mazání řádků</div>
           </a>
         </div>
       </div>
@@ -101,6 +101,16 @@
   <script>
     // ── Ochrana stránky ────────────────────────────────────────
     const user = Auth.requireLogin(); // přesměruje na login.html pokud není session
+
+    /** Nejvyšší role z účtu pro akce na kartách (správce s maskou „Žadatel“ vidí stále admin odkazy). */
+    function effectiveDashboardRole() {
+      const order = ["ADMIN", "TESTER", "PROREKTOR", "KOMISAR", "RESITEL", "READONLY", "ZADATEL"];
+      for (const r of order) {
+        if (Auth.hasAnyRole([r])) return r;
+      }
+      return user.role;
+    }
+    const dashRole = effectiveDashboardRole();
 
     // ── Zobraz info o uživateli ────────────────────────────────
     document.getElementById("userName").textContent    = user.name || user.email;
@@ -119,8 +129,8 @@
     const baseGreet = h < 12 ? "Dobré ráno" : h < 18 ? "Dobré odpoledne" : "Dobrý večer";
     document.getElementById("greeting").textContent = displayName ? baseGreet + "," : baseGreet;
 
-    // Admin sekce
-    if (["ADMIN", "TESTER"].includes(user.role)) {
+    // Admin sekce (stačí mít roli ADMIN/TESTER na účtu, i když je zvolená jiná maska)
+    if (Auth.hasAnyRole(["ADMIN", "TESTER"])) {
       document.getElementById("adminSection").style.display = "block";
     }
 
@@ -131,7 +141,7 @@
     }
 
     async function loadCompetitions() {
-      const isAdmin = ["ADMIN","TESTER"].includes(user.role);
+      const isAdmin = Auth.hasAnyRole(["ADMIN", "TESTER"]);
       const vis = getDashboardVisibility();
 
       // Okamžitě zobraz fallback – žádné čekání na API
@@ -168,7 +178,7 @@
     }
 
     async function enrichConnectFunding(list) {
-      const can = ["ADMIN", "PROREKTOR"].includes(user.role);
+      const can = Auth.hasAnyRole(["ADMIN", "PROREKTOR"]);
       if (!can || !list || !list.length) return;
       const sess = Auth._getSession();
       if (!sess || !sess.token) return;
@@ -221,7 +231,7 @@
       }
 
       list.forEach((comp, i) => {
-        const card = buildCompetitionCard(comp, user.role);
+        const card = buildCompetitionCard(comp, dashRole);
         card.style.animationDelay = (i * 0.08) + "s";
         // Admin badge pro skryté soutěže
         if (isAdmin && comp._visible === false) {
