@@ -198,10 +198,27 @@ const API = {
 
   /**
    * ADMIN/TESTER: trvale smazat přihlášku (SUBMITTED i DRAFT) + související řádky v REVIEWS.
-   * Používá GET (ne POST), aby prohlížeč neposílal CORS preflight – JSON POST na Apps Script často končí „Failed to fetch“.
+   * Odesílá application/x-www-form-urlencoded (jednoduchý POST bez CORS preflightu).
+   * Fallback: GET, pokud by POST selhal.
    */
   async adminDeleteApplication(competitionId, applicationId) {
-    return this.get("adminDeleteApplication", { competitionId, applicationId });
+    const session = Auth._getSession();
+    const params = new URLSearchParams();
+    params.set("action", "adminDeleteApplication");
+    if (session?.token) params.set("token", session.token);
+    params.set("competitionId", String(competitionId || ""));
+    params.set("applicationId", String(applicationId || ""));
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: params.toString(),
+      });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.json();
+    } catch (err) {
+      return this.get("adminDeleteApplication", { competitionId, applicationId });
+    }
   },
 
   /** Ulož hodnocení */
