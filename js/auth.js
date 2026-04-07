@@ -86,6 +86,20 @@ const Auth = {
   // ── Aktuální uživatel ──────────────────────────────────────
   getUser() { return this._getSession(); },
 
+  /** Množina všech rolí účtu (zvolená při přihlášení + ostatní z tokenu). */
+  _roleSet() {
+    const s = this._getSession();
+    if (!s) return new Set();
+    return new Set([s.role, ...(s.allRoles || [])].filter(Boolean));
+  },
+
+  /** Má uživatel alespoň jednu z rolí? (Správce vidí admin sekci i po zvolení jiné „masky“.) */
+  hasAnyRole(roles) {
+    if (!roles || !roles.length) return false;
+    const set = this._roleSet();
+    return roles.some((r) => set.has(r));
+  },
+
   // ── Ochrana stránky ────────────────────────────────────────
   requireLogin(allowedRoles = null) {
     if (!this.isLoggedIn()) {
@@ -96,10 +110,11 @@ const Auth = {
       return null;
     }
     const user = this.getUser();
-    // ADMIN a TESTER mají přístup všude
-    if (user.role === "ADMIN" || user.role === "TESTER") return user;
+    const set = this._roleSet();
+    // ADMIN a TESTER mají přístup všude (i když při přihlášení zvolili např. Žadatel)
+    if (set.has("ADMIN") || set.has("TESTER")) return user;
     // Kontrola konkrétní role pokud je požadována
-    if (allowedRoles && !allowedRoles.includes(user.role)) {
+    if (allowedRoles && !allowedRoles.some((r) => set.has(r))) {
       alert(`Přístup odepřen. Tato stránka vyžaduje roli: ${allowedRoles.join(" nebo ")}.`);
       history.back();
       return null;
