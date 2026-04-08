@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hodnocení – UHK Connect</title>
+  <title data-i18n="meta.reviewConnect">Hodnocení – UHK Connect</title>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/connect-postaward.css">
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     :root{--navy:#1C2E5A;--navy-mid:#2F4A8A;--navy-lite:#E8EDF8;--green:#1E6B45;--green-lite:#E6F4EE;--red:#991B1B;--red-lite:#FEF2F2;--gold:#C49A2A;--gold-lite:#FDF6E3;--border:#E2E0D8;--muted:#6B6A63;--bg:#F8F7F4;--r:8px;--r-lg:12px}
@@ -147,24 +148,24 @@
     <img src="../img/uhk-abb-w.png" alt="UHK">
     <span class="tt" id="topbarTitle">Hodnocení – UHK Connect</span>
   </div>
-  <div style="display:flex;align-items:center;gap:10px;">
-    <span class="tu">Přihlášen: <strong id="topbarName">—</strong></span>
-    <a href="dashboard.html" class="btn-back">← Rozcestník</a>
+  <div class="topbar__right" style="display:flex;align-items:center;gap:10px;">
+    <span class="tu"><span data-i18n="common.signedIn">Přihlášen:</span> <strong id="topbarName">—</strong></span>
+    <a href="dashboard.html" class="btn-back" data-i18n="nav.backHub">← Rozcestník</a>
   </div>
 </header>
 
 <div class="page">
   <div class="main-col">
     <div class="tabs">
-      <div class="tab active" id="tab-h" onclick="switchTab('h')">Hodnocení</div>
-      <div class="tab" id="tab-p" onclick="switchTab('p')">Výsledky</div>
-      <div class="tab tab-hide" id="tab-pr" onclick="switchTab('pr')">Prorektor</div>
+      <div class="tab active" id="tab-h" onclick="switchTab('h')" data-i18n="reviewConnect.tabs.h">Hodnocení</div>
+      <div class="tab" id="tab-p" onclick="switchTab('p')" data-i18n="reviewConnect.tabs.p">Výsledky</div>
+      <div class="tab tab-hide" id="tab-pr" onclick="switchTab('pr')" data-i18n="reviewConnect.tabs.pr">Prorektor</div>
     </div>
 
     <div id="view-h">
       <div class="panel">
         <div class="ph">
-          <div><div class="ph-title">Přihlášky k hodnocení</div><div class="ph-sub" id="listSub"><span class="spin"></span>Načítám…</div></div>
+          <div><div class="ph-title" data-i18n="reviewConnect.listPanelH">Přihlášky k hodnocení</div><div class="ph-sub" id="listSub"><span class="spin"></span><span data-i18n="reviewConnect.loading">Načítám…</span></div></div>
           <button class="btn btn-o" style="padding:6px 12px;font-size:12px;" onclick="loadData()">↺</button>
         </div>
         <div id="appList"><div class="empty"><span class="spin"></span></div></div>
@@ -178,38 +179,38 @@
           <div class="pb">
             <div class="dbox" id="appDetail"></div>
             <div class="flow-panel">
-              <div class="flow-h">Postup a lhůty (výzva Connect)</div>
+              <div class="flow-h" data-i18n="reviewConnect.flowTitle">Postup a lhůty (výzva Connect)</div>
               <div class="flow-grid">
-                <div><strong>Administrátor</strong> – formální posouzení do 2 pracovních dnů, poté předání komisi (stav IN_REVIEW).</div>
-                <div><strong>Komise</strong> – hodnocení v tomto formuláři, lhůta <strong>5 pracovních dní</strong> od předání.</div>
-                <div><strong>Prorektor</strong> – shrnující rozhodnutí (podpořit / zkrátit / zamítnout) do <strong>2 pracovních dnů</strong>.</div>
-                <div style="color:var(--muted);"><strong>Ukončení aktivity</strong> nejpozději <strong>15.&nbsp;11.&nbsp;2026</strong>.</div>
+                <div data-i18n-html="reviewConnect.flowAdmin"><strong>Administrátor</strong> – formální posouzení do 2 pracovních dnů, poté předání komisi (stav IN_REVIEW).</div>
+                <div data-i18n-html="reviewConnect.flowCommission"><strong>Komise</strong> – hodnocení v tomto formuláři, lhůta <strong>5 pracovních dní</strong> od předání.</div>
+                <div data-i18n-html="reviewConnect.flowProrektor"><strong>Prorektor</strong> – shrnující rozhodnutí (podpořit / zkrátit / zamítnout) do <strong>2 pracovních dnů</strong>.</div>
+                <div style="color:var(--muted);" data-i18n-html="reviewConnect.flowEnd"><strong>Ukončení aktivity</strong> nejpozději <strong>15.&nbsp;11.&nbsp;2026</strong>.</div>
               </div>
             </div>
-            <div class="sep"><div class="sep-line"></div><div class="sep-lbl">Kritéria výzvy – přehled</div><div class="sep-line"></div></div>
-            <p style="font-size:13px;color:var(--muted);margin:-8px 0 14px;line-height:1.5;">Níže máte u každého kritéria plné znění a škálu 1–5. Odůvodnění pište do pole komentáře u kritéria.</p>
+            <div class="sep"><div class="sep-line"></div><div class="sep-lbl" data-i18n="reviewConnect.sepCritOverview">Kritéria výzvy – přehled</div><div class="sep-line"></div></div>
+            <p style="font-size:13px;color:var(--muted);margin:-8px 0 14px;line-height:1.5;" data-i18n="reviewConnect.critIntro">Níže máte u každého kritéria plné znění a škálu 1–5. Odůvodnění pište do pole komentáře u kritéria.</p>
             <div class="cov-strip" id="covStrip"></div>
-            <div class="sep"><div class="sep-line"></div><div class="sep-lbl">Hodnocení po kritériích</div><div class="sep-line"></div></div>
+            <div class="sep"><div class="sep-line"></div><div class="sep-lbl" data-i18n="reviewConnect.sepCritEval">Hodnocení po kritériích</div><div class="sep-line"></div></div>
             <div id="critBox"></div>
-            <div class="sep"><div class="sep-line"></div><div class="sep-lbl">Komentáře</div><div class="sep-line"></div></div>
+            <div class="sep"><div class="sep-line"></div><div class="sep-lbl" data-i18n="reviewConnect.sepComments">Komentáře</div><div class="sep-line"></div></div>
             <div style="margin-bottom:10px;">
-              <label class="fl">Komentář pro žadatele</label>
-              <div class="fh">Žadatel tento komentář uvidí</div>
-              <textarea class="ca" id="cPub" placeholder="Celkové zhodnocení…"></textarea>
+              <label class="fl" data-i18n="reviewConnect.lblCommentApplicant">Komentář pro žadatele</label>
+              <div class="fh" data-i18n="reviewConnect.hintApplicantSees">Žadatel tento komentář uvidí</div>
+              <textarea class="ca" id="cPub" data-i18n-placeholder="reviewConnect.phCommentPub" placeholder="Celkové zhodnocení…"></textarea>
             </div>
             <div style="margin-bottom:20px;">
-              <label class="fl">Interní poznámka</label>
-              <textarea class="ca" id="cInt" placeholder="Interní poznámka…" style="min-height:52px;"></textarea>
+              <label class="fl" data-i18n="reviewConnect.lblInternalNote">Interní poznámka</label>
+              <textarea class="ca" id="cInt" data-i18n-placeholder="reviewConnect.phCommentInt" placeholder="Interní poznámka…" style="min-height:52px;"></textarea>
             </div>
-            <div class="sep"><div class="sep-line"></div><div class="sep-lbl">Doporučení <span style="color:var(--red)">*</span></div><div class="sep-line"></div></div>
+            <div class="sep"><div class="sep-line"></div><div class="sep-lbl"><span data-i18n="reviewConnect.sepRecommendation">Doporučení</span> <span style="color:var(--red)">*</span></div><div class="sep-line"></div></div>
             <div class="rec-row">
-              <div class="rb" id="rec-SUPPORT" onclick="setRec('SUPPORT')"><span class="ri">✓</span><div class="rl">Podpořit</div><div class="rs">Doporučuji financovat</div></div>
-              <div class="rb" id="rec-CUT"     onclick="setRec('CUT')"><span class="ri">◐</span><div class="rl">Krátit rozpočet</div><div class="rs">Podpořit s nižší částkou</div></div>
-              <div class="rb" id="rec-REJECT"  onclick="setRec('REJECT')"><span class="ri">✕</span><div class="rl">Nepodpořit</div><div class="rs">Nedoporučuji financovat</div></div>
+              <div class="rb" id="rec-SUPPORT" onclick="setRec('SUPPORT')"><span class="ri">✓</span><div class="rl" data-i18n="reviewConnect.recSupport">Podpořit</div><div class="rs" data-i18n="reviewConnect.recSupportSub">Doporučuji financovat</div></div>
+              <div class="rb" id="rec-CUT"     onclick="setRec('CUT')"><span class="ri">◐</span><div class="rl" data-i18n="reviewConnect.recCut">Krátit rozpočet</div><div class="rs" data-i18n="reviewConnect.recCutSub">Podpořit s nižší částkou</div></div>
+              <div class="rb" id="rec-REJECT"  onclick="setRec('REJECT')"><span class="ri">✕</span><div class="rl" data-i18n="reviewConnect.recReject">Nepodpořit</div><div class="rs" data-i18n="reviewConnect.recRejectSub">Nedoporučuji financovat</div></div>
             </div>
             <div style="display:flex;gap:8px;justify-content:flex-end;">
-              <button class="btn btn-o" onclick="clearForm()">Zrušit</button>
-              <button class="btn btn-n" id="submitBtn" onclick="submitReview()">Uložit hodnocení</button>
+              <button class="btn btn-o" onclick="clearForm()" data-i18n="reviewConnect.btnCancel">Zrušit</button>
+              <button class="btn btn-n" id="submitBtn" onclick="submitReview()" data-i18n="reviewConnect.btnSaveReview">Uložit hodnocení</button>
             </div>
           </div>
         </div>
@@ -218,44 +219,44 @@
 
     <div id="view-p" style="display:none;">
       <div class="panel">
-        <div class="ph"><div class="ph-title">Přehled hodnocení</div></div>
-        <div class="pb" id="resBody"><div class="empty">Načtěte přihlášky.</div></div>
+        <div class="ph"><div class="ph-title" data-i18n="reviewConnect.resultsTitle">Přehled hodnocení</div></div>
+        <div class="pb" id="resBody"><div class="empty" data-i18n="reviewConnect.resultsEmptyLoad">Načtěte přihlášky.</div></div>
       </div>
     </div>
 
     <div id="view-pr" style="display:none;">
       <div class="panel prorektor-list-panel" id="prorektorListPanel" style="display:none;">
         <div class="ph">
-          <div><div class="ph-title">Přihlášky</div><div class="ph-sub" id="listSubPro">—</div></div>
+          <div><div class="ph-title" data-i18n="reviewConnect.listPanelApps">Přihlášky</div><div class="ph-sub" id="listSubPro">—</div></div>
           <button class="btn btn-o" style="padding:6px 12px;font-size:12px;" onclick="loadData()">↺</button>
         </div>
         <div id="appListPro"></div>
       </div>
       <div class="panel">
-        <div class="ph"><div><div class="ph-title">Rozhodnutí prorektora</div><div class="ph-sub">Přehled hlasů komise a závěrečné stanovisko</div></div></div>
-        <div class="pb" id="prBody"><div class="empty">Načtěte přihlášky.</div></div>
+        <div class="ph"><div><div class="ph-title" data-i18n="reviewConnect.prorektorDecisionTitle">Rozhodnutí prorektora</div><div class="ph-sub" data-i18n="reviewConnect.prorektorDecisionSub">Přehled hlasů komise a závěrečné stanovisko</div></div></div>
+        <div class="pb" id="prBody"><div class="empty" data-i18n="reviewConnect.prorektorEmptyLoad">Načtěte přihlášky.</div></div>
       </div>
     </div>
   </div>
 
   <div class="sidebar">
     <div class="sc">
-      <h3>Soutěž</h3>
+      <h3 data-i18n="reviewConnect.sidebarCompetition">Soutěž</h3>
       <div style="font-size:14px;font-weight:600;color:var(--navy);margin-bottom:6px;line-height:1.35;" id="sName">—</div>
-      <div style="font-size:13px;color:var(--muted);line-height:1.45;">5 kritérií · max. 25 bodů · škála u každého kritéria 1–5</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.45;" data-i18n="reviewConnect.sidebarCompetitionHint">5 kritérií · max. 25 bodů · škála u každého kritéria 1–5</div>
     </div>
     <div class="sc" id="connectFundingPanel" style="display:none;">
-      <h3>Rozpočet výzvy (Connect)</h3>
+      <h3 data-i18n="reviewConnect.sidebarBudgetTitle">Rozpočet výzvy (Connect)</h3>
       <div class="fund-rows">
-        <div class="fund-row"><span class="fund-lbl">Alokováno celkem</span><span class="fund-val" id="fundAlloc">—</span></div>
-        <div class="fund-row"><span class="fund-lbl">Přiděleno (po rozhodnutí prorektora)</span><span class="fund-val" id="fundAssigned">—</span></div>
-        <div class="fund-row"><span class="fund-lbl">Využito (po souhlasu žadatele)</span><span class="fund-val" id="fundAccepted">—</span></div>
-        <div class="fund-row fund-row--rest"><span class="fund-lbl">Zbývá z alokace</span><span class="fund-val" id="fundRemaining">—</span></div>
+        <div class="fund-row"><span class="fund-lbl" data-i18n="reviewConnect.fundAllocTotal">Alokováno celkem</span><span class="fund-val" id="fundAlloc">—</span></div>
+        <div class="fund-row"><span class="fund-lbl" data-i18n="reviewConnect.fundAssignedAfterPr">Přiděleno (po rozhodnutí prorektora)</span><span class="fund-val" id="fundAssigned">—</span></div>
+        <div class="fund-row"><span class="fund-lbl" data-i18n="reviewConnect.fundUsedAfterConsent">Využito (po souhlasu žadatele)</span><span class="fund-val" id="fundAccepted">—</span></div>
+        <div class="fund-row fund-row--rest"><span class="fund-lbl" data-i18n="reviewConnect.fundRemaining">Zbývá z alokace</span><span class="fund-val" id="fundRemaining">—</span></div>
       </div>
-      <p style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.45;">Přiděleno = součet schválených částek (u Podpořit obvykle žádost, u Krátit částka zadaná prorektorem). Využito = stejné projekty po uložení souhlasu žadatele v části 1 detailu přihlášky (závazná podpora se započítá jako čerpaná kapacita z pohledu žadatele).</p>
+      <p style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.45;" data-i18n="reviewConnect.fundFootnote">Přiděleno = součet schválených částek (u Podpořit obvykle žádost, u Krátit částka zadaná prorektorem). Využito = stejné projekty po uložení souhlasu žadatele v části 1 detailu přihlášky (závazná podpora se započítá jako čerpaná kapacita z pohledu žadatele).</p>
     </div>
     <div class="sc">
-      <h3>Aktuální skóre</h3>
+      <h3 data-i18n="reviewConnect.sidebarScore">Aktuální skóre</h3>
       <div class="scells">
         <div class="scell"><div class="sck">K1</div><div class="scv" id="s1">—</div></div>
         <div class="scell"><div class="sck">K2</div><div class="scv" id="s2">—</div></div>
@@ -263,23 +264,31 @@
         <div class="scell"><div class="sck">K4</div><div class="scv" id="s4">—</div></div>
         <div class="scell"><div class="sck">K5</div><div class="scv" id="s5">—</div></div>
       </div>
-      <div class="stbox"><div class="stnum" id="stot">—</div><div class="stlbl">z 25 bodů</div></div>
-      <p style="font-size:12px;color:var(--muted);margin-top:12px;line-height:1.45;">Souhrn kritérií a zápis bodů je v hlavní oblasti po výběru přihlášky.</p>
+      <div class="stbox"><div class="stnum" id="stot">—</div><div class="stlbl" data-i18n="reviewConnect.pointsOf25">z 25 bodů</div></div>
+      <p style="font-size:12px;color:var(--muted);margin-top:12px;line-height:1.45;" data-i18n="reviewConnect.sidebarScoreHint">Souhrn kritérií a zápis bodů je v hlavní oblasti po výběru přihlášky.</p>
     </div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 <script src="../js/config.js"></script>
+<script src="../js/i18n.js"></script>
 <script src="../js/auth.js"></script>
 <script>
+I18n.init();
+(function () {
+  var el = document.querySelector(".topbar__right");
+  if (el) I18n.mountLangSwitch(el, "first");
+})();
+
 const user = Auth.requireLogin(["KOMISAR","PROREKTOR","ADMIN","TESTER"]);
 document.getElementById("topbarName").textContent = user.name||user.email;
 const params = new URLSearchParams(window.location.search);
 const CID = params.get("c")||"uhk_connect_2026_v2";
-const CNAMES = {"uhk_connect_2026_v2":"UHK Connect – výzva č. 2","uhk_rega_2026_v1":"UHK ReGa – výzva č. 1","uhk_prestige_2026":"UHK Prestige 2026"};
-const cname = CNAMES[CID]||CID;
-document.getElementById("topbarTitle").textContent = "Hodnocení – "+cname;
+const cname = I18n.competitionDisplayName(CID);
+function tx(k) { return I18n.t("reviewConnect." + k); }
+function getCrit() { return I18n.getReviewConnectCrit(); }
+document.getElementById("topbarTitle").textContent = I18n.t("reviewConnectUi.titlePrefix") + cname;
 document.getElementById("sName").textContent = cname;
 if(["PROREKTOR","ADMIN","TESTER"].includes(user.role)) document.getElementById("tab-pr").classList.remove("tab-hide");
 
@@ -293,15 +302,6 @@ const CONNECT_BUDGET_KEYS = [
   "budget_publication",
   "budget_personnel",
 ];
-const CONNECT_BUDGET_LABELS = {
-  budget_travel: "Jízdné",
-  budget_accommodation: "Ubytování",
-  budget_meals: "Stravné",
-  budget_local: "Místní doprava",
-  budget_fee: "Poplatek (konference / workshop)",
-  budget_publication: "Publikační náklady",
-  budget_personnel: "Osobní náklady (DPP)",
-};
 
 const isProrektorOnly = user.role === "PROREKTOR";
 const showCommissionUI = ["KOMISAR","ADMIN","TESTER"].includes(user.role);
@@ -315,15 +315,6 @@ if (isProrektorOnly) {
   const sb = document.querySelectorAll(".sidebar .sc");
   if (sb[1]) sb[1].style.display = "none";
 }
-
-/** Hodnoticí kritéria v souladu se zaměřením výzvy UHK Connect (mezinárodní spolupráce / mobilita, max. rozpočet dle výzvy). */
-const CRIT = [
-  {key:"K1",label:"Cíl aktivity a přínos pro UHK",short:"Smysl projektu, soulad s Connect (spolupráce / mobilita) a přínos pro UHK.",desc:"Je smysl aktivity srozumitelně vymezen? Odpovídá zaměření soutěže Connect (spolupráce se zahraniční institucí, mobilita, přenos znalostí)? Je přínos pro strategii VaV a rozvoj UHK věrohodně popsán?",labels:["Nejasný","Slabý","Průměrný","Dobrý","Výborný"]},
-  {key:"K2",label:"Kvalita a relevance partnerské spolupráce",short:"Výběr partnera, prokazatelnost spolupráce, typ aktivity dle výzvy.",desc:"Je partner vhodně zvolen a role obou stran jasná? Je spolupráce reálná (doporučeně doložené kontakty / dosavadní spolupráce)? Odpovídá typ aktivity (vědecká / edukační) zadání výzvy?",labels:["Nevhodná","Slabá","Průměrná","Dobrá","Výborná"]},
-  {key:"K3",label:"Rozpočet, hospodárnost a soulad s pravidly výzvy",short:"Přiměřenost nákladů, limit výzvy, odůvodnění položek.",desc:"Jsou náklady přiměřené rozsahu aktivity a v souladu s limitem výzvy? Jsou položky odůvodněné a účelné? Nejsou rizika přecenění nebo nejasných výdajů?",labels:["Nepřiměřený","Slabý","Průměrný","Dobrý","Výborný"]},
-  {key:"K4",label:"Odborný profil žadatele a předpoklady pro realizaci",short:"Kompetence řešitele, dosavadní výstupy, proveditelnost v termínu.",desc:"Má žadatel (tým) kompetence k realizaci? Jsou relevantní předchozí výstupy / zkušenosti? Je zřejmé, že aktivitu lze v plánovaném termínu zvládnout?",labels:["Nevyhovující","Slabý","Průměrný","Dobrý","Výborný"]},
-  {key:"K5",label:"Plánované výstupy, měřitelnost a udržitelnost",short:"Konkrétní výstupy, dopad na UHK, případná navazující spolupráce.",desc:"Jsou výstupy konkrétní a ověřitelné (publikace, mobilita, workshop, další)? Je popsán očekávaný dopad na VaV UHK nebo studenty? Je zvážena případná navazující spolupráce?",labels:["Nejasné","Slabé","Průměrné","Dobré","Výborné"]},
-];
 
 let apps=[],revs=[],cur=null,scores={},rec="";
 const prDecisionPick = {};
@@ -369,7 +360,7 @@ function updatePrCutSumDisplay(sid, f) {
     if (el && el.value !== "") s += Math.round(Number(el.value) || 0);
   });
   const sumEl = document.getElementById("pr-cut-sum-" + sid);
-  if (sumEl) sumEl.textContent = s.toLocaleString("cs-CZ");
+  if (sumEl) sumEl.textContent = s.toLocaleString(I18n.numLocale());
 }
 
 function buildProrektorCutBudgetRowsHtml(sid, f) {
@@ -378,14 +369,14 @@ function buildProrektorCutBudgetRowsHtml(sid, f) {
   CONNECT_BUDGET_KEYS.forEach((k) => {
     const req = Math.round(Number(fd[k]) || 0);
     if (req <= 0) return;
-    const lab = CONNECT_BUDGET_LABELS[k] || k;
+    const lab = I18n.connectBudgetLabel(k);
     parts.push(
-      `<tr><td>${esc(lab)}</td><td style="text-align:right;font-family:'DM Mono',monospace">${req.toLocaleString("cs-CZ")}</td>` +
+      `<tr><td>${esc(lab)}</td><td style="text-align:right;font-family:'DM Mono',monospace">${req.toLocaleString(I18n.numLocale())}</td>` +
         `<td style="text-align:right"><input type="number" class="ca pr-cut-line" id="pr-cut-${sid}-${k}" data-sid="${escAttr(sid)}" min="0" max="${req}" step="1" placeholder="0" style="max-width:130px;padding:6px 8px;text-align:right"></td></tr>`
     );
   });
   if (!parts.length)
-    return `<tr><td colspan="3" style="color:var(--muted);font-size:12px;">V přihlášce nejsou vyplněny dílčí položky rozpočtu – použijte úpravu přihlášky nebo kontaktujte správce.</td></tr>`;
+    return `<tr><td colspan="3" style="color:var(--muted);font-size:12px;">${esc(tx("prCutNoLines"))}</td></tr>`;
   return parts.join("");
 }
 
@@ -407,9 +398,7 @@ async function postWebAppReliable(payload, verifyAsync) {
       if (await verifyAsync()) return;
     } catch (e) { /* síť / timeout */ }
   }
-  throw new Error(
-    "Odesláno, ale nepodařilo se ověřit uložení včas. Obnovte stránku tlačítkem ↺ a zkontrolujte záznam."
-  );
+  throw new Error(I18n.t("reviewConnect.errPostVerify"));
 }
 
 async function fetchConnectReviews() {
@@ -433,7 +422,7 @@ async function fetchApplicationsList() {
 }
 
 function fmtKc(n) {
-  return Number(n || 0).toLocaleString("cs-CZ") + " Kč";
+  return I18n.fmtMoney(n);
 }
 
 async function refreshFundingSummary() {
@@ -474,7 +463,7 @@ async function refreshFundingSummary() {
 }
 
 async function loadData(){
-  document.getElementById("listSub").innerHTML='<span class="spin"></span>Načítám…';
+  document.getElementById("listSub").innerHTML='<span class="spin"></span>'+esc(tx("loading"));
   document.getElementById("appList").innerHTML='<div class="empty"><span class="spin"></span></div>';
   try{
     const s=Auth._getSession(),u=new URL(API_URL);
@@ -495,7 +484,10 @@ async function loadData(){
     revs=d.reviews||[];
   }catch{revs=[]}
   renderList();renderRes();renderPr();
-  const sub = apps.length + " přihlášek · " + revs.filter(r => !isProrektorDecisionRow(r)).length + " hodnocení komise";
+  const sub = I18n.tReplace("reviewConnect.listSubTpl", {
+    apps: String(apps.length),
+    revs: String(revs.filter(r => !isProrektorDecisionRow(r)).length),
+  });
   document.getElementById("listSub").textContent = sub;
   const lsp = document.getElementById("listSubPro");
   if (lsp) lsp.textContent = sub;
@@ -505,7 +497,7 @@ async function loadData(){
 function myRev(id){return revs.find(r=>r.project_id===id&&r.reviewer_email===user.email)}
 
 function renderList(){
-  const emptyHtml='<div class="empty">Žádné přihlášky.<br><small>Koordinátorka musí přesunout přihlášky do IN_REVIEW.</small></div>';
+  const emptyHtml='<div class="empty">'+esc(tx("emptyApps"))+'<br><small>'+esc(tx("emptyAppsHint"))+'</small></div>';
   if(!apps.length){
     document.getElementById("appList").innerHTML=emptyHtml;
     const alp=document.getElementById("appListPro");if(alp)alp.innerHTML=emptyHtml;
@@ -517,10 +509,10 @@ function renderList(){
     let done, label;
     if(isProrektorOnly){
       done=kom.length>0;
-      label=done?`<span class="sp done">${kom.length}× komise</span>`:`<span class="sp new">Bez komise</span>`;
+      label=done?`<span class="sp done">${esc(I18n.tReplace("reviewConnect.badgeKomTpl",{n:String(kom.length)}))}</span>`:`<span class="sp new">${esc(tx("badgeNoKom"))}</span>`;
     }else{
       done=!!mr;
-      label=done?`<span class="sp done">${mr.score_total}/25</span>`:`<span class="sp new">Nové</span>`;
+      label=done?`<span class="sp done">${mr.score_total}/25</span>`:`<span class="sp new">${esc(tx("badgeNew"))}</span>`;
     }
     return`<div class="app-item ${cur?.application_id===a.application_id?"active":""}" onclick='selApp(${JSON.stringify(a.application_id)})'>
       <div class="dot ${done?"done":""}"></div>
@@ -550,7 +542,7 @@ function selApp(id){
   }else{document.getElementById("cPub").value="";document.getElementById("cInt").value=""}
   renderDetail();renderCrit();updateRec();updateScore();
   const b=document.getElementById("rBadge");
-  if(ex){b.className="badge bdone";b.textContent="Hodnoceno"}else{b.className="badge bnew";b.textContent="Nové"}
+  if(ex){b.className="badge bdone";b.textContent=tx("badgeDone")}else{b.className="badge bnew";b.textContent=tx("badgeNew")}
   document.getElementById("rTitle").textContent=cur._f.project_title||id;
   document.getElementById("rSub").textContent=id+" · "+(cur.applicant_email||"");
   document.getElementById("reviewForm").style.display="block";
@@ -560,41 +552,42 @@ function selApp(id){
 function renderDetail(){
   const f=cur._f;
   const rows=[
-    ["Žadatel",cur.applicant_name||"—"],
-    ["Součást / katedra",(f.faculty||"—")+(f.department?" · "+f.department:"")],
-    ["Typ žadatele",f.applicant_type||"—"],
-    ["Typ aktivity",f.activity_type||"—"],
-    ["Partner",(f.partner_institution||"—")+(f.partner_country?", "+f.partner_country:"")],
-    ["Termín",(f.activity_start||"?")+" – "+(f.activity_end||"?")],
-    ["Rozpočet",f.budget_total?Number(f.budget_total).toLocaleString("cs-CZ")+" Kč":"—"],
-  ].map(([k,v])=>`<div><div class="dl">${k}</div><div class="dv">${v}</div></div>`).join("");
+    [tx("detailApplicant"),cur.applicant_name||"—"],
+    [tx("detailFaculty"),(f.faculty||"—")+(f.department?" · "+f.department:"")],
+    [tx("detailApplicantType"),f.applicant_type||"—"],
+    [tx("detailActivityType"),f.activity_type||"—"],
+    [tx("detailPartner"),(f.partner_institution||"—")+(f.partner_country?", "+f.partner_country:"")],
+    [tx("detailTerm"),(f.activity_start||"?")+" – "+(f.activity_end||"?")],
+    [tx("detailBudget"),f.budget_total?I18n.fmtMoney(f.budget_total):"—"],
+  ].map(([k,v])=>`<div><div class="dl">${esc(k)}</div><div class="dv">${esc(v)}</div></div>`).join("");
   const long=[
-    f.research_focus?["Výzkumné zaměření",f.research_focus]:null,
-    f.activity_goal?["Cíl aktivity",f.activity_goal]:null,
-    f.cooperation_history?.trim()?["Dosavadní kontakty",f.cooperation_history]:null,
-    f.output_description?["Popis výstupu",f.output_description]:null,
-    f.output_impact?["Přínos pro UHK",f.output_impact]:null,
-    f.recent_outputs?.trim()?["Výstupy žadatele (5 let)",f.recent_outputs]:null,
-    f.budget_justification?["Odůvodnění rozpočtu",f.budget_justification]:null,
-  ].filter(Boolean).map(([k,v])=>`<div class="dfull"><div class="dl">${k}</div><div class="dv" style="white-space:pre-line;">${v}</div></div>`).join("");
+    f.research_focus?[tx("detailResearchFocus"),f.research_focus]:null,
+    f.activity_goal?[tx("detailActivityGoal"),f.activity_goal]:null,
+    f.cooperation_history?.trim()?[tx("detailCoopHistory"),f.cooperation_history]:null,
+    f.output_description?[tx("detailOutputDesc"),f.output_description]:null,
+    f.output_impact?[tx("detailUhkBenefit"),f.output_impact]:null,
+    f.recent_outputs?.trim()?[tx("detailOutputs5y"),f.recent_outputs]:null,
+    f.budget_justification?[tx("detailBudgetJust"),f.budget_justification]:null,
+  ].filter(Boolean).map(([k,v])=>`<div class="dfull"><div class="dl">${esc(k)}</div><div class="dv" style="white-space:pre-line;">${esc(v)}</div></div>`).join("");
   document.getElementById("appDetail").innerHTML=`<div class="dgrid">${rows}${long}</div>`;
 }
 
 function renderCovStrip(){
   const el=document.getElementById("covStrip");
   if(!el)return;
-  el.innerHTML=CRIT.map(c=>`<div class="cov-card"><div class="cov-k">${c.key}</div><div class="cov-t">${c.label}</div><div class="cov-d">${c.short||""}</div></div>`).join("");
+  el.innerHTML=getCrit().map(c=>`<div class="cov-card"><div class="cov-k">${esc(c.key)}</div><div class="cov-t">${esc(c.label)}</div><div class="cov-d">${esc(c.short||"")}</div></div>`).join("");
 }
 
 function renderCrit(){
   renderCovStrip();
-  document.getElementById("critBox").innerHTML=CRIT.map((c,i)=>{
+  document.getElementById("critBox").innerHTML=getCrit().map((c,i)=>{
     const ex=myRev(cur.application_id),nk="comment_"+c.key.toLowerCase(),nv=ex?ex[nk]||"":"";
+    const ph=I18n.tReplace("reviewConnect.critNotePh",{key:c.key});
     return`<div class="crit">
-      <div class="ch"><div class="cn">${i+1}</div><div><div class="cl">${c.label}</div><div class="cd">${c.desc}</div></div></div>
+      <div class="ch"><div class="cn">${i+1}</div><div><div class="cl">${esc(c.label)}</div><div class="cd">${esc(c.desc)}</div></div></div>
       <div class="cbody">
-        <div class="srow">${[1,2,3,4,5].map(n=>`<div class="sb ${scores[c.key]===n?"sel":""}" onclick="setScore('${c.key}',${n})"><div class="sn">${n}</div><div class="sl">${c.labels[n-1]}</div></div>`).join("")}</div>
-        <textarea class="cnote" id="note-${c.key}" placeholder="Komentář ke kritériu ${c.key}…">${nv}</textarea>
+        <div class="srow">${[1,2,3,4,5].map(n=>`<div class="sb ${scores[c.key]===n?"sel":""}" onclick="setScore('${c.key}',${n})"><div class="sn">${n}</div><div class="sl">${esc(c.labels[n-1])}</div></div>`).join("")}</div>
+        <textarea class="cnote" id="note-${c.key}" placeholder="${escAttr(ph)}">${esc(String(nv))}</textarea>
       </div>
     </div>`;
   }).join("");
@@ -626,9 +619,9 @@ function updateRec(){
 async function submitReview(){
   if(!cur)return;
   const miss=["K1","K2","K3","K4","K5"].filter(k=>!scores[k]);
-  if(miss.length){showToast("Ohodnoťte kritéria: "+miss.join(", "),"err");return}
-  if(!rec){showToast("Vyberte doporučení.","err");return}
-  const btn=document.getElementById("submitBtn");btn.disabled=true;btn.textContent="Ukládám…";
+  if(miss.length){showToast(I18n.tReplace("reviewConnect.toastRateCriteria",{list:miss.join(", ")}),"err");return}
+  if(!rec){showToast(tx("toastPickRec"),"err");return}
+  const btn=document.getElementById("submitBtn");btn.disabled=true;btn.textContent=tx("btnSavingReview");
   const tot=["K1","K2","K3","K4","K5"].reduce((s,k)=>s+(scores[k]||0),0);
   const notes={};["K1","K2","K3","K4","K5"].forEach(k=>{const el=document.getElementById("note-"+k);if(el)notes["comment_"+k.toLowerCase()]=el.value});
   const payload={action:"submitConnectReview",token:Auth._getSession()?.token||"",competitionId:CID,
@@ -647,10 +640,10 @@ async function submitReview(){
       return !!(row&&String(row.recommendation||"").toUpperCase()===String(expectRec||"").toUpperCase()&&Number(row.score_total)===Number(tot));
     });
     revs=await fetchConnectReviews();
-    showToast("Hodnocení uloženo – "+tot+"/25 bodů ✓");
-    btn.disabled=false;btn.textContent="Uložit hodnocení";
+    showToast(I18n.tReplace("reviewConnect.toastReviewSaved",{tot:String(tot)}));
+    btn.disabled=false;btn.textContent=tx("btnSaveReview");
     renderList();renderRes();refreshFundingSummary();selApp(cur.application_id);
-  }catch(e){btn.disabled=false;btn.textContent="Uložit hodnocení";showToast(e.message||"Chyba při ukládání.","err")}
+  }catch(e){btn.disabled=false;btn.textContent=tx("btnSaveReview");showToast(e.message||tx("errSaveGeneric"),"err")}
 }
 
 function clearForm(){cur=null;scores={};rec="";document.getElementById("reviewForm").style.display="none"}
@@ -661,7 +654,7 @@ function renderRes(){
     const pid=connectAppId(r);
     if(m[pid]&&!isProrektorDecisionRow(r))m[pid].revs.push(r);
   });
-  const REC={SUPPORT:"✓ Podpořit",CUT:"◐ Krátit",REJECT:"✕ Nepodpořit"};
+  const REC={SUPPORT:tx("recLabelSupport"),CUT:tx("recLabelCut"),REJECT:tx("recLabelReject")};
   const rows=Object.values(m).sort((a,b)=>{
     const cr=(x)=>x.revs.filter(r=>Number(r.score_total)>0);
     const A=cr(a).length?cr(a).reduce((s,r)=>s+Number(r.score_total||0),0)/cr(a).length:0;
@@ -673,14 +666,14 @@ function renderRes(){
     const lastRec=kom.length?kom[kom.length-1].recommendation:"";
     return`<tr><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(app._f?.project_title||app.application_id)}</td><td>${esc(app._f?.faculty||"—")}</td><td style="text-align:center;font-family:'DM Mono',monospace;font-weight:600;">${avg}</td><td style="text-align:center;">${kom.length}</td><td style="font-size:12px;">${kom.length?REC[lastRec]||"—":"—"}</td></tr>`;
   }).join("");
-  document.getElementById("resBody").innerHTML=rows?`<table class="rt"><thead><tr><th>Projekt</th><th>Součást</th><th style="text-align:center;">Prům.</th><th style="text-align:center;">Hod.</th><th>Doporučení</th></tr></thead><tbody>${rows}</tbody></table>`:'<div class="empty">Zatím žádná hodnocení.</div>';
+  document.getElementById("resBody").innerHTML=rows?`<table class="rt"><thead><tr><th>${esc(tx("resTableProject"))}</th><th>${esc(tx("resTableFaculty"))}</th><th style="text-align:center;">${esc(tx("resTableAvg"))}</th><th style="text-align:center;">${esc(tx("resTableCount"))}</th><th>${esc(tx("resTableRec"))}</th></tr></thead><tbody>${rows}</tbody></table>`:'<div class="empty">'+esc(tx("resEmpty"))+'</div>';
 }
 
 function renderPrKomiseHtml(appId){
   const list=commissionReviewsForApp(appId);
-  const REC={SUPPORT:"✓ Podpořit",CUT:"◐ Krátit rozpočet",REJECT:"✕ Nepodpořit"};
-  if(!list.length)return'<p class="empty" style="padding:12px 0;">Zatím žádné kompletní hodnocení komise (čeká se platné skóre 1–25 bodů).</p>';
-  return'<div class="sep"><div class="sep-line"></div><div class="sep-lbl">Hodnocení členů komise</div><div class="sep-line"></div></div><div class="pr-kom-wrap">'+
+  const REC={SUPPORT:tx("recLabelSupport"),CUT:tx("recLabelCutLong"),REJECT:tx("recLabelReject")};
+  if(!list.length)return'<p class="empty" style="padding:12px 0;">'+esc(tx("prKomEmpty"))+'</p>';
+  return'<div class="sep"><div class="sep-line"></div><div class="sep-lbl">'+esc(tx("prKomSep"))+'</div><div class="sep-line"></div></div><div class="pr-kom-wrap">'+
     list.map(r=>{
       const k1=r.score_clarity??r.clarity??"—",k2=r.score_quality??r.quality??"—",k3=r.score_budget??r.budget??"—",k4=r.score_profile??r.profile??"—",k5=r.score_outputs??r.outputs??"—";
       const who=esc(r.reviewer_name||r.reviewer_email||"—");
@@ -688,11 +681,11 @@ function renderPrKomiseHtml(appId){
       return`<div class="pr-kom">
         <div class="pr-kom-h">${who}</div>
         <div class="pr-kom-grid">
-          <div><span>K1–K5:</span> <strong>${k1}, ${k2}, ${k3}, ${k4}, ${k5}</strong></div>
-          <div><span>Celkem:</span> <strong>${r.score_total}/25</strong></div>
-          <div><span>Doporučení:</span> <strong>${esc(REC[r.recommendation]||r.recommendation||"—")}</strong></div>
+          <div><span>${esc(tx("prKomK15"))}</span> <strong>${k1}, ${k2}, ${k3}, ${k4}, ${k5}</strong></div>
+          <div><span>${esc(tx("prKomTotal"))}</span> <strong>${r.score_total}/25</strong></div>
+          <div><span>${esc(tx("prKomRec"))}</span> <strong>${esc(REC[r.recommendation]||r.recommendation||"—")}</strong></div>
         </div>
-        ${pub?`<div class="pr-kom-txt"><span class="dl">Komentář pro žadatele</span><br>${esc(pub)}</div>`:""}
+        ${pub?`<div class="pr-kom-txt"><span class="dl">${esc(tx("prKomCommentLbl"))}</span><br>${esc(pub)}</div>`:""}
       </div>`;
     }).join("")+"</div>";
 }
@@ -718,35 +711,35 @@ function renderPr(){
       prDecisionPick[aid]=saved.recommendation;
     const pick=prDecisionPick[aid]||(saved&&saved.recommendation)||"";
     const planned=Number(app._f?.budget_total||0);
-    const rb=(d)=>`<button type="button" class="rb rb-pr-dec ${pick===d?RECSEL[d]:""}" id="prd-${sid}-${d}" data-app-id="${escAttr(aid)}" data-dec="${d}"><span class="ri">${d==="SUPPORT"?"✓":d==="CUT"?"◐":"✕"}</span><div class="rl">${d==="SUPPORT"?"Podpořit":d==="CUT"?"Krátit rozpočet":"Nepodpořit"}</div></button>`;
+    const rb=(d)=>`<button type="button" class="rb rb-pr-dec ${pick===d?RECSEL[d]:""}" id="prd-${sid}-${d}" data-app-id="${escAttr(aid)}" data-dec="${d}"><span class="ri">${d==="SUPPORT"?"✓":d==="CUT"?"◐":"✕"}</span><div class="rl">${d==="SUPPORT"?esc(tx("prBtnSupport")):d==="CUT"?esc(tx("prBtnCut")):esc(tx("prBtnReject"))}</div></button>`;
     return`<div class="prc" id="prc-${sid}">
       <div class="prt">${esc(app._f?.project_title||aid)}</div>
-      <div class="prm"><span>${esc(app.applicant_name||"—")}</span><span>${esc(app._f?.faculty||"—")}</span><span style="font-family:'DM Mono',monospace;">${Number(app._f?.budget_total||0).toLocaleString("cs-CZ")} Kč</span><span>Prům. komise ${avg}/25</span><span>${kom.length} hodnocení</span></div>
+      <div class="prm"><span>${esc(app.applicant_name||"—")}</span><span>${esc(app._f?.faculty||"—")}</span><span style="font-family:'DM Mono',monospace;">${esc(I18n.fmtMoney(Number(app._f?.budget_total||0)))}</span><span>${esc(tx("prAvgKom"))} ${avg}/25</span><span>${kom.length} ${esc(tx("prReviewsN"))}</span></div>
       ${renderPrKomiseHtml(aid)}
       <div class="pr-fin">
-        <div class="sep"><div class="sep-line"></div><div class="sep-lbl">Vaše rozhodnutí (prorektor)</div><div class="sep-line"></div></div>
-        <p style="font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.45;">Vyberte závěr. U <strong>Krátit rozpočet</strong> vyplňte schválené částky <strong>u jednotlivých položek rozpočtu</strong> (součet ≤ plánovaného celku v přihlášce). U <strong>Podpořit</strong> se bere schválená podpora jako celkový rozpočet z přihlášky. Komentář uvidí žadatel u přihlášky.</p>
+        <div class="sep"><div class="sep-line"></div><div class="sep-lbl">${esc(tx("prDecideSep"))}</div><div class="sep-line"></div></div>
+        <p style="font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.45;">${tx("prDecideIntro")}</p>
         <div class="rec-row">${rb("SUPPORT")}${rb("CUT")}${rb("REJECT")}</div>
         <div style="margin:14px 0;padding:12px 14px;background:var(--navy-lite);border-radius:8px;border:1px solid var(--border);font-size:13px;">
-          <div style="margin-bottom:8px;"><span style="color:var(--muted);">Plánovaný rozpočet v přihlášce: </span><strong style="font-family:'DM Mono',monospace;">${planned.toLocaleString("cs-CZ")} Kč</strong></div>
+          <div style="margin-bottom:8px;"><span style="color:var(--muted);">${esc(tx("prPlannedBudget"))} </span><strong style="font-family:'DM Mono',monospace;">${esc(I18n.fmtMoney(planned))}</strong></div>
           <div id="pr-cut-field-${sid}" style="display:${String(pick).toUpperCase()==="CUT"?"block":"none"};width:100%;">
-            <p style="font-size:12px;color:var(--muted);margin:0 0 10px;line-height:1.45;">U každé položky zadejte schválenou částku po krácení (0 až výše v žádosti). Žadatel uvidí stejné rozložení v části souhlasu.</p>
+            <p style="font-size:12px;color:var(--muted);margin:0 0 10px;line-height:1.45;">${esc(tx("prCutPerLine"))}</p>
             <table style="width:100%;border-collapse:collapse;font-size:13px;">
-              <thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:6px 4px;">Položka</th><th style="text-align:right;padding:6px 4px;">V žádosti (Kč)</th><th style="text-align:right;padding:6px 4px;">Schváleno (Kč)</th></tr></thead>
+              <thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:6px 4px;">${esc(tx("prThLine"))}</th><th style="text-align:right;padding:6px 4px;">${esc(tx("prThRequested"))}</th><th style="text-align:right;padding:6px 4px;">${esc(tx("prThApproved"))}</th></tr></thead>
               <tbody>${buildProrektorCutBudgetRowsHtml(sid, app._f)}</tbody>
-              <tfoot><tr style="border-top:1px solid var(--border);font-weight:600;"><td colspan="2" style="text-align:right;padding:8px 4px;">Součet schválených (Kč)</td><td style="text-align:right;padding:8px 4px;font-family:'DM Mono',monospace;" id="pr-cut-sum-${sid}">0</td></tr></tfoot>
+              <tfoot><tr style="border-top:1px solid var(--border);font-weight:600;"><td colspan="2" style="text-align:right;padding:8px 4px;">${esc(tx("prThSumApproved"))}</td><td style="text-align:right;padding:8px 4px;font-family:'DM Mono',monospace;" id="pr-cut-sum-${sid}">0</td></tr></tfoot>
             </table>
           </div>
         </div>
-        <label class="fl">Komentář k rozhodnutí</label>
-        <textarea class="ca" id="pr-com-${sid}" placeholder="Závěrečné stanovisko…"></textarea>
+        <label class="fl">${esc(tx("prCommentLabel"))}</label>
+        <textarea class="ca" id="pr-com-${sid}" placeholder="${escAttr(tx("prCommentPh"))}"></textarea>
         <div style="display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap;">
-          <button class="btn btn-n btn-pr-save" type="button" data-app-id="${escAttr(aid)}">Uložit rozhodnutí</button>
-          ${saved?`<span class="pr-saved">Již uloženo ${esc(saved.submitted_at||"")}</span>`:""}
+          <button class="btn btn-n btn-pr-save" type="button" data-app-id="${escAttr(aid)}">${esc(tx("prSaveDecision"))}</button>
+          ${saved?`<span class="pr-saved">${esc(tx("prSavedPrefix"))} ${esc(saved.submitted_at||"")}</span>`:""}
         </div>
       </div></div>`;
   }).join("");
-  document.getElementById("prBody").innerHTML=cards||'<div class="empty">Žádné přihlášky.</div>';
+  document.getElementById("prBody").innerHTML=cards||'<div class="empty">'+esc(tx("prEmptyCards"))+'</div>';
   bindProrektorPanelClicks();
   apps.forEach(app=>{
     const aid=String(app.application_id||"").trim();
@@ -811,7 +804,7 @@ function bindProrektorPanelClicks(){
 async function submitProrektorDecision(appId){
   appId=String(appId||"").trim();
   const dec=prDecisionPick[appId];
-  if(!dec){showToast("Vyberte Podpořit / Krátit / Nepodpořit.","err");return;}
+  if(!dec){showToast(tx("toastPickDec"),"err");return;}
   const sid=safeDomId(appId);
   const ta=document.getElementById("pr-com-"+sid);
   const comment=ta?ta.value.trim():"";
@@ -831,22 +824,22 @@ async function submitProrektorDecision(appId){
       const inp=document.getElementById("pr-cut-"+sid+"-"+k);
       const v=inp?Math.round(Number(inp.value)||0):0;
       if(!isFinite(v)||v<0||v>req){
-        showToast("U položky „"+(CONNECT_BUDGET_LABELS[k]||k)+"“ zadejte částku 0 až "+req+" Kč.","err");
+        showToast(I18n.tReplace("reviewConnect.toastLineRange",{item:I18n.connectBudgetLabel(k),max:String(req),unit:I18n.getLang()==="en"?"CZK":"Kč"}),"err");
         return;
       }
       obj[k]=v;
       sumCut+=v;
     }
     if(!anyLine){
-      showToast("V přihlášce chybí dílčí položky rozpočtu – krácení po řádcích nelze uložit.","err");
+      showToast(tx("toastNoCutLines"),"err");
       return;
     }
     if(sumCut<=0){
-      showToast("U Krátit rozpočet musí být součet schválených položek větší než 0.","err");
+      showToast(tx("toastCutSumPositive"),"err");
       return;
     }
     if(planned>0&&sumCut>planned){
-      showToast("Součet schválených položek nesmí překročit celkový rozpočet v přihlášce.","err");
+      showToast(tx("toastSumExceeds"),"err");
       return;
     }
     budgetLinesForCut=obj;
@@ -854,7 +847,7 @@ async function submitProrektorDecision(appId){
   }else if(dec==="SUPPORT"){
     supportedAmountCzk=planned;
     if(!isFinite(supportedAmountCzk)||supportedAmountCzk<=0){
-      showToast("V přihlášce chybí platný celkový rozpočet.","err");
+      showToast(tx("toastNoAppBudget"),"err");
       return;
     }
   }
@@ -891,8 +884,8 @@ async function submitProrektorDecision(appId){
       return true;
     });
     await loadData();
-    showToast("Rozhodnutí uloženo ✓");
-  }catch(e){showToast(e.message||"Chyba při ukládání.","err")}
+    showToast(tx("toastDecSaved"));
+  }catch(e){showToast(e.message||tx("errSaveGeneric"),"err")}
 }
 
 async function prDec(id,dec){
@@ -904,8 +897,8 @@ async function prDec(id,dec){
       return !!(app&&String(app.status||"").toUpperCase()===st.toUpperCase());
     });
     await loadData();
-    showToast("Stav uložen ✓");
-  }catch(e){showToast(e.message||"Chyba.","err")}
+    showToast(tx("toastStatusSaved"));
+  }catch(e){showToast(e.message||tx("errSaveGeneric"),"err")}
 }
 
 function switchTab(t){
