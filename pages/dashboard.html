@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rozcestník – UHK Grantové soutěže</title>
+  <title data-i18n="meta.dashboard">Rozcestník – UHK Grantové soutěže</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/app.css">
@@ -16,7 +16,7 @@
       <div class="topbar__logo">
         <img src="../img/uhk-abb-w.png" alt="UHK"
           style="height:28px;opacity:.9;">
-        <span class="topbar__title">Grantové soutěže</span>
+        <span class="topbar__title" data-i18n="nav.grantsHub">Grantové soutěže</span>
       </div>
       <div class="topbar__right">
         <div class="topbar__user" id="topbarUser">
@@ -26,14 +26,14 @@
             <div class="user-role" id="userRole">–</div>
           </div>
         </div>
-        <button class="btn-logout" onclick="switchRole()" title="Přepnout roli" style="margin-right:4px;">
-          ⇄ Role
+        <button class="btn-logout" onclick="switchRole()" data-i18n-title="nav.switchRoleTitle" title="Přepnout roli" style="margin-right:4px;">
+          <span data-i18n="nav.switchRole">⇄ Role</span>
         </button>
-        <button class="btn-logout" onclick="Auth.logout()" title="Odhlásit se">
+        <button class="btn-logout" onclick="Auth.logout()" data-i18n-title="nav.logoutTitle" title="Odhlásit se">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M6 14H3a1 1 0 01-1-1V3a1 1 0 011-1h3M11 11l3-3-3-3M14 8H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          Odhlásit
+          <span data-i18n="nav.logout">Odhlásit</span>
         </button>
       </div>
     </div>
@@ -48,7 +48,7 @@
         <div class="dashboard-header__text">
           <div class="dashboard-header__greeting" id="greeting">Dobré ráno</div>
           <h1 class="dashboard-header__name" id="welcomeName">–</h1>
-          <p class="dashboard-header__sub">
+          <p class="dashboard-header__sub" data-i18n="dashboard.pickCompetition">
             Vyberte soutěž, do které chcete vstoupit.
           </p>
         </div>
@@ -58,7 +58,7 @@
       <!-- Zpráva o načítání / chybě -->
       <div id="dashboardMsg" class="alert alert--info" style="display:none;">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M8 7v4M8 5h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        <span id="dashboardMsgText">Načítám soutěže…</span>
+        <span id="dashboardMsgText" data-i18n="dashboard.loading">Načítám soutěže…</span>
       </div>
 
       <!-- Karty soutěží -->
@@ -71,23 +71,23 @@
       <!-- Sekce pro admin: přehled systému -->
       <div id="adminSection" style="display:none;">
         <div class="section-divider">
-          <span>Administrace systému</span>
+          <span data-i18n="dashboard.adminSection">Administrace systému</span>
         </div>
         <div class="admin-tiles">
           <a href="admin-users.html" class="admin-tile">
             <div class="admin-tile__icon">👥</div>
-            <div class="admin-tile__label">Správa uživatelů</div>
-            <div class="admin-tile__sub">USERS · role · hesla</div>
+            <div class="admin-tile__label" data-i18n="dashboard.adminUsers">Správa uživatelů</div>
+            <div class="admin-tile__sub" data-i18n="dashboard.adminUsersSub">USERS · role · hesla</div>
           </a>
           <a href="admin-competitions.html" class="admin-tile">
             <div class="admin-tile__icon">⚙️</div>
-            <div class="admin-tile__label">Nastavení soutěží</div>
-            <div class="admin-tile__sub">CONFIG · termíny · alokace</div>
+            <div class="admin-tile__label" data-i18n="dashboard.adminComp">Nastavení soutěží</div>
+            <div class="admin-tile__sub" data-i18n="dashboard.adminCompSub">CONFIG · termíny · alokace</div>
           </a>
           <a href="coordinator.html" class="admin-tile">
             <div class="admin-tile__icon">📋</div>
-            <div class="admin-tile__label">Správa přihlášek</div>
-            <div class="admin-tile__sub">Přehled · stavy · mazání řádků</div>
+            <div class="admin-tile__label" data-i18n="dashboard.adminApps">Správa přihlášek</div>
+            <div class="admin-tile__sub" data-i18n="dashboard.adminAppsSub">Přehled · stavy · mazání řádků</div>
           </a>
         </div>
       </div>
@@ -96,9 +96,13 @@
   </main>
 
   <script src="../js/config.js"></script>
+  <script src="../js/i18n.js"></script>
   <script src="../js/auth.js"></script>
   <script src="../js/api.js"></script>
   <script>
+    I18n.init();
+    I18n.mountLangSwitch(document.querySelector(".topbar__right"), "first");
+
     // ── Ochrana stránky ────────────────────────────────────────
     const user = Auth.requireLogin(); // přesměruje na login.html pokud není session
 
@@ -126,7 +130,8 @@
     welcomeEl.style.display = displayName ? "" : "none";
 
     const h = new Date().getHours();
-    const baseGreet = h < 12 ? "Dobré ráno" : h < 18 ? "Dobré odpoledne" : "Dobrý večer";
+    const baseGreet =
+      h < 12 ? I18n.t("dashboard.greetMorning") : h < 18 ? I18n.t("dashboard.greetAfternoon") : I18n.t("dashboard.greetEvening");
     document.getElementById("greeting").textContent = displayName ? baseGreet + "," : baseGreet;
 
     // Admin sekce (stačí mít roli ADMIN/TESTER na účtu, i když je zvolená jiná maska)
@@ -200,19 +205,19 @@
           const remainingShow = Math.max(0, allocShow - assignedShow);
           const foot =
             data.detailLevel === "connect"
-              ? "Přiděleno = schválené částky od prorektora. Využito (žadatel) = po uložení souhlasu s přidělením (část 1) u přihlášky – započítá se schválená podpora."
-              : "Alokace z CONFIG této výzvy. Řádky přiděleno / využito (žadatel) v plné podobě sleduje aplikace u soutěže UHK Connect; u ostatních výzev doplňte čerpání v evidenci mimo tento přehled.";
+              ? I18n.t("dashboard.budgetFootConnect")
+              : I18n.t("dashboard.budgetFootOther");
           slot.innerHTML = `
-            <div style="font-weight:600;color:#1C2E5A;margin-bottom:6px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;">Rozpočet výzvy</div>
+            <div style="font-weight:600;color:#1C2E5A;margin-bottom:6px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;">${I18n.t("dashboard.budgetTitle")}</div>
             <div style="display:grid;gap:4px;">
-              <div>Alokováno <strong>${formatCZK(allocShow)}</strong></div>
-              <div>Přiděleno (prorektor) <strong>${formatCZK(assignedShow)}</strong></div>
-              <div>Využito (žadatel) <strong>${formatCZK(acceptedShow)}</strong></div>
-              <div>Zbývá z alokace <strong>${formatCZK(remainingShow)}</strong></div>
+              <div>${I18n.t("dashboard.budgetAllocated")} <strong>${formatCZK(allocShow)}</strong></div>
+              <div>${I18n.t("dashboard.budgetAssigned")} <strong>${formatCZK(assignedShow)}</strong></div>
+              <div>${I18n.t("dashboard.budgetUsed")} <strong>${formatCZK(acceptedShow)}</strong></div>
+              <div>${I18n.t("dashboard.budgetRemaining")} <strong>${formatCZK(remainingShow)}</strong></div>
             </div>
             <div style="font-size:10px;opacity:.75;margin-top:6px;line-height:1.4;">${foot}</div>`;
         } catch (e) {
-          slot.innerHTML = "<span style=\"opacity:.65\">Přehled rozpočtu se nepodařilo načíst.</span>";
+          slot.innerHTML = "<span style=\"opacity:.65\">" + I18n.t("dashboard.budgetLoadErr") + "</span>";
           slot.style.display = "block";
         }
       }
@@ -225,7 +230,7 @@
       if (!list.length) {
         grid.innerHTML = `<div class="empty-state">
           <div class="empty-state__icon">📭</div>
-          <div class="empty-state__text">Žádné aktivní soutěže</div>
+          <div class="empty-state__text">${I18n.t("dashboard.emptyCompetitions")}</div>
         </div>`;
         return;
       }
@@ -237,7 +242,7 @@
         if (isAdmin && comp._visible === false) {
           const badge = document.createElement("div");
           badge.style.cssText = "position:absolute;top:10px;right:10px;background:#6B7280;color:white;font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;letter-spacing:.05em;";
-          badge.textContent = "SKRYTO";
+          badge.textContent = I18n.t("dashboard.hidden");
           card.style.position = "relative";
           card.style.opacity = "0.65";
           card.appendChild(badge);
@@ -274,25 +279,25 @@
           <div class="comp-card__meta">
             ${comp.deadline ? `
               <div class="meta-item">
-                <span class="meta-label">Uzávěrka</span>
+                <span class="meta-label">${I18n.t("dashboard.metaDeadline")}</span>
                 <span class="meta-val ${isNear(comp.deadline) ? "meta-val--warn" : ""}">
                   ${formatDate(comp.deadline)}
                 </span>
               </div>` : ""}
             ${comp.allocation ? `
               <div class="meta-item">
-                <span class="meta-label">Alokace</span>
+                <span class="meta-label">${I18n.t("dashboard.metaAllocation")}</span>
                 <span class="meta-val">${formatCZK(comp.allocation)}</span>
               </div>` : ""}
             ${comp.applicationsCount !== undefined ? `
               <div class="meta-item">
-                <span class="meta-label">Přihlášky</span>
+                <span class="meta-label">${I18n.t("dashboard.metaApplications")}</span>
                 <span class="meta-val">${comp.applicationsCount}</span>
               </div>` : ""}
           </div>
           ${showFundingSlot ? `
           <div class="connect-funding-slot" style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(28,46,90,.1);font-size:12px;color:#6B6A63;line-height:1.5;">
-            <span style="opacity:.65">Načítám přehled rozpočtu…</span>
+            <span style="opacity:.65">${I18n.t("dashboard.fundingLoading")}</span>
           </div>` : ""}
         </div>
         <div class="comp-card__actions">
@@ -326,83 +331,74 @@
       // Connect: přehled přihlášek odděleně od formuláře
       const myApplicationsHref =
         type === "UHK_CONNECT" ? `my-connect.html?c=${id}` : applyHref;
-      const myListLabel = type === "UHK_CONNECT" ? "Moje projekty" : "Moje přihlášky";
+      const myListLabel = type === "UHK_CONNECT" ? I18n.t("dashboard.actionMyProjects") : I18n.t("dashboard.actionMyApps");
 
       // Přihlášky (pouze ne-Návraty soutěže)
       const applyActions = applyHref && isOpen ? [
-        { label: "Podat přihlášku", href: applyHref, style: "primary", icon: "📝" },
+        { label: I18n.t("dashboard.actionSubmit"), href: applyHref, style: "primary", icon: "📝" },
       ] : applyHref ? [
         { label: myListLabel,  href: myApplicationsHref, style: "ghost",   icon: "📁" },
       ] : [];
 
       const actionMap = {
         ADMIN: type === "OP_JAK_NAVRATY" ? [
-          { label: "Hodnocení komise", href: reviewHref,               style: "primary",   icon: "⭐" },
-          { label: "Správa uživatelů", href: "admin-users.html",       style: "ghost",     icon: "👥" },
-          { label: "Nastavení",        href: "admin-competitions.html", style: "ghost",     icon: "⚙️" },
+          { label: I18n.t("dashboard.actionReviewCommission"), href: reviewHref,               style: "primary",   icon: "⭐" },
+          { label: I18n.t("dashboard.actionManageUsers"), href: "admin-users.html",       style: "ghost",     icon: "👥" },
+          { label: I18n.t("dashboard.actionSettings"),        href: "admin-competitions.html", style: "ghost",     icon: "⚙️" },
         ] : [
-          { label: "Podat přihlášku", href: applyHref || "#",          style: "primary",   icon: "📝" },
-          { label: "Správa přihlášek",href: "coordinator.html",         style: "secondary", icon: "📋" },
-          { label: "Hodnocení",       href: reviewHref,                 style: "ghost",     icon: "⭐" },
-          { label: "Nastavení",       href: "admin-competitions.html",  style: "ghost",     icon: "⚙️" },
+          { label: I18n.t("dashboard.actionSubmit"), href: applyHref || "#",          style: "primary",   icon: "📝" },
+          { label: I18n.t("dashboard.actionManageApps"),href: "coordinator.html",         style: "secondary", icon: "📋" },
+          { label: I18n.t("dashboard.actionReview"),       href: reviewHref,                 style: "ghost",     icon: "⭐" },
+          { label: I18n.t("dashboard.actionSettings"),       href: "admin-competitions.html",  style: "ghost",     icon: "⚙️" },
         ],
 
         PROREKTOR: [
-          { label: "Schvalování",  href: reviewHref,                    style: "primary",   icon: "✅" },
+          { label: I18n.t("dashboard.actionApprove"),  href: reviewHref,                    style: "primary",   icon: "✅" },
         ],
 
         KOMISAR: type === "OP_JAK_NAVRATY" ? [
-          { label: "Hodnotit",     href: reviewHref,                    style: "primary",   icon: "⭐" },
-          { label: "Přehled",      href: reviewHref,                    style: "ghost",     icon: "📊" },
+          { label: I18n.t("dashboard.actionRate"),     href: reviewHref,                    style: "primary",   icon: "⭐" },
+          { label: I18n.t("dashboard.actionOverview"),      href: reviewHref,                    style: "ghost",     icon: "📊" },
         ] : [
-          { label: "Hodnotit",     href: reviewHref,                    style: "primary",   icon: "⭐" },
+          { label: I18n.t("dashboard.actionRate"),     href: reviewHref,                    style: "primary",   icon: "⭐" },
         ],
 
         TESTER: [
-          { label: "Podat přihlášku", href: applyHref || "#",          style: "primary",   icon: "📝" },
-          { label: "Správa přihlášek",href: "coordinator.html",         style: "secondary", icon: "📋" },
-          { label: "Hodnocení",       href: reviewHref,                 style: "ghost",     icon: "⭐" },
-          { label: "Nastavení",       href: "admin-competitions.html",  style: "ghost",     icon: "⚙️" },
+          { label: I18n.t("dashboard.actionSubmit"), href: applyHref || "#",          style: "primary",   icon: "📝" },
+          { label: I18n.t("dashboard.actionManageApps"),href: "coordinator.html",         style: "secondary", icon: "📋" },
+          { label: I18n.t("dashboard.actionReview"),       href: reviewHref,                 style: "ghost",     icon: "⭐" },
+          { label: I18n.t("dashboard.actionSettings"),       href: "admin-competitions.html",  style: "ghost",     icon: "⚙️" },
         ],
 
         ZADATEL: applyHref ? (isOpen ? [
-          { label: "Podat přihlášku", href: applyHref,                  style: "primary",   icon: "📝" },
+          { label: I18n.t("dashboard.actionSubmit"), href: applyHref,                  style: "primary",   icon: "📝" },
           { label: myListLabel,  href: myApplicationsHref,          style: "ghost",     icon: "📁" },
         ] : [
           { label: myListLabel,  href: myApplicationsHref,          style: "ghost",     icon: "📁" },
         ]) : [
-          { label: "Soutěž nepřijímá přihlášky", href: "#",            style: "ghost",     icon: "📋" },
+          { label: I18n.t("dashboard.actionNoApply"), href: "#",            style: "ghost",     icon: "📋" },
         ],
 
         RESITEL: applyHref ? [
           { label: myListLabel,  href: myApplicationsHref,         style: "primary",   icon: "📁" },
-          { label: "Zprávy",          href: "my-projects.html",         style: "ghost",     icon: "📄" },
+          { label: I18n.t("dashboard.actionReports"),          href: "my-projects.html",         style: "ghost",     icon: "📄" },
         ] : [
-          { label: "Moje projekty",   href: "my-projects.html",         style: "primary",   icon: "📁" },
+          { label: I18n.t("dashboard.actionMyProjects"),   href: "my-projects.html",         style: "primary",   icon: "📁" },
         ],
 
         READONLY: [
-          { label: "Přehled",      href: reviewHref,                    style: "ghost",     icon: "👁" },
+          { label: I18n.t("dashboard.actionOverview"),      href: reviewHref,                    style: "ghost",     icon: "👁" },
         ],
       };
 
       return actionMap[role] || (applyHref ? [
-        { label: "Vstoupit",  href: applyHref,  style: "primary", icon: "→" },
+        { label: I18n.t("dashboard.actionEnter"),  href: applyHref,  style: "primary", icon: "→" },
       ] : [
-        { label: "Hodnocení", href: reviewHref, style: "ghost",   icon: "→" },
+        { label: I18n.t("dashboard.actionReview"), href: reviewHref, style: "ghost",   icon: "→" },
       ]);
     }
 
     // ── Utility ────────────────────────────────────────────────
-    function formatDate(str) {
-      if (!str) return "–";
-      return new Date(str).toLocaleDateString("cs-CZ", {
-        day: "numeric", month: "long", year: "numeric"
-      });
-    }
-    function formatCZK(n) {
-      return Number(n).toLocaleString("cs-CZ") + " Kč";
-    }
     function isNear(dateStr, days = 14) {
       const diff = (new Date(dateStr) - new Date()) / 86400000;
       return diff >= 0 && diff <= days;
@@ -423,19 +419,21 @@
 
       document.getElementById("modalUserEmail").textContent = session.email;
 
-      const ROLE_META = {
-        ADMIN:     { name:"Správce",     color:"#1C2E5A", bg:"#E8EDF8" },
-        PROREKTOR: { name:"Prorektor",   color:"#5B21B6", bg:"#EDE9FE" },
-        KOMISAR:   { name:"Člen komise", color:"#1E6B45", bg:"#E6F4EE" },
-        TESTER:    { name:"Tester",      color:"#B45309", bg:"#FEF3C7" },
-        ZADATEL:   { name:"Žadatel",     color:"#1D4ED8", bg:"#DBEAFE" },
-        RESITEL:   { name:"Řešitel",     color:"#0369A1", bg:"#E0F2FE" },
-        READONLY:  { name:"Jen čtení",   color:"#6B7280", bg:"#F3F4F6" },
+      const ROLE_COLORS = {
+        ADMIN: "#1C2E5A", PROREKTOR: "#5B21B6", KOMISAR: "#1E6B45", TESTER: "#B45309",
+        ZADATEL: "#1D4ED8", RESITEL: "#0369A1", READONLY: "#6B7280",
+      };
+      const ROLE_BG = {
+        ADMIN: "#E8EDF8", PROREKTOR: "#EDE9FE", KOMISAR: "#E6F4EE", TESTER: "#FEF3C7",
+        ZADATEL: "#DBEAFE", RESITEL: "#E0F2FE", READONLY: "#F3F4F6",
       };
 
       const opts = document.getElementById("roleOptions");
       opts.innerHTML = allRoles.map(role => {
-        const m = ROLE_META[role] || { name: role, color:"#6B7280", bg:"#F3F4F6" };
+        const meta = I18n.roleLoginMeta(role);
+        const color = ROLE_COLORS[role] || "#6B7280";
+        const bg = ROLE_BG[role] || "#F3F4F6";
+        const m = { name: meta.name, color, bg };
         const isActive = role === session.role;
         return `
           <button onclick="selectNewRole('${role}')" style="
@@ -449,7 +447,7 @@
             <div style="width:10px;height:10px;border-radius:50%;background:${m.color};flex-shrink:0;"></div>
             <div>
               <div style="font-size:14px;font-weight:600;color:${m.color};">${m.name}</div>
-              ${isActive ? '<div style="font-size:11px;color:var(--grey-500);">Aktuální role</div>' : ''}
+              ${isActive ? '<div style="font-size:11px;color:var(--grey-500);">' + I18n.t("dashboard.roleCurrent") + "</div>" : ""}
             </div>
           </button>`;
       }).join("");
@@ -482,14 +480,14 @@
     backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center;">
     <div style="background:var(--white);border-radius:var(--radius-lg);padding:32px;
       max-width:400px;width:90%;box-shadow:var(--shadow-lg);">
-      <h3 style="font-family:var(--font-head);font-size:20px;color:var(--navy);margin-bottom:8px;">
+      <h3 style="font-family:var(--font-head);font-size:20px;color:var(--navy);margin-bottom:8px;" data-i18n="dashboard.modalTitle">
         Přepnout roli
       </h3>
       <p style="font-size:13px;color:var(--grey-500);margin-bottom:20px;">
-        Přihlášen jako: <strong id="modalUserEmail">—</strong>
+        <span data-i18n="dashboard.modalSub">Přihlášen jako:</span> <strong id="modalUserEmail">—</strong>
       </p>
       <div id="roleOptions" style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;"></div>
-      <button class="btn btn--outline" onclick="closeRoleModal()" style="width:100%;padding:10px;border-radius:8px;border:1.5px solid var(--grey-300);background:transparent;cursor:pointer;font-family:var(--font-body);font-size:14px;">
+      <button class="btn btn--outline" onclick="closeRoleModal()" style="width:100%;padding:10px;border-radius:8px;border:1.5px solid var(--grey-300);background:transparent;cursor:pointer;font-family:var(--font-body);font-size:14px;" data-i18n="dashboard.modalCancel">
         Zrušit
       </button>
     </div>
