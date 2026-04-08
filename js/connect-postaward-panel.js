@@ -5,6 +5,10 @@
 (function (global) {
   "use strict";
 
+  function paTx(key, cs) {
+    return typeof I18n !== "undefined" && I18n.pa ? I18n.pa(key, cs) : cs;
+  }
+
   /** api.js nastaví globalThis.API; záložně lexikální API ze stejné stránky. */
   function api() {
     var g =
@@ -12,7 +16,7 @@
       (typeof window !== "undefined" && window.API);
     if (g && typeof g.getConnectPostAward === "function") return g;
     if (typeof API !== "undefined" && API && typeof API.getConnectPostAward === "function") return API;
-    throw new Error("Chybí API – načtěte api.js před connect-postaward-panel.js.");
+    throw new Error(paTx("errNoApi", "Chybí API – načtěte api.js před connect-postaward-panel.js."));
   }
 
   function escapeHtml(s) {
@@ -47,12 +51,18 @@
     const offB = Number(data.budgetOfficialCzk) || 0;
     const part1Title =
       data.outcomeDecision === "CUT"
-        ? "Část 1 – Souhlas s krácením rozpočtu projektu"
-        : "Část 1 – Souhlas s přidělením projektu";
+        ? paTx("part1Cut", "Část 1 – Souhlas s krácením rozpočtu projektu")
+        : paTx("part1Alloc", "Část 1 – Souhlas s přidělením projektu");
     const agreeBudgetLabel =
       data.outcomeDecision === "CUT"
-        ? "Souhlasím se schváleným krácením rozpočtu podle položek v tabulce výše a s řešením projektu v tomto rozsahu."
-        : "Souhlasím s přidělením projektu a se schváleným rozpočtem podle položek v tabulce výše.";
+        ? paTx(
+            "agreeCut",
+            "Souhlasím se schváleným krácením rozpočtu podle položek v tabulce výše a s řešením projektu v tomto rozsahu."
+          )
+        : paTx(
+            "agreeAlloc",
+            "Souhlasím s přidělením projektu a se schváleným rozpočtem podle položek v tabulce výše."
+          );
     const br = data.budgetRows || [];
     const brDetail = br.filter(function (x) {
       return x.key !== "budget_total";
@@ -131,18 +141,27 @@
     const dan = escapeHtml(c.deliverable_aktivita_note || "");
     const bVar = escapeHtml(c.budget_variance_explanation || "");
     const roNote = readOnly
-      ? '<p class="postaward-readonly">Náhled pro oprávněné role; checklist ukládá pouze řešitel uvedený u přihlášky.</p>'
+      ? '<p class="postaward-readonly">' +
+        paTx(
+          "readonlyHint",
+          "Náhled pro oprávněné role; checklist ukládá pouze řešitel uvedený u přihlášky."
+        ) +
+        "</p>"
       : "";
     const consentActions = readOnly
       ? ""
       : '<div class="postaward-actions">' +
-        '<button type="button" class="btn btn-primary" id="postawardSaveConsentBtn">Uložit souhlas</button>' +
+        '<button type="button" class="btn btn-primary" id="postawardSaveConsentBtn">' +
+        paTx("saveConsent", "Uložit souhlas") +
+        "</button>" +
         '<span class="postaward-mail" id="postawardConsentStatus"></span>' +
         "</div>";
     const completionActions = readOnly || zzClosed
       ? ""
       : '<div class="postaward-actions">' +
-        '<button type="button" class="btn btn-primary" id="postawardSaveCompletionBtn">Uložit finální uzavření projektu</button>' +
+        '<button type="button" class="btn btn-primary" id="postawardSaveCompletionBtn">' +
+        paTx("saveCompletion", "Uložit finální uzavření projektu") +
+        "</button>" +
         '<span class="postaward-mail" id="postawardCompletionStatus"></span>' +
         "</div>";
     var zzSection = "";
@@ -171,7 +190,9 @@
         (readOnly
           ? ""
           : '<div class="postaward-actions" style="margin-top:10px;">' +
-            '<button type="button" class="btn btn-secondary" id="postawardSaveZzDraftManualBtn">Uložit koncept nyní</button>' +
+            '<button type="button" class="btn btn-secondary" id="postawardSaveZzDraftManualBtn">' +
+            paTx("saveZzDraft", "Uložit koncept nyní") +
+            "</button>" +
             '<span class="postaward-mail" id="postawardZzDraftStatus" style="margin-left:10px;"></span>' +
             "</div>" +
             '<p class="postaward-mail" id="pa_zz_serverHint">' +
