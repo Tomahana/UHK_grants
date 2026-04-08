@@ -78,7 +78,7 @@
         { field_id: "activity_goal", field_label: "Activity goal", field_type: "textarea", required: "TRUE", placeholder: "Describe the concrete goal and benefit", help_text: "Demonstrable collaboration or its development" },
         { field_id: "partner_institution", field_label: "Partner institution", field_type: "text", required: "TRUE", placeholder: "Institution / organisation name" },
         { field_id: "partner_country", field_label: "Country", field_type: "text", required: "TRUE" },
-        { field_id: "section_iris", field_label: "IRIS UHK – international collaboration", field_type: "section_header" },
+        { field_id: "section_iris", field_label: "IRIS UHK – formal application data", field_type: "section_header" },
         {
           field_id: "iris_case_id",
           field_label: "IRIS UHK case ID",
