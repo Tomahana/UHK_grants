@@ -18,7 +18,14 @@ const Auth = {
       const res  = await fetch(url.toString());
       const data = await res.json();
       if (data.success) return data;
-      return { success: false, message: data.message || "Nesprávné přihlašovací údaje." };
+      return {
+        success: false,
+        message:
+          data.message ||
+          (typeof I18n !== "undefined" && I18n.t
+            ? I18n.t("auth.wrongCreds")
+            : "Nesprávné přihlašovací údaje."),
+      };
     } catch {
       return this._demoLogin(email, password);
     }
@@ -37,7 +44,12 @@ const Auth = {
     const found = DEMO.find(
       u => u.email === email.toLowerCase() && u.password === password
     );
-    if (!found) return { success: false, message: "Nesprávné přihlašovací údaje." };
+    if (!found)
+      return {
+        success: false,
+        message:
+          typeof I18n !== "undefined" && I18n.t ? I18n.t("auth.wrongCreds") : "Nesprávné přihlašovací údaje.",
+      };
     return {
       success: true,
       token:   "demo_" + Date.now(),
@@ -115,7 +127,13 @@ const Auth = {
     if (set.has("ADMIN") || set.has("TESTER")) return user;
     // Kontrola konkrétní role pokud je požadována
     if (allowedRoles && !allowedRoles.some((r) => set.has(r))) {
-      alert(`Přístup odepřen. Tato stránka vyžaduje roli: ${allowedRoles.join(" nebo ")}.`);
+      const sep =
+        typeof I18n !== "undefined" && I18n.getLang && I18n.getLang() === "en" ? ", " : " nebo ";
+      const msg =
+        typeof I18n !== "undefined" && I18n.tReplace
+          ? I18n.tReplace("auth.accessDenied", { roles: allowedRoles.join(sep) })
+          : `Přístup odepřen. Tato stránka vyžaduje roli: ${allowedRoles.join(" nebo ")}.`;
+      alert(msg);
       history.back();
       return null;
     }
