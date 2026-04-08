@@ -102,9 +102,19 @@
   <script>
     I18n.init();
     I18n.mountLangSwitch(document.querySelector(".topbar__right"), "first");
+    const NAVRATY_CARD = FALLBACK_COMPETITIONS[0];
 
     // ── Ochrana stránky ────────────────────────────────────────
     const user = Auth.requireLogin(); // přesměruje na login.html pokud není session
+    if (!user) {
+      const g = document.getElementById("competitionsGrid");
+      if (g) {
+        g.innerHTML = `<div class="empty-state">
+          <div class="empty-state__icon">🔐</div>
+          <div class="empty-state__text">Nejste přihlášeni. Otevřete <a href="login.html" style="color:var(--navy,#1C2E5A);font-weight:600;">přihlášení</a>.</div>
+        </div>`;
+      }
+    } else {
 
     /** Nejvyšší role z účtu pro akce na kartách (správce s maskou „Žadatel“ vidí stále admin odkazy). */
     function effectiveDashboardRole() {
@@ -121,7 +131,7 @@
     document.getElementById("userRole").textContent    = ROLES[user.role]?.label || user.role;
     document.getElementById("userAvatar").textContent  = (user.name || user.email)[0].toUpperCase();
     document.getElementById("roleBadge").textContent   = ROLES[user.role]?.label || user.role;
-    document.getElementById("roleBadge").className     = `dashboard-header__badge role-badge--${user.role.toLowerCase()}`;
+    document.getElementById("roleBadge").className     = `dashboard-header__badge role-badge--${String(user.role || "zadatel").toLowerCase()}`;
 
     // Uvítání: celé jméno z profilu, ne první „token“ (aby nezůstávalo jen „doc.“)
     const displayName = (user.name && String(user.name).trim()) ? String(user.name).trim() : "";
@@ -146,7 +156,9 @@
     }
 
     async function loadCompetitions() {
-      const isAdmin = Auth.hasAnyRole(["ADMIN", "TESTER"]);
+      // Skryté soutěže (dashboard_visible = FALSE) jen pro aktivní roli Správce/Tester.
+      // Účet s více rolemi: při masce Komisař / Prorektor / … platí filtr jako u uživatele bez admin práv.
+      const showHiddenCompetitions = ["ADMIN", "TESTER"].includes(String(user.role || "").toUpperCase());
       const vis = getDashboardVisibility();
 
       // Okamžitě zobraz fallback – žádné čekání na API
@@ -154,26 +166,31 @@
         ...c,
         _visible: vis[c.id] !== undefined ? vis[c.id] : true,
       }));
-      if (!isAdmin) competitions = competitions.filter(c => c._visible);
-      renderCompetitions(competitions, isAdmin);
+      if (!showHiddenCompetitions) competitions = competitions.filter(c => c._visible);
+      renderCompetitions(competitions, showHiddenCompetitions);
       enrichConnectFunding(competitions);
 
       // API aktualizace na pozadí – přidá reálné počty přihlášek
       try {
-        const data = await Promise.race([
+        let data = await Promise.race([
           API.getCompetitions(),
           new Promise((_,r) => setTimeout(() => r(new Error("timeout")), 4000)),
         ]);
+        if (data && !Array.isArray(data) && Array.isArray(data.competitions)) data = data.competitions;
         if (Array.isArray(data) && data.length) {
-          // Viditelnost z CONFIG (dashboard_visible v Sheets); ADMIN/TESTER vidí vše, ostatní jen dashboardVisible
-          let live = data.map(c => ({
-            ...c,
-            _visible: c.dashboardVisible !== false,
-          }));
-          // Doplň Návraty pokud API nevrátí
-          if (!live.some(c => c.id === "uhk_navraty_2026")) live.unshift(NAVRATY_CARD);
-          if (!isAdmin) live = live.filter(c => c._visible);
-          renderCompetitions(live, isAdmin);
+          // Viditelnost z CONFIG (dashboard_visible v Sheets)
+          let live = data
+            .filter((c) => c && c.id != null && String(c.id).trim() !== "")
+            .map((c) => ({
+              ...c,
+              _visible: c.dashboardVisible !== false,
+            }));
+          // Doplň Návraty pokud API nevrátí (musí mít _visible, jinak zmizí po filtru)
+          if (!live.some(c => c.id === "uhk_navraty_2026")) {
+            live.unshift({ ...NAVRATY_CARD, _visible: true });
+          }
+          if (!showHiddenCompetitions) live = live.filter(c => c._visible);
+          renderCompetitions(live, showHiddenCompetitions);
           enrichConnectFunding(live);
         }
       } catch(e) {
@@ -188,7 +205,8 @@
       const sess = Auth._getSession();
       if (!sess || !sess.token) return;
       for (const comp of list) {
-        const card = document.querySelector(".comp-card[data-comp-id=\"" + comp.id.replace(/\\/g, "\\\\").replace(/"/g, '\\"') + "\"]");
+        if (!comp || comp.id == null || String(comp.id).trim() === "") continue;
+        const card = document.querySelector(".comp-card[data-comp-id=\"" + String(comp.id).replace(/\\/g, "\\\\").replace(/"/g, '\\"') + "\"]");
         const slot = card && card.querySelector(".connect-funding-slot");
         if (!slot) continue;
         try {
@@ -223,7 +241,7 @@
       }
     }
 
-    function renderCompetitions(list, isAdmin) {
+    function renderCompetitions(list, showHiddenCompetitions) {
       const grid = document.getElementById("competitionsGrid");
       grid.innerHTML = "";
 
@@ -238,8 +256,8 @@
       list.forEach((comp, i) => {
         const card = buildCompetitionCard(comp, dashRole);
         card.style.animationDelay = (i * 0.08) + "s";
-        // Admin badge pro skryté soutěže
-        if (isAdmin && comp._visible === false) {
+        // Šedý štítek „Skryto“ jen ve správcovské / testerské masce
+        if (showHiddenCompetitions && comp._visible === false) {
           const badge = document.createElement("div");
           badge.style.cssText = "position:absolute;top:10px;right:10px;background:#6B7280;color:white;font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;letter-spacing:.05em;";
           badge.textContent = I18n.t("dashboard.hidden");
@@ -253,28 +271,26 @@
 
     function buildCompetitionCard(comp, role) {
       const card = document.createElement("div");
-      card.className = `comp-card comp-card--${comp.status.toLowerCase()} fade-in`;
-      card.dataset.compId = comp.id;
+      const compId = comp && comp.id != null ? String(comp.id).trim() : "";
+      const statusKey = String(comp.status != null ? comp.status : "DRAFT").trim() || "DRAFT";
+      const statusLc = statusKey.toLowerCase();
+      card.className = `comp-card comp-card--${statusLc} fade-in`;
+      if (compId) card.dataset.compId = compId;
 
-      const statusInfo = COMP_STATUSES[comp.status] || { label: comp.status, icon: "●" };
+      const statusUp = statusKey.toUpperCase();
+      const statusInfo = COMP_STATUSES[statusKey] || COMP_STATUSES[statusUp] || { label: statusKey, icon: "●" };
       const actions    = getActionsForRole(role, comp);
       const showFundingSlot = ["ADMIN", "PROREKTOR"].includes(role);
 
       card.innerHTML = `
         <div class="comp-card__header">
-          <div class="comp-card__status-dot status-dot--${comp.status.toLowerCase()}"></div>
+          <div class="comp-card__status-dot status-dot--${statusLc}"></div>
           <span class="comp-card__status-label">${statusInfo.icon} ${statusInfo.label}</span>
         </div>
         <div class="comp-card__body">
-          <div class="comp-card__type">${
-            comp.type === "UHK_CONNECT" ? "UHK Connect" :
-            comp.type === "UHK_REGA"    ? "UHK ReGa" :
-            comp.type === "OP_JAK_NAVRATY" ? "OP JAK Návraty" :
-            comp.type === "UHK_PRESTIGE"    ? "UHK Prestige" :
-            comp.type
-          }</div>
-          <h2 class="comp-card__name">${comp.name}</h2>
-          <p class="comp-card__desc">${comp.description || ""}</p>
+          <div class="comp-card__type">${I18n.dashboardCompetitionTypeLabel(comp.type)}</div>
+          <h2 class="comp-card__name">${I18n.dashboardCompetitionName(comp)}</h2>
+          <p class="comp-card__desc">${I18n.dashboardCompetitionDesc(comp)}</p>
 
           <div class="comp-card__meta">
             ${comp.deadline ? `
@@ -313,7 +329,7 @@
     // Akce dle role a stavu soutěže
     function getActionsForRole(role, comp) {
       const id     = comp.id;
-      const isOpen = comp.status === "OPEN";
+      const isOpen = String(comp.status || "").toUpperCase() === "OPEN";
       const type   = comp.type;
 
       // Odkaz na hodnoticí formulář
@@ -404,17 +420,18 @@
       return diff >= 0 && diff <= days;
     }
 
-    // ── Karta Návraty – vždy zobrazit ─────────────────────────
-    // FALLBACK_COMPETITIONS a NAVRATY_CARD jsou definovány v config.js
-    const NAVRATY_CARD = FALLBACK_COMPETITIONS[0];
-    const DEMO_COMPETITIONS = FALLBACK_COMPETITIONS;
+    // ── Spusť ──────────────────────────────────────────────────
+    loadCompetitions();
 
+    }
 
-    // ── Přepnutí role ──────────────────────────────────────────
+    // ── Přepnutí role (globální – onclick v HTML) ───────────────
     function switchRole() {
       const session = Auth._getSession();
-      if (!session) return;
-      // Čti allRoles přímo ze session (uloženo při přihlášení)
+      if (!session) {
+        window.location.href = "login.html";
+        return;
+      }
       let allRoles = session.allRoles || [session.role];
 
       document.getElementById("modalUserEmail").textContent = session.email;
@@ -457,9 +474,9 @@
 
     function selectNewRole(role) {
       const session = Auth._getSession();
-      Auth.setSession(session.token, session.email, session.name, role);
+      if (!session) return;
+      Auth.setSession(session.token, session.email, session.name, role, session.allRoles);
       closeRoleModal();
-      // Obnov stránku s novou rolí
       window.location.reload();
     }
 
@@ -467,12 +484,9 @@
       document.getElementById("roleModal").style.display = "none";
     }
 
-    // Zavření modalu kliknutím mimo
     document.getElementById("roleModal")?.addEventListener("click", e => {
       if (e.target === document.getElementById("roleModal")) closeRoleModal();
     });
-    // ── Spusť ──────────────────────────────────────────────────
-    loadCompetitions();
   </script>
 
   <!-- Modal: přepnutí role -->
