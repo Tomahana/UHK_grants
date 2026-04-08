@@ -1,1183 +1,1241 @@
-<!DOCTYPE html>
-<html lang="cs">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title data-i18n="meta.applyPrestige">UHK Prestige – Přihláška</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/connect-postaward.css">
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --navy: #1C2E5A; --navy-mid: #2F4A8A; --navy-lite: #E8EDF8;
-      --gold: #C49A2A; --gold-lite: #FDF6E3;
-      --green: #1E6B45; --green-lite: #E6F4EE;
-      --red: #991B1B; --red-lite: #FEF2F2;
-      --border: #E2E0D8; --muted: #6B6A63;
-      --bg: #F8F7F4; --white: #FFFFFF;
-      --r: 8px; --r-lg: 12px;
-      --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+/**
+ * UHK Grant Manager – i18n (cs / en)
+ * Volitelné: ?lang=en nebo ?lang=cs v URL (uloží se do localStorage).
+ * Klíč: tečková notace, např. I18n.t("login.welcome")
+ */
+(function (global) {
+  "use strict";
+
+  var STORAGE = "uhk_lang";
+
+  function deepGet(obj, path) {
+    return path.split(".").reduce(function (o, k) {
+      return o != null ? o[k] : undefined;
+    }, obj);
+  }
+
+  var MESSAGES = {
+    cs: {
+      common: { signedIn: "Přihlášen:" },
+      lang: { label: "Jazyk", switchCs: "CS", switchEn: "EN" },
+      nav: {
+        grantsHub: "Grantové soutěže",
+        logout: "Odhlásit",
+        switchRole: "⇄ Role",
+        switchRoleTitle: "Přepnout roli",
+        logoutTitle: "Odhlásit se",
+        backHub: "← Rozcestník",
+        backDashboard: "← Rozcestník",
+      },
+      meta: {
+        login: "Přihlášení – UHK Grantové soutěže",
+        dashboard: "Rozcestník – UHK Grantové soutěže",
+        adminUsers: "Správa uživatelů – UHK Granty",
+        adminComp: "Nastavení soutěží – UHK Granty",
+        coordinator: "Správa přihlášek – UHK Granty",
+        myProjects: "Moje projekty – UHK Granty",
+        myConnect: "UHK Connect – Moje projekty",
+        connectCloseout: "UHK Connect – část 2",
+        applyConnect: "UHK Connect – Přihláška",
+        applyRega: "UHK ReGa – Přihláška",
+        applyPrestige: "UHK Prestige – Přihláška",
+        reviewNavraty: "Hodnocení — OP JAK Návraty",
+        reviewConnect: "Hodnocení – UHK Connect",
+        connectCloseoutDoc: "Část 2 – závěr a vyúčtování – UHK Connect",
+      },
+      login: {
+        brandLine1: "Interní systém pro správu",
+        brandLine2: "výzkumných grantů",
+        brandLine3: "Univerzity Hradec Králové",
+        stepLogin: "Přihlášení",
+        stepRole: "Výběr role",
+        stepNew: "Nový účet",
+        welcome: "Vítejte",
+        sub: "Přihlaste se do systému UHK Grantové soutěže.",
+        email: "E-mail",
+        password: "Heslo",
+        loginBtn: "Přihlásit se →",
+        noAccess: "Nemáte přístup?",
+        requestAccess: "Požádat o přístup",
+        back: "← Zpět",
+        backToLogin: "← Zpět na přihlášení",
+        loggedAs: "Přihlášen jako",
+        pickRoleTitle: "Vyberte roli",
+        pickRoleSub: "Váš účet má přístup do více rolí.",
+        newAccessTitle: "Nový přístup",
+        newAccessSubHtml:
+          "Vyplňte údaje. Účet se vytvoří okamžitě jako <strong>Žadatel / Řešitel</strong>.",
+        regInfoHtml:
+          "Účet bude mít roli <strong>Žadatel</strong>. Roli změní administrátor dle potřeby.",
+        fullName: "Celé jméno",
+        emailUhk: "E-mail (UHK)",
+        passwordAgain: "Heslo znovu",
+        pwdPlaceholder: "Minimálně 8 znaků",
+        pwdRepeatPh: "Zopakujte heslo",
+        createAccount: "Vytvořit účet →",
+        successTitle: "Účet vytvořen!",
+        successSubHtml:
+          "Váš účet byl zaregistrován jako <strong>Žadatel / Řešitel</strong>.<br>Nyní se můžete přihlásit.",
+        footerHelp: "Potíže s přihlášením? Kontaktujte administrátorku:",
+        errEmail: "Zadejte e-mail.",
+        errPassword: "Zadejte heslo.",
+        errName: "Zadejte jméno.",
+        errUhkEmail: "Musí být UHK adresa (@uhk.cz).",
+        errPwdRules: "Min. 8 znaků, velké písmeno a číslo.",
+        errPwdMatch: "Hesla se neshodují.",
+        errConnection: "Chyba připojení. Zkuste to znovu.",
+        pwdHintBase: "Min. 8 znaků, 1 velké písmeno, 1 číslo",
+        pwdWeak: "Příliš slabé",
+        pwdWeak2: "Slabé",
+        pwdOk: "Dobré",
+        pwdStrong: "Silné ✓",
+      },
+      dashboard: {
+        pickCompetition: "Vyberte soutěž, do které chcete vstoupit.",
+        loading: "Načítám soutěže…",
+        adminSection: "Administrace systému",
+        adminUsers: "Správa uživatelů",
+        adminUsersSub: "USERS · role · hesla",
+        adminComp: "Nastavení soutěží",
+        adminCompSub: "CONFIG · termíny · alokace",
+        adminApps: "Správa přihlášek",
+        adminAppsSub: "Přehled · stavy · mazání řádků",
+        greetMorning: "Dobré ráno",
+        greetAfternoon: "Dobré odpoledne",
+        greetEvening: "Dobrý večer",
+        emptyCompetitions: "Žádné aktivní soutěže",
+        hidden: "SKRYTO",
+        metaDeadline: "Uzávěrka",
+        metaAllocation: "Alokace",
+        metaApplications: "Přihlášky",
+        budgetTitle: "Rozpočet výzvy",
+        budgetAllocated: "Alokováno",
+        budgetAssigned: "Přiděleno (prorektor)",
+        budgetUsed: "Využito (žadatel)",
+        budgetRemaining: "Zbývá z alokace",
+        budgetFootConnect:
+          "Přiděleno = schválené částky od prorektora. Využito (žadatel) = po uložení souhlasu s přidělením (část 1) u přihlášky – započítá se schválená podpora.",
+        budgetFootOther:
+          "Alokace z CONFIG této výzvy. Řádky přiděleno / využito (žadatel) v plné podobě sleduje aplikace u soutěže UHK Connect; u ostatních výzev doplňte čerpání v evidenci mimo tento přehled.",
+        budgetLoadErr: "Přehled rozpočtu se nepodařilo načíst.",
+        fundingLoading: "Načítám přehled rozpočtu…",
+        modalTitle: "Přepnout roli",
+        modalSub: "Přihlášen jako:",
+        modalCancel: "Zrušit",
+        roleCurrent: "Aktuální role",
+        actionSubmit: "Podat přihlášku",
+        actionMyApps: "Moje přihlášky",
+        actionMyProjects: "Moje projekty",
+        actionNoApply: "Soutěž nepřijímá přihlášky",
+        actionReviewCommission: "Hodnocení komise",
+        actionManageUsers: "Správa uživatelů",
+        actionSettings: "Nastavení",
+        actionManageApps: "Správa přihlášek",
+        actionReview: "Hodnocení",
+        actionApprove: "Schvalování",
+        actionRate: "Hodnotit",
+        actionOverview: "Přehled",
+        actionReports: "Zprávy",
+        actionEnter: "Vstoupit",
+        competitionType: {
+          UHK_CONNECT: "UHK Connect",
+          UHK_REGA: "UHK ReGa",
+          OP_JAK_NAVRATY: "OP JAK Návraty",
+          UHK_PRESTIGE: "UHK Prestige",
+        },
+      },
+      auth: {
+        accessDenied: "Přístup odepřen. Tato stránka vyžaduje roli: {{roles}}.",
+        wrongCreds: "Nesprávné přihlašovací údaje.",
+      },
+      api: { fileReadError: "Soubor se nepodařilo načíst." },
+      roles: {
+        ADMIN: { name: "Správce", desc: "Plný přístup – správa uživatelů a nastavení" },
+        PROREKTOR: { name: "Prorektor", desc: "Nejvyšší schvalovací pravomoc" },
+        KOMISAR: { name: "Člen komise", desc: "Hodnocení přihlášek" },
+        TESTER: { name: "Tester", desc: "Vidí vše, nemůže měnit data" },
+        ZADATEL: { name: "Žadatel", desc: "Podává přihlášky, sleduje stav žádostí" },
+        RESITEL: { name: "Řešitel", desc: "Řeší schválený projekt, závěrečné zprávy" },
+        READONLY: { name: "Jen čtení", desc: "Přehled bez možnosti změn" },
+      },
+      reviewNavraty: {
+        topbarPage: "Hodnoticí komise",
+        back: "← Zpět",
+        logout: "Odhlásit",
+      },
+      coordinator: { signedInLabel: "Přihlášena:" },
+      reviewConnect: {
+        cnames: {
+          uhk_connect_2026_v2: "UHK Connect – výzva č. 2",
+          uhk_rega_2026_v1: "UHK ReGa – výzva č. 1",
+          uhk_prestige_2026: "UHK Prestige 2026",
+        },
+        tabs: { h: "Hodnocení", p: "Výsledky", pr: "Prorektor" },
+        listPanelH: "Přihlášky k hodnocení",
+        loading: "Načítám…",
+        listPanelApps: "Přihlášky",
+        flowTitle: "Postup a lhůty (výzva Connect)",
+        flowAdmin: "Administrátor – formální posouzení do 2 pracovních dnů, poté předání komisi (stav IN_REVIEW).",
+        flowCommission: "Komise – hodnocení v tomto formuláři, lhůta <strong>5 pracovních dní</strong> od předání.",
+        flowProrektor: "Prorektor – shrnující rozhodnutí (podpořit / zkrátit / zamítnout) do <strong>2 pracovních dnů</strong>.",
+        flowEnd: "<strong>Ukončení aktivity</strong> nejpozději <strong>15.&nbsp;11.&nbsp;2026</strong>.",
+        sepCritOverview: "Kritéria výzvy – přehled",
+        critIntro: "Níže máte u každého kritéria plné znění a škálu 1–5. Odůvodnění pište do pole komentáře u kritéria.",
+        sepCritEval: "Hodnocení po kritériích",
+        sepComments: "Komentáře",
+        lblCommentApplicant: "Komentář pro žadatele",
+        hintApplicantSees: "Žadatel tento komentář uvidí",
+        phCommentPub: "Celkové zhodnocení…",
+        lblInternalNote: "Interní poznámka",
+        phCommentInt: "Interní poznámka…",
+        sepRecommendation: "Doporučení",
+        recSupport: "Podpořit",
+        recSupportSub: "Doporučuji financovat",
+        recCut: "Krátit rozpočet",
+        recCutSub: "Podpořit s nižší částkou",
+        recReject: "Nepodpořit",
+        recRejectSub: "Nedoporučuji financovat",
+        btnCancel: "Zrušit",
+        btnSaveReview: "Uložit hodnocení",
+        btnSavingReview: "Ukládám…",
+        resultsTitle: "Přehled hodnocení",
+        resultsEmptyLoad: "Načtěte přihlášky.",
+        prorektorDecisionTitle: "Rozhodnutí prorektora",
+        prorektorDecisionSub: "Přehled hlasů komise a závěrečné stanovisko",
+        prorektorEmptyLoad: "Načtěte přihlášky.",
+        sidebarCompetition: "Soutěž",
+        sidebarCompetitionHint: "5 kritérií · max. 25 bodů · škála u každého kritéria 1–5",
+        sidebarBudgetTitle: "Rozpočet výzvy (Connect)",
+        fundAllocTotal: "Alokováno celkem",
+        fundAssignedAfterPr: "Přiděleno (po rozhodnutí prorektora)",
+        fundUsedAfterConsent: "Využito (po souhlasu žadatele)",
+        fundRemaining: "Zbývá z alokace",
+        fundFootnote:
+          "Přiděleno = součet schválených částek (u Podpořit obvykle žádost, u Krátit částka zadaná prorektorem). Využito = stejné projekty po uložení souhlasu žadatele v části 1 detailu přihlášky (závazná podpora se započítá jako čerpaná kapacita z pohledu žadatele).",
+        sidebarScore: "Aktuální skóre",
+        pointsOf25: "z 25 bodů",
+        sidebarScoreHint: "Souhrn kritérií a zápis bodů je v hlavní oblasti po výběru přihlášky.",
+        emptyApps: "Žádné přihlášky.",
+        emptyAppsHint: "Koordinátorka musí přesunout přihlášky do IN_REVIEW.",
+        listSubTpl: "{{apps}} přihlášek · {{revs}} hodnocení komise",
+        badgeNew: "Nové",
+        badgeDone: "Hodnoceno",
+        badgeKomTpl: "{{n}}× komise",
+        badgeNoKom: "Bez komise",
+        detailApplicant: "Žadatel",
+        detailFaculty: "Součást / katedra",
+        detailApplicantType: "Typ žadatele",
+        detailActivityType: "Typ aktivity",
+        detailPartner: "Partner",
+        detailTerm: "Termín",
+        detailBudget: "Rozpočet",
+        detailResearchFocus: "Výzkumné zaměření",
+        detailActivityGoal: "Cíl aktivity",
+        detailCoopHistory: "Dosavadní kontakty",
+        detailOutputDesc: "Popis výstupu",
+        detailUhkBenefit: "Přínos pro UHK",
+        detailOutputs5y: "Výstupy žadatele (5 let)",
+        detailBudgetJust: "Odůvodnění rozpočtu",
+        detailIrisCaseId: "IRIS UHK – referenční ID (UUID)",
+        detailIrisChecklist: "IRIS UHK – souhrn (výsledek, Case / Intake ID, skóre)",
+        critNotePh: "Komentář ke kritériu {{key}}…",
+        toastRateCriteria: "Ohodnoťte kritéria: {{list}}",
+        toastPickRec: "Vyberte doporučení.",
+        toastReviewSaved: "Hodnocení uloženo – {{tot}}/25 bodů ✓",
+        errPostVerify:
+          "Odesláno, ale nepodařilo se ověřit uložení včas. Obnovte stránku tlačítkem ↺ a zkontrolujte záznam.",
+        resTableProject: "Projekt",
+        resTableFaculty: "Součást",
+        resTableAvg: "Prům.",
+        resTableCount: "Hod.",
+        resTableRec: "Doporučení",
+        resEmpty: "Zatím žádná hodnocení.",
+        recLabelSupport: "✓ Podpořit",
+        recLabelCut: "◐ Krátit",
+        recLabelReject: "✕ Nepodpořit",
+        recLabelCutLong: "◐ Krátit rozpočet",
+        prKomEmpty: "Zatím žádné kompletní hodnocení komise (čeká se platné skóre 1–25 bodů).",
+        prKomSep: "Hodnocení členů komise",
+        prKomK15: "K1–K5:",
+        prKomTotal: "Celkem:",
+        prKomRec: "Doporučení:",
+        prKomCommentLbl: "Komentář pro žadatele",
+        prDecideSep: "Vaše rozhodnutí (prorektor)",
+        prDecideIntro:
+          "Vyberte závěr. U <strong>Krátit rozpočet</strong> vyplňte schválené částky <strong>u jednotlivých položek rozpočtu</strong> (součet ≤ plánovaného celku v přihlášce). U <strong>Podpořit</strong> se bere schválená podpora jako celkový rozpočet z přihlášky. Komentář uvidí žadatel u přihlášky.",
+        prBtnSupport: "Podpořit",
+        prBtnCut: "Krátit rozpočet",
+        prBtnReject: "Nepodpořit",
+        prAvgKom: "Prům. komise",
+        prReviewsN: "hodnocení",
+        prPlannedBudget: "Plánovaný rozpočet v přihlášce:",
+        prCutPerLine:
+          "U každé položky zadejte schválenou částku po krácení (0 až výše v žádosti). Žadatel uvidí stejné rozložení v části souhlasu.",
+        prThLine: "Položka",
+        prThRequested: "V žádosti (Kč)",
+        prThApproved: "Schváleno (Kč)",
+        prThSumApproved: "Součet schválených (Kč)",
+        prCommentLabel: "Komentář k rozhodnutí",
+        prCommentPh: "Závěrečné stanovisko…",
+        prSaveDecision: "Uložit rozhodnutí",
+        prSavedPrefix: "Již uloženo",
+        prEmptyCards: "Žádné přihlášky.",
+        prCutNoLines:
+          "V přihlášce nejsou vyplněny dílčí položky rozpočtu – použijte úpravu přihlášky nebo kontaktujte správce.",
+        toastPickDec: "Vyberte Podpořit / Krátit / Nepodpořit.",
+        toastLineRange: "U položky „{{item}}“ zadejte částku 0 až {{max}} {{unit}}.",
+        toastNoCutLines: "V přihlášce chybí dílčí položky rozpočtu – krácení po řádcích nelze uložit.",
+        toastCutSumPositive: "U Krátit rozpočet musí být součet schválených položek větší než 0.",
+        toastSumExceeds: "Součet schválených položek nesmí překročit celkový rozpočet v přihlášce.",
+        toastNoAppBudget: "V přihlášce chybí platný celkový rozpočet.",
+        toastDecSaved: "Rozhodnutí uloženo ✓",
+        toastStatusSaved: "Stav uložen ✓",
+        errSaveGeneric: "Chyba při ukládání.",
+      },
+      reviewConnectUi: { titlePrefix: "Hodnocení – " },
+      applyRega: {
+        bannerStrong: "Interní soutěž UHK ReGa",
+        bannerText:
+          "– podpora dopracování a znovupodání nezafinancovaných projektů GA ČR. Max. podpora 500 000 Kč · Doba řešení 7,5 měsíce (15. 4. – 30. 11. 2026)",
+        bannerDeadline: "Uzávěrka: 1. 4. 2026 · 8:00",
+        loadingForm: "Načítám formulář…",
+        sidebarStatus: "Stav přihlášky",
+        sidebarCompetition: "Soutěž",
+        sidebarCompetitionVal: "UHK ReGa 2026",
+        sidebarDeadline: "Uzávěrka",
+        sidebarDeadlineVal: "1. 4. 2026",
+        sidebarMax: "Max. podpora",
+        sidebarMaxVal: "500 000 Kč",
+        sidebarDuration: "Doba řešení",
+        sidebarDurationVal: "7,5 měsíce",
+        sidebarSaved: "Uloženo",
+        sidebarSupport: "Požadovaná podpora",
+        sidebarOfMax: "z max. 500 000 Kč",
+        sidebarChecklist: "Kontrolní seznam",
+        eligibilityTitle: "Podmínka způsobilosti",
+        eligibilityText: "Přihláška musí obsahovat posudky z hodnocení. Bez posudků je formálně nezpůsobilá.",
+        contactTitle: "Kontakt",
+        stepProject: "Projekt",
+        stepTeam: "Tým",
+        stepRevision: "Dopracování",
+        stepBudget: "Rozpočet",
+        stepAttachments: "Přílohy",
+        panelBasicTitle: "Základní informace o projektu",
+        panelBasicSub: "Krok 1 z 5 · Identifikace původního projektu",
+        panelTeamTitle: "Řešitelský tým",
+        panelTeamSub: "Krok 2 z 5 · Složení týmu a partneři",
+        panelRevisionTitle: "Plán dopracování",
+        panelRevisionSub: "Krok 3 z 5 · Reakce na posudky, plánované úpravy",
+        panelBudgetTitle: "Rozpočet interní podpory",
+        panelBudgetSub: "Krok 4 z 5 · Způsobilé náklady dle přílohy č. 1 výzvy",
+        panelAttachTitle: "Povinné přílohy",
+        panelAttachSub: "Krok 5 z 5 · Nahrajte všechny povinné dokumenty",
+        footerUnsaved: "Neuloženo",
+        footerBack: "← Zpět",
+        footerSaveDraft: "💾 Uložit rozdělaný",
+        footerContinue: "Pokračovat →",
+        footerSubmit: "Odeslat přihlášku →",
+        footerSavedAt: "Uloženo {{time}}",
+        toastDraftSaved: "Draft uložen ✓",
+        toastSaveFailed: "Ukládání selhalo.",
+        validateRequiredAll: "Vyplňte prosím všechna povinná pole.",
+        toastConfirmDeclaration: "Potvrďte prohlášení žadatele.",
+        submitSending: "Odesílám…",
+        submitSuccessTitle: "Přihláška odeslána!",
+        submitSuccessP1: "Vaše přihláška do UHK ReGa 2026 byla úspěšně podána.",
+        submitSuccessP2Html:
+          "Výsledky hodnocení budou zveřejněny do 13. 4. 2026.<br>Kontakt: <a href=\"mailto:jana.kukakova@uhk.cz\" style=\"color:var(--purple);\">jana.kukakova@uhk.cz</a>",
+        submitBackDash: "← Zpět na rozcestník",
+        submitError: "Chyba při odesílání – zkuste znovu.",
+        submitSuccessToast: "Přihláška úspěšně odeslána! ✓",
+        draftLoadedToast: "Načten uložený draft.",
+      },
+      applyFlow: {
+        selectPlaceholder: "— Vyberte —",
+        fieldErrRequired: "Toto pole je povinné.",
+        fieldErrFile: "Nahrajte prosím soubor.",
+        filePick: "Klikněte pro výběr souboru",
+        fileFormat: "Formát:",
+        stepOf: "Krok {{n}} z {{total}}",
+        footerDirty: "Neuloženo…",
+        saveDraftTitle: "Uloží rozpracovanou přihlášku jako koncept (draft) na server.",
+        prorektorHeading: "Stanovisko prorektora",
+        recordedPrefix: "Zapsáno:",
+        appRefPrefix: "Přihláška",
+        appTitleFallback: "Vaše přihláška",
+        appIdLabel: "ID přihlášky:",
+        statusLabel: "Aktuální stav:",
+        outcomeWaitRecorded: "Jakmile bude rozhodnutí prorektora zapsáno, zobrazí se zde i v postranním panelu po obnovení stránky.",
+        outcomeAfterReview: "Po dokončení hodnocení a rozhodnutí prorektora se zde zobrazí závěr a komentář.",
+        draftNotePrefix: "Máte také rozpracovaný",
+        draftNoteStrong: "koncept (draft)",
+        draftNoteContinue: "Pokračovat v konceptu →",
+        myProjects: "← Moje projekty",
+        hub: "Rozcestník",
+        valActEndBeforeStart: "Konec aktivity musí být ve stejný den nebo po začátku.",
+        valActStartMax: "Začátek aktivity musí být nejpozději {{date}} (dle výzvy).",
+        valActEndMax: "Konec aktivity musí být nejpozději {{date}} (dle výzvy).",
+        toastBudgetOverMax: "Celkový rozpočet překračuje povolené maximum.",
+        toastBudgetJust: "Doplňte odůvodnění rozpočtu.",
+        toastBudgetSumPositive: "Součet rozpočtu musí být větší než 0 Kč.",
+        toastBudgetSumMax: "Součet rozpočtu překračuje maximum {{amount}} (rok 1).",
+        irisChecklistItem: "IRIS UHK (ref. ID UUID + souhrn z IRIS)",
+        irisRequiredToast: "Vyplňte referenční ID IRIS UHK (UUID z potvrzení) a souhrn z IRIS (povinná součást přihlášky).",
+      },
+      applyConnect: {
+        loadingForm: "Načítám formulář…",
+        sidebarStatus: "Stav přihlášky",
+        sidebarCompetition: "Soutěž",
+        sidebarCompetitionVal: "UHK Connect 2026",
+        sidebarDeadlineApply: "Uzávěrka přihlášek",
+        sidebarMaxSupport: "Max. podpora",
+        sidebarMaxVal: "80 000 Kč",
+        sidebarSaved: "Uloženo",
+        autosaveNoteHtml:
+          "Koncept se ukládá <strong>automaticky po 30 s</strong> nečinnosti; ručně použijte „Uložit draft“.",
+        termsTitle: "Termíny výzvy",
+        termsFootnote:
+          "Údaje odpovídají zadání soutěže UHK Connect (výzva č. 2); pro závazné znění použijte oficiální dokument na webu UHK / pokyny OVTZ",
+        budgetCardTitle: "Rozpočet",
+        budgetOfMax: "z max. 80 000 Kč",
+        checklistTitle: "Kontrolní seznam",
+        helpTitle: "Potřebujete pomoc?",
+        submitSuccessTitle: "Přihláška odeslána!",
+        submitSuccessP:
+          "Vaše přihláška do soutěže UHK Connect 2026 byla úspěšně podána.<br>O dalším postupu Vás informujeme e-mailem. Po rozhodnutí prorektora uvidíte závěr a komentář zde (Moje projekty) po opětovném otevření této stránky.",
+        submitBackDash: "← Zpět na rozcestník",
+        personnelBadge: "výjimečně",
+        stepBasic: "Základní info",
+        stepProfile: "Profil & aktivita",
+        stepIris: "IRIS UHK",
+        stepOutput: "Výstup",
+        stepBudget: "Rozpočet",
+        stepAttachments: "Přílohy",
+      },
+      applyPrestige: {
+        loadingForm: "Načítám formulář…",
+        sidebarStatus: "Stav přihlášky",
+        sidebarCompetition: "Soutěž",
+        sidebarCompetitionVal: "UHK Prestige",
+        sidebarDeadlineApply: "Uzávěrka přihlášek",
+        sidebarMaxY1: "Max. podpora (rok 1)",
+        sidebarMaxVal: "1 000 000 Kč",
+        sidebarSaved: "Uloženo",
+        autosaveNoteHtml:
+          "Koncept se ukládá <strong>automaticky po 30 s</strong> nečinnosti; ručně použijte „Uložit draft“.",
+        termsTitle: "Termíny výzvy (1/2026)",
+        termsFootnoteHtml:
+          "Elektronické podání dle Vyhlášení výzvy č. 1/2026 UHK Prestige. Podvýzva <strong>Horizon No-Cost Entry</strong> (výzva 2/2026) bude v aplikaci doplněna – zatím viz samostatný dokument výzvy.",
+        budgetCardTitle: "Rozpočet",
+        budgetOfMax: "z max. 1 000 000 Kč (rok 1)",
+        checklistTitle: "Kontrolní seznam",
+        helpTitle: "Potřebujete pomoc?",
+        submitSuccessTitle: "Přihláška odeslána!",
+        submitSuccessP:
+          "Vaše přihláška do soutěže <strong>UHK Prestige</strong> (Výzva 1/2026) byla úspěšně podána.<br>O dalším postupu Vás informujeme e-mailem. Stav přihlášky sledujte v přehledu <strong>Moje projekty</strong>.",
+        submitBackDash: "← Zpět na rozcestník",
+        stepIdent: "Identifikace",
+        stepConcept: "Concept & excelence",
+        stepStrategy: "Strategie & milníky",
+        stepBudget: "Rozpočet",
+        stepAttachments: "Přílohy",
+      },
+      appStatuses: {
+        DRAFT: { label: "Koncept" },
+        SUBMITTED: { label: "Odesláno" },
+        FORMAL_CHECK: { label: "Formální kontrola" },
+        IN_REVIEW: { label: "V hodnocení" },
+        APPROVED: { label: "Schváleno" },
+        REJECTED: { label: "Zamítnuto" },
+        WITHDRAWN: { label: "Staženo" },
+      },
+    },
+    en: {
+      common: { signedIn: "Signed in:" },
+      lang: { label: "Language", switchCs: "CS", switchEn: "EN" },
+      nav: {
+        grantsHub: "Grant competitions",
+        logout: "Log out",
+        switchRole: "⇄ Role",
+        switchRoleTitle: "Switch role",
+        logoutTitle: "Log out",
+        backHub: "← Hub",
+        backDashboard: "← Hub",
+      },
+      meta: {
+        login: "Sign in – UHK Grant competitions",
+        dashboard: "Hub – UHK Grant competitions",
+        adminUsers: "User management – UHK Grants",
+        adminComp: "Competition settings – UHK Grants",
+        coordinator: "Application management – UHK Grants",
+        myProjects: "My projects – UHK Grants",
+        myConnect: "UHK Connect – My projects",
+        connectCloseout: "UHK Connect – Part 2",
+        applyConnect: "UHK Connect – Application",
+        applyRega: "UHK ReGa – Application",
+        applyPrestige: "UHK Prestige – Application",
+        reviewNavraty: "Review — OP JAK Návraty",
+        reviewConnect: "Review – UHK Connect",
+        connectCloseoutDoc: "Part 2 – close-out and accounting – UHK Connect",
+      },
+      login: {
+        brandLine1: "Internal system for managing",
+        brandLine2: "research grants",
+        brandLine3: "University of Hradec Králové",
+        stepLogin: "Sign in",
+        stepRole: "Choose role",
+        stepNew: "New account",
+        welcome: "Welcome",
+        sub: "Sign in to the UHK Grant competitions system.",
+        email: "E-mail",
+        password: "Password",
+        loginBtn: "Sign in →",
+        noAccess: "No access?",
+        requestAccess: "Request access",
+        back: "← Back",
+        backToLogin: "← Back to sign in",
+        loggedAs: "Signed in as",
+        pickRoleTitle: "Choose a role",
+        pickRoleSub: "Your account has more than one role.",
+        newAccessTitle: "New access",
+        newAccessSubHtml:
+          "Fill in the details. The account is created immediately as <strong>Applicant / Grantee</strong>.",
+        regInfoHtml:
+          "The account will have the <strong>Applicant</strong> role. An administrator can change the role if needed.",
+        fullName: "Full name",
+        emailUhk: "E-mail (UHK)",
+        passwordAgain: "Password again",
+        pwdPlaceholder: "At least 8 characters",
+        pwdRepeatPh: "Repeat password",
+        createAccount: "Create account →",
+        successTitle: "Account created!",
+        successSubHtml:
+          "Your account was registered as <strong>Applicant / Grantee</strong>.<br>You can sign in now.",
+        footerHelp: "Sign-in issues? Contact the administrator:",
+        errEmail: "Enter your e-mail.",
+        errPassword: "Enter your password.",
+        errName: "Enter your name.",
+        errUhkEmail: "Must be a UHK address (@uhk.cz).",
+        errPwdRules: "Min. 8 characters, one uppercase letter and one digit.",
+        errPwdMatch: "Passwords do not match.",
+        errConnection: "Connection error. Please try again.",
+        pwdHintBase: "Min. 8 characters, 1 uppercase, 1 digit",
+        pwdWeak: "Too weak",
+        pwdWeak2: "Weak",
+        pwdOk: "Good",
+        pwdStrong: "Strong ✓",
+      },
+      dashboard: {
+        pickCompetition: "Choose a competition to open.",
+        loading: "Loading competitions…",
+        adminSection: "System administration",
+        adminUsers: "User management",
+        adminUsersSub: "USERS · roles · passwords",
+        adminComp: "Competition settings",
+        adminCompSub: "CONFIG · deadlines · allocation",
+        adminApps: "Application management",
+        adminAppsSub: "Overview · statuses · row delete",
+        greetMorning: "Good morning",
+        greetAfternoon: "Good afternoon",
+        greetEvening: "Good evening",
+        emptyCompetitions: "No active competitions",
+        hidden: "HIDDEN",
+        metaDeadline: "Deadline",
+        metaAllocation: "Allocation",
+        metaApplications: "Applications",
+        budgetTitle: "Competition budget",
+        budgetAllocated: "Allocated",
+        budgetAssigned: "Assigned (Vice-Rector)",
+        budgetUsed: "Used (applicant)",
+        budgetRemaining: "Remaining from allocation",
+        budgetFootConnect:
+          "Assigned = amounts approved by the Vice-Rector. Used (applicant) = after saving consent to assignment (Part 1) on the application — counts approved support.",
+        budgetFootOther:
+          "Allocation from this competition’s CONFIG. Full assigned/used tracking is available in the app for UHK Connect; for other calls, record drawdown elsewhere.",
+        budgetLoadErr: "Could not load budget summary.",
+        fundingLoading: "Loading budget summary…",
+        modalTitle: "Switch role",
+        modalSub: "Signed in as:",
+        modalCancel: "Cancel",
+        roleCurrent: "Current role",
+        actionSubmit: "Submit application",
+        actionMyApps: "My applications",
+        actionMyProjects: "My projects",
+        actionNoApply: "Competition is not accepting applications",
+        actionReviewCommission: "Commission review",
+        actionManageUsers: "User management",
+        actionSettings: "Settings",
+        actionManageApps: "Application management",
+        actionReview: "Review",
+        actionApprove: "Approval",
+        actionRate: "Evaluate",
+        actionOverview: "Overview",
+        actionReports: "Reports",
+        actionEnter: "Open",
+        competitionType: {
+          UHK_CONNECT: "UHK Connect",
+          UHK_REGA: "UHK ReGa",
+          OP_JAK_NAVRATY: "OP JAK Returns",
+          UHK_PRESTIGE: "UHK Prestige",
+        },
+        competitionCard: {
+          uhk_navraty_2026: {
+            name: "OP JAK Returns 2026",
+            desc: "Evaluation of OP JAK Returns projects – UHK IGA commission.",
+          },
+          uhk_connect_2026_v2: {
+            name: "UHK Connect – call no. 2",
+            desc: "Short projects for networking, mobility, and building collaboration.",
+          },
+          uhk_rega_2026_v1: {
+            name: "UHK ReGa – call no. 1",
+            desc: "Support for revising and resubmitting unfunded GA ČR projects.",
+          },
+          uhk_prestige_2026: {
+            name: "UHK Prestige – call 1/2026",
+            desc: "Preparing a proposal for ERC or Horizon Europe; call allocation CZK 4M, up to CZK 1M per project in year 1.",
+          },
+        },
+      },
+      auth: {
+        accessDenied: "Access denied. This page requires one of these roles: {{roles}}.",
+        wrongCreds: "Invalid sign-in details.",
+      },
+      api: { fileReadError: "Could not read the file." },
+      roles: {
+        ADMIN: { name: "Administrator", desc: "Full access – users and settings" },
+        PROREKTOR: { name: "Vice-Rector for R&D", desc: "Highest approval authority" },
+        KOMISAR: { name: "Panel member", desc: "Application evaluation" },
+        TESTER: { name: "Tester", desc: "Read-only testing access" },
+        ZADATEL: { name: "Applicant", desc: "Submits applications, tracks status" },
+        RESITEL: { name: "Grantee", desc: "Runs approved project, final reports" },
+        READONLY: { name: "Read-only", desc: "Overview without edits" },
+      },
+      reviewNavraty: {
+        topbarPage: "Evaluation panel",
+        back: "← Back",
+        logout: "Log out",
+      },
+      coordinator: { signedInLabel: "Signed in:" },
+      reviewConnect: {
+        cnames: {
+          uhk_connect_2026_v2: "UHK Connect – call no. 2",
+          uhk_rega_2026_v1: "UHK ReGa – call no. 1",
+          uhk_prestige_2026: "UHK Prestige 2026",
+        },
+        tabs: { h: "Review", p: "Results", pr: "Vice-Rector" },
+        listPanelH: "Applications to review",
+        loading: "Loading…",
+        listPanelApps: "Applications",
+        flowTitle: "Process and deadlines (Connect call)",
+        flowAdmin: "Administrator – formal assessment within 2 working days, then handover to the panel (status IN_REVIEW).",
+        flowCommission: "Panel – evaluation in this form, deadline <strong>5 working days</strong> from handover.",
+        flowProrektor: "Vice-Rector – summary decision (support / cut / reject) within <strong>2 working days</strong>.",
+        flowEnd: "<strong>Activity end</strong> no later than <strong>15&nbsp;Nov&nbsp;2026</strong>.",
+        sepCritOverview: "Call criteria – overview",
+        critIntro: "Below each criterion shows full wording and a 1–5 scale. Add rationale in the comment field for each criterion.",
+        sepCritEval: "Criterion-by-criterion scoring",
+        sepComments: "Comments",
+        lblCommentApplicant: "Comment for the applicant",
+        hintApplicantSees: "The applicant will see this comment",
+        phCommentPub: "Overall assessment…",
+        lblInternalNote: "Internal note",
+        phCommentInt: "Internal note…",
+        sepRecommendation: "Recommendation",
+        recSupport: "Support",
+        recSupportSub: "Recommend funding",
+        recCut: "Cut budget",
+        recCutSub: "Support at a lower amount",
+        recReject: "Do not support",
+        recRejectSub: "Do not recommend funding",
+        btnCancel: "Cancel",
+        btnSaveReview: "Save review",
+        btnSavingReview: "Saving…",
+        resultsTitle: "Review overview",
+        resultsEmptyLoad: "Load applications.",
+        prorektorDecisionTitle: "Vice-Rector decision",
+        prorektorDecisionSub: "Panel votes and final stance",
+        prorektorEmptyLoad: "Load applications.",
+        sidebarCompetition: "Competition",
+        sidebarCompetitionHint: "5 criteria · max. 25 points · scale 1–5 per criterion",
+        sidebarBudgetTitle: "Call budget (Connect)",
+        fundAllocTotal: "Total allocated",
+        fundAssignedAfterPr: "Assigned (after Vice-Rector decision)",
+        fundUsedAfterConsent: "Used (after applicant consent)",
+        fundRemaining: "Remaining from allocation",
+        fundFootnote:
+          "Assigned = sum of approved amounts (Support: usually full request; Cut: amount set by Vice-Rector). Used = same projects after applicant saves consent in Part 1 (counts as drawn capacity).",
+        sidebarScore: "Current score",
+        pointsOf25: "of 25 points",
+        sidebarScoreHint: "Criterion summary and scores appear in the main area after you select an application.",
+        emptyApps: "No applications.",
+        emptyAppsHint: "The coordinator must move applications to IN_REVIEW.",
+        listSubTpl: "{{apps}} applications · {{revs}} panel reviews",
+        badgeNew: "New",
+        badgeDone: "Reviewed",
+        badgeKomTpl: "{{n}}× panel",
+        badgeNoKom: "No panel review",
+        detailApplicant: "Applicant",
+        detailFaculty: "Faculty / department",
+        detailApplicantType: "Applicant type",
+        detailActivityType: "Activity type",
+        detailPartner: "Partner",
+        detailTerm: "Dates",
+        detailBudget: "Budget",
+        detailResearchFocus: "Research focus",
+        detailActivityGoal: "Activity goal",
+        detailCoopHistory: "Existing contacts",
+        detailOutputDesc: "Output description",
+        detailUhkBenefit: "Benefit for UHK",
+        detailOutputs5y: "Applicant outputs (5 years)",
+        detailBudgetJust: "Budget justification",
+        detailIrisCaseId: "IRIS UHK – reference ID (UUID)",
+        detailIrisChecklist: "IRIS UHK – summary (outcome, Case / Intake ID, score)",
+        critNotePh: "Comment on criterion {{key}}…",
+        toastRateCriteria: "Score all criteria: {{list}}",
+        toastPickRec: "Select a recommendation.",
+        toastReviewSaved: "Review saved – {{tot}}/25 points ✓",
+        errPostVerify:
+          "Submitted, but save could not be verified in time. Refresh with ↺ and check the record.",
+        resTableProject: "Project",
+        resTableFaculty: "Faculty",
+        resTableAvg: "Avg.",
+        resTableCount: "Rev.",
+        resTableRec: "Recommendation",
+        resEmpty: "No reviews yet.",
+        recLabelSupport: "✓ Support",
+        recLabelCut: "◐ Cut",
+        recLabelReject: "✕ Reject",
+        recLabelCutLong: "◐ Cut budget",
+        prKomEmpty: "No complete panel reviews yet (waiting for valid score 1–25).",
+        prKomSep: "Panel member reviews",
+        prKomK15: "K1–K5:",
+        prKomTotal: "Total:",
+        prKomRec: "Recommendation:",
+        prKomCommentLbl: "Comment for applicant",
+        prDecideSep: "Your decision (Vice-Rector)",
+        prDecideIntro:
+          "Choose the outcome. For <strong>Cut budget</strong>, enter approved amounts <strong>per budget line</strong> (sum ≤ planned total in the application). For <strong>Support</strong>, approved support equals the application total budget. The applicant will see the comment on the application.",
+        prBtnSupport: "Support",
+        prBtnCut: "Cut budget",
+        prBtnReject: "Reject",
+        prAvgKom: "Panel avg.",
+        prReviewsN: "reviews",
+        prPlannedBudget: "Planned budget in application:",
+        prCutPerLine:
+          "For each line enter the approved amount after the cut (0 up to requested). The applicant sees the same split in the consent step.",
+        prThLine: "Line",
+        prThRequested: "Requested (CZK)",
+        prThApproved: "Approved (CZK)",
+        prThSumApproved: "Sum approved (CZK)",
+        prCommentLabel: "Comment on decision",
+        prCommentPh: "Final statement…",
+        prSaveDecision: "Save decision",
+        prSavedPrefix: "Already saved",
+        prEmptyCards: "No applications.",
+        prCutNoLines:
+          "No detailed budget lines in the application – edit the application or contact the administrator.",
+        toastPickDec: "Choose Support / Cut / Reject.",
+        toastLineRange: "For line \"{{item}}\", enter an amount from 0 to {{max}} {{unit}}.",
+        toastNoCutLines: "Missing budget lines – line-by-line cut cannot be saved.",
+        toastCutSumPositive: "For Cut budget, the sum of approved lines must be greater than 0.",
+        toastSumExceeds: "The sum of approved lines must not exceed the application total budget.",
+        toastNoAppBudget: "The application has no valid total budget.",
+        toastDecSaved: "Decision saved ✓",
+        toastStatusSaved: "Status saved ✓",
+        errSaveGeneric: "Error while saving.",
+      },
+      reviewConnectUi: { titlePrefix: "Review – " },
+      applyRega: {
+        bannerStrong: "UHK ReGa internal call",
+        bannerText:
+          "– support for revising and resubmitting unfunded GA ČR projects. Max. support CZK 500,000 · Duration 7.5 months (15 Apr – 30 Nov 2026)",
+        bannerDeadline: "Deadline: 1 Apr 2026 · 8:00",
+        loadingForm: "Loading form…",
+        sidebarStatus: "Application status",
+        sidebarCompetition: "Competition",
+        sidebarCompetitionVal: "UHK ReGa 2026",
+        sidebarDeadline: "Deadline",
+        sidebarDeadlineVal: "1 Apr 2026",
+        sidebarMax: "Max. support",
+        sidebarMaxVal: "CZK 500,000",
+        sidebarDuration: "Duration",
+        sidebarDurationVal: "7.5 months",
+        sidebarSaved: "Saved",
+        sidebarSupport: "Requested support",
+        sidebarOfMax: "of max. CZK 500,000",
+        sidebarChecklist: "Checklist",
+        eligibilityTitle: "Eligibility requirement",
+        eligibilityText: "The application must include review reports. Without reports it is formally ineligible.",
+        contactTitle: "Contact",
+        stepProject: "Project",
+        stepTeam: "Team",
+        stepRevision: "Revision plan",
+        stepBudget: "Budget",
+        stepAttachments: "Attachments",
+        panelBasicTitle: "Basic project information",
+        panelBasicSub: "Step 1 of 5 · Original project identification",
+        panelTeamTitle: "Project team",
+        panelTeamSub: "Step 2 of 5 · Team and partners",
+        panelRevisionTitle: "Revision plan",
+        panelRevisionSub: "Step 3 of 5 · Response to reviews, planned changes",
+        panelBudgetTitle: "Internal support budget",
+        panelBudgetSub: "Step 4 of 5 · Eligible costs per call annex no. 1",
+        panelAttachTitle: "Mandatory attachments",
+        panelAttachSub: "Step 5 of 5 · Upload all mandatory documents",
+        footerUnsaved: "Not saved",
+        footerBack: "← Back",
+        footerSaveDraft: "💾 Save draft",
+        footerContinue: "Continue →",
+        footerSubmit: "Submit application →",
+        footerSavedAt: "Saved {{time}}",
+        toastDraftSaved: "Draft saved ✓",
+        toastSaveFailed: "Save failed.",
+        validateRequiredAll: "Please fill in all required fields.",
+        toastConfirmDeclaration: "Please confirm the applicant declaration.",
+        submitSending: "Submitting…",
+        submitSuccessTitle: "Application submitted!",
+        submitSuccessP1: "Your UHK ReGa 2026 application was submitted successfully.",
+        submitSuccessP2Html:
+          "Evaluation results will be published by 13 Apr 2026.<br>Contact: <a href=\"mailto:jana.kukakova@uhk.cz\" style=\"color:var(--purple);\">jana.kukakova@uhk.cz</a>",
+        submitBackDash: "← Back to hub",
+        submitError: "Submit error – please try again.",
+        submitSuccessToast: "Application submitted successfully! ✓",
+        draftLoadedToast: "Saved draft loaded.",
+      },
+      applyFlow: {
+        selectPlaceholder: "— Select —",
+        fieldErrRequired: "This field is required.",
+        fieldErrFile: "Please upload a file.",
+        filePick: "Click to choose a file",
+        fileFormat: "Format:",
+        stepOf: "Step {{n}} of {{total}}",
+        footerDirty: "Not saved…",
+        saveDraftTitle: "Saves your work-in-progress as a draft on the server.",
+        prorektorHeading: "Vice-Rector’s decision",
+        recordedPrefix: "Recorded:",
+        appRefPrefix: "Application",
+        appTitleFallback: "Your application",
+        appIdLabel: "Application ID:",
+        statusLabel: "Current status:",
+        outcomeWaitRecorded: "Once the Vice-Rector’s decision is recorded, it will appear here and in the sidebar after you refresh the page.",
+        outcomeAfterReview: "After evaluation and the Vice-Rector’s decision, the outcome and comment will appear here.",
+        draftNotePrefix: "You also have a draft",
+        draftNoteStrong: "work-in-progress",
+        draftNoteContinue: "Continue draft →",
+        myProjects: "← My projects",
+        hub: "Hub",
+        valActEndBeforeStart: "Activity end must be on or after the start date.",
+        valActStartMax: "Activity start must be no later than {{date}} (per call).",
+        valActEndMax: "Activity end must be no later than {{date}} (per call).",
+        toastBudgetOverMax: "Total budget exceeds the allowed maximum.",
+        toastBudgetJust: "Add budget justification.",
+        toastBudgetSumPositive: "Budget total must be greater than 0 CZK.",
+        toastBudgetSumMax: "Budget total exceeds the maximum of {{amount}} (year 1).",
+        irisChecklistItem: "IRIS UHK (reference UUID + IRIS summary)",
+        irisRequiredToast: "Enter the IRIS UHK reference ID (UUID from the confirmation) and the IRIS summary (required parts of the application).",
+      },
+      applyConnect: {
+        loadingForm: "Loading form…",
+        sidebarStatus: "Application status",
+        sidebarCompetition: "Competition",
+        sidebarCompetitionVal: "UHK Connect 2026",
+        sidebarDeadlineApply: "Application deadline",
+        sidebarMaxSupport: "Max. support",
+        sidebarMaxVal: "CZK 80,000",
+        sidebarSaved: "Saved",
+        autosaveNoteHtml:
+          "Your draft <strong>saves automatically after 30 s</strong> of inactivity; use <strong>Save draft</strong> to save manually.",
+        termsTitle: "Call timeline",
+        termsFootnote:
+          "Information matches the UHK Connect call (call no. 2); for binding text use the official UHK document / R&D office instructions.",
+        budgetCardTitle: "Budget",
+        budgetOfMax: "of max. CZK 80,000",
+        checklistTitle: "Checklist",
+        helpTitle: "Need help?",
+        submitSuccessTitle: "Application submitted!",
+        submitSuccessP:
+          "Your UHK Connect 2026 application was submitted successfully.<br>You will be informed by e-mail about next steps. After the Vice-Rector’s decision, the outcome and comment appear here (My projects) when you open this page again.",
+        submitBackDash: "← Back to hub",
+        personnelBadge: "exceptional",
+        stepBasic: "Basic info",
+        stepProfile: "Profile & activity",
+        stepIris: "IRIS UHK",
+        stepOutput: "Output",
+        stepBudget: "Budget",
+        stepAttachments: "Attachments",
+      },
+      applyPrestige: {
+        loadingForm: "Loading form…",
+        sidebarStatus: "Application status",
+        sidebarCompetition: "Competition",
+        sidebarCompetitionVal: "UHK Prestige",
+        sidebarDeadlineApply: "Application deadline",
+        sidebarMaxY1: "Max. support (year 1)",
+        sidebarMaxVal: "CZK 1,000,000",
+        sidebarSaved: "Saved",
+        autosaveNoteHtml:
+          "Your draft <strong>saves automatically after 30 s</strong> of inactivity; use <strong>Save draft</strong> to save manually.",
+        termsTitle: "Call timeline (1/2026)",
+        termsFootnoteHtml:
+          "Electronic submission per UHK Prestige call announcement 1/2026. The <strong>Horizon No-Cost Entry</strong> sub-call (call 2/2026) will be added to the app – see the separate call document for now.",
+        budgetCardTitle: "Budget",
+        budgetOfMax: "of max. CZK 1,000,000 (year 1)",
+        checklistTitle: "Checklist",
+        helpTitle: "Need help?",
+        submitSuccessTitle: "Application submitted!",
+        submitSuccessP:
+          "Your application to <strong>UHK Prestige</strong> (Call 1/2026) was submitted successfully.<br>You will be informed by e-mail. Track status in <strong>My projects</strong>.",
+        submitBackDash: "← Back to hub",
+        stepIdent: "Identification",
+        stepConcept: "Concept & excellence",
+        stepStrategy: "Strategy & milestones",
+        stepBudget: "Budget",
+        stepAttachments: "Attachments",
+      },
+      rolesPatch: {
+        ADMIN: { label: "Administrator", description: "Full access – users, applications, settings" },
+        PROREKTOR: { label: "Vice-Rector for R&D", description: "Final approval authority" },
+        KOMISAR: { label: "Panel member", description: "Evaluation and review access" },
+        TESTER: { label: "Tester", description: "Sees everything, cannot change data" },
+        ZADATEL: { label: "Applicant", description: "Submits applications, tracks requests" },
+        RESITEL: { label: "Grantee", description: "Runs the supported project, submits reports" },
+        READONLY: { label: "Read-only", description: "Overview without changes" },
+      },
+      compStatuses: {
+        OPEN: { label: "Open", desc: "Applications accepted" },
+        RUNNING: { label: "Running", desc: "Review / implementation" },
+        CLOSED: { label: "Closed", desc: "Competition closed" },
+        DRAFT: { label: "Draft", desc: "Being prepared" },
+      },
+      appStatuses: {
+        DRAFT: { label: "Draft" },
+        SUBMITTED: { label: "Submitted" },
+        FORMAL_CHECK: { label: "Formal check" },
+        IN_REVIEW: { label: "Under review" },
+        APPROVED: { label: "Approved" },
+        REJECTED: { label: "Rejected" },
+        WITHDRAWN: { label: "Withdrawn" },
+      },
+      postaward: {
+        saveConsent: "Save consent",
+        saveCompletion: "Save final project closeout",
+        saveZzDraft: "Save draft now",
+        part1Cut: "Part 1 – Consent to budget reduction",
+        part1Alloc: "Part 1 – Consent to project allocation",
+        agreeCut:
+          "I agree to the approved budget reduction per the table above and to implementing the project within this scope.",
+        agreeAlloc:
+          "I agree to the project allocation and approved budget per the table above.",
+        prorektorStance: "Vice-Rector’s decision",
+        noComment: "No public comment text is recorded for this application.",
+        acceptComment:
+          "I acknowledge and agree with the Vice-Rector’s comment (above; if missing, I confirm I have taken note).",
+        consentSaved: "Consent last saved:",
+        promisedTitle: "Committed – excerpt from application and approved budget",
+        projectTitle: "Project title:",
+        activityGoal: "Goal / intent of activity:",
+        plannedOutputs: "Planned outputs (from application):",
+        budgetJustif: "Budget justification in application:",
+        budgetReqAppr: "Budget: requested → approved (Vice-Rector)",
+        realVsApproved: "Actual amounts vs approved budget",
+        realHint:
+          "For each line enter spent amount and optional note. Total should match approved support",
+        varianceLabel: "Overall budget variance explanation",
+        variancePh: "e.g. accommodation underspent because…",
+        delivPanel: "Mandatory outputs – completion",
+        delivHint: "Tick each item or give a short reason (min. 15 chars) if not met.",
+        finalReportTitle: "Final report (in app + scope per call)",
+        finalReportChk:
+          "I confirm the in-app final report meets the call requirements and is ready / submitted as required.",
+        outputCoop: "Cooperation output (article, sketch, MoU, minutes, plan… per call)",
+        outputDone: "Output completed / submitted",
+        activityProof: "Proof of activity (e.g. conference attendance)",
+        otherConf: "Other confirmations per call",
+        disCheck:
+          "I confirm dissemination activity requirements / substitute evidence per R&D office instructions.",
+        pkgCheck:
+          "I confirm submission to the administrator (incl. attachments above): cooperation output, activity proof and related files per call – final report text is stored in this app.",
+        ackCheck: "I have read the consequences of non-compliance below.",
+        attachmentsTitle: "Attachments (Magion, mandatory outputs)",
+        attachmentsHint:
+          "List Magion export and files / links for mandatory outputs (not the FR text – that is in the app).",
+        attachmentsPh: "e.g. Final_report_APP-123.pdf (link: …); Output_MoU.pdf …",
+        notesPh: "Other notes for the administrator…",
+        readonlyHint:
+          "Preview for authorised roles; only the applicant named on the application can edit the checklist.",
+        itemCol: "Item",
+        requestedCzk: "In application (CZK)",
+        approvedCzk: "Approved (CZK)",
+        actualCzk: "Actual (CZK)",
+        noteCol: "Note",
+        uploadLabel: "Upload files to shared Drive (competition folder)",
+        uploadHint:
+          "Files are stored in this Google Drive folder. File names and links are appended below (max. 18 MB per file).",
+        part1HintConsent:
+          "Complete soon after the Vice-Rector’s decision. This part is independent of final accounting in Part 2 (separate page).",
+        part1HintCloseout:
+          "Complete soon after the Vice-Rector’s decision. This part is independent of final accounting below.",
+        prComment: "Vice-Rector’s comment:",
+        prCommentAlso: "Vice-Rector’s comment (also in My projects):",
+        mailLine:
+          "Use attachments mainly for Magion export and mandatory outputs. Final report text is entered in the app above. E-mail:",
+        mailMissing: "Set coordinator e-mail in CONFIG or contact R&D office.",
+        zzFinalTitle: "Final report (part of final closeout)",
+        zzClosedOn: "Final closeout date:",
+        zzDraftTitle: "Final report – draft",
+        zzDraftHelp:
+          "Draft auto-saves like the application (30 s). You can leave and return. Use Save draft now for immediate save. The report is locked when you save final closeout below (min. 80 characters). Scope per call annex.",
+        zzLabel: "Final report text",
+        zzPh: "Write the final report progressively…",
+        zzServerSaved: "Draft on server last:",
+        zzServerNone: "Draft not yet on server – start writing or save manually.",
+        errNoApi: "API missing – load api.js before connect-postaward-panel.js.",
+      },
+    },
+  };
+
+  var REVIEW_CONNECT_CRIT_CS = [
+    { key: "K1", label: "Cíl aktivity a přínos pro UHK", short: "Smysl projektu, soulad s Connect (spolupráce / mobilita) a přínos pro UHK.", desc: "Je smysl aktivity srozumitelně vymezen? Odpovídá zaměření soutěže Connect (spolupráce se zahraniční institucí, mobilita, přenos znalostí)? Je přínos pro strategii VaV a rozvoj UHK věrohodně popsán?", labels: ["Nejasný", "Slabý", "Průměrný", "Dobrý", "Výborný"] },
+    { key: "K2", label: "Kvalita a relevance partnerské spolupráce", short: "Výběr partnera, prokazatelnost spolupráce, typ aktivity dle výzvy.", desc: "Je partner vhodně zvolen a role obou stran jasná? Je spolupráce reálná (doporučeně doložené kontakty / dosavadní spolupráce)? Odpovídá typ aktivity (vědecká / edukační) zadání výzvy?", labels: ["Nevhodná", "Slabá", "Průměrná", "Dobrá", "Výborná"] },
+    { key: "K3", label: "Rozpočet, hospodárnost a soulad s pravidly výzvy", short: "Přiměřenost nákladů, limit výzvy, odůvodnění položek.", desc: "Jsou náklady přiměřené rozsahu aktivity a v souladu s limitem výzvy? Jsou položky odůvodněné a účelné? Nejsou rizika přecenění nebo nejasných výdajů?", labels: ["Nepřiměřený", "Slabý", "Průměrný", "Dobrý", "Výborný"] },
+    { key: "K4", label: "Odborný profil žadatele a předpoklady pro realizaci", short: "Kompetence řešitele, dosavadní výstupy, proveditelnost v termínu.", desc: "Má žadatel (tým) kompetence k realizaci? Jsou relevantní předchozí výstupy / zkušenosti? Je zřejmé, že aktivitu lze v plánovaném termínu zvládnout?", labels: ["Nevyhovující", "Slabý", "Průměrný", "Dobrý", "Výborný"] },
+    { key: "K5", label: "Plánované výstupy, měřitelnost a udržitelnost", short: "Konkrétní výstupy, dopad na UHK, případná navazující spolupráce.", desc: "Jsou výstupy konkrétní a ověřitelné (publikace, mobilita, workshop, další)? Je popsán očekávaný dopad na VaV UHK nebo studenty? Je zvážena případná navazující spolupráce?", labels: ["Nejasné", "Slabé", "Průměrné", "Dobré", "Výborné"] },
+  ];
+  var REVIEW_CONNECT_CRIT_EN = [
+    { key: "K1", label: "Activity objective and benefit for UHK", short: "Project rationale, fit with Connect (cooperation / mobility) and benefit for UHK.", desc: "Is the purpose clearly stated? Does it match Connect (cooperation with a foreign institution, mobility, knowledge transfer)? Is the benefit for UHK R&D strategy described credibly?", labels: ["Unclear", "Weak", "Fair", "Good", "Excellent"] },
+    { key: "K2", label: "Quality and relevance of partner collaboration", short: "Partner choice, evidence of collaboration, activity type per call.", desc: "Is the partner appropriate and roles clear? Is collaboration realistic (preferably documented contacts / prior work)? Does the activity type match the call?", labels: ["Poor", "Weak", "Fair", "Good", "Excellent"] },
+    { key: "K3", label: "Budget, economy and compliance with call rules", short: "Cost proportionality, call limit, justification of lines.", desc: "Are costs proportionate and within the call limit? Are items justified and purposeful? Any overpricing or unclear expenditure?", labels: ["Excessive", "Weak", "Fair", "Good", "Excellent"] },
+    { key: "K4", label: "Applicant expertise and feasibility", short: "Team competence, prior outputs, feasibility by deadline.", desc: "Does the team have the skills? Relevant prior outputs? Is timely delivery credible?", labels: ["Insufficient", "Weak", "Fair", "Good", "Excellent"] },
+    { key: "K5", label: "Planned outputs, measurability and sustainability", short: "Concrete outputs, UHK impact, potential follow-up.", desc: "Are outputs concrete and verifiable (publications, mobility, workshop, etc.)? Expected impact on UHK R&D or students? Follow-up collaboration considered?", labels: ["Vague", "Weak", "Fair", "Good", "Excellent"] },
+  ];
+  var CONNECT_BUDGET_LABEL_CS = {
+    budget_travel: "Jízdné",
+    budget_accommodation: "Ubytování",
+    budget_meals: "Stravné",
+    budget_local: "Místní doprava",
+    budget_fee: "Poplatek (konference / workshop)",
+    budget_publication: "Publikační náklady",
+    budget_personnel: "Osobní náklady (DPP)",
+  };
+  var CONNECT_BUDGET_LABEL_EN = {
+    budget_travel: "Travel",
+    budget_accommodation: "Accommodation",
+    budget_meals: "Meals",
+    budget_local: "Local transport",
+    budget_fee: "Fee (conference / workshop)",
+    budget_publication: "Publication costs",
+    budget_personnel: "Personnel costs (short-term)",
+  };
+
+  function getLang() {
+    return global.localStorage.getItem(STORAGE) === "en" ? "en" : "cs";
+  }
+
+  function setLang(code) {
+    if (code !== "cs" && code !== "en") return;
+    global.localStorage.setItem(STORAGE, code);
+    global.location.reload();
+  }
+
+  function t(path) {
+    var lang = getLang();
+    var v = deepGet(MESSAGES[lang], path);
+    if (v !== undefined && v !== null) return v;
+    v = deepGet(MESSAGES.cs, path);
+    if (v !== undefined && v !== null) return v;
+    return path;
+  }
+
+  function tReplace(path, vars) {
+    var s = String(t(path));
+    if (!vars) return s;
+    Object.keys(vars).forEach(function (k) {
+      s = s.split("{{" + k + "}}").join(String(vars[k]));
+    });
+    return s;
+  }
+
+  function applyFromUrl() {
+    try {
+      var p = new global.URLSearchParams(global.location.search);
+      var q = p.get("lang");
+      if (q === "en" || q === "cs") {
+        global.localStorage.setItem(STORAGE, q);
+        p.delete("lang");
+        var u = new global.URL(global.location.href);
+        u.search = p.toString() ? "?" + p.toString() : "";
+        global.history.replaceState({}, "", u.toString());
+      }
+    } catch (e) {}
+  }
+
+  function patchConfigGlobals() {
+    if (getLang() !== "en") return;
+    var e = MESSAGES.en;
+    if (typeof global.ROLES !== "undefined" && e.rolesPatch) {
+      Object.keys(e.rolesPatch).forEach(function (k) {
+        if (global.ROLES[k] && e.rolesPatch[k]) {
+          if (e.rolesPatch[k].label) global.ROLES[k].label = e.rolesPatch[k].label;
+          if (e.rolesPatch[k].description) global.ROLES[k].description = e.rolesPatch[k].description;
+        }
+      });
     }
-    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--navy); min-height: 100vh; font-size: 15px; line-height: 1.6; }
-
-    /* TOPBAR */
-    .topbar { background: var(--navy); height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 100; }
-    .topbar__logo { display: flex; align-items: center; gap: 10px; }
-    .topbar__logo img { height: 26px; opacity: .9; }
-    .topbar__title { font-size: 14px; font-weight: 500; color: rgba(255,255,255,.8); }
-    .topbar__right { display: flex; align-items: center; gap: 10px; }
-    .topbar__user { font-size: 13px; color: rgba(255,255,255,.5); }
-    .topbar__user strong { color: rgba(255,255,255,.85); font-weight: 500; }
-    .btn-back { background: none; border: 1px solid rgba(255,255,255,.2); color: rgba(255,255,255,.6); font-family: 'DM Mono', monospace; font-size: 11px; padding: 5px 12px; border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; transition: all .15s; }
-    .btn-back:hover { color: white; border-color: rgba(255,255,255,.4); }
-
-    /* PROGRESS BAR */
-    .progress-wrap { background: white; border-bottom: 1px solid var(--border); padding: 0 24px; }
-    .progress-inner { max-width: 860px; margin: 0 auto; display: flex; align-items: center; gap: 0; }
-    .progress-step { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 12px 8px; position: relative; cursor: pointer; }
-    .progress-step::after { content: ''; position: absolute; right: 0; top: 50%; width: 1px; height: 24px; background: var(--border); transform: translateY(-50%); }
-    .progress-step:last-child::after { display: none; }
-    .progress-dot { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border); background: white; display: flex; align-items: center; justify-content: center; font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; color: var(--muted); margin-bottom: 4px; transition: all .2s; }
-    .progress-step.done .progress-dot { background: var(--green); border-color: var(--green); color: white; }
-    .progress-step.active .progress-dot { background: var(--navy); border-color: var(--navy); color: white; }
-    .progress-label { font-size: 11px; color: var(--muted); text-align: center; font-weight: 500; }
-    .progress-step.active .progress-label { color: var(--navy); }
-    .progress-step.done .progress-label { color: var(--green); }
-
-    /* LAYOUT */
-    .app-layout { max-width: 860px; margin: 0 auto; padding: 32px 24px 80px; display: grid; grid-template-columns: 1fr 280px; gap: 24px; align-items: start; }
-    @media (max-width: 700px) { .app-layout { grid-template-columns: 1fr; } .sidebar { display: none; } }
-
-    /* FORM PANEL */
-    .form-panel { background: white; border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow); overflow: hidden; }
-    .section-header { background: var(--gold-lite); border-bottom: 1px solid #E8D88A; padding: 16px 24px; }
-    .section-header h2 { font-size: 15px; font-weight: 600; color: #7A5A10; }
-    .section-header p { font-size: 13px; color: #92400E; margin-top: 2px; opacity: .9; }
-    .form-body { padding: 24px; display: flex; flex-direction: column; gap: 20px; }
-
-    /* FIELD */
-    .field { display: flex; flex-direction: column; gap: 6px; }
-    .field-label { font-size: 13px; font-weight: 500; color: var(--navy); display: flex; align-items: center; gap: 4px; }
-    .field-required { color: #C41E1E; font-size: 14px; line-height: 1; }
-    .field-help { font-size: 12px; color: var(--muted); }
-    .field input[type="text"], .field input[type="email"], .field input[type="number"], .field input[type="date"],
-    .field select, .field textarea {
-      width: 100%; padding: 10px 12px; border: 1.5px solid var(--border);
-      border-radius: var(--r); font-family: 'DM Sans', sans-serif; font-size: 14px;
-      color: var(--navy); background: white; outline: none; transition: border-color .15s, box-shadow .15s;
+    if (typeof global.COMP_STATUSES !== "undefined" && e.compStatuses) {
+      Object.keys(e.compStatuses).forEach(function (k) {
+        if (global.COMP_STATUSES[k] && e.compStatuses[k]) {
+          Object.assign(global.COMP_STATUSES[k], e.compStatuses[k]);
+        }
+      });
     }
-    .field input:focus, .field select:focus, .field textarea:focus {
-      border-color: var(--navy-mid); box-shadow: 0 0 0 3px rgba(47,74,138,.1);
+    if (typeof global.APP_STATUSES !== "undefined" && e.appStatuses) {
+      Object.keys(e.appStatuses).forEach(function (k) {
+        if (global.APP_STATUSES[k] && e.appStatuses[k]) {
+          Object.assign(global.APP_STATUSES[k], e.appStatuses[k]);
+        }
+      });
     }
-    .field input.error, .field select.error, .field textarea.error { border-color: var(--red); }
-    .field textarea { min-height: 96px; resize: vertical; line-height: 1.5; }
-    .field select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%231C2E5A' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; cursor: pointer; }
-    .field-error { font-size: 12px; color: var(--red); display: none; }
-    .field-error.show { display: block; }
-
-    /* RADIO GROUP */
-    .radio-group { display: flex; flex-direction: column; gap: 8px; }
-    .radio-option { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: var(--r); cursor: pointer; transition: all .15s; }
-    .radio-option:hover { border-color: var(--navy-mid); background: var(--navy-lite); }
-    .radio-option input[type="radio"] { accent-color: var(--navy); width: 16px; height: 16px; cursor: pointer; flex-shrink: 0; }
-    .radio-option.selected { border-color: var(--navy); background: var(--navy-lite); }
-    .radio-label { font-size: 14px; color: var(--navy); line-height: 1.3; }
-
-    /* CHECKBOX */
-    .checkbox-wrap { display: flex; align-items: flex-start; gap: 10px; padding: 14px; border: 1.5px solid var(--border); border-radius: var(--r); }
-    .checkbox-wrap input[type="checkbox"] { accent-color: var(--navy); width: 18px; height: 18px; cursor: pointer; flex-shrink: 0; margin-top: 1px; }
-    .checkbox-label { font-size: 13px; color: var(--navy); line-height: 1.5; }
-
-    /* FILE */
-    .file-zone { border: 2px dashed var(--border); border-radius: var(--r); padding: 20px; text-align: center; cursor: pointer; transition: all .15s; }
-    .file-zone:hover { border-color: var(--navy-mid); background: var(--navy-lite); }
-    .file-zone-icon { font-size: 24px; margin-bottom: 6px; }
-    .file-zone-text { font-size: 13px; color: var(--muted); }
-    .file-zone-hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
-    .file-zone input[type="file"] { display: none; }
-    .file-selected { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--green-lite); border-radius: var(--r); margin-top: 8px; font-size: 13px; color: var(--green); }
-
-    /* BUDGET TABLE */
-    .budget-table { border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
-    .budget-row { display: grid; grid-template-columns: 1fr 140px; align-items: center; border-bottom: 1px solid var(--border); }
-    .budget-row:last-child { border-bottom: none; background: var(--navy-lite); }
-    .budget-label { padding: 10px 14px; font-size: 13px; color: var(--navy); }
-    .budget-label.total { font-weight: 600; }
-    .budget-input { border: none; border-left: 1px solid var(--border); padding: 10px 12px; font-family: 'DM Mono', monospace; font-size: 13px; text-align: right; color: var(--navy); background: transparent; width: 100%; outline: none; }
-    .budget-input:focus { background: var(--navy-lite); }
-    .budget-total-val { padding: 10px 12px; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 600; color: var(--navy); text-align: right; border-left: 1px solid var(--border); }
-
-    /* SECTION DIVIDER */
-    .section-divider { display: flex; align-items: center; gap: 12px; padding: 4px 0; }
-    .section-divider-line { flex: 1; height: 1px; background: var(--border); }
-    .section-divider-label { font-size: 12px; font-weight: 600; color: var(--navy); letter-spacing: .05em; text-transform: uppercase; background: var(--navy-lite); padding: 4px 12px; border-radius: 100px; border: 1px solid #D0D8EE; white-space: nowrap; }
-
-    /* BUTTONS */
-    .form-footer { padding: 20px 24px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #FAFAF8; }
-    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border-radius: var(--r); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all .15s; text-decoration: none; }
-    .btn-primary { background: var(--navy); color: white; }
-    .btn-primary:hover { background: var(--navy-mid); }
-    .btn-primary:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
-    .btn-secondary { background: white; color: var(--navy); border: 1.5px solid var(--border); }
-    .btn-secondary:hover { border-color: var(--navy); background: var(--navy-lite); }
-    .btn-ghost { background: transparent; color: var(--muted); font-size: 13px; padding: 8px 12px; }
-    .btn-ghost:hover { color: var(--navy); }
-
-    /* SAVE STATUS */
-    .save-status { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; font-family: 'DM Mono', monospace; }
-    .save-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); }
-    .save-dot.saving { background: var(--gold); animation: pulse .8s infinite; }
-    .save-dot.saved { background: var(--green); }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
-
-    /* SIDEBAR */
-    .sidebar { display: flex; flex-direction: column; gap: 16px; }
-    .sidebar-card { background: white; border: 1px solid var(--border); border-radius: var(--r-lg); padding: 18px; box-shadow: var(--shadow); }
-    .sidebar-card h3 { font-size: 13px; font-weight: 600; color: var(--navy); margin-bottom: 10px; }
-    .sidebar-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
-    .sidebar-item:last-child { border-bottom: none; }
-    .sidebar-key { color: var(--muted); }
-    .sidebar-val { color: var(--navy); font-weight: 500; text-align: right; }
-    .checklist-item { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 12px; color: var(--muted); }
-    .checklist-item.done { color: var(--green); }
-    .checklist-dot { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 9px; }
-    .checklist-item.done .checklist-dot { background: var(--green); border-color: var(--green); color: white; }
-    .budget-summary { font-size: 22px; font-weight: 600; color: var(--navy); font-family: 'DM Mono', monospace; margin-bottom: 4px; }
-    .budget-limit { font-size: 12px; color: var(--muted); }
-    .budget-bar-wrap { height: 6px; background: var(--border); border-radius: 3px; margin-top: 10px; }
-    .budget-bar { height: 6px; border-radius: 3px; background: var(--navy); transition: width .3s; }
-    .budget-bar.over { background: var(--red); }
-
-    /* LOADING */
-    .loading-state { padding: 48px 24px; text-align: center; color: var(--muted); }
-    .spinner { width: 28px; height: 28px; border: 2px solid var(--border); border-top-color: var(--navy); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 12px; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* TOAST */
-    .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px); color: white; font-size: 14px; font-weight: 500; padding: 12px 24px; border-radius: 100px; z-index: 9999; transition: transform .3s cubic-bezier(.34,1.56,.64,1); white-space: nowrap; }
-    .toast.show { transform: translateX(-50%) translateY(0); }
-
-    .badge { display: inline-block; padding: 3px 10px; border-radius: 100px; font-size: 11px; font-weight: 600; }
-    .badge-draft { background: #E6F1FB; color: #0C447C; }
-    .badge-submitted { background: var(--green-lite); color: var(--green); }
-    .badge-review { background: var(--gold-lite); color: #92400E; }
-    .badge-rejected { background: var(--red-lite); color: var(--red); }
-    .outcome-card { background: linear-gradient(180deg,#F0F4FC 0%,#E8EDF8 100%); border: 1px solid #C8D4EC; border-radius: var(--r-lg); padding: 16px; }
-    .outcome-card h3 { font-size: 12px; font-weight: 700; color: var(--navy-mid); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 10px; }
-    .outcome-dec { font-size: 16px; font-weight: 600; color: var(--navy); margin-bottom: 10px; line-height: 1.35; }
-    .outcome-comment { font-size: 13px; line-height: 1.55; color: var(--navy); white-space: pre-wrap; }
-    .outcome-meta { font-size: 11px; color: var(--muted); margin-top: 10px; }
-
-    .vyzva-list { list-style: none; padding: 0; margin: 0; font-size: 12px; line-height: 1.45; color: var(--navy); }
-    .vyzva-list li { padding: 10px 0; border-bottom: 1px solid var(--border); }
-    .vyzva-list li:last-child { border-bottom: none; }
-    .vyzva-list strong { display: block; font-size: 12px; margin-bottom: 2px; }
-    .vyzva-list .vyzva-date { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--navy-mid); }
-    .vyzva-list .vyzva-note { font-size: 11px; color: var(--muted); margin-top: 2px; }
-    .vyzva-footnote { font-size: 11px; color: var(--muted); margin-top: 12px; line-height: 1.4; }
-  </style>
-</head>
-<body>
-
-  <header class="topbar">
-    <div class="topbar__logo">
-      <img src="../img/uhk-abb-w.png" alt="UHK">
-      <span class="topbar__title" data-i18n="meta.applyPrestige">UHK Prestige – Přihláška</span>
-    </div>
-    <div class="topbar__right">
-      <div class="topbar__user"><span data-i18n="common.signedIn">Přihlášen:</span> <strong id="topbarName">—</strong></div>
-      <a href="dashboard.html" class="btn-back" data-i18n="nav.backHub">← Rozcestník</a>
-    </div>
-  </header>
-
-  <!-- Progress -->
-  <div class="progress-wrap">
-    <div class="progress-inner" id="progressBar"></div>
-  </div>
-
-  <div class="app-layout">
-    <!-- Hlavní formulář -->
-    <div>
-      <div class="form-panel" id="formPanel">
-        <div class="loading-state" id="loadingState">
-          <div class="spinner"></div>
-          <p data-i18n="applyPrestige.loadingForm">Načítám formulář…</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Sidebar -->
-    <div class="sidebar">
-      <div class="sidebar-card">
-        <h3 data-i18n="applyPrestige.sidebarStatus">Stav přihlášky</h3>
-        <div style="margin-bottom:12px;">
-          <span class="badge badge-draft" id="statusBadge">DRAFT</span>
-        </div>
-        <div class="sidebar-item">
-          <span class="sidebar-key" data-i18n="applyPrestige.sidebarCompetition">Soutěž</span>
-          <span class="sidebar-val" data-i18n="applyPrestige.sidebarCompetitionVal">UHK Prestige</span>
-        </div>
-        <div class="sidebar-item">
-          <span class="sidebar-key" data-i18n="applyPrestige.sidebarDeadlineApply">Uzávěrka přihlášek</span>
-          <span class="sidebar-val" id="sidebarDeadlineApply">4. 5. 2026</span>
-        </div>
-        <div class="sidebar-item">
-          <span class="sidebar-key" data-i18n="applyPrestige.sidebarMaxY1">Max. podpora (rok 1)</span>
-          <span class="sidebar-val" data-i18n="applyPrestige.sidebarMaxVal">1 000 000 Kč</span>
-        </div>
-        <div class="sidebar-item">
-          <span class="sidebar-key" data-i18n="applyPrestige.sidebarSaved">Uloženo</span>
-          <span class="sidebar-val" id="lastSaved">—</span>
-        </div>
-        <p class="vyzva-footnote" style="margin-top:12px;margin-bottom:0;" data-i18n-html="applyPrestige.autosaveNoteHtml">
-          Koncept se ukládá <strong>automaticky po 30 s</strong> nečinnosti; ručně použijte „Uložit draft“.
-        </p>
-      </div>
-
-      <div class="sidebar-card outcome-card" id="prorektorOutcomeCard" style="display:none;">
-        <h3 data-i18n="applyFlow.prorektorHeading">Stanovisko prorektora</h3>
-        <p class="outcome-meta" id="outcomeAppRef" style="margin-top:0;margin-bottom:8px;"></p>
-        <div class="outcome-dec" id="outcomeDecision">—</div>
-        <div class="outcome-comment" id="outcomeComment"></div>
-        <p class="outcome-meta" id="outcomeDate"></p>
-      </div>
-
-      <div class="sidebar-card">
-        <h3 data-i18n="applyPrestige.termsTitle">Termíny výzvy (1/2026)</h3>
-        <ul class="vyzva-list" id="prestigeVyzvaList"></ul>
-        <p class="vyzva-footnote" data-i18n-html="applyPrestige.termsFootnoteHtml">Elektronické podání dle Vyhlášení výzvy č. 1/2026 UHK Prestige. Podvýzva <strong>Horizon No-Cost Entry</strong> (výzva 2/2026) bude v aplikaci doplněna – zatím viz samostatný dokument výzvy.</p>
-      </div>
-
-      <div class="sidebar-card">
-        <h3 data-i18n="applyPrestige.budgetCardTitle">Rozpočet</h3>
-        <div class="budget-summary" id="budgetDisplay">0 Kč</div>
-        <div class="budget-limit" data-i18n="applyPrestige.budgetOfMax">z max. 1 000 000 Kč (rok 1)</div>
-        <div class="budget-bar-wrap">
-          <div class="budget-bar" id="budgetBar" style="width:0%"></div>
-        </div>
-      </div>
-
-      <div class="sidebar-card">
-        <h3 data-i18n="applyPrestige.checklistTitle">Kontrolní seznam</h3>
-        <div id="checklist"></div>
-      </div>
-
-      <div class="sidebar-card" style="background:var(--gold-lite);border-color:#E8D88A;">
-        <h3 style="color:#7A5A10;" data-i18n="applyPrestige.helpTitle">Potřebujete pomoc?</h3>
-        <p style="font-size:12px;color:#7A5A10;line-height:1.5;">Ing. Veronika Hrůzová<br>
-          <a href="mailto:veronika.hruzova@uhk.cz" style="color:#7A5A10;">veronika.hruzova@uhk.cz</a><br>
-          +420 777 147 670</p>
-      </div>
-    </div>
-  </div>
-
-  <div class="toast" id="toast"></div>
-
-  <script src="../js/config.js"></script>
-  <script src="../js/i18n.js"></script>
-  <script src="../js/apply-flow-locales.js"></script>
-  <script src="../js/auth.js"></script>
-  <script src="../js/api.js"></script>
-  <script>
-
-    I18n.init();
-    (function () {
-      var el = document.querySelector(".topbar__right");
-      if (el) I18n.mountLangSwitch(el, "first");
-    })();
-    (function () {
-      var b = document.getElementById("statusBadge");
-      if (b && String(b.textContent).trim() === "DRAFT") b.textContent = I18n.t("appStatuses.DRAFT.label");
-    })();
-
-    const user = Auth.requireLogin(["ZADATEL","RESITEL","ADMIN","TESTER"]);
-    document.getElementById("topbarName").textContent = user.name || user.email;
-
-    function tp(k) { return I18n.t("applyPrestige." + k); }
-    function tf(k) { return I18n.t("applyFlow." + k); }
-    function trf(k) { return I18n.t("applyRega." + k); }
-
-    const PRESTIGE_STEP_I18N = { ident: "stepIdent", concept: "stepConcept", strategy: "stepStrategy", budget: "stepBudget", attachments: "stepAttachments" };
-    function getPrestigeStepLabel(sid) { return I18n.t("applyPrestige." + (PRESTIGE_STEP_I18N[sid] || "stepIdent")); }
-
-    function formatUiDateFromIso(iso) {
-      if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
-      const p = iso.split("-").map(Number);
-      return new Date(p[0], p[1] - 1, p[2]).toLocaleDateString(I18n.numLocale(), { day: "numeric", month: "long", year: "numeric" });
-    }
-
-    function optionDisplayLabel(f, optVal) {
-      if (I18n.getLang() !== "en" || !f.options_en) return optVal;
-      const a = (f.options || "").split(";").filter(Boolean);
-      const b = (f.options_en || "").split(";").filter(Boolean);
-      const i = a.indexOf(optVal);
-      return i >= 0 && b[i] ? b[i] : optVal;
-    }
-
-    function escapeAttr(s) {
-      return String(s == null ? "" : s)
-        .replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
-    }
-
-    const COMPETITION_ID = new URLSearchParams(location.search).get("c") || "uhk_prestige_2026";
-    const MAX_BUDGET = 1000000;
-    const IRIS_UHK_URL = "https://tomahana.github.io/IRIS_UHK/";
-
-    /** Milníky dle výzvy UHK Prestige 1/2026 (příprava ERC / Horizon Europe). */
-    const PRESTIGE_VYZVA = {
-      DEADLINE_APPLY_ISO: "2026-05-04",
-      milestones: [
-        { title: "Příjem žádostí", dateLabel: "do 4. 5. 2026 (8:00)", note: "elektronicky přes tuto aplikaci" },
-        { title: "Formální kontrola", dateLabel: "2 pracovní dny", note: "možnost doplnění" },
-        { title: "Hodnocení panelem", dateLabel: "10 pracovních dnů", note: "dle výzvy" },
-        { title: "Zahájení řešení – rok 1", dateLabel: "1. 6. 2026", note: "" },
-        { title: "Milník M1 – rozpracovaný draft", dateLabel: "30. 9. 2026", note: "" },
-        { title: "Ukončení čerpání r. 1 + průběžná zpráva", dateLabel: "30. 11. 2026", note: "rozhodnutí o pokračování do r. 2 do 20. 12. 2026" },
-        { title: "Milníky M3–M5 a podání do cílové soutěže", dateLabel: "2027", note: "dle výzvy a termínu ERC/HE" },
-        { title: "Závěrečná zpráva", dateLabel: "do 3 měsíců po podání návrhu", note: "dle výzvy" },
-      ],
+    global.formatDate = function (str) {
+      if (!str) return "–";
+      return new Date(str).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
     };
+    global.formatCZK = function (n) {
+      if (!n) return "–";
+      return Number(n).toLocaleString("en-GB") + " CZK";
+    };
+  }
 
-    function escapeHtml(s) {
-      return String(s == null ? "" : s)
-        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  function applyDom(root) {
+    var scope = root || document;
+    scope.querySelectorAll("[data-i18n]").forEach(function (el) {
+      var key = el.getAttribute("data-i18n");
+      if (!key) return;
+      el.textContent = t(key);
+    });
+    scope.querySelectorAll("[data-i18n-placeholder]").forEach(function (el) {
+      var key = el.getAttribute("data-i18n-placeholder");
+      if (key) el.setAttribute("placeholder", t(key));
+    });
+    scope.querySelectorAll("[data-i18n-title]").forEach(function (el) {
+      var key = el.getAttribute("data-i18n-title");
+      if (key) el.setAttribute("title", t(key));
+    });
+    scope.querySelectorAll("[data-i18n-html]").forEach(function (el) {
+      var key = el.getAttribute("data-i18n-html");
+      if (key) el.innerHTML = t(key);
+    });
+    var titleEl = document.querySelector("title[data-i18n]");
+    if (titleEl) {
+      var tk = titleEl.getAttribute("data-i18n");
+      if (tk) document.title = t(tk);
     }
+  }
 
-    function formatOutcomeDate(s) {
-      if (!s) return "";
-      const t = String(s).trim();
-      const m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
-      if (m) return `${Number(m[3])}. ${Number(m[2])}. ${m[1]}${t.length > 10 ? " · " + t.slice(11, 19) : ""}`;
-      return t;
-    }
-
-    function fillProrektorOutcomeCard(outcome, submittedApp) {
-      const card = document.getElementById("prorektorOutcomeCard");
-      if (!card) return;
-      if (!outcome || !outcome.decision) {
-        card.style.display = "none";
-        return;
-      }
-      card.style.display = "block";
-      const ref = document.getElementById("outcomeAppRef");
-      if (ref) ref.textContent = submittedApp && submittedApp.application_id
-        ? tf("appRefPrefix") + " " + submittedApp.application_id
-        : "";
-      document.getElementById("outcomeDecision").textContent = outcome.decisionLabel || outcome.decision || "—";
-      const comEl = document.getElementById("outcomeComment");
-      comEl.textContent = outcome.comment || "";
-      comEl.style.display = outcome.comment ? "block" : "none";
-      const dt = document.getElementById("outcomeDate");
-      dt.textContent = outcome.decidedAt ? tf("recordedPrefix") + " " + formatOutcomeDate(outcome.decidedAt) : "";
-    }
-
-    function hideProrektorOutcomeCard() {
-      const card = document.getElementById("prorektorOutcomeCard");
-      if (card) card.style.display = "none";
-    }
-
-    function statusToBadgeClass(st) {
-      const u = String(st || "").toUpperCase();
-      if (u === "APPROVED") return "badge-submitted";
-      if (u === "REJECTED") return "badge-rejected";
-      if (u === "IN_REVIEW" || u === "TO_REVIEW" || u === "FORMAL_CHECK") return "badge-review";
-      return "badge-draft";
-    }
-
-    function renderSubmittedApplicationView(sub, outcome, hasOtherDraft) {
-      document.getElementById("loadingState")?.remove();
-      document.querySelector(".progress-wrap")?.style.setProperty("opacity", "0.45");
-      const badge = document.getElementById("statusBadge");
-      badge.textContent = sub.status || "—";
-      badge.className = "badge " + statusToBadgeClass(sub.status);
-      const st = String(sub.status || "").toUpperCase();
-      const draftNote = hasOtherDraft
-        ? `<p style="font-size:13px;color:#2F4A8A;margin-top:18px;padding:14px 16px;background:var(--navy-lite);border-radius:var(--r);text-align:left;line-height:1.5;border:1px solid #D0D8EE;">
-            ${escapeHtml(tf("draftNotePrefix"))} <strong>${escapeHtml(tf("draftNoteStrong"))}</strong>.
-            <a href="apply-prestige.html?c=${encodeURIComponent(COMPETITION_ID)}" style="color:var(--navy);font-weight:600;white-space:nowrap;">${escapeHtml(tf("draftNoteContinue"))}</a>
-          </p>`
-        : "";
-      let outcomeBlock = "";
-      if (outcome && outcome.decision) {
-        outcomeBlock = `
-          <div class="outcome-card" style="text-align:left;margin:24px 0;">
-            <h3 style="margin-bottom:8px;">${escapeHtml(tf("prorektorHeading"))}</h3>
-            <div class="outcome-dec">${escapeHtml(outcome.decisionLabel || outcome.decision)}</div>
-            ${outcome.comment ? `<div class="outcome-comment">${escapeHtml(outcome.comment)}</div>` : ""}
-            ${outcome.decidedAt ? `<p class="outcome-meta">${escapeHtml(tf("recordedPrefix") + " " + formatOutcomeDate(outcome.decidedAt))}</p>` : ""}
-          </div>`;
-      } else if (st === "APPROVED" || st === "REJECTED") {
-        outcomeBlock = `<p style="font-size:14px;color:var(--muted);line-height:1.5;margin:20px 0;">${escapeHtml(tf("outcomeWaitRecorded"))}</p>`;
-      } else {
-        outcomeBlock = `<p style="font-size:14px;color:var(--muted);line-height:1.5;margin:20px 0;">${escapeHtml(tf("outcomeAfterReview"))}</p>`;
-      }
-      const icon = st === "REJECTED" ? "📋" : "✅";
-      document.getElementById("formPanel").innerHTML = `
-        <div style="padding:40px 28px;text-align:center;max-width:860px;margin:0 auto;">
-          <div style="font-size:44px;margin-bottom:14px;">${icon}</div>
-          <h2 style="font-size:20px;color:var(--navy);margin-bottom:8px;">${escapeHtml(sub.project_title || tf("appTitleFallback"))}</h2>
-          <p style="font-size:13px;color:var(--muted);margin-bottom:8px;">${escapeHtml(tf("appIdLabel"))} <span style="font-family:'DM Mono',monospace;">${escapeHtml(sub.application_id)}</span></p>
-          <p style="font-size:13px;color:var(--muted);margin-bottom:4px;">${escapeHtml(tf("statusLabel"))} <strong>${escapeHtml(sub.status)}</strong></p>
-          ${outcomeBlock}
-          ${draftNote}
-          <div id="postawardRoot" style="display:none;"></div>
-          <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:20px;">
-            <a href="my-projects.html" class="btn btn-ghost">${escapeHtml(tf("myProjects"))}</a>
-            <a href="dashboard.html" class="btn btn-primary">${escapeHtml(tf("hub"))}</a>
-          </div>
-        </div>`;
-    }
-
-    function getPrestigeMilestones() {
-      if (I18n.getLang() === "en" && typeof UhkApplyFlowEn !== "undefined" && UhkApplyFlowEn.prestige && UhkApplyFlowEn.prestige.milestones)
-        return UhkApplyFlowEn.prestige.milestones;
-      return PRESTIGE_VYZVA.milestones;
-    }
-
-    function renderPrestigeVyzvaSidebar() {
-      const ul = document.getElementById("prestigeVyzvaList");
-      if (!ul) return;
-      ul.innerHTML = getPrestigeMilestones().map((m) => `
-        <li>
-          <strong>${escapeHtml(m.title)}</strong>
-          <div class="vyzva-date">${escapeHtml(m.dateLabel)}</div>
-          ${m.note ? `<div class="vyzva-note">${escapeHtml(m.note)}</div>` : ""}
-        </li>
-      `).join("");
-      const sd = document.getElementById("sidebarDeadlineApply");
-      if (sd) sd.textContent = formatUiDateFromIso(PRESTIGE_VYZVA.DEADLINE_APPLY_ISO);
-    }
-
-    // Stav formuláře
-    let formFields  = [];
-    let formData    = {};
-    let draftId     = null;
-    let saveTimer   = null;
-    let isDirty     = false;
-    let currentSection = 0;
-
-    const STEPS = [
-      { id: "ident", fields: ["section_ident","project_title","target_scheme","planned_submission_date","support_year1_request","faculty","department","section_iris","iris_case_id","iris_checklist_result"] },
-      { id: "concept", fields: ["section_concept","concept_note","excellence_top5","prev_erc_he"] },
-      { id: "strategy", fields: ["section_strategy","strategy_why_call","strategy_work_packages","strategy_external_review","section_milestones","milestones_summary"] },
-      { id: "budget", fields: ["section_budget","budget_personnel","budget_agency","budget_training","budget_travel","budget_material","budget_other","budget_justification"] },
-      { id: "attachments", fields: ["section_attachments","attach_annex1","attach_annex2","attach_annex3","attach_checklist6","declaration"] },
-    ];
-
-    function getLocalFields() {
-      if (I18n.getLang() === "en" && typeof UhkApplyFlowEn !== "undefined" && UhkApplyFlowEn.prestige && UhkApplyFlowEn.prestige.fields)
-        return UhkApplyFlowEn.prestige.fields;
-      return getLocalFieldsCs();
-    }
-
-    async function loadFormFields() {
-      formFields = getLocalFields();
-      const jumpFinalize = new URLSearchParams(location.search).get("finalize") === "1";
-      renderProgress();
-      const submittedOnly = await loadDraft();
-      if (submittedOnly) {
-        if (jumpFinalize) window.scrollTo({ top: 0, behavior: "smooth" });
-        return;
-      }
-      renderSection(currentSection);
-      updateBudgetSidebarFromFormData();
-      if (jumpFinalize) {
-        currentSection = STEPS.length - 1;
-        renderProgress();
-        renderSection(currentSection);
-        updateBudgetSidebarFromFormData();
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }
-    }
-
-    function getLocalFieldsCs() {
-      return [
-        { field_id:"section_ident", field_label:"Identifikace záměru", field_type:"section_header" },
-        { field_id:"project_title", field_label:"Název záměru (CZ / EN)", field_type:"text", required:"TRUE", placeholder:"Pracovní název přípravy návrhu do ERC nebo Horizon Europe" },
-        { field_id:"target_scheme", field_label:"Cílová soutěž a schéma", field_type:"select", required:"TRUE",
-          options:"ERC Starting Grant;ERC Consolidator Grant;ERC Advanced Grant;ERC Synergy Grant;Horizon Europe – RIA;Horizon Europe – IA;Horizon Europe – IMDA;Jiná prestižní výzva (dle výzvy UHK Prestige)" },
-        { field_id:"planned_submission_date", field_label:"Předpokládaný termín podání návrhu", field_type:"date", required:"TRUE", help_text:"Reálný termín cílové výzvy v rámci harmonogramu projektu" },
-        { field_id:"support_year1_request", field_label:"Požadovaná podpora – rok 1 (Kč)", field_type:"number", required:"TRUE", placeholder:"např. 450000", help_text:"Horní limit 1 000 000 Kč na projekt a rok (11 měsíců) dle výzvy – žádáte o částku v této výši, nikoli automaticky plný limit" },
-        { field_id:"faculty", field_label:"Součást UHK / pracoviště", field_type:"select", required:"TRUE", options:"PřF;PdF;FF;FIM;FVZ;REKTORÁT" },
-        { field_id:"department", field_label:"Katedra / ústav", field_type:"text", required:"TRUE" },
-        { field_id:"section_iris", field_label:"IRIS UHK – formální údaje přihlášky", field_type:"section_header" },
-        {
-          field_id:"iris_case_id",
-          field_label:"Referenční ID IRIS UHK (UUID)",
-          field_type:"text",
-          required:"TRUE",
-          placeholder:"např. 5d6b05d2-7562-4f63-83ac-c2980be87afd",
-          help_text:'Pro ověření záznamu v IRIS uveďte <strong>jednoznačné referenční ID</strong> z potvrzení podání (UUID). V IRIS → <strong>Moje podání</strong> → pole <strong>Hledat</strong> musí vyjít jeden záznam. <a href="' + IRIS_UHK_URL + '" target="_blank" rel="noopener noreferrer">IRIS UHK</a>. Bez UUID ve starším potvrzení stačí <strong>Case ID</strong>. U výjimky dle výzvy / OVTZ (např. výhradně tuzemská spolupráce) postupujte dle pokynů.',
-        },
-        {
-          field_id:"iris_checklist_result",
-          field_label:"Souhrn z IRIS (výsledek, Case / Intake ID, skóre)",
-          field_type:"textarea",
-          required:"TRUE",
-          placeholder:"např. Case ID: … / Intake ID: … / Předběžný výsledek: … / Skóre: …",
-          help_text:"Z potvrzení nebo detailu zkopírujte alespoň předběžný výsledek; doporučené je uvést Case ID, Intake ID a skóre (nebo celý export). U výjimky dle výzvy krátké zdůvodnění.",
-        },
-        { field_id:"section_concept", field_label:"Concept note a excelence", field_type:"section_header" },
-        { field_id:"concept_note", field_label:"Shrnutí záměru a concept note (max. 2 strany – text)", field_type:"textarea", required:"TRUE", placeholder:"Cíl, vhodnost cílové soutěže, co bude dopracováno, plán externího review / agentury…", help_text:"Odpovídá oddílům 1 a 2 šablony žádosti (příloha č. 1 výzvy)" },
-        { field_id:"excellence_top5", field_label:"TOP výsledky relevantní pro cílovou soutěž (max. 5)", field_type:"textarea", required:"TRUE", placeholder:"Název, časopis/výstup, rok, DOI/odkaz, vazba na cílový projekt…", help_text:"Mezinárodní zkušenost / leadership můžete doplnit do textu" },
-        { field_id:"prev_erc_he", field_label:"Předchozí podání do ERC nebo Horizon Europe (pokud existuje)", field_type:"textarea", required:"FALSE", placeholder:"Cílová soutěž, výsledek hodnocení, hlavní kritika posudků, jak nová verze odpoví…", help_text:"Pokud jste již podávali – povinné vyplnění dle šablony; jinak uveďte „neaplikuje se“" },
-        { field_id:"section_strategy", field_label:"Strategie podání", field_type:"section_header" },
-        { field_id:"strategy_why_call", field_label:"Proč je zvolená cílová soutěž vhodná", field_type:"textarea", required:"TRUE" },
-        { field_id:"strategy_work_packages", field_label:"Jaké části návrhu budou připravovány v projektu Prestige", field_type:"textarea", required:"TRUE" },
-        { field_id:"strategy_external_review", field_label:"Plán externího review / agentury (pokud plánujete)", field_type:"textarea", required:"FALSE" },
-        { field_id:"section_milestones", field_label:"Milníky", field_type:"section_header" },
-        { field_id:"milestones_summary", field_label:"Stručný přehled klíčových milníků (M1–M5)", field_type:"textarea", required:"TRUE", placeholder:"Viz příloha č. 3 – zde stručný souhrn vazby na harmonogram", help_text:"Detailní tabulku doplňte v příloze č. 3 (soubor)" },
-        { field_id:"section_budget", field_label:"Rozpočet roku 1", field_type:"section_header" },
-        { field_id:"budget_personnel", field_label:"A. Osobní náklady (max. 40 %, max. 0,3 FTE řešitele)", field_type:"number", required:"FALSE", help_text:"DPP/DPČ, odměna – dle přílohy č. 2" },
-        { field_id:"budget_agency", field_label:"B. Agenturní / mentoringová podpora", field_type:"number", required:"FALSE" },
-        { field_id:"budget_training", field_label:"C. Vzdělávání a školení", field_type:"number", required:"FALSE" },
-        { field_id:"budget_travel", field_label:"D. Cestovné", field_type:"number", required:"FALSE" },
-        { field_id:"budget_material", field_label:"E. Materiál / data / analytické služby", field_type:"number", required:"FALSE" },
-        { field_id:"budget_other", field_label:"F. Ostatní způsobilé náklady", field_type:"number", required:"FALSE", help_text:"Např. publikační poplatky, jazyková korektura" },
-        { field_id:"section_attachments", field_label:"Povinné přílohy (sken / PDF)", field_type:"section_header" },
-        { field_id:"attach_annex1", field_label:"Příloha č. 1 – šablona žádosti vč. concept note", field_type:"file", required:"TRUE", options:"pdf,doc,docx", help_text:"Vyplněná šablona dle výzvy" },
-        { field_id:"attach_annex2", field_label:"Příloha č. 2 – rozpočet roku 1 + věcné odůvodnění", field_type:"file", required:"TRUE", options:"pdf,xlsx,xls", help_text:"Tabulka dle výzvy" },
-        { field_id:"attach_annex3", field_label:"Příloha č. 3 – milníky", field_type:"file", required:"TRUE", options:"pdf,xlsx,xls,doc,docx", help_text:"Tabulka milníků" },
-        { field_id:"attach_checklist6", field_label:"Příloha č. 6 – checklist způsobilosti", field_type:"file", required:"TRUE", options:"pdf,doc,docx", help_text:"ERC / Horizon Europe dle výzvy" },
-        { field_id:"declaration", field_label:"Prohlášení", field_type:"checkbox", required:"TRUE", help_text:"Beru na vědomí povinnost podání návrhu do cílové prestižní soutěže a dokladování, průběžnou zprávu k 30. 11. 2026 a podmínky výzvy UHK Prestige 1/2026. Potvrzuji správnost údajů." },
-      ];
-    }
-
-    // ── Progress bar ────────────────────────────────────────────
-    function renderProgress() {
-      document.getElementById("progressBar").innerHTML = STEPS.map((s, i) => `
-        <div class="progress-step ${i < currentSection ? "done" : i === currentSection ? "active" : ""}"
-          onclick="goToSection(${i})">
-          <div class="progress-dot">${i < currentSection ? "✓" : i + 1}</div>
-          <div class="progress-label">${escapeHtml(getPrestigeStepLabel(s.id))}</div>
-        </div>`).join("");
-    }
-
-    function goToSection(i) {
-      if (i > currentSection) {
-        if (!validateSection()) return;
-      }
-      saveDraftSilent();
-      currentSection = i;
-      renderProgress();
-      renderSection(currentSection);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-
-    // ── Render sekce ────────────────────────────────────────────
-    function renderSection(idx) {
-      const step   = STEPS[idx];
-      const fields = formFields.filter(f => step.fields.includes(f.field_id));
-      const panel  = document.getElementById("formPanel");
-
-      let html = `
-        <div class="section-header">
-          <h2>${escapeHtml(getPrestigeStepLabel(step.id))}</h2>
-          <p>${escapeHtml(I18n.tReplace("applyFlow.stepOf", { n: String(idx + 1), total: String(STEPS.length) }))}</p>
-        </div>
-        <div class="form-body" id="formBody">`;
-
-      if (step.id === "budget") {
-        html += renderBudgetTable();
-      } else {
-        fields.forEach(f => {
-          html += renderField(f);
-        });
-      }
-
-      html += `</div>
-        <div class="form-footer">
-          <div class="save-status">
-            <div class="save-dot" id="saveDot"></div>
-            <span id="saveStatusText">${escapeHtml(trf("footerUnsaved"))}</span>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center;">
-            ${idx > 0 ? `<button class="btn btn-secondary" onclick="prevSection()">${escapeHtml(trf("footerBack"))}</button>` : ""}
-            <button type="button" class="btn btn-ghost" onclick="saveDraftManual()" title="${escapeAttr(tf("saveDraftTitle"))}">${escapeHtml(trf("footerSaveDraft"))}</button>
-            ${idx < STEPS.length - 1
-              ? `<button class="btn btn-primary" onclick="nextSection()">${escapeHtml(trf("footerContinue"))}</button>`
-              : `<button class="btn btn-primary" id="submitBtn" onclick="submitApplication()">${escapeHtml(trf("footerSubmit"))}</button>`}
-          </div>
-        </div>`;
-
-      panel.innerHTML = html;
-      restoreValues(fields);
-      if (step.id === "budget") syncBudgetTotalsFromDom({ markDirty: false });
-      else updateBudgetSidebarFromFormData();
-      updateChecklist();
-    }
-
-    function renderField(f) {
-      if (f.field_type === "section_header") {
-        return `<div class="section-divider">
-          <div class="section-divider-line"></div>
-          <div class="section-divider-label">${escapeHtml(f.field_label)}</div>
-          <div class="section-divider-line"></div>
-        </div>`;
-      }
-
-      const req = f.required === "TRUE" || f.required === true;
-      const val = formData[f.field_id] || "";
-      let input = "";
-      const ph = escapeAttr(f.placeholder || "");
-      const errReq = escapeHtml(tf("fieldErrRequired"));
-      const errFile = escapeHtml(tf("fieldErrFile"));
-
-      if (f.field_type === "textarea") {
-        input = `<textarea id="f-${f.field_id}" placeholder="${ph}" ${req?"required":""}
-          onchange="onFieldChange('${f.field_id}',this.value)">${escapeHtml(val)}</textarea>`;
-
-      } else if (f.field_type === "select") {
-        const opts = (f.options||"").split(";").filter(Boolean);
-        const selPh = escapeHtml(tf("selectPlaceholder"));
-        input = `<select id="f-${f.field_id}" ${req?"required":""}
-          onchange="onFieldChange('${f.field_id}',this.value)">
-          <option value="">${selPh}</option>
-          ${opts.map(o => {
-            const disp = escapeHtml(optionDisplayLabel(f, o));
-            return `<option value="${escapeAttr(o)}" ${val===o?"selected":""}>${disp}</option>`;
-          }).join("")}
-        </select>`;
-
-      } else if (f.field_type === "radio") {
-        const opts = (f.options||"").split(";").filter(Boolean);
-        input = `<div class="radio-group">
-          ${opts.map((o,i) => {
-            const disp = escapeHtml(optionDisplayLabel(f, o));
-            return `
-            <label class="radio-option ${val===o?"selected":""}">
-              <input type="radio" name="${f.field_id}" value="${escapeAttr(o)}" ${val===o?"checked":""}
-                onchange="onRadioChange('${f.field_id}',this)">
-              <span class="radio-label">${disp}</span>
-            </label>`;
-          }).join("")}
-        </div>`;
-
-      } else if (f.field_type === "checkbox") {
-        return `<div class="field">
-          <div class="checkbox-wrap">
-            <input type="checkbox" id="f-${f.field_id}" ${val==="true"?"checked":""}
-              onchange="onFieldChange('${f.field_id}',this.checked?'true':'')">
-            <label class="checkbox-label" for="f-${f.field_id}">${f.help_text || f.field_label} ${req?'<span style="color:var(--red)">*</span>':""}</label>
-          </div>
-          <div class="field-error" id="err-${f.field_id}">${errReq}</div>
-        </div>`;
-
-      } else if (f.field_type === "file") {
-        const accept = f.options ? f.options.split(",").map(e=>"."+e.trim()).join(",") : "*";
-        const fmtHint = escapeHtml(tf("fileFormat")) + " " + escapeHtml(f.options || (I18n.getLang() === "en" ? "any" : "jakýkoli"));
-        return `<div class="field">
-          <label class="field-label">${f.field_label} ${req?'<span class="field-required">*</span>':""}</label>
-          ${f.help_text ? `<div class="field-help">${f.help_text}</div>` : ""}
-          <div class="file-zone" onclick="document.getElementById('f-${f.field_id}').click()">
-            <div class="file-zone-icon">📎</div>
-            <div class="file-zone-text">${escapeHtml(tf("filePick"))}</div>
-            <div class="file-zone-hint">${fmtHint}</div>
-            <input type="file" id="f-${f.field_id}" accept="${accept}"
-              onchange="onFileChange('${f.field_id}',this)">
-          </div>
-          <div id="file-info-${f.field_id}" style="display:none;" class="file-selected">
-            <span>✓</span> <span id="file-name-${f.field_id}"></span>
-          </div>
-          <div class="field-error" id="err-${f.field_id}">${errFile}</div>
-        </div>`;
-
-      } else {
-        input = `<input type="${f.field_type}" id="f-${f.field_id}"
-          placeholder="${ph}" value="${escapeAttr(val)}" ${req?"required":""}
-          onchange="onFieldChange('${f.field_id}',this.value)"
-          ${f.field_type==="number"?"min='0'":""}>`;
-      }
-
-      return `<div class="field">
-        <label class="field-label" for="f-${f.field_id}">
-          ${f.field_label} ${req?'<span class="field-required">*</span>':""}
-        </label>
-        ${f.help_text ? `<div class="field-help">${f.help_text}</div>` : ""}
-        ${input}
-        <div class="field-error" id="err-${f.field_id}">${errReq}</div>
-      </div>`;
-    }
-
-    function restoreValues(fields) {
-      // Hodnoty jsou již vloženy v renderField přes value="..." – jen pro jistotu radio
-      fields.filter(f => f.field_type === "radio").forEach(f => {
-        if (formData[f.field_id]) {
-          document.querySelectorAll(`input[name="${f.field_id}"]`).forEach(r => {
-            r.closest(".radio-option")?.classList.toggle("selected", r.value === formData[f.field_id]);
-          });
-        }
+  function bindLangSwitches(scope) {
+    var root = scope || document;
+    root.querySelectorAll("[data-lang-set]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        setLang(btn.getAttribute("data-lang-set"));
       });
-    }
+    });
+  }
 
-    // ── Inline rozpočtová tabulka ─────────────────────────────────
-    function renderBudgetTable() {
-      const enBu =
-        I18n.getLang() === "en" && typeof UhkApplyFlowEn !== "undefined" && UhkApplyFlowEn.prestige && UhkApplyFlowEn.prestige.budgetUi
-          ? UhkApplyFlowEn.prestige.budgetUi
-          : null;
+  function mountLangSwitch(host, position) {
+    if (!host) return;
+    if (host.querySelector(".uhk-lang-switch")) return;
+    var wrap = document.createElement("span");
+    wrap.className = "uhk-lang-switch";
+    wrap.setAttribute("role", "group");
+    wrap.setAttribute("aria-label", t("lang.label"));
+    ["cs", "en"].forEach(function (code) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "uhk-lang-switch__btn" + (getLang() === code ? " uhk-lang-switch__btn--active" : "");
+      b.setAttribute("data-lang-set", code);
+      b.textContent = code.toUpperCase();
+      b.setAttribute("aria-pressed", getLang() === code ? "true" : "false");
+      wrap.appendChild(b);
+    });
+    if (position === "first") host.insertBefore(wrap, host.firstChild);
+    else host.appendChild(wrap);
+    bindLangSwitches(wrap);
+  }
 
-      const items = enBu
-        ? enBu.items
-        : [
-            { id: "budget_personnel", label: "A. Osobní náklady (řešitel / tým, max. 40 %, max. 0,3 FTE řešitele)", help: "DPP/DPČ, odvody, FKSP – dle přílohy č. 2 výzvy", note: "" },
-            { id: "budget_agency", label: "B. Agenturní / mentoringová podpora", help: "Kritické čtení, příprava částí návrhu, interview training…", note: "" },
-            { id: "budget_training", label: "C. Vzdělávání a školení", help: "Kurzy, workshopy, letní školy", note: "" },
-            { id: "budget_travel", label: "D. Cestovné", help: "Doprava, ubytování, stravné (pracovní cesta)", note: "" },
-            { id: "budget_material", label: "E. Materiál / data / analytické služby", help: "Pilotní aktivity, odborné analýzy", note: "" },
-            { id: "budget_other", label: "F. Ostatní způsobilé náklady", help: "Např. publikační poplatky, jazyková korektura", note: "" },
-          ];
+  function init() {
+    applyFromUrl();
+    document.documentElement.lang = getLang() === "en" ? "en" : "cs";
+    patchConfigGlobals();
+    applyDom();
+    bindLangSwitches();
+  }
 
-      const tableTitle = enBu ? enBu.tableTitle : "Rozpočet přihlášky";
-      const tableHelp = enBu ? enBu.tableHelp : "Vyplňte pouze položky které budete čerpat. Součet se počítá automaticky.";
-      const yellowWarnHtml = enBu
-        ? enBu.yellowWarn
-        : "⚠ Součet položek nesmí překročit <strong>1 000 000 Kč</strong> (rok 1). Osobní náklady max. <strong>40 %</strong> schválené podpory a max. <strong>0,3 FTE</strong> řešitele dle výzvy.";
-      const thLine = enBu ? enBu.thLine : "Položka";
-      const thAmount = enBu ? enBu.thAmount : "Požadovaná částka";
-      const totalLabel = enBu ? enBu.totalLabel : "Celkem";
-      const warnRed = enBu ? enBu.warnRed : "⚠ Celková podpora překračuje maximum 1 000 000 Kč (rok 1)";
-      const justLabel = enBu ? enBu.justLabel : "Odůvodnění rozpočtu";
-      const justHelp = enBu ? enBu.justHelp : "Vazba jednotlivých položek na plánovanou aktivitu";
-      const justPh = enBu ? enBu.justPh : "Jízdné: letenka Praha–Londýn zpátečně dle ceníku ČSA přibližně 8 000 Kč…";
-      const currencyCol = I18n.getLang() === "en" ? "CZK" : "Kč";
-      const errReq = escapeHtml(tf("fieldErrRequired"));
+  function roleLoginMeta(role) {
+    var lang = getLang();
+    var block = MESSAGES[lang].roles && MESSAGES[lang].roles[role];
+    if (block) return { name: block.name, desc: block.desc };
+    block = MESSAGES.cs.roles[role];
+    return block ? { name: block.name, desc: block.desc } : { name: role, desc: "" };
+  }
 
-      const rows = items
-        .map((it) => {
-          const noteEsc = it.note ? escapeHtml(it.note) : "";
-          return `
-        <tr>
-          <td style="padding:10px 14px;font-size:13px;color:var(--navy);border-bottom:1px solid var(--border);">
-            <div style="display:flex;align-items:center;gap:8px;">
-              ${escapeHtml(it.label)}
-              ${it.note ? `<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;background:#FEF3C7;color:#92400E;white-space:nowrap;">${noteEsc}</span>` : ""}
-            </div>
-            <div style="font-size:11px;color:var(--muted);margin-top:2px;">${escapeHtml(it.help)}</div>
-          </td>
-          <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);width:140px;">
-            <input type="number" id="f-${it.id}" min="0" step="1"
-              value="${escapeAttr(formData[it.id] || "")}"
-              placeholder="0"
-              oninput="onBudgetInput()"
-              style="width:100%;border:none;padding:10px 12px;font-family:'DM Mono',monospace;font-size:13px;text-align:right;color:var(--navy);background:transparent;outline:none;">
-          </td>
-          <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);padding:10px 12px;font-size:11px;color:var(--muted);width:48px;text-align:center;">${escapeHtml(currencyCol)}</td>
-        </tr>`;
-        })
-        .join("");
+  function competitionDisplayName(id) {
+    var k = "reviewConnect.cnames." + id;
+    var v = t(k);
+    return v === k ? id : v;
+  }
 
-      const totalFmt = escapeHtml(I18n.fmtMoney(0));
-
-      return `
-        <div class="field">
-          <label class="field-label">${escapeHtml(tableTitle)}</label>
-          <div class="field-help">${escapeHtml(tableHelp)}</div>
-          <div style="padding:10px 14px;background:#FEF3C7;border:1px solid #FDE68A;border-radius:var(--r);font-size:12px;color:#92400E;margin-top:4px;margin-bottom:8px;">
-            ${yellowWarnHtml}
-          </div>
-          <div style="border:1.5px solid var(--border);border-radius:var(--r);overflow:hidden;margin-top:4px;">
-            <table style="width:100%;border-collapse:collapse;">
-              <thead>
-                <tr style="background:var(--navy-lite);">
-                  <th style="padding:10px 14px;text-align:left;font-size:12px;font-weight:600;color:var(--navy);border-bottom:1px solid var(--border);">${escapeHtml(thLine)}</th>
-                  <th colspan="2" style="padding:10px 14px;text-align:right;font-size:12px;font-weight:600;color:var(--navy);border-bottom:1px solid var(--border);">${escapeHtml(thAmount)}</th>
-                </tr>
-              </thead>
-              <tbody>${rows}</tbody>
-              <tfoot>
-                <tr style="background:var(--navy-lite);">
-                  <td style="padding:12px 14px;font-size:14px;font-weight:600;color:var(--navy);">${escapeHtml(totalLabel)}</td>
-                  <td colspan="2" style="padding:12px 14px;text-align:right;font-family:'DM Mono',monospace;font-size:16px;font-weight:600;color:var(--navy);border-left:1px solid var(--border);">
-                    <span id="budgetTableTotal">${totalFmt}</span>
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-          <div id="budgetWarn" style="display:none;margin-top:8px;padding:8px 12px;background:var(--red-lite);border-radius:var(--r);font-size:12px;color:var(--red);">
-            ${warnRed}
-          </div>
-        </div>
-        <div class="field" style="margin-top:16px;">
-          <label class="field-label">${escapeHtml(justLabel)} <span class="field-required">*</span></label>
-          <div class="field-help">${escapeHtml(justHelp)}</div>
-          <textarea id="f-budget_justification"
-            placeholder="${escapeAttr(justPh)}"
-            onchange="onFieldChange('budget_justification',this.value)"
-            style="min-height:90px;">${escapeHtml(formData["budget_justification"] || "")}</textarea>
-          <div class="field-error" id="err-budget_justification">${errReq}</div>
-        </div>`;
-    }
-
-    /** Přepočítá rozpočet z inputů v DOM. Bez rozpočtové tabulky v DOM nic nemění (nehazarduje s budget_total). */
-    function syncBudgetTotalsFromDom(options) {
-      const opts = options || {};
-      if (!document.getElementById("f-budget_personnel")) return;
-      const ids = ["budget_personnel","budget_agency","budget_training","budget_travel","budget_material","budget_other"];
-      let total = 0;
-      ids.forEach(id => {
-        const el = document.getElementById("f-" + id);
-        if (el) {
-          const v = parseFloat(el.value) || 0;
-          formData[id] = el.value;
-          total += v;
-        }
-      });
-      formData["budget_total"] = String(total);
-
-      const tt = document.getElementById("budgetTableTotal");
-      if (tt) tt.textContent = I18n.fmtMoney(total);
-      const warn = document.getElementById("budgetWarn");
-      if (warn) warn.style.display = total > MAX_BUDGET ? "block" : "none";
-      const bd = document.getElementById("budgetDisplay");
-      if (bd) bd.textContent = I18n.fmtMoney(total);
-      const bar = document.getElementById("budgetBar");
-      if (bar) {
-        const pct = Math.min(100, Math.round(total / MAX_BUDGET * 100));
-        bar.style.width = pct + "%";
-        bar.classList.toggle("over", total > MAX_BUDGET);
-      }
-      if (opts.markDirty) {
-        isDirty = true;
-        scheduleAutoSave();
-      }
-    }
-
-    /** Postranní panel rozpočtu z formData (když tabulka rozpočtu není v DOM). */
-    function updateBudgetSidebarFromFormData() {
-      const ids = ["budget_personnel","budget_agency","budget_training","budget_travel","budget_material","budget_other"];
-      let total = 0;
-      ids.forEach(id => {
-        total += parseFloat(String(formData[id] || "").replace(/\s/g, "").replace(",", ".")) || 0;
-      });
-      formData["budget_total"] = String(total);
-      const bd = document.getElementById("budgetDisplay");
-      if (bd) bd.textContent = I18n.fmtMoney(total);
-      const bar = document.getElementById("budgetBar");
-      if (bar) {
-        const pct = Math.min(100, Math.round(total / MAX_BUDGET * 100));
-        bar.style.width = pct + "%";
-        bar.classList.toggle("over", total > MAX_BUDGET);
-      }
-    }
-
-    function onBudgetInput() {
-      syncBudgetTotalsFromDom({ markDirty: true });
-      updateChecklist();
-    }
-
-    // ── Změna hodnoty ──────────────────────────────────────────
-    function onFieldChange(id, val) {
-      formData[id] = val;
-      isDirty = true;
-      scheduleAutoSave();
-      if (String(id).indexOf("budget_") === 0) updateBudget();
-      updateChecklist();
-      clearError(id);
-    }
-
-    function onRadioChange(id, input) {
-      formData[id] = input.value;
-      document.querySelectorAll(`input[name="${id}"]`).forEach(r => {
-        r.closest(".radio-option")?.classList.toggle("selected", r === input);
-      });
-      isDirty = true;
-      scheduleAutoSave();
-      clearError(id);
-    }
-
-    function onFileChange(id, input) {
-      if (input.files[0]) {
-        formData[id] = input.files[0].name;
-        document.getElementById("file-info-" + id).style.display = "flex";
-        document.getElementById("file-name-" + id).textContent = input.files[0].name;
-        isDirty = true;
-        updateChecklist();
-        clearError(id);
-      }
-    }
-
-    function clearError(id) {
-      const el = document.getElementById("err-" + id);
-      if (el) el.classList.remove("show");
-      const inp = document.getElementById("f-" + id);
-      if (inp) inp.classList.remove("error");
-    }
-
-    // ── Validace ────────────────────────────────────────────────
-    function validateSection() {
-      const step   = STEPS[currentSection];
-      const fields = formFields.filter(f =>
-        step.fields.includes(f.field_id) &&
-        (f.required === "TRUE" || f.required === true) &&
-        f.field_type !== "section_header"
-      );
-      let ok = true;
-      fields.forEach(f => {
-        const val = formData[f.field_id] || "";
-        if (!val || val.trim() === "") {
-          const errEl = document.getElementById("err-" + f.field_id);
-          if (errEl) errEl.classList.add("show");
-          const inp = document.getElementById("f-" + f.field_id);
-          if (inp) inp.classList.add("error");
-          ok = false;
-        }
-      });
-      if (!ok) showToast(trf("validateRequiredAll"), "err");
-      if (ok && step.id === "budget") {
-        const t = parseFloat(String(formData.budget_total || "").replace(/\s/g, "").replace(",", ".")) || 0;
-        if (t <= 0) {
-          showToast(tf("toastBudgetSumPositive"), "err");
-          return false;
-        }
-        if (t > MAX_BUDGET) {
-          showToast(I18n.tReplace("applyFlow.toastBudgetSumMax", { amount: I18n.fmtMoney(MAX_BUDGET) }), "err");
-          return false;
-        }
-        const j = (formData.budget_justification || "").trim();
-        if (!j) {
-          const errEl = document.getElementById("err-budget_justification");
-          if (errEl) errEl.classList.add("show");
-          const inp = document.getElementById("f-budget_justification");
-          if (inp) inp.classList.add("error");
-          showToast(tf("toastBudgetJust"), "err");
-          return false;
-        }
-      }
-      return ok;
-    }
-
-    // ── Navigace ────────────────────────────────────────────────
-    function nextSection() {
-      if (!validateSection()) return;
-      saveDraftSilent();
-      currentSection++;
-      renderProgress();
-      renderSection(currentSection);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-
-    function prevSection() {
-      saveDraftSilent();
-      currentSection--;
-      renderProgress();
-      renderSection(currentSection);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-
-    function updateBudget() {
-      syncBudgetTotalsFromDom({ markDirty: false });
-      updateChecklist();
-    }
-
-    // ── Checklist ────────────────────────────────────────────────
-    function updateChecklist() {
-      const labelsCs = [
-        "Název záměru",
-        "Cílová soutěž",
-        "Concept note (text)",
-        "TOP výsledky",
-        "Rozpočet (součet)",
-        "Přílohy 1–3 a č. 6",
-        "Prohlášení",
-      ];
-      const labelsEn =
-        typeof UhkApplyFlowEn !== "undefined" && UhkApplyFlowEn.prestige && UhkApplyFlowEn.prestige.checklist
-          ? UhkApplyFlowEn.prestige.checklist
-          : labelsCs;
-      const labels = I18n.getLang() === "en" ? labelsEn : labelsCs;
-      const checks = [
-        { label: labels[0], done: !!formData.project_title },
-        { label: labels[1], done: !!formData.target_scheme },
-        {
-          label: tf("irisChecklistItem"),
-          done: !!(String(formData.iris_case_id || "").trim() && String(formData.iris_checklist_result || "").trim()),
-        },
-        { label: labels[2], done: !!formData.concept_note },
-        { label: labels[3], done: !!formData.excellence_top5 },
-        { label: labels[4], done: !!(formData.budget_total && parseFloat(formData.budget_total) > 0) },
-        { label: labels[5], done: !!(formData.attach_annex1 && formData.attach_annex2 && formData.attach_annex3 && formData.attach_checklist6) },
-        { label: labels[6], done: formData.declaration === "true" },
-      ];
-      document.getElementById("checklist").innerHTML = checks.map(c => `
-        <div class="checklist-item ${c.done?"done":""}">
-          <div class="checklist-dot">${c.done?"✓":""}</div>
-          <span>${escapeHtml(c.label)}</span>
-        </div>`).join("");
-    }
-
-    // ── Ukládání draftu ─────────────────────────────────────────
-    function scheduleAutoSave() {
-      clearTimeout(saveTimer);
-      const dot = document.getElementById("saveDot");
-      if (dot) { dot.className = "save-dot saving"; }
-      const st = document.getElementById("saveStatusText");
-      if (st) st.textContent = tf("footerDirty");
-      saveTimer = setTimeout(saveDraftSilent, 30000);
-    }
-
-    async function saveDraftSilent() {
-      if (!isDirty) return;
-      await saveDraft(false);
-    }
-
-    async function saveDraftManual() {
-      await saveDraft(true);
-    }
-
-    async function saveDraft(showMessage) {
-      try {
-        const session = Auth._getSession();
-        await fetch(API_URL, {
-          method: "POST", mode: "no-cors",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "saveDraft",
-            token:  session?.token || "",
-            competitionId: COMPETITION_ID,
-            draftId,
-            formData,
-            applicantEmail: user.email,
-          }),
-        });
-        isDirty = false;
-        const now = new Date().toLocaleTimeString(I18n.numLocale(), { hour: "2-digit", minute: "2-digit" });
-        const ls = document.getElementById("lastSaved");
-        if (ls) ls.textContent = now;
-        const dot = document.getElementById("saveDot");
-        if (dot) dot.className = "save-dot saved";
-        const st = document.getElementById("saveStatusText");
-        if (st) st.textContent = I18n.tReplace("applyRega.footerSavedAt", { time: now });
-        if (showMessage) showToast(trf("toastDraftSaved"));
-      } catch {
-        if (showMessage) showToast(trf("toastSaveFailed"), "err");
-      }
-    }
-
-    async function loadDraft() {
-      try {
-        const session = Auth._getSession();
-        const url = new URL(API_URL);
-        url.searchParams.set("action", "getDraft");
-        url.searchParams.set("competitionId", COMPETITION_ID);
-        url.searchParams.set("applicantEmail", user.email);
-        url.searchParams.set("token", session?.token || "");
-        const focusApp = new URLSearchParams(location.search).get("app");
-        if (focusApp) url.searchParams.set("applicationId", focusApp.trim());
-        const res  = await fetch(url.toString());
-        const data = await res.json();
-        if (data.error) return false;
-
-        if (data.prorektorOutcome && data.prorektorOutcome.decision) {
-          fillProrektorOutcomeCard(data.prorektorOutcome, data.submittedApplication);
-        } else {
-          hideProrektorOutcomeCard();
-        }
-
-        if (data.submittedApplication && !data.draft) {
-          renderSubmittedApplicationView(
-            data.submittedApplication,
-            data.prorektorOutcome,
-            !!data.hasOtherDraft
-          );
-          const sid = data.submittedApplication.application_id;
-          const dec = data.prorektorOutcome && String(data.prorektorOutcome.decision || "").toUpperCase();
-          return true;
-        }
-
-        if (data.draft) {
-          formData = data.draft.formData || {};
-          draftId  = data.draft.id || data.draft.application_id || null;
-          renderSection(currentSection);
-          updateBudgetSidebarFromFormData();
-          showToast(trf("draftLoadedToast"));
-        }
-        return false;
-      } catch {
-        return false;
-      }
-    }
-
-    // ── Odeslání přihlášky ──────────────────────────────────────
-    async function submitApplication() {
-      // Validuj poslední sekci
-      if (!validateSection()) return;
-
-      syncBudgetTotalsFromDom({ markDirty: false });
-      const bt = parseFloat(String(formData.budget_total || "").replace(/\s/g, "").replace(",", ".")) || 0;
-      if (bt > MAX_BUDGET) {
-        showToast(tf("toastBudgetOverMax"), "err");
-        return;
-      }
-
-      if (formData.declaration !== "true") {
-        showToast(trf("toastConfirmDeclaration"), "err"); return;
-      }
-
-      const irisId = String(formData.iris_case_id || "").trim();
-      const irisRes = String(formData.iris_checklist_result || "").trim();
-      if (!irisId || !irisRes) {
-        showToast(tf("irisRequiredToast"), "err");
-        return;
-      }
-
-      const btn = document.getElementById("submitBtn");
-      const submitLabel = trf("footerSubmit");
-      btn.disabled = true; btn.textContent = trf("submitSending");
-
-      try {
-        const session = Auth._getSession();
-        await fetch(API_URL, {
-          method: "POST", mode: "no-cors",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "submitApplication",
-            token:  session?.token || "",
-            competitionId: COMPETITION_ID,
-            draftId,
-            formData,
-            applicantEmail: user.email,
-            applicantName:  user.name || user.email,
-          }),
-        });
-
-        document.getElementById("formPanel").innerHTML = `
-          <div style="padding:48px 32px;text-align:center;">
-            <div style="font-size:48px;margin-bottom:16px;">✅</div>
-            <h2 style="font-family:'DM Sans',sans-serif;font-size:22px;color:var(--navy);margin-bottom:8px;">${escapeHtml(tp("submitSuccessTitle"))}</h2>
-            <p style="font-size:14px;color:var(--muted);margin-bottom:24px;">${tp("submitSuccessP")}</p>
-            <a href="dashboard.html" class="btn btn-primary">${escapeHtml(tp("submitBackDash"))}</a>
-          </div>`;
-        const badge = document.getElementById("statusBadge");
-        if (badge) {
-          badge.textContent = I18n.t("appStatuses.SUBMITTED.label");
-          badge.className = "badge badge-submitted";
-        }
-        showToast(trf("submitSuccessToast"));
-      } catch {
-        btn.disabled = false; btn.textContent = submitLabel;
-        showToast(trf("submitError"), "err");
-      }
-    }
-
-    // ── Toast ────────────────────────────────────────────────────
-    let toastTimer2;
-    function showToast(msg, type = "ok") {
-      const t = document.getElementById("toast");
-      t.textContent = msg;
-      t.style.background = type === "err" ? "#991B1B" : "#1E6B45";
-      t.classList.add("show");
-      clearTimeout(toastTimer2);
-      toastTimer2 = setTimeout(() => t.classList.remove("show"), 4000);
-    }
-
-
-
-    // ── SPUŠTĚNÍ ─────────────────────────────────────────────────
-    renderPrestigeVyzvaSidebar();
-    void loadFormFields();
-  </script>
-</body>
-</html>
+  global.I18n = {
+    STORAGE_KEY: STORAGE,
+    getLang: getLang,
+    setLang: setLang,
+    t: t,
+    tReplace: tReplace,
+    init: init,
+    applyDom: applyDom,
+    mountLangSwitch: mountLangSwitch,
+    bindLangSwitches: bindLangSwitches,
+    patchConfigGlobals: patchConfigGlobals,
+    roleLoginMeta: roleLoginMeta,
+    getReviewConnectCrit: function () {
+      return getLang() === "en" ? REVIEW_CONNECT_CRIT_EN : REVIEW_CONNECT_CRIT_CS;
+    },
+    connectBudgetLabel: function (key) {
+      var m = getLang() === "en" ? CONNECT_BUDGET_LABEL_EN : CONNECT_BUDGET_LABEL_CS;
+      return m[key] || key;
+    },
+    numLocale: function () {
+      return getLang() === "en" ? "en-GB" : "cs-CZ";
+    },
+    fmtMoney: function (n) {
+      return Number(n || 0).toLocaleString(getLang() === "en" ? "en-GB" : "cs-CZ") + (getLang() === "en" ? " CZK" : " Kč");
+    },
+    competitionDisplayName: competitionDisplayName,
+    dashboardCompetitionTypeLabel: function (type) {
+      var k = "dashboard.competitionType." + type;
+      var v = t(k);
+      return v === k ? String(type || "—") : v;
+    },
+    dashboardCompetitionName: function (comp) {
+      if (!comp || !comp.id) return comp && comp.name ? comp.name : "";
+      var k = "dashboard.competitionCard." + comp.id + ".name";
+      var v = t(k);
+      return v === k ? (comp.name || "") : v;
+    },
+    dashboardCompetitionDesc: function (comp) {
+      if (!comp || !comp.id) return comp && comp.description ? comp.description : "";
+      var k = "dashboard.competitionCard." + comp.id + ".desc";
+      var v = t(k);
+      return v === k ? (comp.description || "") : v;
+    },
+    /** Post-award panel: English only when lang=en; otherwise returns csFallback */
+    pa: function (key, csFallback) {
+      if (getLang() !== "en") return csFallback;
+      var k = "postaward." + key;
+      var x = t(k);
+      return x === k ? csFallback : x;
+    },
+  };
+})(typeof window !== "undefined" ? window : this);
