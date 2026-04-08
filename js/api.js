@@ -11,7 +11,12 @@ function fileToBase64_(file) {
       const i = s.indexOf(",");
       resolve(i >= 0 ? s.slice(i + 1) : s);
     };
-    r.onerror = () => reject(new Error("Soubor se nepodařilo načíst."));
+    r.onerror = () =>
+      reject(
+        new Error(
+          typeof I18n !== "undefined" && I18n.t ? I18n.t("api.fileReadError") : "Soubor se nepodařilo načíst."
+        )
+      );
     r.readAsDataURL(file);
   });
 }
