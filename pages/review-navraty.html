@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hodnocení — OP JAK Návraty</title>
+  <title data-i18n="meta.reviewNavraty">Hodnocení — OP JAK Návraty</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
@@ -289,6 +289,15 @@
     .summary-val--purple { color: #5B21B6; }
     .summary-lbl { font-family: "DM Mono", monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-60); margin-top: 2px; }
 
+    .topbar .uhk-lang-switch { display: inline-flex; align-items: center; gap: 2px; margin-right: 8px; }
+    .topbar .uhk-lang-switch__btn {
+      font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: .04em;
+      padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(245,242,236,.25); background: transparent;
+      color: rgba(245,242,236,.55); cursor: pointer; transition: color .15s, border-color .15s, background .15s;
+    }
+    .topbar .uhk-lang-switch__btn:hover { color: var(--paper); border-color: rgba(245,242,236,.4); }
+    .topbar .uhk-lang-switch__btn--active { background: rgba(245,242,236,.12); color: var(--paper); border-color: rgba(245,242,236,.35); }
+
   </style>
 </head>
 <body>
@@ -301,7 +310,7 @@
         OP JAK <span>Návraty</span>
       </div>
       <div class="topbar__sep"></div>
-      <div class="topbar__page">Hodnoticí komise</div>
+      <div class="topbar__page" data-i18n="reviewNavraty.topbarPage">Hodnoticí komise</div>
     </div>
     <div class="topbar__right">
       <div class="topbar__nav" id="topbarNav">
@@ -312,8 +321,8 @@
         <strong id="topbarName">—</strong>
         <span class="topbar__role" id="topbarRole"></span>
       </div>
-      <a href="dashboard.html" class="back-btn">← Zpět</a>
-      <button class="logout-btn" onclick="doLogout()">Odhlásit</button>
+      <a href="dashboard.html" class="back-btn" data-i18n="reviewNavraty.back">← Zpět</a>
+      <button class="logout-btn" onclick="doLogout()" data-i18n="reviewNavraty.logout">Odhlásit</button>
     </div>
   </header>
 
@@ -678,9 +687,16 @@
   <div class="toast" id="toast"></div>
 
   <script src="../js/config.js"></script>
+  <script src="../js/i18n.js"></script>
   <script src="../js/auth.js"></script>
   <script src="../js/api.js"></script>
   <script>
+
+    I18n.init();
+    (function () {
+      var el = document.querySelector(".topbar__right");
+      if (el) I18n.mountLangSwitch(el, "first");
+    })();
 
     // ── Ochrana stránky – jen komisař, admin, prorektor, tester ──
     const ALLOWED = ["KOMISAR","ADMIN","PROREKTOR","TESTER"];
