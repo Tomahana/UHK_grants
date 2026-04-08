@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Přihláška – UHK ReGa</title>
+  <title data-i18n="meta.applyRega">UHK ReGa – Přihláška</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/connect-postaward.css">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -183,11 +184,11 @@
 <header class="topbar">
   <div class="topbar__logo">
     <img src="../img/uhk-abb-w.png" alt="UHK">
-    <span class="topbar__title">UHK ReGa 2026 – Přihláška</span>
+    <span class="topbar__title" data-i18n="meta.applyRega">UHK ReGa – Přihláška</span>
   </div>
   <div class="topbar__right">
-    <div class="topbar__user">Přihlášen: <strong id="topbarName">—</strong></div>
-    <a href="dashboard.html" class="btn-back">← Rozcestník</a>
+    <div class="topbar__user"><span data-i18n="common.signedIn">Přihlášen:</span> <strong id="topbarName">—</strong></div>
+    <a href="dashboard.html" class="btn-back" data-i18n="nav.backHub">← Rozcestník</a>
   </div>
 </header>
 
@@ -196,10 +197,10 @@
   <div class="rega-banner-inner">
     <div class="rega-banner-icon">R</div>
     <div class="rega-banner-text">
-      <strong>Interní soutěž UHK ReGa</strong> – podpora dopracování a znovupodání nezafinancovaných projektů GA ČR.
-      Max. podpora 500 000 Kč · Doba řešení 7,5 měsíce (15. 4. – 30. 11. 2026)
+      <strong data-i18n="applyRega.bannerStrong">Interní soutěž UHK ReGa</strong>
+      <span data-i18n="applyRega.bannerText">– podpora dopracování a znovupodání nezafinancovaných projektů GA ČR. Max. podpora 500 000 Kč · Doba řešení 7,5 měsíce (15. 4. – 30. 11. 2026)</span>
     </div>
-    <div class="rega-deadline">Uzávěrka: 1. 4. 2026 · 8:00</div>
+    <div class="rega-deadline" data-i18n="applyRega.bannerDeadline">Uzávěrka: 1. 4. 2026 · 8:00</div>
   </div>
 </div>
 
@@ -213,7 +214,7 @@
     <div class="form-panel" id="formPanel">
       <div class="loading-state" id="loadingState">
         <div class="spinner"></div>
-        <p>Načítám formulář…</p>
+        <p data-i18n="applyRega.loadingForm">Načítám formulář…</p>
       </div>
     </div>
   </div>
@@ -221,35 +222,35 @@
   <!-- SIDEBAR -->
   <div class="sidebar">
     <div class="sidebar-card">
-      <h3>Stav přihlášky</h3>
-      <div class="info-row"><span class="info-key">Soutěž</span><span class="info-val">UHK ReGa 2026</span></div>
-      <div class="info-row"><span class="info-key">Uzávěrka</span><span class="info-val" style="color:var(--red);">1. 4. 2026</span></div>
-      <div class="info-row"><span class="info-key">Max. podpora</span><span class="info-val">500 000 Kč</span></div>
-      <div class="info-row"><span class="info-key">Doba řešení</span><span class="info-val">7,5 měsíce</span></div>
-      <div class="info-row"><span class="info-key">Uloženo</span><span class="info-val" id="lastSaved">—</span></div>
+      <h3 data-i18n="applyRega.sidebarStatus">Stav přihlášky</h3>
+      <div class="info-row"><span class="info-key" data-i18n="applyRega.sidebarCompetition">Soutěž</span><span class="info-val" data-i18n="applyRega.sidebarCompetitionVal">UHK ReGa 2026</span></div>
+      <div class="info-row"><span class="info-key" data-i18n="applyRega.sidebarDeadline">Uzávěrka</span><span class="info-val" style="color:var(--red);" data-i18n="applyRega.sidebarDeadlineVal">1. 4. 2026</span></div>
+      <div class="info-row"><span class="info-key" data-i18n="applyRega.sidebarMax">Max. podpora</span><span class="info-val" data-i18n="applyRega.sidebarMaxVal">500 000 Kč</span></div>
+      <div class="info-row"><span class="info-key" data-i18n="applyRega.sidebarDuration">Doba řešení</span><span class="info-val" data-i18n="applyRega.sidebarDurationVal">7,5 měsíce</span></div>
+      <div class="info-row"><span class="info-key" data-i18n="applyRega.sidebarSaved">Uloženo</span><span class="info-val" id="lastSaved">—</span></div>
     </div>
 
     <div class="sidebar-card">
-      <h3>Požadovaná podpora</h3>
+      <h3 data-i18n="applyRega.sidebarSupport">Požadovaná podpora</h3>
       <div class="budget-big" id="budgetDisplay">0 Kč</div>
-      <div class="budget-limit-text">z max. 500 000 Kč</div>
+      <div class="budget-limit-text" data-i18n="applyRega.sidebarOfMax">z max. 500 000 Kč</div>
       <div class="budget-bar-wrap">
         <div class="budget-bar" id="budgetBar" style="width:0%"></div>
       </div>
     </div>
 
     <div class="sidebar-card">
-      <h3>Kontrolní seznam</h3>
+      <h3 data-i18n="applyRega.sidebarChecklist">Kontrolní seznam</h3>
       <div id="checklist"></div>
     </div>
 
     <div class="sidebar-card" style="background:var(--purple-lite);border-color:#C4B5FD;">
-      <h3 style="color:var(--purple);">Podmínka způsobilosti</h3>
-      <p style="font-size:12px;color:#5B21B6;line-height:1.5;">Přihláška musí obsahovat posudky z hodnocení. Bez posudků je formálně nezpůsobilá.</p>
+      <h3 style="color:var(--purple);" data-i18n="applyRega.eligibilityTitle">Podmínka způsobilosti</h3>
+      <p style="font-size:12px;color:#5B21B6;line-height:1.5;" data-i18n="applyRega.eligibilityText">Přihláška musí obsahovat posudky z hodnocení. Bez posudků je formálně nezpůsobilá.</p>
     </div>
 
     <div class="sidebar-card" style="background:var(--gold-lite);border-color:#FDE68A;">
-      <h3 style="color:#92400E;">Kontakt</h3>
+      <h3 style="color:#92400E;" data-i18n="applyRega.contactTitle">Kontakt</h3>
       <p style="font-size:12px;color:#92400E;line-height:1.5;">Ing. Jana Kukáková<br>
         <a href="mailto:jana.kukakova@uhk.cz" style="color:#92400E;">jana.kukakova@uhk.cz</a><br>
         +420 703 150 087</p>
@@ -260,8 +261,15 @@
 <div class="toast" id="toast"></div>
 
 <script src="../js/config.js"></script>
+<script src="../js/i18n.js"></script>
 <script src="../js/auth.js"></script>
 <script>
+
+  I18n.init();
+  (function () {
+    var el = document.querySelector(".topbar__right");
+    if (el) I18n.mountLangSwitch(el, "first");
+  })();
 
   const user = Auth.requireLogin(["ZADATEL","RESITEL","ADMIN","TESTER"]);
   document.getElementById("topbarName").textContent = user.name || user.email;
@@ -277,21 +285,25 @@
   let uploadedFiles = {}; // název souboru per field_id
 
   const STEPS = [
-    { id: "basic",      label: "Projekt",       icon: "1" },
-    { id: "team",       label: "Tým",           icon: "2" },
-    { id: "revision",   label: "Dopracování",   icon: "3" },
-    { id: "budget",     label: "Rozpočet",      icon: "4" },
-    { id: "attachments",label: "Přílohy",       icon: "5" },
+    { id: "basic",       labelKey: "stepProject",     icon: "1" },
+    { id: "team",        labelKey: "stepTeam",        icon: "2" },
+    { id: "revision",    labelKey: "stepRevision",    icon: "3" },
+    { id: "budget",      labelKey: "stepBudget",      icon: "4" },
+    { id: "attachments", labelKey: "stepAttachments", icon: "5" },
   ];
+  function trg(k) { return I18n.t("applyRega." + k); }
 
   // ── Progress ──────────────────────────────────────────────
   function renderProgress() {
-    document.getElementById("progressBar").innerHTML = STEPS.map((s, i) => `
+    document.getElementById("progressBar").innerHTML = STEPS.map((s, i) => {
+      const lab = trg(s.labelKey);
+      return `
       <div class="progress-step ${i < currentStep ? "done" : i === currentStep ? "active" : ""}"
-        onclick="goToStep(${i})" title="${s.label}">
+        onclick="goToStep(${i})" title="${lab.replace(/"/g, "&quot;")}">
         <div class="progress-dot">${i < currentStep ? "✓" : i + 1}</div>
-        <div class="progress-label">${s.label}</div>
-      </div>`).join("");
+        <div class="progress-label">${lab}</div>
+      </div>`;
+    }).join("");
   }
 
   function goToStep(i) {
@@ -345,21 +357,21 @@
       <div class="form-footer">
         <div class="save-status">
           <div class="save-dot" id="saveDot"></div>
-          <span id="saveStatusText">Neuloženo</span>
+          <span id="saveStatusText">${trg("footerUnsaved")}</span>
         </div>
         <div class="footer-btns">
-          ${!isFirst ? `<button class="btn btn-secondary" onclick="prevStep()">← Zpět</button>` : ""}
-          <button class="btn-ghost btn" onclick="saveDraftManual()">💾 Uložit rozdělaný</button>
+          ${!isFirst ? `<button class="btn btn-secondary" onclick="prevStep()">${trg("footerBack")}</button>` : ""}
+          <button class="btn-ghost btn" onclick="saveDraftManual()">${trg("footerSaveDraft")}</button>
           ${!isLast
-            ? `<button class="btn btn-primary" onclick="nextStep()">Pokračovat →</button>`
-            : `<button class="btn btn-primary" id="submitBtn" onclick="submitApplication()">Odeslat přihlášku →</button>`}
+            ? `<button class="btn btn-primary" onclick="nextStep()">${trg("footerContinue")}</button>`
+            : `<button class="btn btn-primary" id="submitBtn" onclick="submitApplication()">${trg("footerSubmit")}</button>`}
         </div>
       </div>`;
   }
 
   // ── KROK 1: Projekt ───────────────────────────────────────
   function renderBasic() {
-    wrapPanel("Základní informace o projektu", "Krok 1 z 5 · Identifikace původního projektu", `
+    wrapPanel(trg("panelBasicTitle"), trg("panelBasicSub"), `
       <div class="alert-box alert-box--info">
         <span class="alert-icon">ℹ</span>
         <span>Žadatelem může být zaměstnanec nebo student UHK, který byl v původním projektu jako <strong>hlavní nebo vedlejší řešitel za UHK</strong>.</span>
@@ -453,7 +465,7 @@
 
   // ── KROK 2: Tým ──────────────────────────────────────────
   function renderTeam() {
-    wrapPanel("Řešitelský tým", "Krok 2 z 5 · Složení týmu a partneři", `
+    wrapPanel(trg("panelTeamTitle"), trg("panelTeamSub"), `
       <div class="alert-box alert-box--warn">
         <span class="alert-icon">!</span>
         <span>Pokud je žadatelem student, musí být zároveň v <strong>pracovním poměru s UHK</strong> v rozsahu umožňujícím splnění podmínek soutěže.</span>
@@ -498,7 +510,7 @@
 
   // ── KROK 3: Dopracování ───────────────────────────────────
   function renderRevision() {
-    wrapPanel("Plán dopracování", "Krok 3 z 5 · Reakce na posudky, plánované úpravy", `
+    wrapPanel(trg("panelRevisionTitle"), trg("panelRevisionSub"), `
       <div class="alert-box alert-box--info">
         <span class="alert-icon">ℹ</span>
         <span>Popište konkrétní úpravy v reakci na připomínky hodnotitelů. <strong>Max. 1 strana.</strong> Čerpání musí směřovat k dopracování a znovupodání, nikoli k nahrazení externího financování.</span>
@@ -532,7 +544,7 @@
 
   // ── KROK 4: Rozpočet ─────────────────────────────────────
   function renderBudget() {
-    wrapPanel("Rozpočet interní podpory", "Krok 4 z 5 · Způsobilé náklady dle přílohy č. 1 výzvy", `
+    wrapPanel(trg("panelBudgetTitle"), trg("panelBudgetSub"), `
       <div class="alert-box alert-box--warn">
         <span class="alert-icon">!</span>
         <span>Způsobilé: osobní náklady (DPP/DPČ), materiál, cestovní náklady, publikační a konferenční poplatky, jazyková korektura. <strong>Nezpůsobilé:</strong> reprezentace, investice, náklady mimo dobu řešení (před 15. 4. nebo po 30. 11. 2026).</span>
@@ -580,9 +592,8 @@
     });
     formData["budget_total"] = String(total);
     const disp = document.getElementById("budgetTotalDisplay");
-    if (disp) disp.textContent = total.toLocaleString("cs-CZ") + " Kč";
-    // Sidebar
-    document.getElementById("budgetDisplay").textContent = total.toLocaleString("cs-CZ") + " Kč";
+    if (disp) disp.textContent = I18n.fmtMoney(total);
+    document.getElementById("budgetDisplay").textContent = I18n.fmtMoney(total);
     const pct = Math.min(100, Math.round(total / MAX_BUDGET * 100));
     const bar = document.getElementById("budgetBar");
     bar.style.width = pct + "%";
@@ -618,7 +629,7 @@
         <div class="field-error" id="err-${a.id}">Nahrajte prosím tento soubor.</div>
       </div>`).join("");
 
-    wrapPanel("Povinné přílohy", "Krok 5 z 5 · Nahrajte všechny povinné dokumenty", `
+    wrapPanel(trg("panelAttachTitle"), trg("panelAttachSub"), `
       <div class="alert-box alert-box--info">
         <span class="alert-icon">ℹ</span>
         <span>Soubory budou přiloženy k přihlášce. Maximální velikost jednoho souboru: 25 MB. Přihlášky bez posudků jsou <strong>automaticky vyřazeny</strong>.</span>
@@ -707,7 +718,7 @@
         ok = false;
       }
     });
-    if (!ok) showToast("Vyplňte prosím všechna povinná pole.", "err");
+    if (!ok) showToast(trg("validateRequiredAll"), "err");
     return ok;
   }
 
@@ -757,25 +768,25 @@
         }),
       });
       isDirty = false;
-      const now = new Date().toLocaleTimeString("cs-CZ", { hour:"2-digit", minute:"2-digit" });
+      const now = new Date().toLocaleTimeString(I18n.numLocale(), { hour:"2-digit", minute:"2-digit" });
       document.getElementById("lastSaved").textContent = now;
       const dot = document.getElementById("saveDot");
       if (dot) dot.className = "save-dot saved";
       const txt = document.getElementById("saveStatusText");
-      if (txt) txt.textContent = "Uloženo " + now;
-      if (showMsg) showToast("Draft uložen ✓");
+      if (txt) txt.textContent = I18n.tReplace("applyRega.footerSavedAt", { time: now });
+      if (showMsg) showToast(trg("toastDraftSaved"));
     } catch {
-      if (showMsg) showToast("Ukládání selhalo.", "err");
+      if (showMsg) showToast(trg("toastSaveFailed"), "err");
     }
   }
 
   // ── Odeslání ──────────────────────────────────────────────
   async function submitApplication() {
     if (!validateStep()) return;
-    if (v("declaration") !== "true") { showToast("Potvrďte prohlášení žadatele.", "err"); return; }
+    if (v("declaration") !== "true") { showToast(trg("toastConfirmDeclaration"), "err"); return; }
 
     const btn = document.getElementById("submitBtn");
-    btn.disabled = true; btn.textContent = "Odesílám…";
+    btn.disabled = true; btn.textContent = trg("submitSending");
 
     try {
       const session = Auth._getSession();
@@ -792,19 +803,15 @@
       document.getElementById("formPanel").innerHTML = `
         <div style="padding:48px 32px;text-align:center;">
           <div style="font-size:48px;margin-bottom:16px;">✅</div>
-          <h2 style="font-size:22px;color:var(--navy);margin-bottom:8px;">Přihláška odeslána!</h2>
-          <p style="font-size:14px;color:var(--muted);margin-bottom:8px;">
-            Vaše přihláška do UHK ReGa 2026 byla úspěšně podána.</p>
-          <p style="font-size:13px;color:var(--muted);margin-bottom:24px;">
-            Výsledky hodnocení budou zveřejněny do 13. 4. 2026.<br>
-            Kontakt: <a href="mailto:jana.kukakova@uhk.cz" style="color:var(--purple);">jana.kukakova@uhk.cz</a>
-          </p>
-          <a href="dashboard.html" class="btn btn-primary" style="background:var(--purple);">← Zpět na rozcestník</a>
+          <h2 style="font-size:22px;color:var(--navy);margin-bottom:8px;">${trg("submitSuccessTitle")}</h2>
+          <p style="font-size:14px;color:var(--muted);margin-bottom:8px;">${trg("submitSuccessP1")}</p>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:24px;">${trg("submitSuccessP2Html")}</p>
+          <a href="dashboard.html" class="btn btn-primary" style="background:var(--purple);">${trg("submitBackDash")}</a>
         </div>`;
-      showToast("Přihláška úspěšně odeslána! ✓");
+      showToast(trg("submitSuccessToast"));
     } catch {
-      btn.disabled = false; btn.textContent = "Odeslat přihlášku →";
-      showToast("Chyba při odesílání – zkuste znovu.", "err");
+      btn.disabled = false; btn.textContent = trg("footerSubmit");
+      showToast(trg("submitError"), "err");
     }
   }
 
@@ -821,6 +828,7 @@
 
   // ── INIT ─────────────────────────────────────────────────
   document.getElementById("loadingState").style.display = "none";
+  document.getElementById("budgetDisplay").textContent = I18n.fmtMoney(0);
   renderProgress();
   renderStep();
   updateChecklist();
@@ -844,7 +852,7 @@
         renderProgress();
         renderStep();
         updateChecklist();
-        showToast("Načten uložený draft.");
+        showToast(trg("draftLoadedToast"));
         if (jumpFinalize) window.scrollTo({ top: 0, behavior: "smooth" });
       } else if (jumpFinalize) {
         currentStep = STEPS.length - 1;
