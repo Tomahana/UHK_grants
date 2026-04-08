@@ -137,6 +137,12 @@
         actionOverview: "Přehled",
         actionReports: "Zprávy",
         actionEnter: "Vstoupit",
+        competitionType: {
+          UHK_CONNECT: "UHK Connect",
+          UHK_REGA: "UHK ReGa",
+          OP_JAK_NAVRATY: "OP JAK Návraty",
+          UHK_PRESTIGE: "UHK Prestige",
+        },
       },
       auth: {
         accessDenied: "Přístup odepřen. Tato stránka vyžaduje roli: {{roles}}.",
@@ -374,8 +380,7 @@
         toastBudgetSumPositive: "Součet rozpočtu musí být větší než 0 Kč.",
         toastBudgetSumMax: "Součet rozpočtu překračuje maximum {{amount}} (rok 1).",
         irisChecklistItem: "IRIS UHK (Case ID + výsledek checklistu)",
-        irisForeignRequiredToast:
-          "U zahraniční spolupráce vyplňte Case ID IRIS UHK a výsledek checklistu (krok Profil & aktivita / Identifikace).",
+        irisRequiredToast: "Vyplňte Case ID IRIS UHK a výsledek checklistu (povinná součást přihlášky).",
       },
       applyConnect: {
         loadingForm: "Načítám formulář…",
@@ -566,6 +571,30 @@
         actionOverview: "Overview",
         actionReports: "Reports",
         actionEnter: "Open",
+        competitionType: {
+          UHK_CONNECT: "UHK Connect",
+          UHK_REGA: "UHK ReGa",
+          OP_JAK_NAVRATY: "OP JAK Returns",
+          UHK_PRESTIGE: "UHK Prestige",
+        },
+        competitionCard: {
+          uhk_navraty_2026: {
+            name: "OP JAK Returns 2026",
+            desc: "Evaluation of OP JAK Returns projects – UHK IGA commission.",
+          },
+          uhk_connect_2026_v2: {
+            name: "UHK Connect – call no. 2",
+            desc: "Short projects for networking, mobility, and building collaboration.",
+          },
+          uhk_rega_2026_v1: {
+            name: "UHK ReGa – call no. 1",
+            desc: "Support for revising and resubmitting unfunded GA ČR projects.",
+          },
+          uhk_prestige_2026: {
+            name: "UHK Prestige – call 1/2026",
+            desc: "Preparing a proposal for ERC or Horizon Europe; call allocation CZK 4M, up to CZK 1M per project in year 1.",
+          },
+        },
       },
       auth: {
         accessDenied: "Access denied. This page requires one of these roles: {{roles}}.",
@@ -803,8 +832,7 @@
         toastBudgetSumPositive: "Budget total must be greater than 0 CZK.",
         toastBudgetSumMax: "Budget total exceeds the maximum of {{amount}} (year 1).",
         irisChecklistItem: "IRIS UHK (case ID + checklist outcome)",
-        irisForeignRequiredToast:
-          "For international collaboration, fill in the IRIS UHK case ID and checklist outcome (Profile & activity / Identification step).",
+        irisRequiredToast: "Enter the IRIS UHK case ID and checklist outcome (required parts of the application).",
       },
       applyConnect: {
         loadingForm: "Loading form…",
@@ -1183,6 +1211,23 @@
       return Number(n || 0).toLocaleString(getLang() === "en" ? "en-GB" : "cs-CZ") + (getLang() === "en" ? " CZK" : " Kč");
     },
     competitionDisplayName: competitionDisplayName,
+    dashboardCompetitionTypeLabel: function (type) {
+      var k = "dashboard.competitionType." + type;
+      var v = t(k);
+      return v === k ? String(type || "—") : v;
+    },
+    dashboardCompetitionName: function (comp) {
+      if (!comp || !comp.id) return comp && comp.name ? comp.name : "";
+      var k = "dashboard.competitionCard." + comp.id + ".name";
+      var v = t(k);
+      return v === k ? (comp.name || "") : v;
+    },
+    dashboardCompetitionDesc: function (comp) {
+      if (!comp || !comp.id) return comp && comp.description ? comp.description : "";
+      var k = "dashboard.competitionCard." + comp.id + ".desc";
+      var v = t(k);
+      return v === k ? (comp.description || "") : v;
+    },
     /** Post-award panel: English only when lang=en; otherwise returns csFallback */
     pa: function (key, csFallback) {
       if (getLang() !== "en") return csFallback;
