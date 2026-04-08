@@ -561,6 +561,8 @@ function renderDetail(){
     [tx("detailBudget"),f.budget_total?I18n.fmtMoney(f.budget_total):"—"],
   ].map(([k,v])=>`<div><div class="dl">${esc(k)}</div><div class="dv">${esc(v)}</div></div>`).join("");
   const long=[
+    f.iris_case_id?.trim()?[tx("detailIrisCaseId"),f.iris_case_id]:null,
+    f.iris_checklist_result?.trim()?[tx("detailIrisChecklist"),f.iris_checklist_result]:null,
     f.research_focus?[tx("detailResearchFocus"),f.research_focus]:null,
     f.activity_goal?[tx("detailActivityGoal"),f.activity_goal]:null,
     f.cooperation_history?.trim()?[tx("detailCoopHistory"),f.cooperation_history]:null,
