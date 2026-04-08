@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Přihláška – UHK Prestige</title>
+  <title data-i18n="meta.applyPrestige">UHK Prestige – Přihláška</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/connect-postaward.css">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -182,11 +183,11 @@
   <header class="topbar">
     <div class="topbar__logo">
       <img src="../img/uhk-abb-w.png" alt="UHK">
-      <span class="topbar__title">UHK Prestige – Přihláška (Výzva 1/2026)</span>
+      <span class="topbar__title" data-i18n="meta.applyPrestige">UHK Prestige – Přihláška</span>
     </div>
     <div class="topbar__right">
-      <div class="topbar__user">Přihlášen: <strong id="topbarName">—</strong></div>
-      <a href="dashboard.html" class="btn-back">← Rozcestník</a>
+      <div class="topbar__user"><span data-i18n="common.signedIn">Přihlášen:</span> <strong id="topbarName">—</strong></div>
+      <a href="dashboard.html" class="btn-back" data-i18n="nav.backHub">← Rozcestník</a>
     </div>
   </header>
 
@@ -201,7 +202,7 @@
       <div class="form-panel" id="formPanel">
         <div class="loading-state" id="loadingState">
           <div class="spinner"></div>
-          <p>Načítám formulář…</p>
+          <p data-i18n="applyPrestige.loadingForm">Načítám formulář…</p>
         </div>
       </div>
     </div>
@@ -209,33 +210,33 @@
     <!-- Sidebar -->
     <div class="sidebar">
       <div class="sidebar-card">
-        <h3>Stav přihlášky</h3>
+        <h3 data-i18n="applyPrestige.sidebarStatus">Stav přihlášky</h3>
         <div style="margin-bottom:12px;">
           <span class="badge badge-draft" id="statusBadge">DRAFT</span>
         </div>
         <div class="sidebar-item">
-          <span class="sidebar-key">Soutěž</span>
-          <span class="sidebar-val">UHK Prestige</span>
+          <span class="sidebar-key" data-i18n="applyPrestige.sidebarCompetition">Soutěž</span>
+          <span class="sidebar-val" data-i18n="applyPrestige.sidebarCompetitionVal">UHK Prestige</span>
         </div>
         <div class="sidebar-item">
-          <span class="sidebar-key">Uzávěrka přihlášek</span>
+          <span class="sidebar-key" data-i18n="applyPrestige.sidebarDeadlineApply">Uzávěrka přihlášek</span>
           <span class="sidebar-val" id="sidebarDeadlineApply">4. 5. 2026</span>
         </div>
         <div class="sidebar-item">
-          <span class="sidebar-key">Max. podpora (rok 1)</span>
-          <span class="sidebar-val">1 000 000 Kč</span>
+          <span class="sidebar-key" data-i18n="applyPrestige.sidebarMaxY1">Max. podpora (rok 1)</span>
+          <span class="sidebar-val" data-i18n="applyPrestige.sidebarMaxVal">1 000 000 Kč</span>
         </div>
         <div class="sidebar-item">
-          <span class="sidebar-key">Uloženo</span>
+          <span class="sidebar-key" data-i18n="applyPrestige.sidebarSaved">Uloženo</span>
           <span class="sidebar-val" id="lastSaved">—</span>
         </div>
-        <p class="vyzva-footnote" style="margin-top:12px;margin-bottom:0;">
+        <p class="vyzva-footnote" style="margin-top:12px;margin-bottom:0;" data-i18n-html="applyPrestige.autosaveNoteHtml">
           Koncept se ukládá <strong>automaticky po 30 s</strong> nečinnosti; ručně použijte „Uložit draft“.
         </p>
       </div>
 
       <div class="sidebar-card outcome-card" id="prorektorOutcomeCard" style="display:none;">
-        <h3>Stanovisko prorektora</h3>
+        <h3 data-i18n="applyFlow.prorektorHeading">Stanovisko prorektora</h3>
         <p class="outcome-meta" id="outcomeAppRef" style="margin-top:0;margin-bottom:8px;"></p>
         <div class="outcome-dec" id="outcomeDecision">—</div>
         <div class="outcome-comment" id="outcomeComment"></div>
@@ -243,27 +244,27 @@
       </div>
 
       <div class="sidebar-card">
-        <h3>Termíny výzvy (1/2026)</h3>
+        <h3 data-i18n="applyPrestige.termsTitle">Termíny výzvy (1/2026)</h3>
         <ul class="vyzva-list" id="prestigeVyzvaList"></ul>
-        <p class="vyzva-footnote">Elektronické podání dle Vyhlášení výzvy č. 1/2026 UHK Prestige. Podvýzva <strong>Horizon No-Cost Entry</strong> (výzva 2/2026) bude v aplikaci doplněna – zatím viz samostatný dokument výzvy.</p>
+        <p class="vyzva-footnote" data-i18n-html="applyPrestige.termsFootnoteHtml">Elektronické podání dle Vyhlášení výzvy č. 1/2026 UHK Prestige. Podvýzva <strong>Horizon No-Cost Entry</strong> (výzva 2/2026) bude v aplikaci doplněna – zatím viz samostatný dokument výzvy.</p>
       </div>
 
       <div class="sidebar-card">
-        <h3>Rozpočet</h3>
+        <h3 data-i18n="applyPrestige.budgetCardTitle">Rozpočet</h3>
         <div class="budget-summary" id="budgetDisplay">0 Kč</div>
-        <div class="budget-limit">z max. 1 000 000 Kč (rok 1)</div>
+        <div class="budget-limit" data-i18n="applyPrestige.budgetOfMax">z max. 1 000 000 Kč (rok 1)</div>
         <div class="budget-bar-wrap">
           <div class="budget-bar" id="budgetBar" style="width:0%"></div>
         </div>
       </div>
 
       <div class="sidebar-card">
-        <h3>Kontrolní seznam</h3>
+        <h3 data-i18n="applyPrestige.checklistTitle">Kontrolní seznam</h3>
         <div id="checklist"></div>
       </div>
 
       <div class="sidebar-card" style="background:var(--gold-lite);border-color:#E8D88A;">
-        <h3 style="color:#7A5A10;">Potřebujete pomoc?</h3>
+        <h3 style="color:#7A5A10;" data-i18n="applyPrestige.helpTitle">Potřebujete pomoc?</h3>
         <p style="font-size:12px;color:#7A5A10;line-height:1.5;">Ing. Veronika Hrůzová<br>
           <a href="mailto:veronika.hruzova@uhk.cz" style="color:#7A5A10;">veronika.hruzova@uhk.cz</a><br>
           +420 777 147 670</p>
@@ -274,12 +275,50 @@
   <div class="toast" id="toast"></div>
 
   <script src="../js/config.js"></script>
+  <script src="../js/i18n.js"></script>
+  <script src="../js/apply-flow-locales.js"></script>
   <script src="../js/auth.js"></script>
   <script src="../js/api.js"></script>
   <script>
 
+    I18n.init();
+    (function () {
+      var el = document.querySelector(".topbar__right");
+      if (el) I18n.mountLangSwitch(el, "first");
+    })();
+    (function () {
+      var b = document.getElementById("statusBadge");
+      if (b && String(b.textContent).trim() === "DRAFT") b.textContent = I18n.t("appStatuses.DRAFT.label");
+    })();
+
     const user = Auth.requireLogin(["ZADATEL","RESITEL","ADMIN","TESTER"]);
     document.getElementById("topbarName").textContent = user.name || user.email;
+
+    function tp(k) { return I18n.t("applyPrestige." + k); }
+    function tf(k) { return I18n.t("applyFlow." + k); }
+    function trf(k) { return I18n.t("applyRega." + k); }
+
+    const PRESTIGE_STEP_I18N = { ident: "stepIdent", concept: "stepConcept", strategy: "stepStrategy", budget: "stepBudget", attachments: "stepAttachments" };
+    function getPrestigeStepLabel(sid) { return I18n.t("applyPrestige." + (PRESTIGE_STEP_I18N[sid] || "stepIdent")); }
+
+    function formatUiDateFromIso(iso) {
+      if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
+      const p = iso.split("-").map(Number);
+      return new Date(p[0], p[1] - 1, p[2]).toLocaleDateString(I18n.numLocale(), { day: "numeric", month: "long", year: "numeric" });
+    }
+
+    function optionDisplayLabel(f, optVal) {
+      if (I18n.getLang() !== "en" || !f.options_en) return optVal;
+      const a = (f.options || "").split(";").filter(Boolean);
+      const b = (f.options_en || "").split(";").filter(Boolean);
+      const i = a.indexOf(optVal);
+      return i >= 0 && b[i] ? b[i] : optVal;
+    }
+
+    function escapeAttr(s) {
+      return String(s == null ? "" : s)
+        .replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+    }
 
     const COMPETITION_ID = new URLSearchParams(location.search).get("c") || "uhk_prestige_2026";
     const MAX_BUDGET = 1000000;
@@ -298,12 +337,6 @@
         { title: "Závěrečná zpráva", dateLabel: "do 3 měsíců po podání návrhu", note: "dle výzvy" },
       ],
     };
-
-    function formatCsDateFromIso(iso) {
-      if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
-      const [y, m, d] = iso.split("-").map(Number);
-      return `${d}. ${m}. ${y}`;
-    }
 
     function escapeHtml(s) {
       return String(s == null ? "" : s)
@@ -328,14 +361,14 @@
       card.style.display = "block";
       const ref = document.getElementById("outcomeAppRef");
       if (ref) ref.textContent = submittedApp && submittedApp.application_id
-        ? "Přihláška " + submittedApp.application_id
+        ? tf("appRefPrefix") + " " + submittedApp.application_id
         : "";
       document.getElementById("outcomeDecision").textContent = outcome.decisionLabel || outcome.decision || "—";
       const comEl = document.getElementById("outcomeComment");
       comEl.textContent = outcome.comment || "";
       comEl.style.display = outcome.comment ? "block" : "none";
       const dt = document.getElementById("outcomeDate");
-      dt.textContent = outcome.decidedAt ? "Zapsáno: " + formatOutcomeDate(outcome.decidedAt) : "";
+      dt.textContent = outcome.decidedAt ? tf("recordedPrefix") + " " + formatOutcomeDate(outcome.decidedAt) : "";
     }
 
     function hideProrektorOutcomeCard() {
@@ -360,53 +393,59 @@
       const st = String(sub.status || "").toUpperCase();
       const draftNote = hasOtherDraft
         ? `<p style="font-size:13px;color:#2F4A8A;margin-top:18px;padding:14px 16px;background:var(--navy-lite);border-radius:var(--r);text-align:left;line-height:1.5;border:1px solid #D0D8EE;">
-            Máte také rozpracovaný <strong>koncept (draft)</strong>.
-            <a href="apply-prestige.html?c=${encodeURIComponent(COMPETITION_ID)}" style="color:var(--navy);font-weight:600;white-space:nowrap;">Pokračovat v konceptu →</a>
+            ${escapeHtml(tf("draftNotePrefix"))} <strong>${escapeHtml(tf("draftNoteStrong"))}</strong>.
+            <a href="apply-prestige.html?c=${encodeURIComponent(COMPETITION_ID)}" style="color:var(--navy);font-weight:600;white-space:nowrap;">${escapeHtml(tf("draftNoteContinue"))}</a>
           </p>`
         : "";
       let outcomeBlock = "";
       if (outcome && outcome.decision) {
         outcomeBlock = `
           <div class="outcome-card" style="text-align:left;margin:24px 0;">
-            <h3 style="margin-bottom:8px;">Stanovisko prorektora</h3>
+            <h3 style="margin-bottom:8px;">${escapeHtml(tf("prorektorHeading"))}</h3>
             <div class="outcome-dec">${escapeHtml(outcome.decisionLabel || outcome.decision)}</div>
             ${outcome.comment ? `<div class="outcome-comment">${escapeHtml(outcome.comment)}</div>` : ""}
-            ${outcome.decidedAt ? `<p class="outcome-meta">${escapeHtml("Zapsáno: " + formatOutcomeDate(outcome.decidedAt))}</p>` : ""}
+            ${outcome.decidedAt ? `<p class="outcome-meta">${escapeHtml(tf("recordedPrefix") + " " + formatOutcomeDate(outcome.decidedAt))}</p>` : ""}
           </div>`;
       } else if (st === "APPROVED" || st === "REJECTED") {
-        outcomeBlock = `<p style="font-size:14px;color:var(--muted);line-height:1.5;margin:20px 0;">Jakmile bude rozhodnutí prorektora zapsáno, zobrazí se zde i v postranním panelu po obnovení stránky.</p>`;
+        outcomeBlock = `<p style="font-size:14px;color:var(--muted);line-height:1.5;margin:20px 0;">${escapeHtml(tf("outcomeWaitRecorded"))}</p>`;
       } else {
-        outcomeBlock = `<p style="font-size:14px;color:var(--muted);line-height:1.5;margin:20px 0;">Po dokončení hodnocení a rozhodnutí prorektora se zde zobrazí závěr a komentář.</p>`;
+        outcomeBlock = `<p style="font-size:14px;color:var(--muted);line-height:1.5;margin:20px 0;">${escapeHtml(tf("outcomeAfterReview"))}</p>`;
       }
       const icon = st === "REJECTED" ? "📋" : "✅";
       document.getElementById("formPanel").innerHTML = `
         <div style="padding:40px 28px;text-align:center;max-width:860px;margin:0 auto;">
           <div style="font-size:44px;margin-bottom:14px;">${icon}</div>
-          <h2 style="font-size:20px;color:var(--navy);margin-bottom:8px;">${escapeHtml(sub.project_title || "Vaše přihláška")}</h2>
-          <p style="font-size:13px;color:var(--muted);margin-bottom:8px;">ID přihlášky: <span style="font-family:'DM Mono',monospace;">${escapeHtml(sub.application_id)}</span></p>
-          <p style="font-size:13px;color:var(--muted);margin-bottom:4px;">Aktuální stav: <strong>${escapeHtml(sub.status)}</strong></p>
+          <h2 style="font-size:20px;color:var(--navy);margin-bottom:8px;">${escapeHtml(sub.project_title || tf("appTitleFallback"))}</h2>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:8px;">${escapeHtml(tf("appIdLabel"))} <span style="font-family:'DM Mono',monospace;">${escapeHtml(sub.application_id)}</span></p>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:4px;">${escapeHtml(tf("statusLabel"))} <strong>${escapeHtml(sub.status)}</strong></p>
           ${outcomeBlock}
           ${draftNote}
           <div id="postawardRoot" style="display:none;"></div>
           <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:20px;">
-            <a href="my-projects.html" class="btn btn-ghost">← Moje projekty</a>
-            <a href="dashboard.html" class="btn btn-primary">Rozcestník</a>
+            <a href="my-projects.html" class="btn btn-ghost">${escapeHtml(tf("myProjects"))}</a>
+            <a href="dashboard.html" class="btn btn-primary">${escapeHtml(tf("hub"))}</a>
           </div>
         </div>`;
+    }
+
+    function getPrestigeMilestones() {
+      if (I18n.getLang() === "en" && typeof UhkApplyFlowEn !== "undefined" && UhkApplyFlowEn.prestige && UhkApplyFlowEn.prestige.milestones)
+        return UhkApplyFlowEn.prestige.milestones;
+      return PRESTIGE_VYZVA.milestones;
     }
 
     function renderPrestigeVyzvaSidebar() {
       const ul = document.getElementById("prestigeVyzvaList");
       if (!ul) return;
-      ul.innerHTML = PRESTIGE_VYZVA.milestones.map((m) => `
+      ul.innerHTML = getPrestigeMilestones().map((m) => `
         <li>
-          <strong>${m.title}</strong>
-          <div class="vyzva-date">${m.dateLabel}</div>
-          ${m.note ? `<div class="vyzva-note">${m.note}</div>` : ""}
+          <strong>${escapeHtml(m.title)}</strong>
+          <div class="vyzva-date">${escapeHtml(m.dateLabel)}</div>
+          ${m.note ? `<div class="vyzva-note">${escapeHtml(m.note)}</div>` : ""}
         </li>
       `).join("");
       const sd = document.getElementById("sidebarDeadlineApply");
-      if (sd) sd.textContent = formatCsDateFromIso(PRESTIGE_VYZVA.DEADLINE_APPLY_ISO);
+      if (sd) sd.textContent = formatUiDateFromIso(PRESTIGE_VYZVA.DEADLINE_APPLY_ISO);
     }
 
     // Stav formuláře
@@ -418,16 +457,20 @@
     let currentSection = 0;
 
     const STEPS = [
-      { label: "Identifikace", fields: ["section_ident","project_title","target_scheme","planned_submission_date","support_year1_request","faculty","department"] },
-      { label: "Concept & excelence", fields: ["section_concept","concept_note","excellence_top5","prev_erc_he"] },
-      { label: "Strategie & milníky", fields: ["section_strategy","strategy_why_call","strategy_work_packages","strategy_external_review","section_milestones","milestones_summary"] },
-      { label: "Rozpočet", fields: ["section_budget","budget_personnel","budget_agency","budget_training","budget_travel","budget_material","budget_other","budget_justification"] },
-      { label: "Přílohy", fields: ["section_attachments","attach_annex1","attach_annex2","attach_annex3","attach_checklist6","declaration"] },
+      { id: "ident", fields: ["section_ident","project_title","target_scheme","planned_submission_date","support_year1_request","faculty","department"] },
+      { id: "concept", fields: ["section_concept","concept_note","excellence_top5","prev_erc_he"] },
+      { id: "strategy", fields: ["section_strategy","strategy_why_call","strategy_work_packages","strategy_external_review","section_milestones","milestones_summary"] },
+      { id: "budget", fields: ["section_budget","budget_personnel","budget_agency","budget_training","budget_travel","budget_material","budget_other","budget_justification"] },
+      { id: "attachments", fields: ["section_attachments","attach_annex1","attach_annex2","attach_annex3","attach_checklist6","declaration"] },
     ];
 
-    // ── Pole formuláře – definována lokálně, nezávisle na API ─
+    function getLocalFields() {
+      if (I18n.getLang() === "en" && typeof UhkApplyFlowEn !== "undefined" && UhkApplyFlowEn.prestige && UhkApplyFlowEn.prestige.fields)
+        return UhkApplyFlowEn.prestige.fields;
+      return getLocalFieldsCs();
+    }
+
     async function loadFormFields() {
-      // Vždy používej lokální definici – API je jen pro případné budoucí rozšíření
       formFields = getLocalFields();
       const jumpFinalize = new URLSearchParams(location.search).get("finalize") === "1";
       renderProgress();
@@ -437,15 +480,17 @@
         return;
       }
       renderSection(currentSection);
+      updateBudgetSidebarFromFormData();
       if (jumpFinalize) {
         currentSection = STEPS.length - 1;
         renderProgress();
         renderSection(currentSection);
+        updateBudgetSidebarFromFormData();
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
     }
 
-    function getLocalFields() {
+    function getLocalFieldsCs() {
       return [
         { field_id:"section_ident", field_label:"Identifikace záměru", field_type:"section_header" },
         { field_id:"project_title", field_label:"Název záměru (CZ / EN)", field_type:"text", required:"TRUE", placeholder:"Pracovní název přípravy návrhu do ERC nebo Horizon Europe" },
@@ -487,7 +532,7 @@
         <div class="progress-step ${i < currentSection ? "done" : i === currentSection ? "active" : ""}"
           onclick="goToSection(${i})">
           <div class="progress-dot">${i < currentSection ? "✓" : i + 1}</div>
-          <div class="progress-label">${s.label}</div>
+          <div class="progress-label">${escapeHtml(getPrestigeStepLabel(s.id))}</div>
         </div>`).join("");
     }
 
@@ -510,15 +555,13 @@
 
       let html = `
         <div class="section-header">
-          <h2>${step.label}</h2>
-          <p>Krok ${idx + 1} z ${STEPS.length}</p>
+          <h2>${escapeHtml(getPrestigeStepLabel(step.id))}</h2>
+          <p>${escapeHtml(I18n.tReplace("applyFlow.stepOf", { n: String(idx + 1), total: String(STEPS.length) }))}</p>
         </div>
         <div class="form-body" id="formBody">`;
 
-      // Speciální render pro krok Rozpočet
-      if (step.label === "Rozpočet") {
+      if (step.id === "budget") {
         html += renderBudgetTable();
-        // budget_justification je součástí renderBudgetTable - neopakovat!
       } else {
         fields.forEach(f => {
           html += renderField(f);
@@ -529,20 +572,20 @@
         <div class="form-footer">
           <div class="save-status">
             <div class="save-dot" id="saveDot"></div>
-            <span id="saveStatusText">Neuloženo</span>
+            <span id="saveStatusText">${escapeHtml(trf("footerUnsaved"))}</span>
           </div>
           <div style="display:flex;gap:8px;align-items:center;">
-            ${idx > 0 ? `<button class="btn btn-secondary" onclick="prevSection()">← Zpět</button>` : ""}
-            <button type="button" class="btn btn-ghost" onclick="saveDraftManual()" title="Uloží rozpracovanou přihlášku jako koncept (draft) na server.">Uložit draft</button>
+            ${idx > 0 ? `<button class="btn btn-secondary" onclick="prevSection()">${escapeHtml(trf("footerBack"))}</button>` : ""}
+            <button type="button" class="btn btn-ghost" onclick="saveDraftManual()" title="${escapeAttr(tf("saveDraftTitle"))}">${escapeHtml(trf("footerSaveDraft"))}</button>
             ${idx < STEPS.length - 1
-              ? `<button class="btn btn-primary" onclick="nextSection()">Pokračovat →</button>`
-              : `<button class="btn btn-primary" id="submitBtn" onclick="submitApplication()">Odeslat přihlášku →</button>`}
+              ? `<button class="btn btn-primary" onclick="nextSection()">${escapeHtml(trf("footerContinue"))}</button>`
+              : `<button class="btn btn-primary" id="submitBtn" onclick="submitApplication()">${escapeHtml(trf("footerSubmit"))}</button>`}
           </div>
         </div>`;
 
       panel.innerHTML = html;
       restoreValues(fields);
-      if (step.label === "Rozpočet") syncBudgetTotalsFromDom({ markDirty: false });
+      if (step.id === "budget") syncBudgetTotalsFromDom({ markDirty: false });
       else updateBudgetSidebarFromFormData();
       updateChecklist();
     }
@@ -551,7 +594,7 @@
       if (f.field_type === "section_header") {
         return `<div class="section-divider">
           <div class="section-divider-line"></div>
-          <div class="section-divider-label">${f.field_label}</div>
+          <div class="section-divider-label">${escapeHtml(f.field_label)}</div>
           <div class="section-divider-line"></div>
         </div>`;
       }
@@ -559,28 +602,38 @@
       const req = f.required === "TRUE" || f.required === true;
       const val = formData[f.field_id] || "";
       let input = "";
+      const ph = escapeAttr(f.placeholder || "");
+      const errReq = escapeHtml(tf("fieldErrRequired"));
+      const errFile = escapeHtml(tf("fieldErrFile"));
 
       if (f.field_type === "textarea") {
-        input = `<textarea id="f-${f.field_id}" placeholder="${f.placeholder||""}" ${req?"required":""}
-          onchange="onFieldChange('${f.field_id}',this.value)">${val}</textarea>`;
+        input = `<textarea id="f-${f.field_id}" placeholder="${ph}" ${req?"required":""}
+          onchange="onFieldChange('${f.field_id}',this.value)">${escapeHtml(val)}</textarea>`;
 
       } else if (f.field_type === "select") {
         const opts = (f.options||"").split(";").filter(Boolean);
+        const selPh = escapeHtml(tf("selectPlaceholder"));
         input = `<select id="f-${f.field_id}" ${req?"required":""}
           onchange="onFieldChange('${f.field_id}',this.value)">
-          <option value="">— Vyberte —</option>
-          ${opts.map(o => `<option value="${o}" ${val===o?"selected":""}>${o}</option>`).join("")}
+          <option value="">${selPh}</option>
+          ${opts.map(o => {
+            const disp = escapeHtml(optionDisplayLabel(f, o));
+            return `<option value="${escapeAttr(o)}" ${val===o?"selected":""}>${disp}</option>`;
+          }).join("")}
         </select>`;
 
       } else if (f.field_type === "radio") {
         const opts = (f.options||"").split(";").filter(Boolean);
         input = `<div class="radio-group">
-          ${opts.map((o,i) => `
+          ${opts.map((o,i) => {
+            const disp = escapeHtml(optionDisplayLabel(f, o));
+            return `
             <label class="radio-option ${val===o?"selected":""}">
-              <input type="radio" name="${f.field_id}" value="${o}" ${val===o?"checked":""}
+              <input type="radio" name="${f.field_id}" value="${escapeAttr(o)}" ${val===o?"checked":""}
                 onchange="onRadioChange('${f.field_id}',this)">
-              <span class="radio-label">${o}</span>
-            </label>`).join("")}
+              <span class="radio-label">${disp}</span>
+            </label>`;
+          }).join("")}
         </div>`;
 
       } else if (f.field_type === "checkbox") {
@@ -590,31 +643,31 @@
               onchange="onFieldChange('${f.field_id}',this.checked?'true':'')">
             <label class="checkbox-label" for="f-${f.field_id}">${f.help_text || f.field_label} ${req?'<span style="color:var(--red)">*</span>':""}</label>
           </div>
-          <div class="field-error" id="err-${f.field_id}">Toto pole je povinné.</div>
+          <div class="field-error" id="err-${f.field_id}">${errReq}</div>
         </div>`;
 
       } else if (f.field_type === "file") {
         const accept = f.options ? f.options.split(",").map(e=>"."+e.trim()).join(",") : "*";
+        const fmtHint = escapeHtml(tf("fileFormat")) + " " + escapeHtml(f.options || (I18n.getLang() === "en" ? "any" : "jakýkoli"));
         return `<div class="field">
           <label class="field-label">${f.field_label} ${req?'<span class="field-required">*</span>':""}</label>
           ${f.help_text ? `<div class="field-help">${f.help_text}</div>` : ""}
           <div class="file-zone" onclick="document.getElementById('f-${f.field_id}').click()">
             <div class="file-zone-icon">📎</div>
-            <div class="file-zone-text">Klikněte pro výběr souboru</div>
-            <div class="file-zone-hint">Formát: ${f.options||"jakýkoli"}</div>
+            <div class="file-zone-text">${escapeHtml(tf("filePick"))}</div>
+            <div class="file-zone-hint">${fmtHint}</div>
             <input type="file" id="f-${f.field_id}" accept="${accept}"
               onchange="onFileChange('${f.field_id}',this)">
           </div>
           <div id="file-info-${f.field_id}" style="display:none;" class="file-selected">
             <span>✓</span> <span id="file-name-${f.field_id}"></span>
           </div>
-          <div class="field-error" id="err-${f.field_id}">Nahrajte prosím soubor.</div>
+          <div class="field-error" id="err-${f.field_id}">${errFile}</div>
         </div>`;
 
       } else {
-        // text, email, number, date (min/max u dat aktivit doplní applyActivityDateConstraints po vykreslení)
         input = `<input type="${f.field_type}" id="f-${f.field_id}"
-          placeholder="${f.placeholder||""}" value="${val}" ${req?"required":""}
+          placeholder="${ph}" value="${escapeAttr(val)}" ${req?"required":""}
           onchange="onFieldChange('${f.field_id}',this.value)"
           ${f.field_type==="number"?"min='0'":""}>`;
       }
@@ -625,7 +678,7 @@
         </label>
         ${f.help_text ? `<div class="field-help">${f.help_text}</div>` : ""}
         ${input}
-        <div class="field-error" id="err-${f.field_id}">Toto pole je povinné.</div>
+        <div class="field-error" id="err-${f.field_id}">${errReq}</div>
       </div>`;
     }
 
@@ -642,72 +695,101 @@
 
     // ── Inline rozpočtová tabulka ─────────────────────────────────
     function renderBudgetTable() {
-      const items = [
-        { id: "budget_personnel", label: "A. Osobní náklady (řešitel / tým, max. 40 %, max. 0,3 FTE řešitele)", help: "DPP/DPČ, odvody, FKSP – dle přílohy č. 2 výzvy", note: "" },
-        { id: "budget_agency",    label: "B. Agenturní / mentoringová podpora", help: "Kritické čtení, příprava částí návrhu, interview training…", note: "" },
-        { id: "budget_training",  label: "C. Vzdělávání a školení", help: "Kurzy, workshopy, letní školy", note: "" },
-        { id: "budget_travel",    label: "D. Cestovné", help: "Doprava, ubytování, stravné (pracovní cesta)", note: "" },
-        { id: "budget_material",  label: "E. Materiál / data / analytické služby", help: "Pilotní aktivity, odborné analýzy", note: "" },
-        { id: "budget_other",     label: "F. Ostatní způsobilé náklady", help: "Např. publikační poplatky, jazyková korektura", note: "" },
-      ];
+      const enBu =
+        I18n.getLang() === "en" && typeof UhkApplyFlowEn !== "undefined" && UhkApplyFlowEn.prestige && UhkApplyFlowEn.prestige.budgetUi
+          ? UhkApplyFlowEn.prestige.budgetUi
+          : null;
 
-      const rows = items.map(it => `
+      const items = enBu
+        ? enBu.items
+        : [
+            { id: "budget_personnel", label: "A. Osobní náklady (řešitel / tým, max. 40 %, max. 0,3 FTE řešitele)", help: "DPP/DPČ, odvody, FKSP – dle přílohy č. 2 výzvy", note: "" },
+            { id: "budget_agency", label: "B. Agenturní / mentoringová podpora", help: "Kritické čtení, příprava částí návrhu, interview training…", note: "" },
+            { id: "budget_training", label: "C. Vzdělávání a školení", help: "Kurzy, workshopy, letní školy", note: "" },
+            { id: "budget_travel", label: "D. Cestovné", help: "Doprava, ubytování, stravné (pracovní cesta)", note: "" },
+            { id: "budget_material", label: "E. Materiál / data / analytické služby", help: "Pilotní aktivity, odborné analýzy", note: "" },
+            { id: "budget_other", label: "F. Ostatní způsobilé náklady", help: "Např. publikační poplatky, jazyková korektura", note: "" },
+          ];
+
+      const tableTitle = enBu ? enBu.tableTitle : "Rozpočet přihlášky";
+      const tableHelp = enBu ? enBu.tableHelp : "Vyplňte pouze položky které budete čerpat. Součet se počítá automaticky.";
+      const yellowWarnHtml = enBu
+        ? enBu.yellowWarn
+        : "⚠ Součet položek nesmí překročit <strong>1 000 000 Kč</strong> (rok 1). Osobní náklady max. <strong>40 %</strong> schválené podpory a max. <strong>0,3 FTE</strong> řešitele dle výzvy.";
+      const thLine = enBu ? enBu.thLine : "Položka";
+      const thAmount = enBu ? enBu.thAmount : "Požadovaná částka";
+      const totalLabel = enBu ? enBu.totalLabel : "Celkem";
+      const warnRed = enBu ? enBu.warnRed : "⚠ Celková podpora překračuje maximum 1 000 000 Kč (rok 1)";
+      const justLabel = enBu ? enBu.justLabel : "Odůvodnění rozpočtu";
+      const justHelp = enBu ? enBu.justHelp : "Vazba jednotlivých položek na plánovanou aktivitu";
+      const justPh = enBu ? enBu.justPh : "Jízdné: letenka Praha–Londýn zpátečně dle ceníku ČSA přibližně 8 000 Kč…";
+      const currencyCol = I18n.getLang() === "en" ? "CZK" : "Kč";
+      const errReq = escapeHtml(tf("fieldErrRequired"));
+
+      const rows = items
+        .map((it) => {
+          const noteEsc = it.note ? escapeHtml(it.note) : "";
+          return `
         <tr>
           <td style="padding:10px 14px;font-size:13px;color:var(--navy);border-bottom:1px solid var(--border);">
             <div style="display:flex;align-items:center;gap:8px;">
-              ${it.label}
-              ${it.note ? `<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;background:#FEF3C7;color:#92400E;white-space:nowrap;">${it.note}</span>` : ""}
+              ${escapeHtml(it.label)}
+              ${it.note ? `<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;background:#FEF3C7;color:#92400E;white-space:nowrap;">${noteEsc}</span>` : ""}
             </div>
-            <div style="font-size:11px;color:var(--muted);margin-top:2px;">${it.help}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;">${escapeHtml(it.help)}</div>
           </td>
           <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);width:140px;">
             <input type="number" id="f-${it.id}" min="0" step="1"
-              value="${formData[it.id]||""}"
+              value="${escapeAttr(formData[it.id] || "")}"
               placeholder="0"
               oninput="onBudgetInput()"
               style="width:100%;border:none;padding:10px 12px;font-family:'DM Mono',monospace;font-size:13px;text-align:right;color:var(--navy);background:transparent;outline:none;">
           </td>
-          <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);padding:10px 12px;font-size:11px;color:var(--muted);width:40px;text-align:center;">Kč</td>
-        </tr>`).join("");
+          <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);padding:10px 12px;font-size:11px;color:var(--muted);width:48px;text-align:center;">${escapeHtml(currencyCol)}</td>
+        </tr>`;
+        })
+        .join("");
+
+      const totalFmt = escapeHtml(I18n.fmtMoney(0));
 
       return `
         <div class="field">
-          <label class="field-label">Rozpočet přihlášky</label>
-          <div class="field-help">Vyplňte pouze položky které budete čerpat. Součet se počítá automaticky.</div>
+          <label class="field-label">${escapeHtml(tableTitle)}</label>
+          <div class="field-help">${escapeHtml(tableHelp)}</div>
           <div style="padding:10px 14px;background:#FEF3C7;border:1px solid #FDE68A;border-radius:var(--r);font-size:12px;color:#92400E;margin-top:4px;margin-bottom:8px;">
-            ⚠ Součet položek nesmí překročit <strong>1 000 000 Kč</strong> (rok 1). Osobní náklady max. <strong>40 %</strong> schválené podpory a max. <strong>0,3 FTE</strong> řešitele dle výzvy.
+            ${yellowWarnHtml}
           </div>
           <div style="border:1.5px solid var(--border);border-radius:var(--r);overflow:hidden;margin-top:4px;">
             <table style="width:100%;border-collapse:collapse;">
               <thead>
                 <tr style="background:var(--navy-lite);">
-                  <th style="padding:10px 14px;text-align:left;font-size:12px;font-weight:600;color:var(--navy);border-bottom:1px solid var(--border);">Položka</th>
-                  <th colspan="2" style="padding:10px 14px;text-align:right;font-size:12px;font-weight:600;color:var(--navy);border-bottom:1px solid var(--border);">Požadovaná částka</th>
+                  <th style="padding:10px 14px;text-align:left;font-size:12px;font-weight:600;color:var(--navy);border-bottom:1px solid var(--border);">${escapeHtml(thLine)}</th>
+                  <th colspan="2" style="padding:10px 14px;text-align:right;font-size:12px;font-weight:600;color:var(--navy);border-bottom:1px solid var(--border);">${escapeHtml(thAmount)}</th>
                 </tr>
               </thead>
               <tbody>${rows}</tbody>
               <tfoot>
                 <tr style="background:var(--navy-lite);">
-                  <td style="padding:12px 14px;font-size:14px;font-weight:600;color:var(--navy);">Celkem</td>
+                  <td style="padding:12px 14px;font-size:14px;font-weight:600;color:var(--navy);">${escapeHtml(totalLabel)}</td>
                   <td colspan="2" style="padding:12px 14px;text-align:right;font-family:'DM Mono',monospace;font-size:16px;font-weight:600;color:var(--navy);border-left:1px solid var(--border);">
-                    <span id="budgetTableTotal">0</span> Kč
+                    <span id="budgetTableTotal">${totalFmt}</span>
                   </td>
                 </tr>
               </tfoot>
             </table>
           </div>
           <div id="budgetWarn" style="display:none;margin-top:8px;padding:8px 12px;background:var(--red-lite);border-radius:var(--r);font-size:12px;color:var(--red);">
-            ⚠ Celková podpora překračuje maximum 1 000 000 Kč (rok 1)
+            ${warnRed}
           </div>
         </div>
         <div class="field" style="margin-top:16px;">
-          <label class="field-label">Odůvodnění rozpočtu <span class="field-required">*</span></label>
-          <div class="field-help">Vazba jednotlivých položek na plánovanou aktivitu</div>
+          <label class="field-label">${escapeHtml(justLabel)} <span class="field-required">*</span></label>
+          <div class="field-help">${escapeHtml(justHelp)}</div>
           <textarea id="f-budget_justification"
-            placeholder="Jízdné: letenka Praha–Londýn zpátečně dle ceníku ČSA přibližně 8 000 Kč…"
+            placeholder="${escapeAttr(justPh)}"
             onchange="onFieldChange('budget_justification',this.value)"
-            style="min-height:90px;">${formData['budget_justification']||""}</textarea>
-          <div class="field-error" id="err-budget_justification">Toto pole je povinné.</div>
+            style="min-height:90px;">${escapeHtml(formData["budget_justification"] || "")}</textarea>
+          <div class="field-error" id="err-budget_justification">${errReq}</div>
         </div>`;
     }
 
@@ -728,11 +810,11 @@
       formData["budget_total"] = String(total);
 
       const tt = document.getElementById("budgetTableTotal");
-      if (tt) tt.textContent = total.toLocaleString("cs-CZ");
+      if (tt) tt.textContent = I18n.fmtMoney(total);
       const warn = document.getElementById("budgetWarn");
       if (warn) warn.style.display = total > MAX_BUDGET ? "block" : "none";
       const bd = document.getElementById("budgetDisplay");
-      if (bd) bd.textContent = total.toLocaleString("cs-CZ") + " Kč";
+      if (bd) bd.textContent = I18n.fmtMoney(total);
       const bar = document.getElementById("budgetBar");
       if (bar) {
         const pct = Math.min(100, Math.round(total / MAX_BUDGET * 100));
@@ -754,7 +836,7 @@
       });
       formData["budget_total"] = String(total);
       const bd = document.getElementById("budgetDisplay");
-      if (bd) bd.textContent = total.toLocaleString("cs-CZ") + " Kč";
+      if (bd) bd.textContent = I18n.fmtMoney(total);
       const bar = document.getElementById("budgetBar");
       if (bar) {
         const pct = Math.min(100, Math.round(total / MAX_BUDGET * 100));
@@ -825,15 +907,15 @@
           ok = false;
         }
       });
-      if (!ok) showToast("Vyplňte prosím všechna povinná pole.", "err");
-      if (ok && step.label === "Rozpočet") {
+      if (!ok) showToast(trf("validateRequiredAll"), "err");
+      if (ok && step.id === "budget") {
         const t = parseFloat(String(formData.budget_total || "").replace(/\s/g, "").replace(",", ".")) || 0;
         if (t <= 0) {
-          showToast("Součet rozpočtu musí být větší než 0 Kč.", "err");
+          showToast(tf("toastBudgetSumPositive"), "err");
           return false;
         }
         if (t > MAX_BUDGET) {
-          showToast("Součet rozpočtu překračuje maximum " + MAX_BUDGET.toLocaleString("cs-CZ") + " Kč (rok 1).", "err");
+          showToast(I18n.tReplace("applyFlow.toastBudgetSumMax", { amount: I18n.fmtMoney(MAX_BUDGET) }), "err");
           return false;
         }
         const j = (formData.budget_justification || "").trim();
@@ -842,7 +924,7 @@
           if (errEl) errEl.classList.add("show");
           const inp = document.getElementById("f-budget_justification");
           if (inp) inp.classList.add("error");
-          showToast("Doplňte odůvodnění rozpočtu.", "err");
+          showToast(tf("toastBudgetJust"), "err");
           return false;
         }
       }
@@ -874,19 +956,33 @@
 
     // ── Checklist ────────────────────────────────────────────────
     function updateChecklist() {
+      const labelsCs = [
+        "Název záměru",
+        "Cílová soutěž",
+        "Concept note (text)",
+        "TOP výsledky",
+        "Rozpočet (součet)",
+        "Přílohy 1–3 a č. 6",
+        "Prohlášení",
+      ];
+      const labelsEn =
+        typeof UhkApplyFlowEn !== "undefined" && UhkApplyFlowEn.prestige && UhkApplyFlowEn.prestige.checklist
+          ? UhkApplyFlowEn.prestige.checklist
+          : labelsCs;
+      const labels = I18n.getLang() === "en" ? labelsEn : labelsCs;
       const checks = [
-        { label: "Název záměru", done: !!formData.project_title },
-        { label: "Cílová soutěž", done: !!formData.target_scheme },
-        { label: "Concept note (text)", done: !!formData.concept_note },
-        { label: "TOP výsledky", done: !!formData.excellence_top5 },
-        { label: "Rozpočet (součet)", done: !!(formData.budget_total && parseFloat(formData.budget_total) > 0) },
-        { label: "Přílohy 1–3 a č. 6", done: !!(formData.attach_annex1 && formData.attach_annex2 && formData.attach_annex3 && formData.attach_checklist6) },
-        { label: "Prohlášení", done: formData.declaration === "true" },
+        { label: labels[0], done: !!formData.project_title },
+        { label: labels[1], done: !!formData.target_scheme },
+        { label: labels[2], done: !!formData.concept_note },
+        { label: labels[3], done: !!formData.excellence_top5 },
+        { label: labels[4], done: !!(formData.budget_total && parseFloat(formData.budget_total) > 0) },
+        { label: labels[5], done: !!(formData.attach_annex1 && formData.attach_annex2 && formData.attach_annex3 && formData.attach_checklist6) },
+        { label: labels[6], done: formData.declaration === "true" },
       ];
       document.getElementById("checklist").innerHTML = checks.map(c => `
         <div class="checklist-item ${c.done?"done":""}">
           <div class="checklist-dot">${c.done?"✓":""}</div>
-          <span>${c.label}</span>
+          <span>${escapeHtml(c.label)}</span>
         </div>`).join("");
     }
 
@@ -895,8 +991,9 @@
       clearTimeout(saveTimer);
       const dot = document.getElementById("saveDot");
       if (dot) { dot.className = "save-dot saving"; }
-      document.getElementById("saveStatusText").textContent = "Neuloženo…";
-      saveTimer = setTimeout(saveDraftSilent, 30000); // pravidelné auto-ukládání draftu po 30 s nečinnosti
+      const st = document.getElementById("saveStatusText");
+      if (st) st.textContent = tf("footerDirty");
+      saveTimer = setTimeout(saveDraftSilent, 30000);
     }
 
     async function saveDraftSilent() {
@@ -924,14 +1021,16 @@
           }),
         });
         isDirty = false;
-        const now = new Date().toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" });
-        document.getElementById("lastSaved").textContent = now;
+        const now = new Date().toLocaleTimeString(I18n.numLocale(), { hour: "2-digit", minute: "2-digit" });
+        const ls = document.getElementById("lastSaved");
+        if (ls) ls.textContent = now;
         const dot = document.getElementById("saveDot");
         if (dot) dot.className = "save-dot saved";
-        document.getElementById("saveStatusText").textContent = "Uloženo " + now;
-        if (showMessage) showToast("Koncept (draft) uložen ✓");
+        const st = document.getElementById("saveStatusText");
+        if (st) st.textContent = I18n.tReplace("applyRega.footerSavedAt", { time: now });
+        if (showMessage) showToast(trf("toastDraftSaved"));
       } catch {
-        if (showMessage) showToast("Ukládání selhalo – zkuste znovu.", "err");
+        if (showMessage) showToast(trf("toastSaveFailed"), "err");
       }
     }
 
@@ -970,7 +1069,8 @@
           formData = data.draft.formData || {};
           draftId  = data.draft.id || data.draft.application_id || null;
           renderSection(currentSection);
-          showToast("Načten uložený draft.");
+          updateBudgetSidebarFromFormData();
+          showToast(trf("draftLoadedToast"));
         }
         return false;
       } catch {
@@ -986,17 +1086,17 @@
       syncBudgetTotalsFromDom({ markDirty: false });
       const bt = parseFloat(String(formData.budget_total || "").replace(/\s/g, "").replace(",", ".")) || 0;
       if (bt > MAX_BUDGET) {
-        showToast("Celkový rozpočet překračuje povolené maximum.", "err");
+        showToast(tf("toastBudgetOverMax"), "err");
         return;
       }
 
-      // Zkontroluj povinné checkbox
       if (formData.declaration !== "true") {
-        showToast("Potvrďte prosím prohlášení žadatele.", "err"); return;
+        showToast(trf("toastConfirmDeclaration"), "err"); return;
       }
 
       const btn = document.getElementById("submitBtn");
-      btn.disabled = true; btn.textContent = "Odesílám…";
+      const submitLabel = trf("footerSubmit");
+      btn.disabled = true; btn.textContent = trf("submitSending");
 
       try {
         const session = Auth._getSession();
@@ -1014,21 +1114,22 @@
           }),
         });
 
-        // Úspěch
         document.getElementById("formPanel").innerHTML = `
           <div style="padding:48px 32px;text-align:center;">
             <div style="font-size:48px;margin-bottom:16px;">✅</div>
-            <h2 style="font-family:'DM Sans',sans-serif;font-size:22px;color:var(--navy);margin-bottom:8px;">Přihláška odeslána!</h2>
-            <p style="font-size:14px;color:var(--muted);margin-bottom:24px;">Vaše přihláška do soutěže <strong>UHK Prestige</strong> (Výzva 1/2026) byla úspěšně podána.<br>
-            O dalším postupu Vás informujeme e-mailem. Stav přihlášky sledujte v přehledu <strong>Moje projekty</strong>.</p>
-            <a href="dashboard.html" class="btn btn-primary">← Zpět na rozcestník</a>
+            <h2 style="font-family:'DM Sans',sans-serif;font-size:22px;color:var(--navy);margin-bottom:8px;">${escapeHtml(tp("submitSuccessTitle"))}</h2>
+            <p style="font-size:14px;color:var(--muted);margin-bottom:24px;">${tp("submitSuccessP")}</p>
+            <a href="dashboard.html" class="btn btn-primary">${escapeHtml(tp("submitBackDash"))}</a>
           </div>`;
-        document.getElementById("statusBadge").textContent = "SUBMITTED";
-        document.getElementById("statusBadge").className = "badge badge-submitted";
-        showToast("Přihláška úspěšně odeslána! ✓");
+        const badge = document.getElementById("statusBadge");
+        if (badge) {
+          badge.textContent = I18n.t("appStatuses.SUBMITTED.label");
+          badge.className = "badge badge-submitted";
+        }
+        showToast(trf("submitSuccessToast"));
       } catch {
-        btn.disabled = false; btn.textContent = "Odeslat přihlášku →";
-        showToast("Chyba při odesílání – zkuste znovu.", "err");
+        btn.disabled = false; btn.textContent = submitLabel;
+        showToast(trf("submitError"), "err");
       }
     }
 
