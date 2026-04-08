@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Přihlášení – UHK Grantové soutěže</title>
+  <title data-i18n="meta.login">Přihlášení – UHK Grantové soutěže</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/app.css">
@@ -58,9 +58,9 @@
           style="max-width:240px;width:100%;opacity:.92;margin-bottom:32px;">
       </div>
       <div class="login-brand__tagline">
-        Interní systém pro správu<br>
-        <em>výzkumných grantů</em><br>
-        Univerzity Hradec Králové
+        <span data-i18n="login.brandLine1">Interní systém pro správu</span><br>
+        <em data-i18n="login.brandLine2">výzkumných grantů</em><br>
+        <span data-i18n="login.brandLine3">Univerzity Hradec Králové</span>
       </div>
       <div class="login-brand__decoration">
         <div class="deco-circle deco-circle--1"></div>
@@ -73,6 +73,7 @@
   <!-- Pravý panel -->
   <div class="login-form-panel">
     <div class="login-form-wrap">
+      <div id="loginLangHost" style="display:flex;justify-content:flex-end;margin-bottom:4px;min-height:28px;"></div>
 
       <!-- KROK 1 – přihlášení -->
       <div id="step1" class="step active">
@@ -82,18 +83,18 @@
           <div class="step-bar__dot"></div>
           <div class="step-bar__line"></div>
           <div class="step-bar__dot"></div>
-          <span class="step-bar__label">Přihlášení</span>
+          <span class="step-bar__label" data-i18n="login.stepLogin">Přihlášení</span>
         </div>
         <div class="login-form__header">
-          <h1 class="login-form__title">Vítejte</h1>
-          <p class="login-form__sub">Přihlaste se do systému UHK Grantové soutěže.</p>
+          <h1 class="login-form__title" data-i18n="login.welcome">Vítejte</h1>
+          <p class="login-form__sub" data-i18n="login.sub">Přihlaste se do systému UHK Grantové soutěže.</p>
         </div>
         <div id="err1" class="alert alert--error" style="display:none;">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v3.5M8 11h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           <span id="err1Text"></span>
         </div>
         <div class="field">
-          <label for="email">E-mail</label>
+          <label for="email" data-i18n="login.email">E-mail</label>
           <div class="field__input-wrap">
             <svg class="field__icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M1 5.5l7 4.5 7-4.5" stroke="currentColor" stroke-width="1.4"/></svg>
             <input type="email" id="email" placeholder="vas.email@uhk.cz" autocomplete="email">
@@ -101,7 +102,7 @@
           <div class="field__error" id="emailErr"></div>
         </div>
         <div class="field">
-          <label for="password">Heslo</label>
+          <label for="password" data-i18n="login.password">Heslo</label>
           <div class="field__input-wrap">
             <svg class="field__icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3" y="7" width="10" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M5 7V5a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
             <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
@@ -112,11 +113,12 @@
           <div class="field__error" id="passwordErr"></div>
         </div>
         <button class="btn-login" id="loginBtn" onclick="handleLogin()">
-          <span id="loginBtnText">Přihlásit se →</span>
+          <span id="loginBtnText" data-i18n="login.loginBtn">Přihlásit se →</span>
           <div class="btn-login__spinner" id="loginSpinner" style="display:none;"></div>
         </button>
         <div class="register-link">
-          Nemáte přístup? <a onclick="showRegister()">Požádat o přístup</a>
+          <span data-i18n="login.noAccess">Nemáte přístup?</span>
+          <a onclick="showRegister()" data-i18n="login.requestAccess">Požádat o přístup</a>
         </div>
       </div>
 
@@ -128,16 +130,16 @@
           <div class="step-bar__dot active"></div>
           <div class="step-bar__line"></div>
           <div class="step-bar__dot"></div>
-          <span class="step-bar__label">Výběr role</span>
+          <span class="step-bar__label" data-i18n="login.stepRole">Výběr role</span>
         </div>
-        <button class="btn-back" onclick="goToStep(1)">← Zpět</button>
+        <button class="btn-back" onclick="goToStep(1)" data-i18n="login.back">← Zpět</button>
         <div class="auth-summary">
           <div class="auth-summary__avatar" id="avatarLetter">?</div>
-          <div>Přihlášen jako <strong id="summaryEmail">–</strong></div>
+          <div><span data-i18n="login.loggedAs">Přihlášen jako</span> <strong id="summaryEmail">–</strong></div>
         </div>
         <div class="login-form__header" style="margin-bottom:16px;">
-          <h2 class="login-form__title" style="font-size:24px;">Vyberte roli</h2>
-          <p class="login-form__sub">Váš účet má přístup do více rolí.</p>
+          <h2 class="login-form__title" style="font-size:24px;" data-i18n="login.pickRoleTitle">Vyberte roli</h2>
+          <p class="login-form__sub" data-i18n="login.pickRoleSub">Váš účet má přístup do více rolí.</p>
         </div>
         <div class="role-list" id="roleList"></div>
       </div>
@@ -150,12 +152,12 @@
           <div class="step-bar__dot done"></div>
           <div class="step-bar__line"></div>
           <div class="step-bar__dot active"></div>
-          <span class="step-bar__label">Nový účet</span>
+          <span class="step-bar__label" data-i18n="login.stepNew">Nový účet</span>
         </div>
-        <button class="btn-back" onclick="goToStep(1)">← Zpět na přihlášení</button>
+        <button class="btn-back" onclick="goToStep(1)" data-i18n="login.backToLogin">← Zpět na přihlášení</button>
         <div class="login-form__header">
-          <h2 class="login-form__title" style="font-size:26px;">Nový přístup</h2>
-          <p class="login-form__sub">Vyplňte údaje. Účet se vytvoří okamžitě jako <strong>Žadatel / Řešitel</strong>.</p>
+          <h2 class="login-form__title" style="font-size:26px;" data-i18n="login.newAccessTitle">Nový přístup</h2>
+          <p class="login-form__sub" data-i18n-html="login.newAccessSubHtml">Vyplňte údaje. Účet se vytvoří okamžitě jako <strong>Žadatel / Řešitel</strong>.</p>
         </div>
         <div id="err3" class="alert alert--error" style="display:none;">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v3.5M8 11h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
@@ -163,10 +165,10 @@
         </div>
         <div class="alert alert--info" style="margin-bottom:16px;">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M8 7v4M8 5h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          <span>Účet bude mít roli <strong>Žadatel</strong>. Roli změní administrátor dle potřeby.</span>
+          <span data-i18n-html="login.regInfoHtml">Účet bude mít roli <strong>Žadatel</strong>. Roli změní administrátor dle potřeby.</span>
         </div>
         <div class="field">
-          <label for="regName">Celé jméno <span style="color:var(--red)">*</span></label>
+          <label for="regName"><span data-i18n="login.fullName">Celé jméno</span> <span style="color:var(--red)">*</span></label>
           <div class="field__input-wrap">
             <svg class="field__icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M2 14c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
             <input type="text" id="regName" placeholder="Mgr. Jana Nováková, Ph.D.">
@@ -174,7 +176,7 @@
           <div class="field__error" id="regNameErr"></div>
         </div>
         <div class="field">
-          <label for="regEmail">E-mail (UHK) <span style="color:var(--red)">*</span></label>
+          <label for="regEmail"><span data-i18n="login.emailUhk">E-mail (UHK)</span> <span style="color:var(--red)">*</span></label>
           <div class="field__input-wrap">
             <svg class="field__icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M1 5.5l7 4.5 7-4.5" stroke="currentColor" stroke-width="1.4"/></svg>
             <input type="email" id="regEmail" placeholder="jmeno.prijmeni@uhk.cz">
@@ -182,28 +184,28 @@
           <div class="field__error" id="regEmailErr"></div>
         </div>
         <div class="field">
-          <label for="regPassword">Heslo <span style="color:var(--red)">*</span></label>
+          <label for="regPassword"><span data-i18n="login.password">Heslo</span> <span style="color:var(--red)">*</span></label>
           <div class="field__input-wrap">
             <svg class="field__icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3" y="7" width="10" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M5 7V5a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-            <input type="password" id="regPassword" placeholder="Minimálně 8 znaků" oninput="checkStrength(this.value)">
+            <input type="password" id="regPassword" data-i18n-placeholder="login.pwdPlaceholder" placeholder="Minimálně 8 znaků" oninput="checkStrength(this.value)">
             <button type="button" class="field__toggle" onclick="togglePwd('regPassword')">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.4"/></svg>
             </button>
           </div>
           <div class="pwd-strength"><div class="pwd-strength__bar" id="pwdBar"></div></div>
-          <div class="pwd-hint" id="pwdHint">Min. 8 znaků, 1 velké písmeno, 1 číslo</div>
+          <div class="pwd-hint" id="pwdHint" data-i18n="login.pwdHintBase">Min. 8 znaků, 1 velké písmeno, 1 číslo</div>
           <div class="field__error" id="regPwdErr"></div>
         </div>
         <div class="field">
-          <label for="regPassword2">Heslo znovu <span style="color:var(--red)">*</span></label>
+          <label for="regPassword2"><span data-i18n="login.passwordAgain">Heslo znovu</span> <span style="color:var(--red)">*</span></label>
           <div class="field__input-wrap">
             <svg class="field__icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3" y="7" width="10" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M5 7V5a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-            <input type="password" id="regPassword2" placeholder="Zopakujte heslo">
+            <input type="password" id="regPassword2" data-i18n-placeholder="login.pwdRepeatPh" placeholder="Zopakujte heslo">
           </div>
           <div class="field__error" id="regPwd2Err"></div>
         </div>
         <button class="btn-login" id="regBtn" onclick="handleRegister()">
-          <span id="regBtnText">Vytvořit účet →</span>
+          <span id="regBtnText" data-i18n="login.createAccount">Vytvořit účet →</span>
           <div class="btn-login__spinner" id="regSpinner" style="display:none;"></div>
         </button>
       </div>
@@ -212,20 +214,20 @@
       <div id="step4" class="step">
         <div class="success-box">
           <div class="success-box__icon">🎉</div>
-          <h2 class="success-box__title">Účet vytvořen!</h2>
-          <p class="success-box__sub">
+          <h2 class="success-box__title" data-i18n="login.successTitle">Účet vytvořen!</h2>
+          <p class="success-box__sub" data-i18n-html="login.successSubHtml">
             Váš účet byl zaregistrován jako <strong>Žadatel / Řešitel</strong>.<br>
             Nyní se můžete přihlásit.
           </p>
         </div>
-        <button class="btn-login" style="margin-top:24px;" onclick="goToStep(1)">
+        <button class="btn-login" style="margin-top:24px;" onclick="goToStep(1)" data-i18n="login.loginBtn">
           Přihlásit se →
         </button>
       </div>
 
       <!-- Footer -->
       <div class="login-form__footer" id="formFooter">
-        <p>Potíže s přihlášením? Kontaktujte administrátorku:</p>
+        <p data-i18n="login.footerHelp">Potíže s přihlášením? Kontaktujte administrátorku:</p>
         <a href="mailto:hana.tomaskova@uhk.cz">hana.tomaskova@uhk.cz</a>
       </div>
 
@@ -234,8 +236,12 @@
 </div>
 
 <script src="js/config.js"></script>
+<script src="js/i18n.js"></script>
 <script src="js/auth.js"></script>
 <script>
+  I18n.init();
+  I18n.mountLangSwitch(document.getElementById("loginLangHost"));
+
   // Přesměruj pokud již přihlášen
   if (Auth.isLoggedIn()) window.location.href = "pages/dashboard.html";
 
@@ -270,10 +276,10 @@
     if (/[0-9]/.test(pwd))        score++;
     if (/[^A-Za-z0-9]/.test(pwd)) score++;
     const colors = ["#EF4444","#F59E0B","#3B82F6","#22C55E"];
-    const labels = ["Příliš slabé","Slabé","Dobré","Silné ✓"];
+    const labels = [I18n.t("login.pwdWeak"), I18n.t("login.pwdWeak2"), I18n.t("login.pwdOk"), I18n.t("login.pwdStrong")];
     bar.style.width = (score * 25) + "%";
     bar.style.background = colors[score - 1] || "#E5E7EB";
-    hint.textContent = score > 0 ? labels[score - 1] : "Min. 8 znaků, 1 velké písmeno, 1 číslo";
+    hint.textContent = score > 0 ? labels[score - 1] : I18n.t("login.pwdHintBase");
     hint.style.color = colors[score - 1] || "var(--grey-500)";
   }
 
@@ -297,8 +303,8 @@
     document.getElementById("emailErr").textContent = "";
     document.getElementById("passwordErr").textContent = "";
 
-    if (!email)    { document.getElementById("emailErr").textContent    = "Zadejte e-mail."; return; }
-    if (!password) { document.getElementById("passwordErr").textContent = "Zadejte heslo.";  return; }
+    if (!email)    { document.getElementById("emailErr").textContent    = I18n.t("login.errEmail"); return; }
+    if (!password) { document.getElementById("passwordErr").textContent = I18n.t("login.errPassword");  return; }
 
     setBtnLoading("loginBtn", "loginBtnText", "loginSpinner", true);
     try {
@@ -321,28 +327,24 @@
         goToStep(2);
       }
     } catch {
-      showErr("err1", "err1Text", "Chyba připojení. Zkuste to znovu.");
+      showErr("err1", "err1Text", I18n.t("login.errConnection"));
     } finally {
       setBtnLoading("loginBtn", "loginBtnText", "loginSpinner", false);
     }
   }
 
   // ── KROK 2: Výběr role ──────────────────────────────────────
-  const ROLE_META = {
-    ADMIN:     { name:"Správce",       desc:"Plný přístup – správa uživatelů a nastavení",       color:"#1C2E5A" },
-    PROREKTOR: { name:"Prorektor",     desc:"Nejvyšší schvalovací pravomoc",                     color:"#5B21B6" },
-    KOMISAR:   { name:"Člen komise",   desc:"Hodnocení přihlášek",                               color:"#1E6B45" },
-    TESTER:    { name:"Tester",        desc:"Vidí vše, nemůže měnit data",                       color:"#B45309" },
-    ZADATEL:   { name:"Žadatel",       desc:"Podává přihlášky, sleduje stav žádostí",            color:"#1D4ED8" },
-    RESITEL:   { name:"Řešitel",       desc:"Řeší schválený projekt, závěrečné zprávy",          color:"#0369A1" },
-    READONLY:  { name:"Jen čtení",     desc:"Přehled bez možnosti změn",                         color:"#6B7280" },
+  const ROLE_COLORS = {
+    ADMIN: "#1C2E5A", PROREKTOR: "#5B21B6", KOMISAR: "#1E6B45", TESTER: "#B45309",
+    ZADATEL: "#1D4ED8", RESITEL: "#0369A1", READONLY: "#6B7280",
   };
 
   function renderRoles(roles, email, name) {
     document.getElementById("summaryEmail").textContent = email;
     document.getElementById("avatarLetter").textContent = (name || email)[0].toUpperCase();
     document.getElementById("roleList").innerHTML = roles.map(role => {
-      const m = ROLE_META[role] || { name: role, desc: "", color: "#6B7280" };
+      const meta = I18n.roleLoginMeta(role);
+      const m = { name: meta.name, desc: meta.desc, color: ROLE_COLORS[role] || "#6B7280" };
       return `
         <button class="role-btn" onclick="selectRole('${role}')">
           <div class="role-btn__dot" style="background:${m.color}"></div>
@@ -373,16 +375,16 @@
       .forEach(id => document.getElementById(id).textContent = "");
 
     let ok = true;
-    if (!name)  { document.getElementById("regNameErr").textContent  = "Zadejte jméno."; ok = false; }
-    if (!email) { document.getElementById("regEmailErr").textContent = "Zadejte e-mail."; ok = false; }
+    if (!name)  { document.getElementById("regNameErr").textContent  = I18n.t("login.errName"); ok = false; }
+    if (!email) { document.getElementById("regEmailErr").textContent = I18n.t("login.errEmail"); ok = false; }
     if (email && !email.toLowerCase().endsWith("@uhk.cz")) {
-      document.getElementById("regEmailErr").textContent = "Musí být UHK adresa (@uhk.cz)."; ok = false;
+      document.getElementById("regEmailErr").textContent = I18n.t("login.errUhkEmail"); ok = false;
     }
     if (pwd.length < 8 || !/[A-Z]/.test(pwd) || !/[0-9]/.test(pwd)) {
-      document.getElementById("regPwdErr").textContent = "Min. 8 znaků, velké písmeno a číslo."; ok = false;
+      document.getElementById("regPwdErr").textContent = I18n.t("login.errPwdRules"); ok = false;
     }
     if (pwd !== pwd2) {
-      document.getElementById("regPwd2Err").textContent = "Hesla se neshodují."; ok = false;
+      document.getElementById("regPwd2Err").textContent = I18n.t("login.errPwdMatch"); ok = false;
     }
     if (!ok) return;
 
@@ -395,7 +397,7 @@
         showErr("err3", "err3Text", result.message || "Registrace se nezdařila.");
       }
     } catch {
-      showErr("err3", "err3Text", "Chyba připojení. Zkuste to znovu.");
+      showErr("err3", "err3Text", I18n.t("login.errConnection"));
     } finally {
       setBtnLoading("regBtn", "regBtnText", "regSpinner", false);
     }
