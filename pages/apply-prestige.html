@@ -322,6 +322,7 @@
 
     const COMPETITION_ID = new URLSearchParams(location.search).get("c") || "uhk_prestige_2026";
     const MAX_BUDGET = 1000000;
+    const IRIS_UHK_URL = "https://tomahana.github.io/IRIS_UHK/";
 
     /** Milníky dle výzvy UHK Prestige 1/2026 (příprava ERC / Horizon Europe). */
     const PRESTIGE_VYZVA = {
@@ -457,7 +458,7 @@
     let currentSection = 0;
 
     const STEPS = [
-      { id: "ident", fields: ["section_ident","project_title","target_scheme","planned_submission_date","support_year1_request","faculty","department"] },
+      { id: "ident", fields: ["section_ident","project_title","target_scheme","planned_submission_date","support_year1_request","faculty","department","section_iris","iris_case_id","iris_checklist_result"] },
       { id: "concept", fields: ["section_concept","concept_note","excellence_top5","prev_erc_he"] },
       { id: "strategy", fields: ["section_strategy","strategy_why_call","strategy_work_packages","strategy_external_review","section_milestones","milestones_summary"] },
       { id: "budget", fields: ["section_budget","budget_personnel","budget_agency","budget_training","budget_travel","budget_material","budget_other","budget_justification"] },
@@ -500,6 +501,23 @@
         { field_id:"support_year1_request", field_label:"Požadovaná podpora – rok 1 (Kč)", field_type:"number", required:"TRUE", placeholder:"např. 450000", help_text:"Horní limit 1 000 000 Kč na projekt a rok (11 měsíců) dle výzvy – žádáte o částku v této výši, nikoli automaticky plný limit" },
         { field_id:"faculty", field_label:"Součást UHK / pracoviště", field_type:"select", required:"TRUE", options:"PřF;PdF;FF;FIM;FVZ;REKTORÁT" },
         { field_id:"department", field_label:"Katedra / ústav", field_type:"text", required:"TRUE" },
+        { field_id:"section_iris", field_label:"IRIS UHK – formální údaje přihlášky", field_type:"section_header" },
+        {
+          field_id:"iris_case_id",
+          field_label:"Case ID IRIS UHK",
+          field_type:"text",
+          required:"TRUE",
+          placeholder:"Identifikátor z checklistu IRIS",
+          help_text:'Povinná součást každé přihlášky. Uveďte <strong>Case ID</strong> z checklistu IRIS UHK (<a href="' + IRIS_UHK_URL + '" target="_blank" rel="noopener noreferrer">IRIS UHK</a>). U spolupráce výhradně v ČR postupujte dle výzvy / pokynů OVTZ (např. „neaplikuje se“).',
+        },
+        {
+          field_id:"iris_checklist_result",
+          field_label:"Výsledek check-listu (IRIS UHK)",
+          field_type:"textarea",
+          required:"TRUE",
+          placeholder:"např. výsledek checklistu / neaplikuje se – tuzemský partner…",
+          help_text:"Stručně uveďte výsledek v IRIS nebo zdůvodnění dle pokynů (např. souhlas; u výhradně tuzemské spolupráce dle výzvy).",
+        },
         { field_id:"section_concept", field_label:"Concept note a excelence", field_type:"section_header" },
         { field_id:"concept_note", field_label:"Shrnutí záměru a concept note (max. 2 strany – text)", field_type:"textarea", required:"TRUE", placeholder:"Cíl, vhodnost cílové soutěže, co bude dopracováno, plán externího review / agentury…", help_text:"Odpovídá oddílům 1 a 2 šablony žádosti (příloha č. 1 výzvy)" },
         { field_id:"excellence_top5", field_label:"TOP výsledky relevantní pro cílovou soutěž (max. 5)", field_type:"textarea", required:"TRUE", placeholder:"Název, časopis/výstup, rok, DOI/odkaz, vazba na cílový projekt…", help_text:"Mezinárodní zkušenost / leadership můžete doplnit do textu" },
@@ -973,6 +991,10 @@
       const checks = [
         { label: labels[0], done: !!formData.project_title },
         { label: labels[1], done: !!formData.target_scheme },
+        {
+          label: tf("irisChecklistItem"),
+          done: !!(String(formData.iris_case_id || "").trim() && String(formData.iris_checklist_result || "").trim()),
+        },
         { label: labels[2], done: !!formData.concept_note },
         { label: labels[3], done: !!formData.excellence_top5 },
         { label: labels[4], done: !!(formData.budget_total && parseFloat(formData.budget_total) > 0) },
@@ -1092,6 +1114,13 @@
 
       if (formData.declaration !== "true") {
         showToast(trf("toastConfirmDeclaration"), "err"); return;
+      }
+
+      const irisId = String(formData.iris_case_id || "").trim();
+      const irisRes = String(formData.iris_checklist_result || "").trim();
+      if (!irisId || !irisRes) {
+        showToast(tf("irisRequiredToast"), "err");
+        return;
       }
 
       const btn = document.getElementById("submitBtn");
