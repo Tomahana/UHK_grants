@@ -3,946 +3,1534 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title data-i18n="meta.reviewConnect">Hodnocení – UHK Connect</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/connect-postaward.css">
+  <title data-i18n="meta.reviewNavraty">Hodnocení — OP JAK Návraty</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    :root{--navy:#1C2E5A;--navy-mid:#2F4A8A;--navy-lite:#E8EDF8;--green:#1E6B45;--green-lite:#E6F4EE;--red:#991B1B;--red-lite:#FEF2F2;--gold:#C49A2A;--gold-lite:#FDF6E3;--border:#E2E0D8;--muted:#6B6A63;--bg:#F8F7F4;--r:8px;--r-lg:12px}
-    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--navy);font-size:15px;min-height:100vh}
-    .topbar{background:var(--navy);height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:100}
-    .topbar img{height:26px;opacity:.9}
-    .tt{font-size:14px;font-weight:500;color:rgba(255,255,255,.8);margin-left:10px}
-    .tu{font-size:13px;color:rgba(255,255,255,.5)}
-    .tu strong{color:rgba(255,255,255,.85);font-weight:500}
-    .btn-back{background:none;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.6);font-family:'DM Mono',monospace;font-size:11px;padding:5px 12px;border-radius:4px;cursor:pointer;text-decoration:none}
-    .btn-back:hover{color:white;border-color:rgba(255,255,255,.4)}
-    .page{max-width:1320px;margin:0 auto;padding:24px 20px 80px;display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,300px);gap:28px;align-items:start}
-    .main-col{min-width:0}
-    @media(max-width:960px){.page{grid-template-columns:1fr;gap:20px}.sidebar{position:static!important;max-height:none!important;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}}
-    .tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:20px}
-    .tab{padding:10px 20px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
-    .tab:hover{color:var(--navy)}
-    .tab.active{color:var(--navy);border-bottom-color:var(--navy)}
-    .tab-hide{display:none}
-    .panel{background:white;border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
-    .ph{padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px}
-    .ph-title{font-size:14px;font-weight:600;color:var(--navy)}
-    .ph-sub{font-size:12px;color:var(--muted);margin-top:1px}
-    .pb{padding:18px}
-    .app-item{padding:11px 16px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:10px;transition:background .1s}
-    .app-item:last-child{border-bottom:none}
-    .app-item:hover{background:var(--navy-lite)}
-    .app-item.active{background:var(--navy-lite);border-left:3px solid var(--navy);padding-left:13px}
-    .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--gold)}
-    .dot.done{background:var(--green)}
-    .ai{flex:1;min-width:0}
-    .an{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .am{font-size:11px;color:var(--muted);margin-top:1px}
-    .sp{font-family:'DM Mono',monospace;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap;flex-shrink:0}
-    .sp.done{background:var(--green-lite);color:var(--green)}
-    .sp.new{background:var(--gold-lite);color:var(--gold)}
-    .dbox{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:16px}
-    .dgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 20px}
-    @media(min-width:900px){.dgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
-    .dl{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
-    .dv{font-size:14px;color:var(--navy);margin-top:4px;line-height:1.45}
-    .dfull{grid-column:1/-1}
-    .crit{border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:10px}
-    .ch{padding:14px 16px;background:var(--navy-lite);border-bottom:1px solid #D0D8EE;display:flex;align-items:flex-start;gap:12px}
-    .cn{width:24px;height:24px;border-radius:50%;background:var(--navy);color:white;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-    .cl{font-size:15px;font-weight:600;color:var(--navy);line-height:1.35}
-    .cd{font-size:13px;color:#3d4d78;margin-top:6px;line-height:1.5;max-width:72ch}
-    .cbody{padding:14px 16px}
-    .srow{display:flex;gap:6px;margin-bottom:10px}
-    .sb{flex:1;padding:8px 4px;border:1.5px solid var(--border);border-radius:var(--r);text-align:center;cursor:pointer;transition:all .15s;background:white;user-select:none}
-    .sb:hover{border-color:var(--navy-mid);background:var(--navy-lite)}
-    .sb.sel{background:var(--navy);border-color:var(--navy);color:white}
-    .sn{font-size:18px;font-weight:600;font-family:'DM Mono',monospace;line-height:1}
-    .sl{font-size:11px;margin-top:4px;opacity:.75;line-height:1.25}
-    .sb.sel .sl{opacity:.9}
-    .cnote{width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:12px;resize:vertical;min-height:52px;outline:none;color:var(--navy)}
-    .cnote:focus{border-color:var(--navy-mid)}
-    .sep{display:flex;align-items:center;gap:10px;margin:16px 0 12px}
-    .sep-line{flex:1;height:1px;background:var(--border)}
-    .sep-lbl{font-size:11px;font-weight:600;color:var(--navy);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
-    .ca{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:13px;resize:vertical;min-height:72px;outline:none;color:var(--navy)}
-    .ca:focus{border-color:var(--navy-mid)}
-    .rec-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:20px}
-    .rb{padding:11px 8px;border:1.5px solid var(--border);border-radius:var(--r);text-align:center;cursor:pointer;font-size:12px;font-weight:500;transition:all .15s;background:white;font-family:'DM Sans',sans-serif}
-    button.rb{margin:0;font:inherit;color:inherit;line-height:inherit}
-    .rb:hover{transform:translateY(-1px)}
-    .rb.sel-s{background:var(--green);color:white;border-color:var(--green)}
-    .rb.sel-c{background:var(--gold-lite);color:#92400E;border-color:var(--gold)}
-    .rb.sel-r{background:var(--red-lite);color:var(--red);border-color:#FECACA}
-    .ri{font-size:18px;display:block;margin-bottom:4px}
-    .rl{font-size:12px;font-weight:600}
-    .rs{font-size:11px;opacity:.7;margin-top:2px}
-    .sidebar{display:flex;flex-direction:column;gap:14px;position:sticky;top:60px;align-self:start;max-height:calc(100vh - 72px);overflow-y:auto;padding-bottom:8px}
-    .flow-panel{background:linear-gradient(180deg,#F0F4FC 0%,#E8EDF8 100%);border:1px solid #C8D4EC;border-radius:var(--r-lg);padding:18px 20px;margin-bottom:20px}
-    .flow-h{font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
-    .flow-grid{display:grid;gap:10px 16px;font-size:14px;line-height:1.55;color:var(--navy)}
-    @media(min-width:700px){.flow-grid{grid-template-columns:1fr 1fr}}
-    .flow-grid strong{color:var(--navy-mid)}
-    .cov-strip{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:12px;margin-bottom:22px}
-    .cov-card{background:white;border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;box-shadow:0 1px 2px rgba(28,46,90,.06)}
-    .cov-k{font-family:'DM Mono',monospace;font-weight:700;font-size:12px;color:var(--navy-mid);letter-spacing:.02em}
-    .cov-t{font-size:14px;font-weight:600;color:var(--navy);margin-top:6px;line-height:1.3}
-    .cov-d{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5}
-    .sc{background:white;border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
-    .sc h3{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
-    .scells{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:10px}
-    .scell{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:6px;text-align:center}
-    .sck{font-size:10px;color:var(--muted);font-weight:600}
-    .scv{font-size:20px;font-weight:600;font-family:'DM Mono',monospace;color:var(--navy);line-height:1.1}
-    .stbox{background:var(--navy);border-radius:var(--r);padding:14px;text-align:center;margin-bottom:10px}
-    .stnum{font-size:36px;font-weight:600;font-family:'DM Mono',monospace;color:white;line-height:1}
-    .stlbl{font-size:11px;color:rgba(255,255,255,.6);margin-top:4px}
-    .leg{font-size:12px;line-height:1.8;color:var(--navy)}
-    .leg strong{font-weight:600;color:var(--navy-mid)}
-    .rt{width:100%;border-collapse:collapse;font-size:12px}
-    .rt th{padding:8px 12px;background:var(--navy);color:white;font-weight:500;text-align:left}
-    .rt td{padding:8px 12px;border-bottom:1px solid var(--border)}
-    .rt tr:hover td{background:var(--navy-lite)}
-    .rt tr:last-child td{border-bottom:none}
-    .prc{border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px}
-    .prt{font-size:14px;font-weight:500;margin-bottom:6px}
-    .prm{font-size:12px;color:var(--muted);margin-bottom:12px;display:flex;gap:16px;flex-wrap:wrap}
-    .prb{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-    .pb-btn{padding:10px;border-radius:var(--r);border:1.5px solid;cursor:pointer;font-size:12px;font-weight:500;text-align:center;font-family:'DM Sans',sans-serif;transition:all .15s}
-    .btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;border:none;transition:all .15s}
-    .btn-n{background:var(--navy);color:white}
-    .btn-n:hover{background:var(--navy-mid)}
-    .btn-n:disabled{background:var(--border);color:var(--muted);cursor:not-allowed}
-    .btn-o{background:white;color:var(--navy);border:1.5px solid var(--border)}
-    .btn-o:hover{border-color:var(--navy)}
-    .badge{display:inline-block;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:600}
-    .bdone{background:var(--green-lite);color:var(--green)}
-    .bnew{background:var(--gold-lite);color:var(--gold)}
-    .empty{padding:36px;text-align:center;color:var(--muted);font-size:13px}
-    .spin{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--navy);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px}
-    @keyframes spin{to{transform:rotate(360deg)}}
-    .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);color:white;font-size:14px;font-weight:500;padding:12px 22px;border-radius:16px;z-index:9999;transition:transform .3s cubic-bezier(.34,1.56,.64,1);white-space:normal;max-width:min(520px,92vw);text-align:center;line-height:1.4}
-    .fund-rows{display:flex;flex-direction:column;gap:8px;margin-top:8px}
-    .fund-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:13px}
-    .fund-row--rest{padding-top:6px;margin-top:4px;border-top:1px solid var(--border);font-weight:600}
-    .fund-lbl{color:var(--muted);flex:1;min-width:0;line-height:1.35}
-    .fund-val{font-family:'DM Mono',monospace;font-weight:600;color:var(--navy);text-align:right;white-space:nowrap}
-    .toast.show{transform:translateX(-50%) translateY(0)}
-    .fl{font-size:13px;font-weight:500;color:var(--navy);display:block;margin-bottom:6px}
-    .fh{font-size:12px;color:var(--muted);margin-bottom:6px}
-    .pr-kom-wrap{display:flex;flex-direction:column;gap:12px;margin-bottom:18px}
-    .pr-kom{border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;background:var(--navy-lite)}
-    .pr-kom-h{font-size:12px;font-weight:600;color:var(--navy-mid);margin-bottom:8px}
-    .pr-kom-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;font-size:12px;margin-bottom:8px}
-    .pr-kom-grid span{color:var(--muted)}
-    .pr-kom-txt{font-size:13px;line-height:1.5;color:var(--navy);white-space:pre-wrap}
-    .pr-fin{border-top:1px solid var(--border);padding-top:16px;margin-top:4px}
-    .pr-fin .rec-row{margin-bottom:12px}
-    .pr-saved{font-size:12px;color:var(--green);margin-top:8px}
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ink: #0f1923; --ink-60: #0f192399; --ink-20: #0f192333; --ink-10: #0f192318;
+      --paper: #f5f2ec; --paper-dark: #ede9e0;
+      --accent: #b5381e; --accent-light: #f5e8e5; --accent-mid: #d4502f;
+      --gold: #c49a2a; --gold-light: #fdf6e3;
+      --green: #2a6649; --green-light: #e8f3ee;
+      --blue: #1a4a7a; --blue-light: #e8f0f9;
+      --r: 6px;
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(--ink); min-height: 100vh; font-size: 15px; line-height: 1.6; }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      background: var(--ink); height: 52px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 28px; position: sticky; top: 0; z-index: 100;
+      border-bottom: 1px solid rgba(245,242,236,.08);
+    }
+    .topbar__left { display: flex; align-items: center; gap: 16px; }
+    .topbar__logo { font-family: 'DM Serif Display', serif; font-size: 17px; color: var(--paper); }
+    .topbar__logo span { color: var(--accent); font-style: italic; }
+    .topbar__sep { width: 1px; height: 18px; background: rgba(245,242,236,.15); }
+    .topbar__page { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: rgba(245,242,236,.4); }
+    .topbar__right { display: flex; align-items: center; gap: 12px; }
+    .topbar__user { font-size: 13px; color: rgba(245,242,236,.5); }
+    .topbar__user strong { color: rgba(245,242,236,.85); font-weight: 500; }
+    .topbar__role { font-size: 10px; font-family: 'DM Mono', monospace; letter-spacing: .08em; color: rgba(245,242,236,.3); text-transform: uppercase; margin-left: 6px; }
+    .topbar__nav { display: flex; gap: 2px; }
+    .nav-btn { background: none; border: none; color: rgba(245,242,236,.5); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; padding: 5px 12px; border-radius: 4px; cursor: pointer; transition: all .15s; }
+    .nav-btn:hover { color: var(--paper); background: rgba(245,242,236,.08); }
+    .nav-btn.active { color: var(--paper); background: rgba(181,56,30,.25); }
+    .logout-btn { background: none; border: 1px solid rgba(245,242,236,.15); color: rgba(245,242,236,.4); font-family: 'DM Mono', monospace; font-size: 11px; padding: 4px 10px; border-radius: 4px; cursor: pointer; transition: all .15s; }
+    .logout-btn:hover { color: var(--paper); border-color: rgba(245,242,236,.3); }
+    .back-btn { display: inline-flex; align-items: center; gap: 6px; color: rgba(245,242,236,.4); font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; text-decoration: none; padding: 4px 10px; border-radius: 4px; transition: all .15s; }
+    .back-btn:hover { color: var(--paper); background: rgba(245,242,236,.08); }
+
+    /* ── TABS ── */
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── FORM ── */
+    .page { max-width: 780px; margin: 0 auto; padding: 40px 24px 80px; }
+    .page-eyebrow { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+    .page-title { font-family: 'DM Serif Display', serif; font-size: 28px; color: var(--ink); margin-bottom: 6px; }
+    .page-desc { color: var(--ink-60); font-size: 14px; margin-bottom: 32px; }
+
+    .card { background: white; border: 1.5px solid var(--ink-20); border-radius: 10px; padding: 24px; margin-bottom: 20px; }
+    .card-title { font-family: 'DM Serif Display', serif; font-size: 17px; color: var(--ink); margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--ink-10); display: flex; align-items: center; gap: 10px; }
+    .card-num { width: 26px; height: 26px; background: var(--ink); color: var(--paper); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'DM Mono', monospace; font-size: 12px; flex-shrink: 0; }
+
+    /* Projekt selektor */
+    .field-label { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-60); margin-bottom: 8px; display: block; }
+    .project-select { width: 100%; appearance: none; background: var(--paper) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%230f1923' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 14px center; border: 1.5px solid var(--ink-20); border-radius: var(--r); font-family: 'DM Sans', sans-serif; font-size: 15px; color: var(--ink); padding: 12px 40px 12px 14px; cursor: pointer; outline: none; transition: border-color .2s; }
+    .project-select:focus { border-color: var(--accent); }
+    .project-info { margin-top: 14px; padding: 14px; background: var(--paper); border-radius: var(--r); display: none; }
+    .project-info.visible { display: block; }
+    .project-info-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .pi-label { font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-60); display: block; margin-bottom: 2px; }
+    .pi-val { color: var(--ink); font-weight: 500; font-size: 13px; }
+
+    /* Skóre display */
+    .score-display { background: var(--gold-light); border: 1.5px solid rgba(196,154,42,.3); border-radius: 10px; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .score-label-txt { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--gold); }
+    .score-sub { font-size: 12px; color: rgba(196,154,42,.7); margin-top: 2px; }
+    .score-value { font-family: 'DM Serif Display', serif; font-size: 36px; color: var(--gold); line-height: 1; }
+    .score-max { font-size: 16px; color: rgba(196,154,42,.6); }
+
+    /* Kritéria */
+    .criterion-block { padding: 16px 0; border-bottom: 1px solid var(--ink-10); }
+    .criterion-block:first-of-type { padding-top: 0; }
+    .criterion-block:last-of-type { border-bottom: none; padding-bottom: 0; }
+    .criterion-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .criterion-main { flex: 1 1 220px; min-width: 0; }
+    .criterion-name { font-weight: 600; font-size: 14px; color: var(--ink); margin-bottom: 2px; }
+    .criterion-desc { font-size: 12px; color: var(--ink-60); line-height: 1.45; }
+    .criterion-note-label { font-size: 11px; color: var(--ink-60); margin: 10px 0 4px; display: block; font-weight: 500; }
+    textarea.criterion-note { min-height: 64px; margin-top: 0; font-size: 13px; line-height: 1.45; }
+    .star-rating { display: flex; gap: 4px; flex-shrink: 0; margin-left: auto; }
+    .star-rating input[type="radio"] { display: none; }
+    .star-rating label { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: var(--r); border: 1.5px solid var(--ink-20); font-family: 'DM Mono', monospace; font-size: 13px; color: var(--ink-60); transition: all .15s; user-select: none; }
+    .star-rating label:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+    .star-rating input:checked + label { background: var(--accent); border-color: var(--accent); color: white; font-weight: 600; }
+
+    /* Stupnice info */
+    .scale-info { background: var(--paper); border-radius: var(--r); padding: 10px 14px; margin-bottom: 16px; font-size: 12px; color: var(--ink-60); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .scale-pill { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
+    .scale-pill--min { background: var(--accent-light); color: var(--accent); }
+    .scale-pill--max { background: var(--green-light); color: var(--green); }
+
+    /* Formulářová pole */
+    .field-group { margin-bottom: 18px; }
+    .field-group:last-child { margin-bottom: 0; }
+    textarea.form-field, select.form-field, input.form-field {
+      width: 100%; background: var(--paper); border: 1.5px solid var(--ink-20); border-radius: var(--r);
+      font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--ink);
+      padding: 12px 14px; outline: none; transition: border-color .2s; resize: vertical;
+    }
+    textarea.form-field:focus, select.form-field:focus, input.form-field:focus { border-color: var(--accent); }
+    textarea.form-field { min-height: 90px; }
+    textarea.form-field.criterion-note { min-height: 64px; }
+    select.form-field { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%230f1923' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 40px; cursor: pointer; }
+    .ranking-row { display: flex; align-items: center; gap: 12px; }
+    .ranking-row input.form-field { width: 80px; text-align: center; font-family: 'DM Mono', monospace; font-size: 20px; }
+    .ranking-hint { font-size: 13px; color: var(--ink-60); }
+
+    /* Submit tlačítko */
+    .submit-btn { width: 100%; background: var(--accent); color: white; border: none; border-radius: var(--r); font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600; padding: 16px; cursor: pointer; transition: background .2s; margin-top: 8px; }
+    .submit-btn:hover { background: var(--accent-mid); }
+    .submit-btn:disabled { background: var(--ink-20); cursor: not-allowed; }
+
+    /* Overlay */
+    .sending-overlay { position: fixed; inset: 0; background: rgba(15,25,35,.7); z-index: 999; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 16px; }
+    .sending-overlay.show { display: flex; }
+    .sending-spinner { width: 40px; height: 40px; border: 3px solid rgba(245,242,236,.2); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .sending-text { color: var(--paper); font-size: 14px; font-family: 'DM Mono', monospace; }
+
+    /* ── DASHBOARD ── */
+    .dash-page { max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px; }
+    .dash-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 32px; flex-wrap: wrap; gap: 16px; }
+    .dash-title { font-family: 'DM Serif Display', serif; font-size: 26px; color: var(--ink); }
+    .dash-meta { font-size: 13px; color: var(--ink-60); margin-top: 4px; }
+    .dash-actions { display: flex; gap: 8px; }
+    .dash-btn { background: white; border: 1.5px solid var(--ink-20); color: var(--ink); font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; padding: 9px 16px; border-radius: var(--r); cursor: pointer; transition: all .15s; }
+    .dash-btn:hover { border-color: var(--ink-60); }
+    .dash-btn--blue { color: var(--blue); border-color: rgba(26,74,122,.3); background: var(--blue-light); }
+
+    /* Stats */
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 32px; }
+    .stat-card { background: white; border: 1.5px solid var(--ink-20); border-radius: 10px; padding: 20px; }
+    .stat-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-60); margin-bottom: 8px; }
+    .stat-value { font-family: 'DM Serif Display', serif; font-size: 32px; color: var(--ink); line-height: 1; }
+    .stat-sub { font-size: 12px; color: var(--ink-60); margin-top: 4px; }
+
+    /* Progress */
+    .progress-section { margin-bottom: 28px; }
+    .progress-section-label { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-60); margin-bottom: 12px; }
+    .progress-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+    .progress-card { background: white; border: 1.5px solid var(--ink-20); border-radius: 10px; padding: 16px; }
+    .progress-name { font-weight: 600; font-size: 13px; margin-bottom: 8px; }
+    .progress-bar-wrap { background: var(--paper-dark); border-radius: 100px; height: 6px; margin-bottom: 6px; }
+    .progress-bar { background: var(--accent); border-radius: 100px; height: 6px; transition: width .5s; }
+    .progress-count { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--ink-60); }
+
+    /* Project cards */
+    .projects-grid { display: flex; flex-direction: column; gap: 16px; }
+    .project-card { background: white; border: 1.5px solid var(--ink-20); border-radius: 10px; overflow: hidden; transition: border-color .2s; }
+    .project-card:hover { border-color: var(--ink-60); }
+    .project-card-header { padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; cursor: pointer; user-select: none; }
+    .project-card-left { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; }
+    .project-rank { width: 36px; height: 36px; background: var(--ink); color: var(--paper); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: 'DM Mono', monospace; font-size: 14px; flex-shrink: 0; }
+    .project-rank.rank-1 { background: var(--gold); }
+    .project-rank.rank-2 { background: #8a8a8a; }
+    .project-rank.rank-3 { background: var(--accent); }
+    .project-card-name { font-weight: 600; font-size: 14px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .project-card-id { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--ink-60); margin-top: 2px; }
+    .project-card-right { display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+    .score-badge { text-align: center; }
+    .score-badge-val { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--ink); line-height: 1; }
+    .score-badge-label { font-family: 'DM Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-60); display: block; margin-top: 2px; }
+    .votes-count { font-size: 12px; color: var(--ink-60); text-align: center; }
+    .votes-count strong { display: block; font-family: 'DM Mono', monospace; font-size: 16px; color: var(--ink); font-weight: 500; }
+    .rec-pill { font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 100px; white-space: nowrap; }
+    .rec-fin    { background: var(--green-light); color: var(--green); }
+    .rec-nefin  { background: var(--accent-light); color: var(--accent); }
+    .rec-pod    { background: var(--gold-light); color: var(--gold); }
+    .rec-ceka   { background: var(--paper-dark); color: var(--ink-60); }
+    .expand-icon { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; color: var(--ink-60); transition: transform .2s; flex-shrink: 0; }
+    .project-card.expanded .expand-icon { transform: rotate(180deg); }
+    .project-card-detail { display: none; padding: 0 24px 20px; border-top: 1px solid var(--ink-10); }
+    .project-card.expanded .project-card-detail { display: block; }
+    .detail-title { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-60); padding: 16px 0 10px; border-bottom: 1px solid var(--ink-10); margin-bottom: 12px; }
+    .reviews-list { display: flex; flex-direction: column; gap: 10px; }
+    .review-item { background: var(--paper); border-radius: var(--r); padding: 14px 16px; }
+    .review-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 8px; }
+    .review-author { font-weight: 600; font-size: 13px; }
+    .review-scores { display: flex; gap: 6px; flex-wrap: wrap; }
+    .review-score-pill { font-family: 'DM Mono', monospace; font-size: 10px; background: white; border: 1px solid var(--ink-20); border-radius: 4px; padding: 2px 7px; color: var(--ink-60); }
+    .review-score-pill span { color: var(--ink); font-weight: 500; }
+    .review-comment { font-size: 13px; color: var(--ink-60); font-style: italic; line-height: 1.5; margin-top: 4px; }
+
+    /* Loading / empty */
+    .dash-loading { text-align: center; padding: 60px 20px; }
+    .dash-spinner { width: 32px; height: 32px; border: 2px solid var(--ink-20); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 16px; }
+    .empty-state { text-align: center; padding: 60px 20px; }
+    .empty-state h3 { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--ink); margin-bottom: 8px; }
+
+    /* Alert */
+    .alert { padding: 12px 16px; border-radius: var(--r); font-size: 13px; margin-bottom: 20px; display: flex; align-items: flex-start; gap: 8px; }
+    .alert--info { background: var(--blue-light); border: 1px solid rgba(26,74,122,.2); color: var(--blue); }
+    .alert--warn { background: var(--gold-light); border: 1px solid rgba(196,154,42,.3); color: #7a5a10; }
+
+    /* Externí oponentní posudky (odkaz na Google Disk) */
+    .external-reviews-banner {
+      display: flex; gap: 16px; align-items: flex-start;
+      padding: 16px 18px; margin-bottom: 24px;
+      background: linear-gradient(135deg, var(--blue-light) 0%, #e0e8f2 100%);
+      border: 1.5px solid rgba(26,74,122,.22); border-radius: 10px;
+    }
+    .external-reviews-banner__icon { font-size: 28px; line-height: 1; flex-shrink: 0; }
+    .external-reviews-banner__title { font-weight: 700; font-size: 14px; color: var(--ink); margin-bottom: 6px; }
+    .external-reviews-banner__text { font-size: 13px; color: var(--ink-60); line-height: 1.5; margin-bottom: 12px; max-width: 52rem; }
+    .external-reviews-banner__btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+      padding: 10px 16px; border-radius: var(--r); text-decoration: none; font-weight: 600;
+      background: var(--blue); color: white; border: none; transition: opacity .15s;
+    }
+    .external-reviews-banner__btn:hover { opacity: .92; color: white; }
+
+    /* Toast */
+    .toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(80px); color: white; font-size: 14px; font-weight: 500; padding: 14px 28px; border-radius: 100px; z-index: 9999; transition: transform .3s cubic-bezier(.34,1.56,.64,1); white-space: nowrap; }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 640px) {
+      .topbar { padding: 0 16px; }
+      .topbar__page, .topbar__user .topbar__role { display: none; }
+      .page, .dash-page { padding: 24px 16px 60px; }
+      .criterion-row { flex-direction: column; align-items: stretch; }
+      .criterion-block .star-rating { margin-left: 0; width: 100%; justify-content: flex-start; flex-wrap: wrap; }
+      .project-card-right { gap: 8px; }
+      .star-rating label { width: 32px; height: 32px; font-size: 12px; }
+    }
+
+    /* ── POHLED PROREKTORA ── */
+    .prorektor-view { max-width: 900px; margin: 0 auto; padding: 40px 24px 80px; }
+    .prorektor-eyebrow { font-family: "DM Mono", monospace; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #5B21B6; margin-bottom: 8px; }
+    .prorektor-title { font-family: "DM Serif Display", serif; font-size: 28px; color: var(--ink); margin-bottom: 6px; }
+    .prorektor-desc { color: var(--ink-60); font-size: 14px; margin-bottom: 32px; }
+
+    .project-decision-card { background: white; border: 1.5px solid var(--ink-20); border-radius: 12px; margin-bottom: 24px; overflow: hidden; }
+    .pdc-header { padding: 18px 24px; background: #F5F3FF; border-bottom: 1px solid #DDD6FE; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .pdc-title { font-family: "DM Serif Display", serif; font-size: 18px; color: var(--ink); }
+    .pdc-meta { font-size: 12px; color: var(--ink-60); margin-top: 2px; }
+    .pdc-avg { text-align: center; }
+    .pdc-avg-val { font-family: "DM Serif Display", serif; font-size: 28px; color: #5B21B6; line-height: 1; }
+    .pdc-avg-label { font-family: "DM Mono", monospace; font-size: 10px; text-transform: uppercase; color: #7C3AED; opacity: .7; }
+
+    .pdc-reviews { padding: 16px 24px; border-bottom: 1px solid var(--ink-10); }
+    .pdc-reviews-title { font-family: "DM Mono", monospace; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-60); margin-bottom: 12px; }
+    .pdc-review-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--ink-10); flex-wrap: wrap; }
+    .pdc-review-row:last-child { border-bottom: none; }
+    .pdc-reviewer { font-size: 13px; font-weight: 600; min-width: 160px; }
+    .pdc-scores { display: flex; gap: 6px; flex-wrap: wrap; }
+    .pdc-score-pill { font-family: "DM Mono", monospace; font-size: 10px; background: var(--paper); border: 1px solid var(--ink-20); border-radius: 4px; padding: 2px 7px; color: var(--ink-60); }
+    .pdc-score-pill span { color: var(--ink); font-weight: 500; }
+    .pdc-score-total { font-family: "DM Serif Display", serif; font-size: 18px; color: var(--ink); margin-left: auto; }
+    .pdc-rec-pill { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 100px; }
+    .pdc-comment { font-size: 12px; color: var(--ink-60); font-style: italic; padding: 4px 0 0 0; width: 100%; }
+
+    .pdc-decision { padding: 20px 24px; background: #FAFAFA; }
+    .pdc-decision-title { font-family: "DM Mono", monospace; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-60); margin-bottom: 14px; }
+
+    .decision-btns { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+    .decision-btn { padding: 10px 20px; border-radius: var(--r); border: 2px solid transparent; font-family: "DM Sans", sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: all .15s; }
+    .decision-btn--fund    { background: var(--green-light); color: var(--green); border-color: rgba(42,102,73,.2); }
+    .decision-btn--reduced { background: var(--gold-light);  color: var(--gold);  border-color: rgba(196,154,42,.3); }
+    .decision-btn--reject  { background: var(--accent-light);color: var(--accent);border-color: rgba(181,56,30,.2); }
+    .decision-btn.selected-fund    { background: var(--green);  color: white; border-color: var(--green); }
+    .decision-btn.selected-reduced { background: var(--gold);   color: white; border-color: var(--gold); }
+    .decision-btn.selected-reject  { background: var(--accent); color: white; border-color: var(--accent); }
+
+    .pdc-decision textarea { width: 100%; background: white; border: 1.5px solid var(--ink-20); border-radius: var(--r); font-family: "DM Sans", sans-serif; font-size: 14px; color: var(--ink); padding: 12px 14px; outline: none; resize: vertical; min-height: 80px; transition: border-color .2s; }
+    .pdc-decision textarea:focus { border-color: #7C3AED; }
+
+    .pdc-save-btn { margin-top: 12px; background: #5B21B6; color: white; border: none; border-radius: var(--r); font-family: "DM Sans", sans-serif; font-size: 14px; font-weight: 600; padding: 11px 24px; cursor: pointer; transition: background .2s; }
+    .pdc-save-btn:hover { background: #4C1D95; }
+    .pdc-save-btn:disabled { background: var(--ink-20); cursor: not-allowed; }
+
+    .pdc-saved { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--green); margin-left: 12px; opacity: 0; transition: opacity .3s; }
+    .pdc-saved.show { opacity: 1; }
+
+    .summary-bar { background: white; border: 1.5px solid var(--ink-20); border-radius: 10px; padding: 16px 24px; margin-bottom: 28px; display: flex; gap: 32px; flex-wrap: wrap; }
+    .summary-item { text-align: center; }
+    .summary-val { font-family: "DM Serif Display", serif; font-size: 28px; color: var(--ink); line-height: 1; }
+    .summary-val--green  { color: var(--green); }
+    .summary-val--gold   { color: var(--gold); }
+    .summary-val--red    { color: var(--accent); }
+    .summary-val--purple { color: #5B21B6; }
+    .summary-lbl { font-family: "DM Mono", monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-60); margin-top: 2px; }
+
+    .topbar .uhk-lang-switch { display: inline-flex; align-items: center; gap: 2px; margin-right: 8px; }
+    .topbar .uhk-lang-switch__btn {
+      font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: .04em;
+      padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(245,242,236,.25); background: transparent;
+      color: rgba(245,242,236,.55); cursor: pointer; transition: color .15s, border-color .15s, background .15s;
+    }
+    .topbar .uhk-lang-switch__btn:hover { color: var(--paper); border-color: rgba(245,242,236,.4); }
+    .topbar .uhk-lang-switch__btn--active { background: rgba(245,242,236,.12); color: var(--paper); border-color: rgba(245,242,236,.35); }
+
   </style>
 </head>
 <body>
-<header class="topbar">
-  <div style="display:flex;align-items:center;">
-    <img src="../img/uhk-abb-w.png" alt="UHK">
-    <span class="tt" id="topbarTitle">Hodnocení – UHK Connect</span>
-  </div>
-  <div class="topbar__right" style="display:flex;align-items:center;gap:10px;">
-    <span class="tu"><span data-i18n="common.signedIn">Přihlášen:</span> <strong id="topbarName">—</strong></span>
-    <a href="dashboard.html" class="btn-back" data-i18n="nav.backHub">← Rozcestník</a>
-  </div>
-</header>
 
-<div class="page">
-  <div class="main-col">
-    <div class="tabs">
-      <div class="tab active" id="tab-h" onclick="switchTab('h')" data-i18n="reviewConnect.tabs.h">Hodnocení</div>
-      <div class="tab" id="tab-p" onclick="switchTab('p')" data-i18n="reviewConnect.tabs.p">Výsledky</div>
-      <div class="tab tab-hide" id="tab-pr" onclick="switchTab('pr')" data-i18n="reviewConnect.tabs.pr">Prorektor</div>
-    </div>
-
-    <div id="view-h">
-      <div class="panel">
-        <div class="ph">
-          <div><div class="ph-title" data-i18n="reviewConnect.listPanelH">Přihlášky k hodnocení</div><div class="ph-sub" id="listSub"><span class="spin"></span><span data-i18n="reviewConnect.loading">Načítám…</span></div></div>
-          <button class="btn btn-o" style="padding:6px 12px;font-size:12px;" onclick="loadData()">↺</button>
-        </div>
-        <div id="appList"><div class="empty"><span class="spin"></span></div></div>
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="topbar__left">
+      <div class="topbar__logo">
+        <img src="../img/uhk-abb-w.png" alt="UHK" style="height:26px;opacity:.9;margin-right:8px;vertical-align:middle;">
+        OP JAK <span>Návraty</span>
       </div>
-      <div id="reviewForm" style="display:none;">
-        <div class="panel">
-          <div class="ph">
-            <div><div class="ph-title" id="rTitle">—</div><div class="ph-sub" id="rSub">—</div></div>
-            <span id="rBadge"></span>
+      <div class="topbar__sep"></div>
+      <div class="topbar__page" data-i18n="reviewNavraty.topbarPage">Hodnoticí komise</div>
+    </div>
+    <div class="topbar__right">
+      <div class="topbar__nav" id="topbarNav">
+        <!-- Renderováno JS dle role -->
+      </div>
+      <div class="topbar__sep"></div>
+      <div class="topbar__user">
+        <strong id="topbarName">—</strong>
+        <span class="topbar__role" id="topbarRole"></span>
+      </div>
+      <a href="dashboard.html" class="back-btn" data-i18n="reviewNavraty.back">← Zpět</a>
+      <button class="logout-btn" onclick="doLogout()" data-i18n="reviewNavraty.logout">Odhlásit</button>
+    </div>
+  </header>
+
+  <!-- ══ TAB: HODNOCENÍ ══ -->
+  <div id="tab-form" class="tab-panel active">
+    <div class="page">
+
+      <div style="margin-bottom:20px;">
+        <img src="../img/logo-eu-msmt.png" alt="Spolufinancováno Evropskou unií | MŠMT"
+          style="max-width:280px;width:100%;opacity:.85;">
+      </div>
+      <div class="page-eyebrow">Hodnoticí formulář · OP JAK Návraty 2026</div>
+      <h1 class="page-title">Hodnocení projektu</h1>
+      <p class="page-desc">Hodnocení projektů v rámci UHK: Return – Research – Restart<br>
+        <span style="font-size:12px;color:var(--ink-60);">reg. č. CZ.02.01.01/00/24_037/0013855 · OP Jan Amos Komenský</span>
+      </p>
+
+      <div data-navraty-external-folder data-default-folder-url="https://drive.google.com/drive/folders/1BccsPx0kcI7RJFTi4_ptnZIE6V22HKsp" class="external-reviews-banner" role="region" aria-label="Oponentní posudky externích hodnotitelů">
+        <div class="external-reviews-banner__icon" aria-hidden="true">📂</div>
+        <div>
+          <div class="external-reviews-banner__title">Oponentní posudky externích hodnotitelů</div>
+          <p class="external-reviews-banner__text">
+            Komise zohledňuje při rozhodování také PDF protokoly / posudky v této sdílené složce na Google Disku.
+            Dokumenty do složky nahrává <strong>správce</strong> (oddělení vědy). Samostatné odkazy na jednotlivé soubory z Disku se v aplikaci nezobrazují – otevřete složku a vyberte PDF podle názvu nebo čísla přihlášky.
+          </p>
+          <a class="external-reviews-banner__btn navraty-external-folder-link" href="https://drive.google.com/drive/folders/1BccsPx0kcI7RJFTi4_ptnZIE6V22HKsp" target="_blank" rel="noopener noreferrer">Otevřít složku na Disku →</a>
+        </div>
+      </div>
+
+      <!-- Načítání přihlášek -->
+      <div id="loadingApps" class="alert alert--info">
+        ⏳ Načítám seznam přihlášek ze Sheets…
+      </div>
+      <div id="errorApps" class="alert alert--warn" style="display:none;">
+        ⚠️ Nepodařilo se načíst přihlášky. Zkontroluj připojení nebo spusť Apps Script.
+      </div>
+
+      <!-- Výběr projektu -->
+      <div class="card" id="selectorCard" style="display:none;">
+        <label class="field-label">Vyberte projekt k hodnocení</label>
+        <select class="project-select" id="selProjekt" onchange="onProjectChange()">
+          <option value="">— Vyberte přihlášku —</option>
+        </select>
+        <div class="project-info" id="projectInfo" style="margin-top:12px;">
+          <!-- Základní info – kompaktní řádek -->
+          <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px;padding:10px 14px;background:#F8F7F4;border-radius:6px;border:1px solid var(--ink-10);">
+            <div><span class="pi-label">ID</span><span class="pi-val" id="piId">—</span></div>
+            <div><span class="pi-label">Součást</span><span class="pi-val" id="piFaculty">—</span></div>
+            <div><span class="pi-label">Vědní oblast</span><span class="pi-val" id="piOblast">—</span></div>
+            <div><span class="pi-label">Rozpočet</span><span class="pi-val" id="piBudget" style="font-weight:600;color:#1C2E5A;">—</span></div>
           </div>
-          <div class="pb">
-            <div class="dbox" id="appDetail"></div>
-            <div class="flow-panel">
-              <div class="flow-h" data-i18n="reviewConnect.flowTitle">Postup a lhůty (výzva Connect)</div>
-              <div class="flow-grid">
-                <div data-i18n-html="reviewConnect.flowAdmin"><strong>Administrátor</strong> – formální posouzení do 2 pracovních dnů, poté předání komisi (stav IN_REVIEW).</div>
-                <div data-i18n-html="reviewConnect.flowCommission"><strong>Komise</strong> – hodnocení v tomto formuláři, lhůta <strong>5 pracovních dní</strong> od předání.</div>
-                <div data-i18n-html="reviewConnect.flowProrektor"><strong>Prorektor</strong> – shrnující rozhodnutí (podpořit / zkrátit / zamítnout) do <strong>2 pracovních dnů</strong>.</div>
-                <div style="color:var(--muted);" data-i18n-html="reviewConnect.flowEnd"><strong>Ukončení aktivity</strong> nejpozději <strong>15.&nbsp;11.&nbsp;2026</strong>.</div>
-              </div>
-            </div>
-            <div class="sep"><div class="sep-line"></div><div class="sep-lbl" data-i18n="reviewConnect.sepCritOverview">Kritéria výzvy – přehled</div><div class="sep-line"></div></div>
-            <p style="font-size:13px;color:var(--muted);margin:-8px 0 14px;line-height:1.5;" data-i18n="reviewConnect.critIntro">Níže máte u každého kritéria plné znění a škálu 1–5. Odůvodnění pište do pole komentáře u kritéria.</p>
-            <div class="cov-strip" id="covStrip"></div>
-            <div class="sep"><div class="sep-line"></div><div class="sep-lbl" data-i18n="reviewConnect.sepCritEval">Hodnocení po kritériích</div><div class="sep-line"></div></div>
-            <div id="critBox"></div>
-            <div class="sep"><div class="sep-line"></div><div class="sep-lbl" data-i18n="reviewConnect.sepComments">Komentáře</div><div class="sep-line"></div></div>
-            <div style="margin-bottom:10px;">
-              <label class="fl" data-i18n="reviewConnect.lblCommentApplicant">Komentář pro žadatele</label>
-              <div class="fh" data-i18n="reviewConnect.hintApplicantSees">Žadatel tento komentář uvidí</div>
-              <textarea class="ca" id="cPub" data-i18n-placeholder="reviewConnect.phCommentPub" placeholder="Celkové zhodnocení…"></textarea>
-            </div>
-            <div style="margin-bottom:20px;">
-              <label class="fl" data-i18n="reviewConnect.lblInternalNote">Interní poznámka</label>
-              <textarea class="ca" id="cInt" data-i18n-placeholder="reviewConnect.phCommentInt" placeholder="Interní poznámka…" style="min-height:52px;"></textarea>
-            </div>
-            <div class="sep"><div class="sep-line"></div><div class="sep-lbl"><span data-i18n="reviewConnect.sepRecommendation">Doporučení</span> <span style="color:var(--red)">*</span></div><div class="sep-line"></div></div>
-            <div class="rec-row">
-              <div class="rb" id="rec-SUPPORT" onclick="setRec('SUPPORT')"><span class="ri">✓</span><div class="rl" data-i18n="reviewConnect.recSupport">Podpořit</div><div class="rs" data-i18n="reviewConnect.recSupportSub">Doporučuji financovat</div></div>
-              <div class="rb" id="rec-CUT"     onclick="setRec('CUT')"><span class="ri">◐</span><div class="rl" data-i18n="reviewConnect.recCut">Krátit rozpočet</div><div class="rs" data-i18n="reviewConnect.recCutSub">Podpořit s nižší částkou</div></div>
-              <div class="rb" id="rec-REJECT"  onclick="setRec('REJECT')"><span class="ri">✕</span><div class="rl" data-i18n="reviewConnect.recReject">Nepodpořit</div><div class="rs" data-i18n="reviewConnect.recRejectSub">Nedoporučuji financovat</div></div>
-            </div>
-            <div style="display:flex;gap:8px;justify-content:flex-end;">
-              <button class="btn btn-o" onclick="clearForm()" data-i18n="reviewConnect.btnCancel">Zrušit</button>
-              <button class="btn btn-n" id="submitBtn" onclick="submitReview()" data-i18n="reviewConnect.btnSaveReview">Uložit hodnocení</button>
-            </div>
+          <!-- Název a řešitel -->
+          <div style="margin-bottom:8px;">
+            <span class="pi-label">Název projektu</span>
+            <div id="piName" style="font-size:14px;font-weight:600;color:#1C2E5A;line-height:1.4;margin-top:2px;">—</div>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <div id="view-p" style="display:none;">
-      <div class="panel">
-        <div class="ph"><div class="ph-title" data-i18n="reviewConnect.resultsTitle">Přehled hodnocení</div></div>
-        <div class="pb" id="resBody"><div class="empty" data-i18n="reviewConnect.resultsEmptyLoad">Načtěte přihlášky.</div></div>
-      </div>
-    </div>
-
-    <div id="view-pr" style="display:none;">
-      <div class="panel prorektor-list-panel" id="prorektorListPanel" style="display:none;">
-        <div class="ph">
-          <div><div class="ph-title" data-i18n="reviewConnect.listPanelApps">Přihlášky</div><div class="ph-sub" id="listSubPro">—</div></div>
-          <button class="btn btn-o" style="padding:6px 12px;font-size:12px;" onclick="loadData()">↺</button>
-        </div>
-        <div id="appListPro"></div>
-      </div>
-      <div class="panel">
-        <div class="ph"><div><div class="ph-title" data-i18n="reviewConnect.prorektorDecisionTitle">Rozhodnutí prorektora</div><div class="ph-sub" data-i18n="reviewConnect.prorektorDecisionSub">Přehled hlasů komise a závěrečné stanovisko</div></div></div>
-        <div class="pb" id="prBody"><div class="empty" data-i18n="reviewConnect.prorektorEmptyLoad">Načtěte přihlášky.</div></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="sidebar">
-    <div class="sc">
-      <h3 data-i18n="reviewConnect.sidebarCompetition">Soutěž</h3>
-      <div style="font-size:14px;font-weight:600;color:var(--navy);margin-bottom:6px;line-height:1.35;" id="sName">—</div>
-      <div style="font-size:13px;color:var(--muted);line-height:1.45;" data-i18n="reviewConnect.sidebarCompetitionHint">5 kritérií · max. 25 bodů · škála u každého kritéria 1–5</div>
-    </div>
-    <div class="sc" id="connectFundingPanel" style="display:none;">
-      <h3 data-i18n="reviewConnect.sidebarBudgetTitle">Rozpočet výzvy (Connect)</h3>
-      <div class="fund-rows">
-        <div class="fund-row"><span class="fund-lbl" data-i18n="reviewConnect.fundAllocTotal">Alokováno celkem</span><span class="fund-val" id="fundAlloc">—</span></div>
-        <div class="fund-row"><span class="fund-lbl" data-i18n="reviewConnect.fundAssignedAfterPr">Přiděleno (po rozhodnutí prorektora)</span><span class="fund-val" id="fundAssigned">—</span></div>
-        <div class="fund-row"><span class="fund-lbl" data-i18n="reviewConnect.fundUsedAfterConsent">Využito (po souhlasu žadatele)</span><span class="fund-val" id="fundAccepted">—</span></div>
-        <div class="fund-row fund-row--rest"><span class="fund-lbl" data-i18n="reviewConnect.fundRemaining">Zbývá z alokace</span><span class="fund-val" id="fundRemaining">—</span></div>
-      </div>
-      <p style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.45;" data-i18n="reviewConnect.fundFootnote">Přiděleno = součet schválených částek (u Podpořit obvykle žádost, u Krátit částka zadaná prorektorem). Využito = stejné projekty po uložení souhlasu žadatele v části 1 detailu přihlášky (závazná podpora se započítá jako čerpaná kapacita z pohledu žadatele).</p>
-    </div>
-    <div class="sc">
-      <h3 data-i18n="reviewConnect.sidebarScore">Aktuální skóre</h3>
-      <div class="scells">
-        <div class="scell"><div class="sck">K1</div><div class="scv" id="s1">—</div></div>
-        <div class="scell"><div class="sck">K2</div><div class="scv" id="s2">—</div></div>
-        <div class="scell"><div class="sck">K3</div><div class="scv" id="s3">—</div></div>
-        <div class="scell"><div class="sck">K4</div><div class="scv" id="s4">—</div></div>
-        <div class="scell"><div class="sck">K5</div><div class="scv" id="s5">—</div></div>
-      </div>
-      <div class="stbox"><div class="stnum" id="stot">—</div><div class="stlbl" data-i18n="reviewConnect.pointsOf25">z 25 bodů</div></div>
-      <p style="font-size:12px;color:var(--muted);margin-top:12px;line-height:1.45;" data-i18n="reviewConnect.sidebarScoreHint">Souhrn kritérií a zápis bodů je v hlavní oblasti po výběru přihlášky.</p>
-    </div>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
-<script src="../js/config.js"></script>
-<script src="../js/i18n.js"></script>
-<script src="../js/auth.js"></script>
-<script>
-I18n.init();
-(function () {
-  var el = document.querySelector(".topbar__right");
-  if (el) I18n.mountLangSwitch(el, "first");
-})();
-
-const user = Auth.requireLogin(["KOMISAR","PROREKTOR","ADMIN","TESTER"]);
-document.getElementById("topbarName").textContent = user.name||user.email;
-const params = new URLSearchParams(window.location.search);
-const CID = params.get("c")||"uhk_connect_2026_v2";
-const cname = I18n.competitionDisplayName(CID);
-function tx(k) { return I18n.t("reviewConnect." + k); }
-function getCrit() { return I18n.getReviewConnectCrit(); }
-document.getElementById("topbarTitle").textContent = I18n.t("reviewConnectUi.titlePrefix") + cname;
-document.getElementById("sName").textContent = cname;
-if(["PROREKTOR","ADMIN","TESTER"].includes(user.role)) document.getElementById("tab-pr").classList.remove("tab-hide");
-
-/** Položky rozpočtu Connect (shodně jako v Apps Script). */
-const CONNECT_BUDGET_KEYS = [
-  "budget_travel",
-  "budget_accommodation",
-  "budget_meals",
-  "budget_local",
-  "budget_fee",
-  "budget_publication",
-  "budget_personnel",
-];
-
-const isProrektorOnly = user.role === "PROREKTOR";
-const showCommissionUI = ["KOMISAR","ADMIN","TESTER"].includes(user.role);
-if (isProrektorOnly) {
-  document.querySelector(".tabs").style.display = "none";
-  document.getElementById("view-h").style.display = "none";
-  document.getElementById("view-p").style.display = "none";
-  document.getElementById("view-pr").style.display = "block";
-  const lp = document.getElementById("prorektorListPanel");
-  if (lp) lp.style.display = "block";
-  const sb = document.querySelectorAll(".sidebar .sc");
-  if (sb[1]) sb[1].style.display = "none";
-}
-
-let apps=[],revs=[],cur=null,scores={},rec="";
-const prDecisionPick = {};
-
-function connectAppId(r) {
-  return String(r.project_id || r.application_id || "").trim();
-}
-function isProrektorDecisionRow(r) {
-  return String(r.comment_internal || "").trim() === "PROREKTOR_DECISION";
-}
-function commissionReviewsForApp(appId) {
-  return revs.filter(r => connectAppId(r) === appId && !isProrektorDecisionRow(r) && Number(r.score_total) > 0);
-}
-function prorektorSavedDecision(appId) {
-  return revs.find(r => connectAppId(r) === appId && isProrektorDecisionRow(r));
-}
-function esc(s) {
-  return String(s == null ? "" : s)
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
-function escAttr(s) {
-  return String(s == null ? "" : s)
-    .replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
-}
-function safeDomId(id) {
-  const s = String(id);
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  const enc = s.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 48);
-  return (enc || "x") + "_" + (h >>> 0).toString(36);
-}
-
-function updatePrCutSumDisplay(sid, f) {
-  const fd = f || {};
-  let s = 0;
-  CONNECT_BUDGET_KEYS.forEach((k) => {
-    const req = Math.round(Number(fd[k]) || 0);
-    if (req <= 0) return;
-    const el = document.getElementById("pr-cut-" + sid + "-" + k);
-    if (el && el.value !== "") s += Math.round(Number(el.value) || 0);
-  });
-  const sumEl = document.getElementById("pr-cut-sum-" + sid);
-  if (sumEl) sumEl.textContent = s.toLocaleString(I18n.numLocale());
-}
-
-function buildProrektorCutBudgetRowsHtml(sid, f) {
-  const fd = f || {};
-  const parts = [];
-  CONNECT_BUDGET_KEYS.forEach((k) => {
-    const req = Math.round(Number(fd[k]) || 0);
-    if (req <= 0) return;
-    const lab = I18n.connectBudgetLabel(k);
-    parts.push(
-      `<tr><td>${esc(lab)}</td><td style="text-align:right;font-family:'DM Mono',monospace">${req.toLocaleString(I18n.numLocale())}</td>` +
-        `<td style="text-align:right"><input type="number" class="ca pr-cut-line" id="pr-cut-${sid}-${k}" data-sid="${escAttr(sid)}" min="0" max="${req}" step="1" placeholder="0" style="max-width:130px;padding:6px 8px;text-align:right"></td></tr>`
-    );
-  });
-  if (!parts.length)
-    return `<tr><td colspan="3" style="color:var(--muted);font-size:12px;">${esc(tx("prCutNoLines"))}</td></tr>`;
-  return parts.join("");
-}
-
-/**
- * POST z externí domény: CORS často blokuje čtení odpovědi → Failed to fetch.
- * no-cors + text/plain je „simple request“; tělo zůstane JSON pro doPost (parse z postData.contents).
- * Úspěch ověříme následným GET (getConnectReviews / getApplications).
- */
-async function postWebAppReliable(payload, verifyAsync) {
-  await fetch(API_URL, {
-    method: "POST",
-    mode: "no-cors",
-    headers: { "Content-Type": "text/plain;charset=UTF-8" },
-    body: JSON.stringify(payload),
-  });
-  for (let i = 0; i < 7; i++) {
-    await new Promise((r) => setTimeout(r, i === 0 ? 400 : 550));
-    try {
-      if (await verifyAsync()) return;
-    } catch (e) { /* síť / timeout */ }
-  }
-  throw new Error(I18n.t("reviewConnect.errPostVerify"));
-}
-
-async function fetchConnectReviews() {
-  const s = Auth._getSession(),
-    u = new URL(API_URL);
-  u.searchParams.set("action", "getConnectReviews");
-  u.searchParams.set("competitionId", CID);
-  u.searchParams.set("token", s?.token || "");
-  const d = await (await fetch(u.toString())).json();
-  return d.reviews || [];
-}
-
-async function fetchApplicationsList() {
-  const s = Auth._getSession(),
-    u = new URL(API_URL);
-  u.searchParams.set("action", "getApplications");
-  u.searchParams.set("competitionId", CID);
-  u.searchParams.set("token", s?.token || "");
-  const d = await (await fetch(u.toString())).json();
-  return Array.isArray(d) ? d : d.applications || [];
-}
-
-function fmtKc(n) {
-  return I18n.fmtMoney(n);
-}
-
-async function refreshFundingSummary() {
-  const panel = document.getElementById("connectFundingPanel");
-  if (!panel) return;
-  try {
-    const s = Auth._getSession(),
-      u = new URL(API_URL);
-    u.searchParams.set("action", "getConnectFundingSummary");
-    u.searchParams.set("competitionId", CID);
-    u.searchParams.set("token", s?.token || "");
-    const j = await (await fetch(u.toString())).json();
-    if (!j.success || !j.supported) {
-      panel.style.display = "none";
-      return;
-    }
-    panel.style.display = "block";
-    let alloc = Number(j.allocationCzk) || 0;
-    const assigned = Number(j.assignedCzk) || 0;
-    const accepted = Number(j.acceptedCzk) || 0;
-    if (!alloc) {
-      const u2 = new URL(API_URL);
-      u2.searchParams.set("action", "getCompetitions");
-      u2.searchParams.set("token", s?.token || "");
-      const compsRaw = await (await fetch(u2.toString())).json();
-      const arr = Array.isArray(compsRaw) ? compsRaw : compsRaw.competitions || [];
-      const c = arr.find((x) => x.id === CID);
-      if (c) alloc = Number(c.allocation) || 0;
-    }
-    const remaining = Math.max(0, alloc - assigned);
-    document.getElementById("fundAlloc").textContent = fmtKc(alloc);
-    document.getElementById("fundAssigned").textContent = fmtKc(assigned);
-    document.getElementById("fundAccepted").textContent = fmtKc(accepted);
-    document.getElementById("fundRemaining").textContent = fmtKc(remaining);
-  } catch (e) {
-    panel.style.display = "none";
-  }
-}
-
-async function loadData(){
-  document.getElementById("listSub").innerHTML='<span class="spin"></span>'+esc(tx("loading"));
-  document.getElementById("appList").innerHTML='<div class="empty"><span class="spin"></span></div>';
-  try{
-    const s=Auth._getSession(),u=new URL(API_URL);
-    u.searchParams.set("action","getApplications");
-    u.searchParams.set("competitionId",CID);
-    u.searchParams.set("token",s?.token||"");
-    const d=(await (await fetch(u.toString())).json());
-    const rawList = Array.isArray(d) ? d : (d.applications || []);
-    apps=rawList.filter(a=>["IN_REVIEW","TO_REVIEW","APPROVED","SUBMITTED"].includes(a.status))
-      .map(a=>{try{a._f=JSON.parse(a.form_data_json||"{}")}catch{a._f={}}return a});
-  }catch{apps=demoApps()}
-  try{
-    const s=Auth._getSession(),u=new URL(API_URL);
-    u.searchParams.set("action","getConnectReviews");
-    u.searchParams.set("competitionId",CID);
-    u.searchParams.set("token",s?.token||"");
-    const d=(await (await fetch(u.toString())).json());
-    revs=d.reviews||[];
-  }catch{revs=[]}
-  renderList();renderRes();renderPr();
-  const sub = I18n.tReplace("reviewConnect.listSubTpl", {
-    apps: String(apps.length),
-    revs: String(revs.filter(r => !isProrektorDecisionRow(r)).length),
-  });
-  document.getElementById("listSub").textContent = sub;
-  const lsp = document.getElementById("listSubPro");
-  if (lsp) lsp.textContent = sub;
-  refreshFundingSummary();
-}
-
-function myRev(id){return revs.find(r=>r.project_id===id&&r.reviewer_email===user.email)}
-
-function renderList(){
-  const emptyHtml='<div class="empty">'+esc(tx("emptyApps"))+'<br><small>'+esc(tx("emptyAppsHint"))+'</small></div>';
-  if(!apps.length){
-    document.getElementById("appList").innerHTML=emptyHtml;
-    const alp=document.getElementById("appListPro");if(alp)alp.innerHTML=emptyHtml;
-    return;
-  }
-  const html=apps.map(a=>{
-    const mr=myRev(a.application_id);
-    const kom=commissionReviewsForApp(a.application_id);
-    let done, label;
-    if(isProrektorOnly){
-      done=kom.length>0;
-      label=done?`<span class="sp done">${esc(I18n.tReplace("reviewConnect.badgeKomTpl",{n:String(kom.length)}))}</span>`:`<span class="sp new">${esc(tx("badgeNoKom"))}</span>`;
-    }else{
-      done=!!mr;
-      label=done?`<span class="sp done">${mr.score_total}/25</span>`:`<span class="sp new">${esc(tx("badgeNew"))}</span>`;
-    }
-    return`<div class="app-item ${cur?.application_id===a.application_id?"active":""}" onclick='selApp(${JSON.stringify(a.application_id)})'>
-      <div class="dot ${done?"done":""}"></div>
-      <div class="ai"><div class="an">${esc(a._f.project_title||a.application_id)}</div><div class="am">${esc(a.applicant_name||"—")} · ${esc(a._f.faculty||"—")}</div></div>
-      ${label}
-    </div>`;
-  }).join("");
-  document.getElementById("appList").innerHTML=html;
-  const alp=document.getElementById("appListPro");if(alp)alp.innerHTML=html;
-}
-
-function selApp(id){
-  cur=apps.find(a=>a.application_id===id);if(!cur)return;
-  if(isProrektorOnly){
-    renderList();
-    const el=document.getElementById("prc-"+safeDomId(id));
-    if(el)el.scrollIntoView({behavior:"smooth",block:"start"});
-    return;
-  }
-  const ex=myRev(id);scores={};rec="";
-  if(ex){
-    const k=["K1","K2","K3","K4","K5"],c=["score_clarity","score_quality","score_budget","score_profile","score_outputs"];
-    k.forEach((key,i)=>scores[key]=parseInt(ex[c[i]]||0)||0);
-    rec=ex.recommendation||"";
-    document.getElementById("cPub").value=ex.comment_public||"";
-    document.getElementById("cInt").value=ex.comment_internal||"";
-  }else{document.getElementById("cPub").value="";document.getElementById("cInt").value=""}
-  renderDetail();renderCrit();updateRec();updateScore();
-  const b=document.getElementById("rBadge");
-  if(ex){b.className="badge bdone";b.textContent=tx("badgeDone")}else{b.className="badge bnew";b.textContent=tx("badgeNew")}
-  document.getElementById("rTitle").textContent=cur._f.project_title||id;
-  document.getElementById("rSub").textContent=id+" · "+(cur.applicant_email||"");
-  document.getElementById("reviewForm").style.display="block";
-  renderList();window.scrollTo({top:0,behavior:"smooth"});
-}
-
-function renderDetail(){
-  const f=cur._f;
-  const rows=[
-    [tx("detailApplicant"),cur.applicant_name||"—"],
-    [tx("detailFaculty"),(f.faculty||"—")+(f.department?" · "+f.department:"")],
-    [tx("detailApplicantType"),f.applicant_type||"—"],
-    [tx("detailActivityType"),f.activity_type||"—"],
-    [tx("detailPartner"),(f.partner_institution||"—")+(f.partner_country?", "+f.partner_country:"")],
-    [tx("detailTerm"),(f.activity_start||"?")+" – "+(f.activity_end||"?")],
-    [tx("detailBudget"),f.budget_total?I18n.fmtMoney(f.budget_total):"—"],
-  ].map(([k,v])=>`<div><div class="dl">${esc(k)}</div><div class="dv">${esc(v)}</div></div>`).join("");
-  const long=[
-    f.iris_case_id?.trim()?[tx("detailIrisCaseId"),f.iris_case_id]:null,
-    f.iris_checklist_result?.trim()?[tx("detailIrisChecklist"),f.iris_checklist_result]:null,
-    f.research_focus?[tx("detailResearchFocus"),f.research_focus]:null,
-    f.activity_goal?[tx("detailActivityGoal"),f.activity_goal]:null,
-    f.cooperation_history?.trim()?[tx("detailCoopHistory"),f.cooperation_history]:null,
-    f.output_description?[tx("detailOutputDesc"),f.output_description]:null,
-    f.output_impact?[tx("detailUhkBenefit"),f.output_impact]:null,
-    f.recent_outputs?.trim()?[tx("detailOutputs5y"),f.recent_outputs]:null,
-    f.budget_justification?[tx("detailBudgetJust"),f.budget_justification]:null,
-  ].filter(Boolean).map(([k,v])=>`<div class="dfull"><div class="dl">${esc(k)}</div><div class="dv" style="white-space:pre-line;">${esc(v)}</div></div>`).join("");
-  document.getElementById("appDetail").innerHTML=`<div class="dgrid">${rows}${long}</div>`;
-}
-
-function renderCovStrip(){
-  const el=document.getElementById("covStrip");
-  if(!el)return;
-  el.innerHTML=getCrit().map(c=>`<div class="cov-card"><div class="cov-k">${esc(c.key)}</div><div class="cov-t">${esc(c.label)}</div><div class="cov-d">${esc(c.short||"")}</div></div>`).join("");
-}
-
-function renderCrit(){
-  renderCovStrip();
-  document.getElementById("critBox").innerHTML=getCrit().map((c,i)=>{
-    const ex=myRev(cur.application_id),nk="comment_"+c.key.toLowerCase(),nv=ex?ex[nk]||"":"";
-    const ph=I18n.tReplace("reviewConnect.critNotePh",{key:c.key});
-    return`<div class="crit">
-      <div class="ch"><div class="cn">${i+1}</div><div><div class="cl">${esc(c.label)}</div><div class="cd">${esc(c.desc)}</div></div></div>
-      <div class="cbody">
-        <div class="srow">${[1,2,3,4,5].map(n=>`<div class="sb ${scores[c.key]===n?"sel":""}" onclick="setScore('${c.key}',${n})"><div class="sn">${n}</div><div class="sl">${esc(c.labels[n-1])}</div></div>`).join("")}</div>
-        <textarea class="cnote" id="note-${c.key}" placeholder="${escAttr(ph)}">${esc(String(nv))}</textarea>
-      </div>
-    </div>`;
-  }).join("");
-}
-
-function setScore(key,val){
-  scores[key]=val;
-  const row=document.querySelector(`[onclick="setScore('${key}',${val})"]`)?.closest(".srow");
-  if(row){row.querySelectorAll(".sb").forEach(b=>b.classList.remove("sel"));document.querySelector(`[onclick="setScore('${key}',${val})"]`)?.classList.add("sel")}
-  updateScore();
-}
-
-function updateScore(){
-  const k=["K1","K2","K3","K4","K5"],ids=["s1","s2","s3","s4","s5"];
-  let t=0;k.forEach((key,i)=>{const v=scores[key]||0;document.getElementById(ids[i]).textContent=v||"—";t+=v});
-  const el=document.getElementById("stot");el.textContent=t||"—";
-  el.style.color=t>=20?"#86EFAC":t>=12?"white":"#FCA5A5";
-}
-
-function setRec(val){rec=val;updateRec()}
-function updateRec(){
-  ["SUPPORT","CUT","REJECT"].forEach(r=>{
-    const b=document.getElementById("rec-"+r);if(!b)return;
-    b.className="rb";
-    if(rec===r){if(r==="SUPPORT")b.classList.add("sel-s");else if(r==="CUT")b.classList.add("sel-c");else b.classList.add("sel-r")}
-  });
-}
-
-async function submitReview(){
-  if(!cur)return;
-  const miss=["K1","K2","K3","K4","K5"].filter(k=>!scores[k]);
-  if(miss.length){showToast(I18n.tReplace("reviewConnect.toastRateCriteria",{list:miss.join(", ")}),"err");return}
-  if(!rec){showToast(tx("toastPickRec"),"err");return}
-  const btn=document.getElementById("submitBtn");btn.disabled=true;btn.textContent=tx("btnSavingReview");
-  const tot=["K1","K2","K3","K4","K5"].reduce((s,k)=>s+(scores[k]||0),0);
-  const notes={};["K1","K2","K3","K4","K5"].forEach(k=>{const el=document.getElementById("note-"+k);if(el)notes["comment_"+k.toLowerCase()]=el.value});
-  const payload={action:"submitConnectReview",token:Auth._getSession()?.token||"",competitionId:CID,
-    projectId:cur.application_id,reviewerEmail:user.email,reviewerName:user.name||user.email,
-    score_clarity:scores.K1,score_quality:scores.K2,score_budget:scores.K3,score_profile:scores.K4,score_outputs:scores.K5,
-    score_total:tot,recommendation:rec,
-    comment_public:document.getElementById("cPub").value,
-    comment_internal:document.getElementById("cInt").value,...notes};
-  const pid=String(cur.application_id||"").trim();
-  const expectRec=rec;
-  try{
-    await postWebAppReliable(payload, async () => {
-      const list=await fetchConnectReviews();
-      const em=String(user.email||"").toLowerCase();
-      const row=list.find(r=>connectAppId(r)===pid&&!isProrektorDecisionRow(r)&&String(r.reviewer_email||"").toLowerCase()===em);
-      return !!(row&&String(row.recommendation||"").toUpperCase()===String(expectRec||"").toUpperCase()&&Number(row.score_total)===Number(tot));
-    });
-    revs=await fetchConnectReviews();
-    showToast(I18n.tReplace("reviewConnect.toastReviewSaved",{tot:String(tot)}));
-    btn.disabled=false;btn.textContent=tx("btnSaveReview");
-    renderList();renderRes();refreshFundingSummary();selApp(cur.application_id);
-  }catch(e){btn.disabled=false;btn.textContent=tx("btnSaveReview");showToast(e.message||tx("errSaveGeneric"),"err")}
-}
-
-function clearForm(){cur=null;scores={};rec="";document.getElementById("reviewForm").style.display="none"}
-
-function renderRes(){
-  const m={};apps.forEach(a=>m[a.application_id]={app:a,revs:[]});
-  revs.forEach(r=>{
-    const pid=connectAppId(r);
-    if(m[pid]&&!isProrektorDecisionRow(r))m[pid].revs.push(r);
-  });
-  const REC={SUPPORT:tx("recLabelSupport"),CUT:tx("recLabelCut"),REJECT:tx("recLabelReject")};
-  const rows=Object.values(m).sort((a,b)=>{
-    const cr=(x)=>x.revs.filter(r=>Number(r.score_total)>0);
-    const A=cr(a).length?cr(a).reduce((s,r)=>s+Number(r.score_total||0),0)/cr(a).length:0;
-    const B=cr(b).length?cr(b).reduce((s,r)=>s+Number(r.score_total||0),0)/cr(b).length:0;
-    return B-A;
-  }).map(({app,revs:rv})=>{
-    const kom=rv.filter(r=>Number(r.score_total)>0);
-    const avg=kom.length?(kom.reduce((s,r)=>s+Number(r.score_total||0),0)/kom.length).toFixed(1):"—";
-    const lastRec=kom.length?kom[kom.length-1].recommendation:"";
-    return`<tr><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(app._f?.project_title||app.application_id)}</td><td>${esc(app._f?.faculty||"—")}</td><td style="text-align:center;font-family:'DM Mono',monospace;font-weight:600;">${avg}</td><td style="text-align:center;">${kom.length}</td><td style="font-size:12px;">${kom.length?REC[lastRec]||"—":"—"}</td></tr>`;
-  }).join("");
-  document.getElementById("resBody").innerHTML=rows?`<table class="rt"><thead><tr><th>${esc(tx("resTableProject"))}</th><th>${esc(tx("resTableFaculty"))}</th><th style="text-align:center;">${esc(tx("resTableAvg"))}</th><th style="text-align:center;">${esc(tx("resTableCount"))}</th><th>${esc(tx("resTableRec"))}</th></tr></thead><tbody>${rows}</tbody></table>`:'<div class="empty">'+esc(tx("resEmpty"))+'</div>';
-}
-
-function renderPrKomiseHtml(appId){
-  const list=commissionReviewsForApp(appId);
-  const REC={SUPPORT:tx("recLabelSupport"),CUT:tx("recLabelCutLong"),REJECT:tx("recLabelReject")};
-  if(!list.length)return'<p class="empty" style="padding:12px 0;">'+esc(tx("prKomEmpty"))+'</p>';
-  return'<div class="sep"><div class="sep-line"></div><div class="sep-lbl">'+esc(tx("prKomSep"))+'</div><div class="sep-line"></div></div><div class="pr-kom-wrap">'+
-    list.map(r=>{
-      const k1=r.score_clarity??r.clarity??"—",k2=r.score_quality??r.quality??"—",k3=r.score_budget??r.budget??"—",k4=r.score_profile??r.profile??"—",k5=r.score_outputs??r.outputs??"—";
-      const who=esc(r.reviewer_name||r.reviewer_email||"—");
-      const pub=String(r.comment_public||"").trim();
-      return`<div class="pr-kom">
-        <div class="pr-kom-h">${who}</div>
-        <div class="pr-kom-grid">
-          <div><span>${esc(tx("prKomK15"))}</span> <strong>${k1}, ${k2}, ${k3}, ${k4}, ${k5}</strong></div>
-          <div><span>${esc(tx("prKomTotal"))}</span> <strong>${r.score_total}/25</strong></div>
-          <div><span>${esc(tx("prKomRec"))}</span> <strong>${esc(REC[r.recommendation]||r.recommendation||"—")}</strong></div>
-        </div>
-        ${pub?`<div class="pr-kom-txt"><span class="dl">${esc(tx("prKomCommentLbl"))}</span><br>${esc(pub)}</div>`:""}
-      </div>`;
-    }).join("")+"</div>";
-}
-
-function renderPr(){
-  const RECSEL={SUPPORT:"sel-s",CUT:"sel-c",REJECT:"sel-r"};
-  const m={};
-  apps.forEach(a=>{
-    const aid=String(a.application_id||"").trim();
-    m[aid]={app:Object.assign({},a,{application_id:aid}),revs:[]};
-  });
-  revs.forEach(r=>{
-    const pid=connectAppId(r);
-    if(m[pid])m[pid].revs.push(r);
-  });
-  const cards=Object.values(m).map(({app,revs:rv})=>{
-    const aid=app.application_id;
-    const kom=rv.filter(r=>!isProrektorDecisionRow(r)&&Number(r.score_total)>0);
-    const avg=kom.length?(kom.reduce((s,r)=>s+Number(r.score_total||0),0)/kom.length).toFixed(1):"—";
-    const sid=safeDomId(aid);
-    const saved=prorektorSavedDecision(aid);
-    if(!(aid in prDecisionPick)&&saved&&saved.recommendation)
-      prDecisionPick[aid]=saved.recommendation;
-    const pick=prDecisionPick[aid]||(saved&&saved.recommendation)||"";
-    const planned=Number(app._f?.budget_total||0);
-    const rb=(d)=>`<button type="button" class="rb rb-pr-dec ${pick===d?RECSEL[d]:""}" id="prd-${sid}-${d}" data-app-id="${escAttr(aid)}" data-dec="${d}"><span class="ri">${d==="SUPPORT"?"✓":d==="CUT"?"◐":"✕"}</span><div class="rl">${d==="SUPPORT"?esc(tx("prBtnSupport")):d==="CUT"?esc(tx("prBtnCut")):esc(tx("prBtnReject"))}</div></button>`;
-    return`<div class="prc" id="prc-${sid}">
-      <div class="prt">${esc(app._f?.project_title||aid)}</div>
-      <div class="prm"><span>${esc(app.applicant_name||"—")}</span><span>${esc(app._f?.faculty||"—")}</span><span style="font-family:'DM Mono',monospace;">${esc(I18n.fmtMoney(Number(app._f?.budget_total||0)))}</span><span>${esc(tx("prAvgKom"))} ${avg}/25</span><span>${kom.length} ${esc(tx("prReviewsN"))}</span></div>
-      ${renderPrKomiseHtml(aid)}
-      <div class="pr-fin">
-        <div class="sep"><div class="sep-line"></div><div class="sep-lbl">${esc(tx("prDecideSep"))}</div><div class="sep-line"></div></div>
-        <p style="font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.45;">${tx("prDecideIntro")}</p>
-        <div class="rec-row">${rb("SUPPORT")}${rb("CUT")}${rb("REJECT")}</div>
-        <div style="margin:14px 0;padding:12px 14px;background:var(--navy-lite);border-radius:8px;border:1px solid var(--border);font-size:13px;">
-          <div style="margin-bottom:8px;"><span style="color:var(--muted);">${esc(tx("prPlannedBudget"))} </span><strong style="font-family:'DM Mono',monospace;">${esc(I18n.fmtMoney(planned))}</strong></div>
-          <div id="pr-cut-field-${sid}" style="display:${String(pick).toUpperCase()==="CUT"?"block":"none"};width:100%;">
-            <p style="font-size:12px;color:var(--muted);margin:0 0 10px;line-height:1.45;">${esc(tx("prCutPerLine"))}</p>
-            <table style="width:100%;border-collapse:collapse;font-size:13px;">
-              <thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:6px 4px;">${esc(tx("prThLine"))}</th><th style="text-align:right;padding:6px 4px;">${esc(tx("prThRequested"))}</th><th style="text-align:right;padding:6px 4px;">${esc(tx("prThApproved"))}</th></tr></thead>
-              <tbody>${buildProrektorCutBudgetRowsHtml(sid, app._f)}</tbody>
-              <tfoot><tr style="border-top:1px solid var(--border);font-weight:600;"><td colspan="2" style="text-align:right;padding:8px 4px;">${esc(tx("prThSumApproved"))}</td><td style="text-align:right;padding:8px 4px;font-family:'DM Mono',monospace;" id="pr-cut-sum-${sid}">0</td></tr></tfoot>
-            </table>
+          <div style="margin-bottom:10px;">
+            <span class="pi-label">Hlavní řešitel</span>
+            <div id="piResitel" style="font-size:13px;color:#1C2E5A;margin-top:2px;">—</div>
+          </div>
+          <div style="margin-bottom:10px;">
+            <span class="pi-label">E-mail řešitele</span>
+            <div id="piEmail" style="font-size:13px;color:#1C2E5A;margin-top:2px;">—</div>
+          </div>
+          <!-- Anotace – klíčová pro hodnocení -->
+          <div style="margin-bottom:8px;padding:10px 14px;background:#EFF6FF;border-left:3px solid #185FA5;border-radius:0 6px 6px 0;">
+            <span class="pi-label" style="color:#185FA5;">Anotace projektu</span>
+            <div id="piAnotace" style="font-size:12px;color:#1C2E5A;margin-top:4px;line-height:1.6;">—</div>
+          </div>
+          <!-- Výstupy -->
+          <div style="margin-bottom:8px;padding:10px 14px;background:#E6F4EE;border-left:3px solid #1E6B45;border-radius:0 6px 6px 0;">
+            <span class="pi-label" style="color:#1E6B45;">Předpokládané výstupy</span>
+            <div id="piVystupy" style="font-size:12px;color:#1C2E5A;margin-top:4px;line-height:1.6;">—</div>
+          </div>
+          <!-- Tým -->
+          <div style="padding:10px 14px;background:#F8F7F4;border-radius:6px;border:1px solid var(--ink-10);">
+            <span class="pi-label">Řešitelský tým</span>
+            <div id="piTeam" style="font-size:12px;color:#6B6A63;margin-top:4px;line-height:1.6;">—</div>
           </div>
         </div>
-        <label class="fl">${esc(tx("prCommentLabel"))}</label>
-        <textarea class="ca" id="pr-com-${sid}" placeholder="${escAttr(tx("prCommentPh"))}"></textarea>
-        <div style="display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap;">
-          <button class="btn btn-n btn-pr-save" type="button" data-app-id="${escAttr(aid)}">${esc(tx("prSaveDecision"))}</button>
-          ${saved?`<span class="pr-saved">${esc(tx("prSavedPrefix"))} ${esc(saved.submitted_at||"")}</span>`:""}
+      </div>
+
+      <!-- Průběžné skóre -->
+      <div class="score-display">
+        <div>
+          <div class="score-label-txt">Průběžné skóre</div>
+          <div class="score-sub">Průměr vyplněných kritérií</div>
         </div>
-      </div></div>`;
-  }).join("");
-  document.getElementById("prBody").innerHTML=cards||'<div class="empty">'+esc(tx("prEmptyCards"))+'</div>';
-  bindProrektorPanelClicks();
-  apps.forEach(app=>{
-    const aid=String(app.application_id||"").trim();
-    const sid=safeDomId(aid);
-    const ta=document.getElementById("pr-com-"+sid);
-    if(!ta)return;
-    const saved=prorektorSavedDecision(aid);
-    if(saved&&saved.comment_public!=null&&saved.comment_public!=="")ta.value=String(saved.comment_public);
-    if(saved&&String(saved.recommendation||"").toUpperCase()==="CUT"){
-      let lines={};
-      try{lines=JSON.parse(String(saved.prorektor_budget_lines_json||"{}"));}catch(e){lines={};}
-      CONNECT_BUDGET_KEYS.forEach((k)=>{
-        const inp=document.getElementById("pr-cut-"+sid+"-"+k);
-        if(!inp||lines[k]==null)return;
-        inp.value=String(Math.round(Number(lines[k])||0));
+        <div>
+          <span class="score-value" id="liveScore">—</span>
+          <span class="score-max"> / 5.00</span>
+        </div>
+      </div>
+
+      <!-- Kritéria K1–K5 -->
+      <div class="card">
+        <div class="card-title"><div class="card-num">1</div>Hodnoticí kritéria</div>
+        <div class="scale-info">
+          <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-60);">Stupnice:</span>
+          <span class="scale-pill scale-pill--min">1 = minimum</span>
+          <span style="color:var(--ink-20);font-size:14px;">→</span>
+          <span class="scale-pill scale-pill--max">5 = maximum</span>
+        </div>
+
+        <div class="criterion-block">
+          <div class="criterion-row">
+            <div class="criterion-main">
+              <div class="criterion-name">K1 — Vědecká kvalita</div>
+              <div class="criterion-desc">Originalita, metodologická rigoróznost, teoretický základ</div>
+            </div>
+            <div class="star-rating" id="stars-k1">
+              <input type="radio" name="k1" id="k1-1" value="1"><label for="k1-1" onclick="calcScore()">1</label>
+              <input type="radio" name="k1" id="k1-2" value="2"><label for="k1-2" onclick="calcScore()">2</label>
+              <input type="radio" name="k1" id="k1-3" value="3"><label for="k1-3" onclick="calcScore()">3</label>
+              <input type="radio" name="k1" id="k1-4" value="4"><label for="k1-4" onclick="calcScore()">4</label>
+              <input type="radio" name="k1" id="k1-5" value="5"><label for="k1-5" onclick="calcScore()">5</label>
+            </div>
+          </div>
+          <label class="criterion-note-label" for="note-k1">Poznámka / doplnění k bodování (K1)</label>
+          <textarea class="form-field criterion-note" id="note-k1" placeholder="Volitelně – stručná připomínka k tomuto kritériu; součást textu sdíleného s žadatelem."></textarea>
+        </div>
+
+        <div class="criterion-block">
+          <div class="criterion-row">
+            <div class="criterion-main">
+              <div class="criterion-name">K2 — Proveditelnost</div>
+              <div class="criterion-desc">Reálnost harmonogramu, dostupnost zdrojů, zkušenosti žadatele</div>
+            </div>
+            <div class="star-rating">
+              <input type="radio" name="k2" id="k2-1" value="1"><label for="k2-1" onclick="calcScore()">1</label>
+              <input type="radio" name="k2" id="k2-2" value="2"><label for="k2-2" onclick="calcScore()">2</label>
+              <input type="radio" name="k2" id="k2-3" value="3"><label for="k2-3" onclick="calcScore()">3</label>
+              <input type="radio" name="k2" id="k2-4" value="4"><label for="k2-4" onclick="calcScore()">4</label>
+              <input type="radio" name="k2" id="k2-5" value="5"><label for="k2-5" onclick="calcScore()">5</label>
+            </div>
+          </div>
+          <label class="criterion-note-label" for="note-k2">Poznámka / doplnění k bodování (K2)</label>
+          <textarea class="form-field criterion-note" id="note-k2" placeholder="Volitelně – stručná připomínka k tomuto kritériu; součást textu sdíleného s žadatelem."></textarea>
+        </div>
+
+        <div class="criterion-block">
+          <div class="criterion-row">
+            <div class="criterion-main">
+              <div class="criterion-name">K3 — Dopad a relevance (obor / společnost)</div>
+              <div class="criterion-desc">Přínos pro poznání v oboru, širší dopad výsledků, přenos znalostí mimo vlastní tým (bez hodnocení institucionálního přínosu pro UHK – ten je v K5)</div>
+            </div>
+            <div class="star-rating">
+              <input type="radio" name="k3" id="k3-1" value="1"><label for="k3-1" onclick="calcScore()">1</label>
+              <input type="radio" name="k3" id="k3-2" value="2"><label for="k3-2" onclick="calcScore()">2</label>
+              <input type="radio" name="k3" id="k3-3" value="3"><label for="k3-3" onclick="calcScore()">3</label>
+              <input type="radio" name="k3" id="k3-4" value="4"><label for="k3-4" onclick="calcScore()">4</label>
+              <input type="radio" name="k3" id="k3-5" value="5"><label for="k3-5" onclick="calcScore()">5</label>
+            </div>
+          </div>
+          <label class="criterion-note-label" for="note-k3">Poznámka / doplnění k bodování (K3)</label>
+          <textarea class="form-field criterion-note" id="note-k3" placeholder="Volitelně – stručná připomínka k tomuto kritériu; součást textu sdíleného s žadatelem."></textarea>
+        </div>
+
+        <div class="criterion-block">
+          <div class="criterion-row">
+            <div class="criterion-main">
+              <div class="criterion-name">K4 — Rozpočet</div>
+              <div class="criterion-desc">Přiměřenost nákladů, efektivita využití prostředků</div>
+            </div>
+            <div class="star-rating">
+              <input type="radio" name="k4" id="k4-1" value="1"><label for="k4-1" onclick="calcScore()">1</label>
+              <input type="radio" name="k4" id="k4-2" value="2"><label for="k4-2" onclick="calcScore()">2</label>
+              <input type="radio" name="k4" id="k4-3" value="3"><label for="k4-3" onclick="calcScore()">3</label>
+              <input type="radio" name="k4" id="k4-4" value="4"><label for="k4-4" onclick="calcScore()">4</label>
+              <input type="radio" name="k4" id="k4-5" value="5"><label for="k4-5" onclick="calcScore()">5</label>
+            </div>
+          </div>
+          <label class="criterion-note-label" for="note-k4">Poznámka / doplnění k bodování (K4)</label>
+          <textarea class="form-field criterion-note" id="note-k4" placeholder="Volitelně – stručná připomínka k tomuto kritériu; součást textu sdíleného s žadatelem."></textarea>
+        </div>
+
+        <div class="criterion-block">
+          <div class="criterion-row">
+            <div class="criterion-main">
+              <div class="criterion-name">K5 — Strategický přínos pro UHK</div>
+              <div class="criterion-desc">Soulad s prioritami univerzity a fakulty, posílení profilu UHK, zapojení studentů či týmů, přínos pro výuku nebo rozvoj kapacit</div>
+            </div>
+            <div class="star-rating">
+              <input type="radio" name="k5" id="k5-1" value="1"><label for="k5-1" onclick="calcScore()">1</label>
+              <input type="radio" name="k5" id="k5-2" value="2"><label for="k5-2" onclick="calcScore()">2</label>
+              <input type="radio" name="k5" id="k5-3" value="3"><label for="k5-3" onclick="calcScore()">3</label>
+              <input type="radio" name="k5" id="k5-4" value="4"><label for="k5-4" onclick="calcScore()">4</label>
+              <input type="radio" name="k5" id="k5-5" value="5"><label for="k5-5" onclick="calcScore()">5</label>
+            </div>
+          </div>
+          <label class="criterion-note-label" for="note-k5">Poznámka / doplnění k bodování (K5)</label>
+          <textarea class="form-field criterion-note" id="note-k5" placeholder="Volitelně – stručná připomínka k tomuto kritériu; součást textu sdíleného s žadatelem."></textarea>
+        </div>
+      </div>
+
+      <!-- Závěr hodnocení -->
+      <div class="card">
+        <div class="card-title"><div class="card-num">2</div>Závěr hodnocení</div>
+
+        <div class="field-group">
+          <label class="field-label">Pořadí přihlášky (projektu)</label>
+          <div class="ranking-row">
+            <input type="number" class="form-field" id="poradi" min="1" max="99" step="1" placeholder="1">
+            <span class="ranking-hint">1 = nejlepší ve vašem osobním žebříčku</span>
+          </div>
+          <p style="font-size:12px;color:var(--ink-60);line-height:1.45;margin-top:8px;max-width:42rem;">
+            Jedná se o <strong>subjektivní pořadí projektu</strong> podle vašeho uvážení v rámci soutěže; slouží k přehledu pro komisi, není závazným pořadím výsledného žebříčku.
+          </p>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Doporučení člena komise</label>
+          <select class="form-field" id="doporuceni">
+            <option value="">— Vyberte —</option>
+            <option value="FUND">✓ Financovat</option>
+            <option value="FUND_REDUCED">~ Podmíněně financovat</option>
+            <option value="REJECT">✗ Nefinancovat</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Závěrečné shrnutí připomínek k projektu <span style="color:var(--accent)">*</span></label>
+          <textarea class="form-field" id="zaverecneShrnuti" placeholder="Celkový závěr vašeho hodnocení – shrnutí hlavních připomínek k projektu; bude sdíleno se žadatelem společně s poznámkami u jednotlivých kritérií (vyplněnými výše)."></textarea>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Interní poznámka panelu</label>
+          <textarea class="form-field" id="poznamka" placeholder="Nepovinné – pouze pro interní potřeby komise…" style="min-height:70px;"></textarea>
+        </div>
+      </div>
+
+      <button class="submit-btn" id="submitBtn" onclick="submitReview()">
+        Odeslat hodnocení →
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ TAB: PŘEHLED ══ -->
+  <div id="tab-dash" class="tab-panel">
+    <div class="dash-page">
+
+      <div class="dash-header">
+        <div>
+          <h2 class="dash-title">Přehled hodnocení</h2>
+          <div class="dash-meta" id="dashMeta">Načítám…</div>
+          <div data-navraty-external-folder data-default-folder-url="https://drive.google.com/drive/folders/1BccsPx0kcI7RJFTi4_ptnZIE6V22HKsp" class="external-reviews-banner" style="margin-top:20px;margin-bottom:0;" role="region" aria-label="Oponentní posudky">
+            <div class="external-reviews-banner__icon" aria-hidden="true">📂</div>
+            <div>
+              <div class="external-reviews-banner__title">Externí oponentní posudky</div>
+              <p class="external-reviews-banner__text" style="margin-bottom:10px;">Stejná složka jako u hodnoticího formuláře – podklady pro komisi.</p>
+              <a class="external-reviews-banner__btn navraty-external-folder-link" href="https://drive.google.com/drive/folders/1BccsPx0kcI7RJFTi4_ptnZIE6V22HKsp" target="_blank" rel="noopener noreferrer">Otevřít složku na Disku →</a>
+            </div>
+          </div>
+        </div>
+        <div class="dash-actions">
+          <button class="dash-btn dash-btn--blue" onclick="loadDashboard()">↻ Obnovit</button>
+          <button class="dash-btn" onclick="exportCSV()">⬇ Export CSV</button>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Celkem hodnocení</div>
+          <div class="stat-value" id="statTotal">—</div>
+          <div class="stat-sub">odeslaných formulářů</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Hodnocené přihlášky</div>
+          <div class="stat-value" id="statProjects">—</div>
+          <div class="stat-sub">z celkového počtu</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Financovat (většina)</div>
+          <div class="stat-value" id="statFin">—</div>
+          <div class="stat-sub">přihlášek</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Průměrné skóre</div>
+          <div class="stat-value" id="statAvg">—</div>
+          <div class="stat-sub">z 5.00</div>
+        </div>
+      </div>
+
+      <!-- Progress členů (jen admin) -->
+      <div id="progressSection" class="progress-section" style="display:none;">
+        <div class="progress-section-label">Postup hodnocení členů komise</div>
+        <div class="progress-grid" id="progressGrid"></div>
+      </div>
+
+      <!-- Projekty -->
+      <div id="projectsList">
+        <div class="dash-loading">
+          <div class="dash-spinner"></div>
+          <p style="color:var(--ink-60);font-size:14px;">Načítám ze sdílené databáze…</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ TAB: POHLED PROREKTORA ══ -->
+  <div id="tab-prorektor" class="tab-panel">
+    <div class="prorektor-view">
+      <div style="margin-bottom:20px;">
+        <img src="../img/logo-eu-msmt.png" alt="Spolufinancováno Evropskou unií | MŠMT"
+          style="max-width:280px;width:100%;opacity:.85;">
+      </div>
+      <div class="prorektor-eyebrow">Rozhodnutí prorektora · OP JAK Návraty 2026</div>
+      <h1 class="prorektor-title">Schvalování projektů</h1>
+      <p class="prorektor-desc">Souhrn hodnocení komise. Pro každý projekt uveďte rozhodnutí a zdůvodnění.</p>
+
+      <div data-navraty-external-folder data-default-folder-url="https://drive.google.com/drive/folders/1BccsPx0kcI7RJFTi4_ptnZIE6V22HKsp" class="external-reviews-banner" role="region" aria-label="Oponentní posudky">
+        <div class="external-reviews-banner__icon" aria-hidden="true">📂</div>
+        <div>
+          <div class="external-reviews-banner__title">Oponentní posudky externích hodnotitelů</div>
+          <p class="external-reviews-banner__text" style="margin-bottom:10px;">Před rozhodnutím si ověřte podklady v sdílené složce (nahrává správce).</p>
+          <a class="external-reviews-banner__btn navraty-external-folder-link" href="https://drive.google.com/drive/folders/1BccsPx0kcI7RJFTi4_ptnZIE6V22HKsp" target="_blank" rel="noopener noreferrer">Otevřít složku na Disku →</a>
+        </div>
+      </div>
+
+      <!-- Souhrnná statistika -->
+      <div class="summary-bar" id="prSummaryBar" style="display:none;">
+        <div class="summary-item">
+          <div class="summary-val" id="prStatTotal">—</div>
+          <div class="summary-lbl">Projektů celkem</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-val summary-val--green" id="prStatFund">—</div>
+          <div class="summary-lbl">Podpořit</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-val summary-val--gold" id="prStatReduced">—</div>
+          <div class="summary-lbl">Krátit</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-val summary-val--red" id="prStatReject">—</div>
+          <div class="summary-lbl">Nepodpořit</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-val summary-val--purple" id="prStatPending">—</div>
+          <div class="summary-lbl">Čeká na rozhodnutí</div>
+        </div>
+      </div>
+
+      <!-- Projekty -->
+      <div id="prProjectsList">
+        <div style="text-align:center;padding:48px;color:var(--ink-60);">
+          <div style="width:32px;height:32px;border:2px solid var(--ink-20);border-top-color:#5B21B6;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px;"></div>
+          <p>Načítám hodnocení komise…</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overlay -->
+  <div class="sending-overlay" id="sendingOverlay">
+    <div class="sending-spinner"></div>
+    <div class="sending-text">Ukládám hodnocení…</div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/i18n.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/api.js"></script>
+  <script>
+
+    I18n.init();
+    (function () {
+      var el = document.querySelector(".topbar__right");
+      if (el) I18n.mountLangSwitch(el, "first");
+    })();
+
+    // ── Ochrana stránky – jen komisař, admin, prorektor, tester ──
+    const ALLOWED = ["KOMISAR","ADMIN","PROREKTOR","TESTER"];
+    const user = Auth.requireLogin(ALLOWED);
+    const IS_PROREKTOR = user.role === "PROREKTOR";
+
+    (function wireNavratyExternalReviewsFolder() {
+      function normalizeUrl(raw) {
+        const s = String(raw || "").trim();
+        if (!s) return "";
+        return /^https?:\/\//i.test(s) ? s : ("https://" + s);
+      }
+      const configRaw = typeof NAVRATY_EXTERNAL_REVIEWS_FOLDER_URL !== "undefined"
+        ? String(NAVRATY_EXTERNAL_REVIEWS_FOLDER_URL || "").trim()
+        : "";
+      const configUrl = normalizeUrl(configRaw);
+      document.querySelectorAll("[data-navraty-external-folder]").forEach(function (wrap) {
+        const defUrl = normalizeUrl(wrap.getAttribute("data-default-folder-url") || "");
+        const finalUrl = configUrl || defUrl;
+        if (!finalUrl) {
+          wrap.style.display = "none";
+          return;
+        }
+        wrap.style.display = "";
+        wrap.querySelectorAll("a.navraty-external-folder-link").forEach(function (a) {
+          a.href = finalUrl;
+        });
       });
-      updatePrCutSumDisplay(sid,app._f);
-    }
-  });
-}
+    })();
 
-function prPickDec(appId,dec){
-  appId=String(appId||"").trim();
-  prDecisionPick[appId]=dec;
-  const sid=safeDomId(appId);
-  ["SUPPORT","CUT","REJECT"].forEach(d=>{
-    const el=document.getElementById("prd-"+sid+"-"+d);
-    if(!el)return;
-    el.className="rb rb-pr-dec"+(dec===d?(d==="SUPPORT"?" sel-s":d==="CUT"?" sel-c":" sel-r"):"");
-  });
-  const cutField=document.getElementById("pr-cut-field-"+sid);
-  if(cutField)cutField.style.display=dec==="CUT"?"block":"none";
-}
+    // Zobraz info o uživateli
+    document.getElementById("topbarName").textContent = user.name || user.email;
+    document.getElementById("topbarRole").textContent = ROLES[user.role]?.label || user.role;
 
-let _prPanelBound=false;
-function bindProrektorPanelClicks(){
-  const root=document.getElementById("prBody");
-  if(!root||_prPanelBound)return;
-  _prPanelBound=true;
-  root.addEventListener("input",function(ev){
-    const t=ev.target;
-    if(t&&t.classList&&t.classList.contains("pr-cut-line")){
-      const sid=t.getAttribute("data-sid");
-      if(!sid)return;
-      const aid=apps.find(a=>safeDomId(String(a.application_id||"").trim())===sid)?.application_id;
-      const ap=apps.find(a=>String(a.application_id||"").trim()===String(aid||"").trim());
-      updatePrCutSumDisplay(sid,ap?._f||{});
-    }
-  });
-  root.addEventListener("click",function(ev){
-    const decBtn=ev.target.closest(".rb-pr-dec");
-    if(decBtn&&decBtn.getAttribute("data-dec")){
-      prPickDec(decBtn.getAttribute("data-app-id"),decBtn.getAttribute("data-dec"));
-      return;
-    }
-    const saveBtn=ev.target.closest(".btn-pr-save");
-    if(saveBtn&&saveBtn.getAttribute("data-app-id"))
-      submitProrektorDecision(saveBtn.getAttribute("data-app-id"));
-  });
-}
+    // Renderuj navigaci podle role
+    (function renderNav() {
+      const nav = document.getElementById("topbarNav");
+      if (IS_PROREKTOR) {
+        nav.innerHTML = `
+          <button class="nav-btn active" id="nav-prorektor" onclick="switchTab('prorektor')">Schvalování</button>`;
+        // Skryj komisařský formulář, zobraz prorektor view
+        document.getElementById("tab-form").classList.remove("active");
+        document.getElementById("tab-prorektor").classList.add("active");
+      } else {
+        nav.innerHTML = `
+          <button class="nav-btn active" id="nav-form" onclick="switchTab('form')">Hodnocení</button>
+          <button class="nav-btn" id="nav-dash" onclick="switchTab('dash')">Přehled</button>`;
+      }
+    })();
 
-async function submitProrektorDecision(appId){
-  appId=String(appId||"").trim();
-  const dec=prDecisionPick[appId];
-  if(!dec){showToast(tx("toastPickDec"),"err");return;}
-  const sid=safeDomId(appId);
-  const ta=document.getElementById("pr-com-"+sid);
-  const comment=ta?ta.value.trim():"";
-  const app=apps.find(a=>String(a.application_id||"").trim()===appId);
-  const planned=Number(app?._f?.budget_total||0);
-  const f=app?._f||{};
-  let supportedAmountCzk;
-  let budgetLinesForCut=null;
-  if(dec==="CUT"){
-    const obj={};
-    let sumCut=0;
-    let anyLine=false;
-    for(const k of CONNECT_BUDGET_KEYS){
-      const req=Math.round(Number(f[k])||0);
-      if(req<=0)continue;
-      anyLine=true;
-      const inp=document.getElementById("pr-cut-"+sid+"-"+k);
-      const v=inp?Math.round(Number(inp.value)||0):0;
-      if(!isFinite(v)||v<0||v>req){
-        showToast(I18n.tReplace("reviewConnect.toastLineRange",{item:I18n.connectBudgetLabel(k),max:String(req),unit:I18n.getLang()==="en"?"CZK":"Kč"}),"err");
+    // Stav
+    let applications = [];   // seznam přihlášek ze Sheets
+    /** @type {Record<string, Record<string, unknown>>} – celé objekty projektu (nelze dávat do data-* na option, je to ořezáváno) */
+    let projectsById = {};
+    let dashboardData = [];  // hodnocení pro dashboard
+    let totalApps = 0;       // celkový počet přihlášek pro progress
+    let prDecisions = {};    // rozhodnutí Prorektora: projectId → {decision, note}
+
+    // ── TABS ─────────────────────────────────────────────────────
+    function switchTab(tab) {
+      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+      document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+      document.getElementById("tab-" + tab)?.classList.add("active");
+      document.getElementById("nav-" + tab)?.classList.add("active");
+      if (tab === "dash") loadDashboard();
+      if (tab === "prorektor") loadProrektor();
+    }
+
+    // ── NAČTI PŘIHLÁŠKY ZE SHEETS ────────────────────────────────
+    async function loadApplications() {
+      const errEl = document.getElementById("errorApps");
+      try {
+        const url = new URL(API_URL);
+        url.searchParams.set("action", "getProjects");
+        url.searchParams.set("competitionId", "uhk_navraty_2026");
+        const session = Auth._getSession();
+        if (session?.token) url.searchParams.set("token", session.token);
+
+        const res  = await fetch(url.toString());
+        const data = await res.json();
+        if (data.error) {
+          applications = [];
+          errEl.style.display = "block";
+          errEl.textContent = "⚠️ " + data.error;
+        } else {
+          errEl.style.display = "none";
+          applications = data.success && data.projects ? data.projects : [];
+        }
+      } catch (e) {
+        applications = [];
+        errEl.style.display = "block";
+        errEl.textContent = "⚠️ Chyba sítě nebo API: " + (e.message || "zkuste obnovit stránku.");
+      }
+
+      totalApps = applications.length;
+      renderAppSelector(applications);
+      document.getElementById("loadingApps").style.display = "none";
+      document.getElementById("selectorCard").style.display = "block";
+
+      await loadMyReviews();
+    }
+
+    async function loadMyReviews() {
+      try {
+        const session = Auth._getSession();
+        const url = new URL(API_URL);
+        url.searchParams.set("action", "getNavratyReviews");
+        url.searchParams.set("competitionId", "uhk_navraty_2026");
+        url.searchParams.set("token", session?.token || "");
+        const res  = await fetch(url.toString());
+        const data = await res.json();
+        const all  = data.reviews || data || [];
+        myExistingReviews = {};
+        all.forEach(r => {
+          if (String(r.comment_internal || "").trim() === "PROREKTOR_DECISION") return;
+          const email = String(r.reviewer_email || "").toLowerCase().trim();
+          if (email === user.email.toLowerCase()) {
+            const pid = r.project_id || r.application_id;
+            if (pid) myExistingReviews[pid] = r;
+          }
+        });
+        // Obnov select pokud je projekt vybrán
+        const selVal = document.getElementById("selProjekt")?.value;
+        if (selVal) checkAlreadyReviewed(selVal);
+      } catch(e) {
+        console.warn("Nepodařilo se načíst vlastní hodnocení:", e.message);
+      }
+    }
+
+    function renderAppSelector(apps) {
+      projectsById = {};
+      const sel = document.getElementById("selProjekt");
+      sel.innerHTML = '<option value="">— Vyberte projekt —</option>';
+      apps.forEach(a => {
+        const pid = String(a.project_id || a.id || "").trim();
+        if (pid) projectsById[pid] = a;
+        const opt = document.createElement("option");
+        opt.value = pid;
+        const name = a.project_name || a.name || a.project_id;
+        const short = name.length > 60 ? name.substring(0, 60) + "…" : name;
+        opt.textContent = `${a.project_id} | ${a.soucast || ""} | ${short}`;
+        sel.appendChild(opt);
+      });
+    }
+
+    function formatProjectBudget(val) {
+      if (val === undefined || val === null || val === "") return "—";
+      const s = String(val).replace(/\s/g, "").replace(/\u00a0/g, "").replace(",", ".");
+      const n = Number(s);
+      if (!Number.isNaN(n) && s !== "") return n.toLocaleString("cs-CZ") + " Kč";
+      return String(val);
+    }
+
+    // ── VÝBĚR PŘIHLÁŠKY ──────────────────────────────────────────
+    // Cache existujících hodnocení aktuálního uživatele
+    let myExistingReviews = {};
+
+    function onProjectChange() {
+      const sel  = document.getElementById("selProjekt");
+      const info = document.getElementById("projectInfo");
+
+      if (!sel.value) {
+        info.classList.remove("visible");
+        hideAlreadyReviewedBanner();
         return;
       }
-      obj[k]=v;
-      sumCut+=v;
-    }
-    if(!anyLine){
-      showToast(tx("toastNoCutLines"),"err");
-      return;
-    }
-    if(sumCut<=0){
-      showToast(tx("toastCutSumPositive"),"err");
-      return;
-    }
-    if(planned>0&&sumCut>planned){
-      showToast(tx("toastSumExceeds"),"err");
-      return;
-    }
-    budgetLinesForCut=obj;
-    supportedAmountCzk=sumCut;
-  }else if(dec==="SUPPORT"){
-    supportedAmountCzk=planned;
-    if(!isFinite(supportedAmountCzk)||supportedAmountCzk<=0){
-      showToast(tx("toastNoAppBudget"),"err");
-      return;
-    }
-  }
-  try{
-    const linesSnapshot=dec==="CUT"&&budgetLinesForCut?Object.assign({},budgetLinesForCut):null;
-    await postWebAppReliable({
-      action:"saveConnectProrektorDecision",
-      token:Auth._getSession()?.token||"",
-      competitionId:CID,
-      applicationId:appId,
-      decision:dec,
-      comment,
-      supportedAmountCzk:dec==="REJECT"?undefined:supportedAmountCzk,
-      budgetLines:dec==="CUT"?budgetLinesForCut:undefined,
-    },async()=>{
-      const list=await fetchConnectReviews();
-      const row=list.find(r=>connectAppId(r)===appId&&isProrektorDecisionRow(r));
-      if(!row||String(row.recommendation||"").toUpperCase()!==String(dec||"").toUpperCase())return false;
-      if(dec==="REJECT")return true;
-      const want=Math.round(Number(supportedAmountCzk));
-      const raw=row.prorektor_supported_czk!=null&&String(row.prorektor_supported_czk).trim()!==""?row.prorektor_supported_czk:row.comment_k1;
-      const got=Math.round(Number(raw));
-      if(want!==got)return false;
-      if(dec==="CUT"&&linesSnapshot){
-        let parsed=null;
-        try{parsed=JSON.parse(String(row.prorektor_budget_lines_json||"{}"));}catch(e){parsed=null;}
-        if(!parsed||typeof parsed!=="object")return false;
-        for(const k of CONNECT_BUDGET_KEYS){
-          const req=Math.round(Number(f[k])||0);
-          if(req<=0)continue;
-          if(Math.round(Number(parsed[k])||0)!==Math.round(Number(linesSnapshot[k])||0))return false;
-        }
+
+      const app = projectsById[sel.value];
+      if (!app) {
+        info.classList.remove("visible");
+        hideAlreadyReviewedBanner();
+        return;
       }
-      return true;
-    });
-    await loadData();
-    showToast(tx("toastDecSaved"));
-  }catch(e){showToast(e.message||tx("errSaveGeneric"),"err")}
-}
 
-async function prDec(id,dec){
-  const aid=String(id||"").trim(),st=String(dec||"").trim();
-  try{
-    await postWebAppReliable({action:"updateApplicationStatus",token:Auth._getSession()?.token||"",competitionId:CID,applicationId:aid,newStatus:st,coordinatorEmail:user.email},async()=>{
-      const list=await fetchApplicationsList();
-      const app=list.find(a=>String(a.application_id||"").trim()===aid);
-      return !!(app&&String(app.status||"").toUpperCase()===st.toUpperCase());
-    });
-    await loadData();
-    showToast(tx("toastStatusSaved"));
-  }catch(e){showToast(e.message||tx("errSaveGeneric"),"err")}
-}
+      const f = id => document.getElementById(id);
+      const sv = (id, val) => { const el = f(id); if (el) el.textContent = (val !== undefined && val !== null && String(val).trim() !== "") ? String(val) : "—"; };
+      sv("piId",      app.project_id || app.id);
+      sv("piName",    app.project_name || app.name);
+      sv("piResitel", app.resitel);
+      sv("piEmail",   app.email);
+      sv("piFaculty", app.soucast || app.faculty);
+      sv("piOblast",  app.vedni_oblast);
+      sv("piBudget",  formatProjectBudget(app.rozpocet));
+      sv("piAnotace", app.anotace);
+      sv("piVystupy", app.vystupy);
+      sv("piTeam",    app.team);
+      info.classList.add("visible");
 
-function switchTab(t){
-  ["h","p","pr"].forEach(x=>{
-    document.getElementById("tab-"+x)?.classList.toggle("active",x===t);
-    const v=document.getElementById("view-"+x);if(v)v.style.display=x===t?"block":"none";
-  });
-}
+      // Zkontroluj zda uživatel již tento projekt hodnotil
+      checkAlreadyReviewed(sel.value);
+    }
 
-let _tt;
-function showToast(msg,type="ok"){
-  const t=document.getElementById("toast");t.textContent=msg;
-  t.style.background=type==="err"?"#991B1B":"#1E6B45";t.classList.add("show");
-  clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove("show"),4000);
-}
+    function checkAlreadyReviewed(projectId) {
+      const existing = myExistingReviews[projectId];
+      if (existing) {
+        showAlreadyReviewedBanner(existing);
+      } else {
+        hideAlreadyReviewedBanner();
+      }
+    }
 
-function demoApps(){
-  return[
-    {application_id:"APP-260320-DEMO1",applicant_name:"Mgr. Jan Novák, Ph.D.",applicant_email:"jan.novak@uhk.cz",status:"IN_REVIEW",
-     form_data_json:JSON.stringify({project_title:"Síťování s ETH Zürich – ML výzkum",faculty:"FIM",department:"Katedra informatiky",
-     applicant_type:"Junior/early-career researcher",activity_type:"Mobilita (výjezd)",
-     partner_institution:"ETH Zürich",partner_country:"Švýcarsko",activity_start:"2026-06-01",activity_end:"2026-06-14",
-     research_focus:"Strojové učení a NLP. Zaměřuji se na interpretovatelné modely pro vědecké texty.",
-     activity_goal:"Navázání spolupráce s týmem prof. Schmidta, příprava článku NeurIPS 2026.",
-     cooperation_history:"Setkali jsme se na EMNLP 2024, korespondujeme od 11/2024.",
-     output_description:"Draft článku pro NeurIPS 2026.",output_impact:"Základ pro GAČR projekt s ETH.",
-     recent_outputs:"Novák J. (2024) Explainable NLP. EMNLP 2024.\nGA ČR junior 24-12345J.",
-     budget_travel:"28000",budget_accommodation:"21000",budget_meals:"8400",budget_total:"57400",
-     budget_justification:"Letenka Praha–Curych, 14 nocí ubytování."})},
-    {application_id:"APP-260315-DEMO2",applicant_name:"RNDr. Eva Malá, Ph.D.",applicant_email:"eva.mala@uhk.cz",status:"IN_REVIEW",
-     form_data_json:JSON.stringify({project_title:"Konference ICML 2026 – oral presentation",faculty:"PřF",department:"Katedra fyziky",
-     applicant_type:"Junior/early-career researcher",activity_type:"Konference",
-     partner_institution:"ICML 2026 Vienna",partner_country:"Rakousko",activity_start:"2026-07-20",activity_end:"2026-07-26",
-     research_focus:"Kvantové výpočty a kvantové ML.",activity_goal:"Prezentace oral příspěvku, navázání spolupráce s DeepMind.",
-     output_description:"LoI o spolupráci s DeepMind.",output_impact:"Základ pro ERC Synergy 2027.",
-     recent_outputs:"Malá E. et al. (2023) Quantum ML. Nature Physics.",
-     budget_travel:"15000",budget_accommodation:"18000",budget_fee:"22000",budget_total:"61000",
-     budget_justification:"Vlak Praha–Vídeň, 6 nocí, konf. poplatek."})},
-  ].map(a=>{try{a._f=JSON.parse(a.form_data_json)}catch{a._f={}}return a});
-}
+    function showAlreadyReviewedBanner(review) {
+      let banner = document.getElementById("alreadyReviewedBanner");
+      if (!banner) {
+        banner = document.createElement("div");
+        banner.id = "alreadyReviewedBanner";
+        banner.style.cssText = `
+          background:#FEF3C7; border:1.5px solid rgba(196,154,42,.4);
+          border-radius:10px; padding:16px 20px; margin-bottom:20px;
+          display:flex; align-items:flex-start; gap:12px;
+        `;
+        // Vlož před score-display
+        const scoreDisplay = document.querySelector(".score-display");
+        scoreDisplay.parentNode.insertBefore(banner, scoreDisplay);
+      }
+      const score = review.score_total || "—";
+      const rec   = { FUND:"Financovat", REJECT:"Nefinancovat", FUND_REDUCED:"Podmíněně" }[review.recommendation] || review.recommendation || "—";
+      banner.innerHTML = `
+        <span style="font-size:20px;">⚠️</span>
+        <div style="flex:1;">
+          <div style="font-weight:600;font-size:14px;color:#92400E;margin-bottom:4px;">
+            Tento projekt jste již hodnotili
+          </div>
+          <div style="font-size:13px;color:#78350F;line-height:1.5;">
+            Skóre: <strong>${score}/25</strong> · Doporučení: <strong>${rec}</strong>
+            · Odesláno: ${review.submitted_at || "—"}
+          </div>
+          <div style="margin-top:10px;display:flex;gap:8px;">
+            <button onclick="confirmOverwrite()" style="
+              background:#92400E;color:white;border:none;border-radius:6px;
+              padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;
+              font-family:'DM Sans',sans-serif;">
+              Přepsat hodnocení
+            </button>
+            <button onclick="document.getElementById('selProjekt').value='';onProjectChange();" style="
+              background:white;color:#92400E;border:1.5px solid rgba(146,64,14,.3);
+              border-radius:6px;padding:7px 14px;font-size:13px;cursor:pointer;
+              font-family:'DM Sans',sans-serif;">
+              Vybrat jiný projekt
+            </button>
+          </div>
+        </div>`;
+      // Zablokuj tlačítko odeslat
+      document.getElementById("submitBtn").disabled = true;
+      document.getElementById("submitBtn").style.opacity = "0.4";
+    }
 
-loadData();
-</script>
+    function hideAlreadyReviewedBanner() {
+      const banner = document.getElementById("alreadyReviewedBanner");
+      if (banner) banner.remove();
+      document.getElementById("submitBtn").disabled = false;
+      document.getElementById("submitBtn").style.opacity = "1";
+    }
+
+    function confirmOverwrite() {
+      // Uživatel potvrdil přepsání – povolíme odeslání
+      hideAlreadyReviewedBanner();
+      showToast("Formulář je odemčen. Vyplňte nové hodnocení a odešlete.", "ok");
+    }
+
+    // ── VÝPOČET PRŮBĚŽNÉHO SKÓRE ─────────────────────────────────
+    function getRadioVal(name) {
+      const el = document.querySelector(`input[name="${name}"]:checked`);
+      return el ? parseInt(el.value) : null;
+    }
+
+    function calcScore() {
+      const vals = ["k1","k2","k3","k4","k5"].map(getRadioVal).filter(v => v !== null);
+      const el   = document.getElementById("liveScore");
+      el.textContent = vals.length
+        ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2)
+        : "—";
+    }
+
+    // ── RESET FORMULÁŘE ──────────────────────────────────────────
+    const NAVRATY_CRIT_NOTE_LABELS = [
+      ["k1", "K1 – Vědecká kvalita"],
+      ["k2", "K2 – Proveditelnost"],
+      ["k3", "K3 – Dopad a relevance (obor / společnost)"],
+      ["k4", "K4 – Rozpočet"],
+      ["k5", "K5 – Strategický přínos pro UHK"],
+    ];
+
+    /** Složí comment_public: poznámky ke kritériím + závěrečné shrnutí (jeden sloupce v Sheets). */
+    function buildNavratyCommentPublic() {
+      const parts = [];
+      NAVRATY_CRIT_NOTE_LABELS.forEach(([key, label]) => {
+        const el = document.getElementById("note-" + key);
+        const t = el ? el.value.trim() : "";
+        if (t) parts.push(label + ":\n" + t);
+      });
+      const blokK = parts.length
+        ? "—— Poznámky u jednotlivých kritérií ——\n\n" + parts.join("\n\n") + "\n\n"
+        : "";
+      const sumEl = document.getElementById("zaverecneShrnuti");
+      const sum = sumEl ? sumEl.value.trim() : "";
+      const blokS = sum
+        ? "—— Závěrečné shrnutí připomínek k projektu ——\n\n" + sum
+        : "";
+      return [blokK, blokS].filter(Boolean).join("");
+    }
+
+    function resetForm() {
+      document.getElementById("selProjekt").value = "";
+      document.getElementById("projectInfo").classList.remove("visible");
+      ["k1","k2","k3","k4","k5"].forEach(k => {
+        document.querySelectorAll(`input[name="${k}"]`).forEach(r => r.checked = false);
+      });
+      NAVRATY_CRIT_NOTE_LABELS.forEach(([key]) => {
+        const n = document.getElementById("note-" + key);
+        if (n) n.value = "";
+      });
+      document.getElementById("liveScore").textContent = "—";
+      ["poradi","doporuceni","zaverecneShrnuti","poznamka"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = "";
+      });
+    }
+
+    // ── ODESLÁNÍ HODNOCENÍ ────────────────────────────────────────
+    async function submitReview() {
+      const appId = document.getElementById("selProjekt").value;
+      if (!appId) { showToast("Vyberte přihlášku.", "err"); return; }
+
+      const k1=getRadioVal("k1"), k2=getRadioVal("k2"), k3=getRadioVal("k3"),
+            k4=getRadioVal("k4"), k5=getRadioVal("k5");
+      if (!k1||!k2||!k3||!k4||!k5) {
+        showToast("Vyplňte všechna kritéria K1–K5.", "err"); return;
+      }
+
+      const doporuceni = document.getElementById("doporuceni").value;
+      if (!doporuceni) { showToast("Vyberte doporučení člena komise.", "err"); return; }
+
+      const zaverecneShrnuti = document.getElementById("zaverecneShrnuti").value.trim();
+      if (!zaverecneShrnuti) {
+        showToast("Vyplňte závěrečné shrnutí připomínek k projektu.", "err");
+        return;
+      }
+
+      const scores = { clarity: k1, quality: k2, budget: k3, profile: k4, outputs: k5 };
+      const comments = {
+        public:   buildNavratyCommentPublic(),
+        internal: document.getElementById("poznamka").value,
+      };
+      const poradi = document.getElementById("poradi").value;
+
+      document.getElementById("sendingOverlay").classList.add("show");
+      document.getElementById("submitBtn").disabled = true;
+
+      try {
+        const session = Auth._getSession();
+        const payload = {
+          action:        "submitNavratyReview",
+          token:         session?.token || "",
+          competitionId: "uhk_navraty_2026",
+          projectId:     appId,
+          reviewerName:  session?.name || session?.email || "",
+          scores,
+          comments,
+          recommendation: doporuceni,
+          poradi:         document.getElementById("poradi").value,
+        };
+
+        // Apps Script Web App vyžaduje no-cors pro POST z externích domén
+        await fetch(API_URL, {
+          method:  "POST",
+          mode:    "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify(payload),
+        });
+
+        // no-cors vždy vrátí opaque response – považujeme za úspěch
+        document.getElementById("sendingOverlay").classList.remove("show");
+        document.getElementById("submitBtn").disabled = false;
+        showToast(`Hodnocení projektu ${appId} uloženo. ✓`);
+        // Invaliduj cache a znovu načti přehled
+        // Aktualizuj lokální cache hodnocení
+        myExistingReviews[appId] = {
+          reviewer_email: user.email,
+          reviewer_name: Auth._getSession()?.name || user.email,
+          project_id: appId,
+          score_total: Object.values(scores).reduce((a,b)=>a+b,0),
+          recommendation: doporuceni,
+          submitted_at: new Date().toLocaleString("cs-CZ"),
+        };
+        resetForm();
+        // Po 2 sekundách obnov dashboard data
+        setTimeout(() => loadDashboard(), 2000);
+      } catch (err) {
+        document.getElementById("sendingOverlay").classList.remove("show");
+        document.getElementById("submitBtn").disabled = false;
+        showToast(`Chyba při ukládání: ${err.message}`, "err");
+      }
+    }
+
+    // ── DASHBOARD ─────────────────────────────────────────────────
+    async function loadDashboard() {
+      document.getElementById("projectsList").innerHTML = `
+        <div class="dash-loading">
+          <div class="dash-spinner"></div>
+          <p style="color:var(--ink-60);font-size:14px;">Načítám ze sdílené databáze…</p>
+        </div>`;
+
+      try {
+        // Načti všechna hodnocení z Návraty Sheets
+        const url = new URL(API_URL);
+        url.searchParams.set("action", "getNavratyReviews");
+        url.searchParams.set("competitionId", "uhk_navraty_2026");
+        const session = Auth._getSession();
+        if (session?.token) url.searchParams.set("token", session.token);
+        const res  = await fetch(url.toString());
+        const data = await res.json();
+        const raw = Array.isArray(data) ? data : [];
+        prDecisions = {};
+        raw.forEach(r => {
+          if (String(r.comment_internal || "").trim() !== "PROREKTOR_DECISION") return;
+          const pid = r.project_id || r.application_id;
+          if (pid) {
+            prDecisions[pid] = {
+              decision: r.recommendation || "",
+              note:     r.comment_public || "",
+            };
+          }
+        });
+        const komiseOnly = raw.filter(r => String(r.comment_internal || "").trim() !== "PROREKTOR_DECISION");
+        const reviews = komiseOnly.map(r => ({
+          ...r,
+          application_id: r.project_id || r.application_id,
+          reviewer_email: r.reviewer_email || r.hodnotitel || "—",
+          reviewer_name:  r.reviewer_name  || r.reviewer_email || r.hodnotitel || "—",
+          score_clarity:  r.score_clarity  || r.k1 || r.K1 || 0,
+          score_quality:  r.score_quality  || r.k2 || r.K2 || 0,
+          score_budget:   r.score_budget   || r.k3 || r.K3 || 0,
+          score_profile:  r.score_profile  || r.k4 || r.K4 || 0,
+          score_outputs:  r.score_outputs  || r.k5 || r.K5 || 0,
+          score_total:    Number(r.score_total || r.skore || r.score || 0),
+          recommendation: r.recommendation || r.doporuceni || "",
+          comment_public: r.comment_public || r.zduvodneni || "",
+          _app: applications.find(a => (a.project_id||a.id) === (r.project_id||r.application_id)) || {},
+        }));
+        dashboardData = reviews.length ? reviews : [];
+
+        myExistingReviews = {};
+        dashboardData.forEach(r => {
+          const email = (r.reviewer_email || "").toLowerCase().trim();
+          if (email === user.email.toLowerCase()) {
+            const pid = r.project_id || r.application_id;
+            if (pid) myExistingReviews[pid] = r;
+          }
+        });
+
+      } catch (err) {
+        console.warn("Chyba načítání hodnocení:", err.message);
+        dashboardData = [];
+      }
+
+      renderDashboard(dashboardData);
+    }
+
+    function renderDashboard(reviews) {
+      const total = reviews.length;
+      const appIds = [...new Set(reviews.map(r => r.application_id))];
+
+      document.getElementById("statTotal").textContent    = total;
+      document.getElementById("statProjects").textContent = appIds.length;
+
+      const scores = reviews.map(r => parseFloat(r.score_total || 0) / 25 * 5).filter(s => !isNaN(s));
+      document.getElementById("statAvg").textContent = scores.length
+        ? (scores.reduce((a,b) => a+b, 0) / scores.length).toFixed(2) : "—";
+
+      const finCount = appIds.filter(id => {
+        const rev = reviews.filter(r => r.application_id === id);
+        return rev.filter(r => r.recommendation === "FUND").length > rev.length / 2 && rev.length > 0;
+      }).length;
+      document.getElementById("statFin").textContent = finCount;
+
+      const members = [...new Set(reviews.map(r => r.reviewer_email))];
+      document.getElementById("dashMeta").textContent =
+        `${total} hodnocení od ${members.length} členů · ${new Date().toLocaleTimeString("cs-CZ", {hour:"2-digit",minute:"2-digit"})}`;
+
+      // Progress (admin/tester vidí postup všech)
+      if (["ADMIN","TESTER","PROREKTOR"].includes(user.role)) {
+        document.getElementById("progressSection").style.display = "block";
+        document.getElementById("progressGrid").innerHTML = members.map(m => {
+          const memberRevs = reviews.filter(r => r.reviewer_email === m);
+          const count = [...new Set(memberRevs.map(r => r.application_id))].length;
+          const memberName = memberRevs[0]?.reviewer_name || m;
+          const pct   = totalApps > 0 ? Math.round(count / totalApps * 100) : 0;
+          return `
+            <div class="progress-card">
+              <div class="progress-name">${m}</div>
+              <div class="progress-bar-wrap">
+                <div class="progress-bar" style="width:${pct}%"></div>
+              </div>
+              <div class="progress-count">${count}/${totalApps} přihlášek</div>
+            </div>`;
+        }).join("");
+      }
+
+      if (!total) {
+        document.getElementById("projectsList").innerHTML = `
+          <div class="empty-state">
+            <h3>Zatím žádná hodnocení</h3>
+            <p style="color:var(--ink-60);">Jakmile členové začnou hodnotit, výsledky se zobrazí zde.</p>
+          </div>`;
+        return;
+      }
+
+      // Seskup podle přihlášky a seřaď podle průměrného podílu bodů z max. 25 na hodnocení
+      const grouped = {};
+      reviews.forEach(r => {
+        const id = r.application_id;
+        if (!grouped[id]) grouped[id] = { reviews: [], app: r._app || applications.find(a => (a.application_id||a.id) === id) || {} };
+        grouped[id].reviews.push(r);
+      });
+
+      const sorted = Object.entries(grouped)
+        .map(([id, {reviews: rev, app}]) => {
+          const sc  = rev.map(r => parseFloat(r.score_total||0)/25).filter(s => !isNaN(s));
+          const avg = sc.length ? sc.reduce((a,b)=>a+b,0)/sc.length : 0;
+          const rc  = {};
+          rev.forEach(r => { if (r.recommendation) rc[r.recommendation] = (rc[r.recommendation]||0)+1; });
+          const top = Object.entries(rc).sort((a,b) => b[1]-a[1])[0];
+          return { id, rev, avg, rec: top?.[0], app };
+        })
+        .sort((a,b) => b.avg - a.avg);
+
+      document.getElementById("projectsList").innerHTML =
+        '<div class="projects-grid">' +
+        sorted.map(({ id, rev, avg, rec, app }, i) => {
+          const rank = i + 1;
+          const rankClass = rank <= 3 ? ` rank-${rank}` : "";
+          const recCss = rec === "FUND" ? "rec-fin" : rec === "REJECT" ? "rec-nefin" : rec === "FUND_REDUCED" ? "rec-pod" : "rec-ceka";
+          const recLabel = { FUND:"Financovat", REJECT:"Nefinancovat", FUND_REDUCED:"Podmíněně" }[rec] || (rev.length ? "Různá" : "Čeká");
+          const name    = app.resitel || app.applicant_name || app.name || id;
+          const faculty = app.soucast || app.faculty || "";
+          const revHtml = rev.map(r => `
+            <div class="review-item">
+              <div class="review-header">
+                <span class="review-author">${r.reviewer_name || r.reviewer_email}</span>
+                <div class="review-scores">
+                  <span class="review-score-pill">K1 <span>${r.score_clarity||"—"}</span></span>
+                  <span class="review-score-pill">K2 <span>${r.score_quality||"—"}</span></span>
+                  <span class="review-score-pill">K3 <span>${r.score_budget||"—"}</span></span>
+                  <span class="review-score-pill">K4 <span>${r.score_profile||"—"}</span></span>
+                  <span class="review-score-pill">K5 <span>${r.score_outputs||"—"}</span></span>
+                  <span class="review-score-pill">Σ <span>${r.score_total||"—"}</span></span>
+                  ${r.poradi ? `<span class="review-score-pill">Pořadí <span>${r.poradi}</span></span>` : ""}
+                </div>
+              </div>
+              ${r.comment_public ? `<div class="review-comment">"${r.comment_public}"</div>` : ""}
+            </div>`).join("");
+
+          return `
+            <div class="project-card" id="pc-${id}">
+              <div class="project-card-header" onclick="toggleCard('${id}')">
+                <div class="project-card-left">
+                  <div class="project-rank${rankClass}">${rank}</div>
+                  <div>
+                    <div class="project-card-name">${name}</div>
+                    <div class="project-card-id">${id} · ${faculty}</div>
+                  </div>
+                </div>
+                <div class="project-card-right">
+                  <div class="score-badge" title="Průměr součtu bodů K1–K5 ze všech hodnocení, jako podíl z maxima 25 bodů na jedno hodnocení.">
+                    <div class="score-badge-val">${rev.length ? (avg * 100).toFixed(1).replace(/\.0$/, "") + " %" : "—"}</div>
+                    <span class="score-badge-label">z maxima</span>
+                  </div>
+                  <div class="votes-count">
+                    <strong>${rev.length}</strong>hodnocení
+                  </div>
+                  <span class="rec-pill ${recCss}">${recLabel}</span>
+                  <div class="expand-icon">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <path d="M2 4l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              <div class="project-card-detail">
+                <div class="detail-title">Hodnocení členů (${rev.length})</div>
+                <div class="reviews-list">
+                  ${revHtml || '<p style="color:var(--ink-60);font-size:13px;">Zatím žádné.</p>'}
+                </div>
+              </div>
+            </div>`;
+        }).join("") + "</div>";
+    }
+
+    function toggleCard(id) {
+      document.getElementById("pc-" + id)?.classList.toggle("expanded");
+    }
+
+    // ── EXPORT CSV ────────────────────────────────────────────────
+    function exportCSV() {
+      if (!dashboardData.length) { showToast("Nejprve načtěte data.", "err"); return; }
+      const headers = ["application_id","reviewer_email","score_clarity","score_quality",
+        "score_budget","score_profile","score_outputs","score_total","recommendation","comment_public"];
+      const rows = dashboardData.map(r =>
+        headers.map(k => `"${String(r[k]||"").replace(/"/g,'""')}"`).join(";")
+      );
+      const csv  = [headers.join(";"), ...rows].join("\n");
+      const a    = document.createElement("a");
+      a.href     = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" }));
+      a.download = `uhk_navraty_hodnoceni_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+    }
+
+    // ── ODHLÁŠENÍ ─────────────────────────────────────────────────
+    function doLogout() { Auth.logout(); }
+
+    // ── TOAST ─────────────────────────────────────────────────────
+    let toastTimer;
+    function showToast(msg, type = "ok") {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.style.background = type === "err" ? "var(--accent)" : "var(--green)";
+      t.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove("show"), 4500);
+    }
+
+    // ── DEMO DATA (fallback bez API) ──────────────────────────────
+    function getDemoApplications() {
+      return [
+        { application_id:"APP-260320-A1B2C", applicant_name:"Mgr. Jan Novák, Ph.D.", faculty:"FIM", budget_total_czk:62000 },
+        { application_id:"APP-260321-D3E4F", applicant_name:"PhDr. Eva Svobodová", faculty:"FF", budget_total_czk:45000 },
+        { application_id:"APP-260322-G5H6I", applicant_name:"Ing. Petr Kratochvíl", faculty:"PřF", budget_total_czk:78000 },
+        { application_id:"APP-260323-J7K8L", applicant_name:"Mgr. Lucie Horáčková", faculty:"PdF", budget_total_czk:55000 },
+        { application_id:"APP-260324-M9N0O", applicant_name:"MUDr. Tomáš Fiala, Ph.D.", faculty:"FVZ", budget_total_czk:80000 },
+      ];
+    }
+
+    function getDemoReviews() {
+      return [
+        { application_id:"APP-260320-A1B2C", reviewer_email:"komise1@uhk.cz", score_clarity:4, score_quality:5, score_budget:4, score_profile:5, score_outputs:4, score_total:22, recommendation:"FUND", comment_public:"Výborný projekt s jasně definovanými cíli." },
+        { application_id:"APP-260320-A1B2C", reviewer_email:"komise2@uhk.cz", score_clarity:5, score_quality:4, score_budget:5, score_profile:4, score_outputs:5, score_total:23, recommendation:"FUND", comment_public:"Silný výzkumný profil žadatele." },
+        { application_id:"APP-260322-G5H6I", reviewer_email:"komise1@uhk.cz", score_clarity:3, score_quality:4, score_budget:3, score_profile:4, score_outputs:3, score_total:17, recommendation:"FUND_REDUCED", comment_public:"Dobrý projekt, rozpočet lze optimalizovat." },
+      ];
+    }
+
+
+    // ══════════════════════════════════════════════════════════════
+    // POHLED PROREKTORA
+    // ══════════════════════════════════════════════════════════════
+
+    async function loadProrektor() {
+      // Načti hodnocení (stejná data jako dashboard)
+      if (!dashboardData.length) await loadDashboard();
+      renderProrektor();
+    }
+
+    function renderProrektor() {
+      const REC_LABEL = {
+        FUND:"Financovat", REJECT:"Nefinancovat", FUND_REDUCED:"Podmíněně financovat"
+      };
+
+      // Seskup hodnocení podle projektu
+      const grouped = {};
+      dashboardData.forEach(r => {
+        const pid = r.project_id || r.application_id;
+        if (!grouped[pid]) {
+          grouped[pid] = {
+            reviews: [],
+            app: applications.find(a => (a.project_id||a.id) === pid) || {}
+          };
+        }
+        grouped[pid].reviews.push(r);
+      });
+
+      // Přidej projekty bez hodnocení
+      applications.forEach(a => {
+        const pid = a.project_id || a.id;
+        if (!grouped[pid]) grouped[pid] = { reviews: [], app: a };
+      });
+
+      const sorted = Object.entries(grouped).map(([pid, {reviews, app}]) => {
+        const sc  = reviews.map(r => parseFloat(r.score_total||0)).filter(s => !isNaN(s) && s > 0);
+        const avg = sc.length ? (sc.reduce((a,b)=>a+b,0)/sc.length).toFixed(1) : "—";
+        return { pid, reviews, app, avg: parseFloat(avg)||0, avgStr: avg };
+      }).sort((a,b) => b.avg - a.avg);
+
+      // Souhrnná statistika
+      const decisions = Object.values(prDecisions);
+      document.getElementById("prStatTotal").textContent   = sorted.length;
+      document.getElementById("prStatFund").textContent    = decisions.filter(d=>d==="FUND").length;
+      document.getElementById("prStatReduced").textContent = decisions.filter(d=>d==="FUND_REDUCED").length;
+      document.getElementById("prStatReject").textContent  = decisions.filter(d=>d==="REJECT").length;
+      document.getElementById("prStatPending").textContent = sorted.length - decisions.length;
+      document.getElementById("prSummaryBar").style.display = "flex";
+
+      document.getElementById("prProjectsList").innerHTML = sorted.map(({pid, reviews, app, avgStr}) => {
+        const name    = app.resitel || app.project_name || pid;
+        const faculty = app.soucast || "";
+        const budget  = app.rozpocet || "";
+        const dec     = prDecisions[pid]?.decision || "";
+        const note    = prDecisions[pid]?.note     || "";
+
+        // Hodnocení komise
+        const reviewsHtml = reviews.length ? reviews.map(r => {
+          const total = parseFloat(r.score_total||0);
+          const rec   = r.recommendation || "";
+          const recCss = rec==="FUND"?"rec-fin":rec==="REJECT"?"rec-nefin":rec==="FUND_REDUCED"?"rec-pod":"rec-ceka";
+          return `
+            <div class="pdc-review-row">
+              <span class="pdc-reviewer">${r.reviewer_email||"—"}</span>
+              <div class="pdc-scores">
+                <span class="pdc-score-pill">K1 <span>${r.score_clarity||"—"}</span></span>
+                <span class="pdc-score-pill">K2 <span>${r.score_quality||"—"}</span></span>
+                <span class="pdc-score-pill">K3 <span>${r.score_budget||"—"}</span></span>
+                <span class="pdc-score-pill">K4 <span>${r.score_profile||"—"}</span></span>
+                <span class="pdc-score-pill">K5 <span>${r.score_outputs||"—"}</span></span>
+              </div>
+              ${rec ? `<span class="rec-pill ${recCss}" style="margin-left:auto;">${REC_LABEL[rec]||rec}</span>` : ""}
+              <span class="pdc-score-total">${total||"—"}<span style="font-size:13px;color:var(--ink-60);">/25</span></span>
+              ${r.comment_public ? `<span class="pdc-comment">"${r.comment_public}"</span>` : ""}
+            </div>`;
+        }).join("") : `<p style="font-size:13px;color:var(--ink-60);padding:8px 0;">Komise dosud nehodnotila.</p>`;
+
+        // Tlačítka rozhodnutí
+        const selFund    = dec==="FUND"         ? "selected-fund"    : "";
+        const selReduced = dec==="FUND_REDUCED"  ? "selected-reduced" : "";
+        const selReject  = dec==="REJECT"        ? "selected-reject"  : "";
+
+        return `
+          <div class="project-decision-card" id="pdc-${pid}">
+            <div class="pdc-header">
+              <div>
+                <div class="pdc-title">${name}</div>
+                <div class="pdc-meta">${pid}${faculty ? " · " + faculty : ""}${budget ? " · " + budget : ""}</div>
+              </div>
+              <div class="pdc-avg">
+                <div class="pdc-avg-val">${avgStr}</div>
+                <div class="pdc-avg-label">průměr komise / 25</div>
+              </div>
+            </div>
+
+            <div class="pdc-reviews">
+              <div class="pdc-reviews-title">Hodnocení komise (${reviews.length})</div>
+              ${reviewsHtml}
+            </div>
+
+            <div class="pdc-decision">
+              <div class="pdc-decision-title">Rozhodnutí prorektora</div>
+              <div class="decision-btns">
+                <button class="decision-btn decision-btn--fund ${selFund}"
+                  onclick="selectDecision('${pid}','FUND',this)">✓ Podpořit</button>
+                <button class="decision-btn decision-btn--reduced ${selReduced}"
+                  onclick="selectDecision('${pid}','FUND_REDUCED',this)">~ Krátit</button>
+                <button class="decision-btn decision-btn--reject ${selReject}"
+                  onclick="selectDecision('${pid}','REJECT',this)">✗ Nepodpořit</button>
+              </div>
+              <textarea id="pr-note-${pid}" placeholder="Popis rozhodnutí / poznámka pro žadatele…"
+                onchange="prDecisions['${pid}'] = prDecisions['${pid}'] || {}; prDecisions['${pid}'].note = this.value;"
+              >${note}</textarea>
+              <div style="display:flex;align-items:center;margin-top:10px;">
+                <button class="pdc-save-btn" onclick="saveDecision('${pid}')">
+                  Uložit rozhodnutí
+                </button>
+                <span class="pdc-saved" id="pr-saved-${pid}">✓ Uloženo</span>
+              </div>
+            </div>
+          </div>`;
+      }).join("");
+    }
+
+    function selectDecision(pid, decision, btn) {
+      // Odznač ostatní tlačítka ve stejné skupině
+      const card = document.getElementById("pdc-" + pid);
+      card.querySelectorAll(".decision-btn").forEach(b => {
+        b.className = b.className.replace(/selected-\w+/g, "").trim();
+      });
+      // Označ vybrané
+      const cls = {FUND:"selected-fund", FUND_REDUCED:"selected-reduced", REJECT:"selected-reject"}[decision];
+      btn.classList.add(cls);
+      // Ulož do cache
+      if (!prDecisions[pid]) prDecisions[pid] = {};
+      prDecisions[pid].decision = decision;
+      prDecisions[pid].note = document.getElementById("pr-note-" + pid)?.value || "";
+      // Obnov statistiku
+      renderProrektorStats();
+    }
+
+    function renderProrektorStats() {
+      const decisions = Object.values(prDecisions).map(d => d.decision).filter(Boolean);
+      const total = applications.length || Object.keys(prDecisions).length;
+      document.getElementById("prStatFund").textContent    = decisions.filter(d=>d==="FUND").length;
+      document.getElementById("prStatReduced").textContent = decisions.filter(d=>d==="FUND_REDUCED").length;
+      document.getElementById("prStatReject").textContent  = decisions.filter(d=>d==="REJECT").length;
+      document.getElementById("prStatPending").textContent = total - decisions.length;
+    }
+
+    async function saveDecision(pid) {
+      const dec  = prDecisions[pid];
+      if (!dec?.decision) { showToast("Vyberte rozhodnutí.", "err"); return; }
+      const note = document.getElementById("pr-note-" + pid)?.value || "";
+
+      const btn = document.querySelector(`#pdc-${pid} .pdc-save-btn`);
+      btn.disabled = true; btn.textContent = "Ukládám…";
+
+      try {
+        const session = Auth._getSession();
+        await fetch(API_URL, {
+          method: "POST", mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action:        "saveProrekorDecision",
+            token:         session?.token || "",
+            competitionId: "uhk_navraty_2026",
+            projectId:     pid,
+            decision:      dec.decision,
+            note,
+          }),
+        });
+        // no-cors = vždy úspěch
+        prDecisions[pid].note = note;
+        const saved = document.getElementById("pr-saved-" + pid);
+        saved.classList.add("show");
+        setTimeout(() => saved.classList.remove("show"), 3000);
+      } catch (err) {
+        showToast("Chyba: " + err.message, "err");
+      } finally {
+        btn.disabled = false; btn.textContent = "Uložit rozhodnutí";
+      }
+    }
+
+    // ── INIT ──────────────────────────────────────────────────────
+    if (IS_PROREKTOR) {
+      // Prorektor: načti projekty i hodnocení
+      loadApplications().then(() => loadDashboard().then(() => renderProrektor()));
+    } else {
+      loadApplications();
+      setTimeout(() => loadDashboard(), 1500);
+    }
+  </script>
 </body>
 </html>
