@@ -1205,7 +1205,7 @@
         return;
       }
 
-      // Seskup podle přihlášky a seřaď podle průměrného skóre
+      // Seskup podle přihlášky a seřaď podle průměrného podílu bodů z max. 25 na hodnocení
       const grouped = {};
       reviews.forEach(r => {
         const id = r.application_id;
@@ -1261,9 +1261,9 @@
                   </div>
                 </div>
                 <div class="project-card-right">
-                  <div class="score-badge">
-                    <div class="score-badge-val">${rev.length ? avg.toFixed(2) : "—"}</div>
-                    <span class="score-badge-label">průměr</span>
+                  <div class="score-badge" title="Průměr součtu bodů K1–K5 ze všech hodnocení, jako podíl z maxima 25 bodů na jedno hodnocení.">
+                    <div class="score-badge-val">${rev.length ? (avg * 100).toFixed(1).replace(/\.0$/, "") + " %" : "—"}</div>
+                    <span class="score-badge-label">z maxima</span>
                   </div>
                   <div class="votes-count">
                     <strong>${rev.length}</strong>hodnocení
