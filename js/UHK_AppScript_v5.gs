@@ -524,17 +524,29 @@ function parseConfigNumberCzk_(val) {
   return isFinite(n) ? n : 0;
 }
 
-/** Celková alokace výzvy z CONFIG – více možných klíčů + heuristika podle názvu řádku. */
-function readTotalAllocationCzkFromCfg_(cfg) {
+/**
+ * Typ soutěže z CONFIG; při prázdné buňce podle ID (ReGa šablona z Connect často nemění competition_type).
+ */
+function inferCompetitionTypeFromConfig_(compId, cfg) {
+  var t = String(cfg && cfg["competition_type"] ? cfg["competition_type"] : "").trim();
+  if (t) return t;
+  var cid = String(compId || "").toLowerCase();
+  if (cid.indexOf("rega") >= 0) return "UHK_REGA";
+  if (cid.indexOf("prestige") >= 0) return "UHK_PRESTIGE";
+  if (cid.indexOf("connect") >= 0) return "UHK_CONNECT";
+  if (cid.indexOf("navraty") >= 0) return "OP_JAK_NAVRATY";
+  return "UHK_CONNECT";
+}
+
+/** Celková alokace výzvy z CONFIG – u ReGa/Prestige nepoužívat connect_total_allocation_czk (zůstává z šablony Connect). */
+function readTotalAllocationCzkFromCfg_(cfg, competitionType) {
   if (!cfg || typeof cfg !== "object") return 0;
-  var keys = [
-    "total_allocation_czk",
-    "total_allocation",
-    "allocation_total_czk",
-    "connect_total_allocation_czk",
-    "celkova_alokace_czk",
-    "celkova_alokace",
-  ];
+  var ct = String(competitionType || "").toUpperCase().trim();
+  var keys = ["total_allocation_czk", "total_allocation", "allocation_total_czk"];
+  if (ct === "UHK_CONNECT") keys.push("connect_total_allocation_czk");
+  else if (ct === "UHK_REGA") keys.push("rega_total_allocation_czk");
+  else if (ct === "UHK_PRESTIGE") keys.push("prestige_total_allocation_czk");
+  keys.push("celkova_alokace_czk", "celkova_alokace");
   var i, v, n;
   for (i = 0; i < keys.length; i++) {
     if (!Object.prototype.hasOwnProperty.call(cfg, keys[i])) continue;
@@ -547,6 +559,7 @@ function readTotalAllocationCzkFromCfg_(cfg) {
   for (k in cfg) {
     if (!Object.prototype.hasOwnProperty.call(cfg, k)) continue;
     lk = String(k).toLowerCase().replace(/\s+/g, "_");
+    if (ct !== "UHK_CONNECT" && lk.indexOf("connect") >= 0) continue;
     if (lk.indexOf("alok") >= 0 && (lk.indexOf("celk") >= 0 || lk.indexOf("total") >= 0)) {
       n = parseConfigNumberCzk_(cfg[k]);
       if (n > 0) return n;
@@ -603,6 +616,8 @@ function getCompetitions(token) {
       const cfg = {};
       sheet.getDataRange().getValues().forEach(row => absorbConfigRow(cfg, row));
 
+      var cfgType = inferCompetitionTypeFromConfig_(compId, cfg);
+
       let appCount = 0;
       const appSheet = ss.getSheetByName(SHEETS.APPLICATIONS);
       if (appSheet) {
@@ -614,8 +629,6 @@ function getCompetitions(token) {
           return st !== "DRAFT";
         }).length;
       }
-
-      var cfgType = cfg["competition_type"] || "UHK_CONNECT";
       if (
         appCount === 0 &&
         (cfgType === "OP_JAK_NAVRATY" || compId === "uhk_navraty_2026")
@@ -645,11 +658,11 @@ function getCompetitions(token) {
       result.push({
         id:                compId,
         name:              cfg["competition_name"]      || compId,
-        type:              cfg["competition_type"]      || "UHK_CONNECT",
+        type:              cfgType,
         status:            cfg["status"]                || "DRAFT",
         description:       cfg["description"]           || "",
         deadline:          cfg["deadline_applications"] || "",
-        allocation:        readTotalAllocationCzkFromCfg_(cfg),
+        allocation:        readTotalAllocationCzkFromCfg_(cfg, cfgType),
         maxBudget:         parseConfigNumberCzk_(cfg["max_budget_czk"]),
         applicationsCount: appCount,
         dashboardVisible:  configDashboardVisible(cfg),
@@ -2144,7 +2157,8 @@ function getConnectFundingSummary(competitionId, token) {
 
   const ss = getSpreadsheet(comp);
   const cfg = getConfigMap(ss);
-  const allocation = readTotalAllocationCzkFromCfg_(cfg);
+  var cfgTypeFund = inferCompetitionTypeFromConfig_(comp, cfg);
+  const allocation = readTotalAllocationCzkFromCfg_(cfg, cfgTypeFund);
 
   if (comp !== CONNECT_COMPETITION_ID) {
     return {
@@ -3281,7 +3295,15 @@ function updateConfig(body) {
   if (!sheet) throw new Error("CONFIG list nenalezen pro: " + body.competitionId);
 
   const data    = sheet.getDataRange().getValues();
-  const updates = body.updates || {};
+  var updates = body.updates || {};
+  if (typeof updates === "string" && String(updates).trim()) {
+    try {
+      updates = JSON.parse(updates);
+    } catch (e) {
+      throw new Error("Neplatný JSON v poli updates.");
+    }
+  }
+  if (!updates || typeof updates !== "object") updates = {};
 
   // Pro každý klíč v updates najdi řádek a aktualizuj hodnotu
   Object.entries(updates).forEach(([key, value]) => {
@@ -3698,12 +3720,32 @@ function getDraft(competitionId, applicantEmail, token, focusApplicationId) {
   };
 }
 
+/**
+ * Nové finální podání (SUBMITTED) jen pokud je ve CONFIG status OPEN.
+ * ADMIN/TESTER mohou obcházet (správa / test mazání řádků apod.).
+ */
+function assertCompetitionOpenForNewSubmission_(competitionId, auth) {
+  var cid = String(competitionId || "").trim();
+  if (!cid || !auth) return;
+  if (authHasAnyRole_(auth, ["ADMIN", "TESTER"])) return;
+  var ss = getSpreadsheet(cid);
+  var cfg = getConfigMap(ss);
+  var typ = String(inferCompetitionTypeFromConfig_(cid, cfg) || "").toUpperCase();
+  if (typ === "OP_JAK_NAVRATY") return;
+  var st = String(cfg.status != null ? cfg.status : "").toUpperCase().trim();
+  if (st !== "OPEN") {
+    throw new Error("Soutěž v tomto stavu nepřijímá nové přihlášky. Vyžadován stav OPEN v listu CONFIG.");
+  }
+}
+
 /** Finálně podá přihlášku (DRAFT → SUBMITTED) – Connect / ReGa (JSON ve form_data_json) */
 function submitApplication(body) {
   const auth = requireAuth(body.token);
   const applicant = String(body.applicantEmail || "").toLowerCase().trim();
   if (!applicant || applicant !== auth.email)
     throw new Error("Přihlášku můžete odeslat jen za svůj účet.");
+
+  assertCompetitionOpenForNewSubmission_(body.competitionId, auth);
 
   const ss    = getSpreadsheet(body.competitionId);
   const sheet = ss.getSheetByName("📥 APPLICATIONS");
