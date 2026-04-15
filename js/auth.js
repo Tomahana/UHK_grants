@@ -71,16 +71,36 @@ const Auth = {
   // Role: vždy ZADATEL, active: TRUE
   async register(name, email, password) {
     try {
-      const res  = await fetch(API_URL, {
+      // application/x-www-form-urlencoded = „jednoduchý“ POST bez CORS preflightu
+      // (JSON POST z jiné domény než script.google.com typicky selže na OPTIONS).
+      const params = new URLSearchParams();
+      params.set("action", "register");
+      params.set("name", name);
+      params.set("email", email.toLowerCase().trim());
+      params.set("password", password);
+      const res = await fetch(API_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "register", name, email: email.toLowerCase(), password }),
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: params.toString(),
       });
-      const data = await res.json();
-      return data;
+      if (!res.ok) {
+        return {
+          success: false,
+          message:
+            typeof I18n !== "undefined" && I18n.t
+              ? I18n.t("login.errConnection")
+              : "Server odpověděl chybou. Zkuste to znovu.",
+        };
+      }
+      return await res.json();
     } catch {
-      // Demo fallback – simuluj úspěch
-      return { success: true, demo: true };
+      return {
+        success: false,
+        message:
+          typeof I18n !== "undefined" && I18n.t
+            ? I18n.t("login.errConnection")
+            : "Nepodařilo se spojit se serverem. Zkuste to znovu.",
+      };
     }
   },
 
