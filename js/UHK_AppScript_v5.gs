@@ -385,8 +385,20 @@ function registerUser(body) {
   if (!/[0-9]/.test(password))
     return { success: false, message: "Heslo musí obsahovat číslo." };
 
-  const ss    = SpreadsheetApp.openById(GLOBAL_SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(SHEETS.USERS);
+  // Stejný zdroj jako handleLoginGlobal: nejdřív globální sešit uživatelů,
+  // jinak legacy list 👥 USERS v tabulce soutěže (GLOBAL_SPREADSHEET_ID).
+  let ss;
+  let sheet = null;
+  try {
+    ss = getUsersSheet();
+    sheet = ss.getSheetByName(SHEETS.USERS);
+  } catch (e) { /* USERS_SPREADSHEET_ID nedostupné */ }
+  if (!sheet) {
+    try {
+      ss = SpreadsheetApp.openById(GLOBAL_SPREADSHEET_ID);
+      sheet = ss.getSheetByName(SHEETS.USERS);
+    } catch (e2) { /* */ }
+  }
   if (!sheet) return { success: false, message: "List USERS nenalezen." };
 
   const data    = sheet.getDataRange().getValues();
