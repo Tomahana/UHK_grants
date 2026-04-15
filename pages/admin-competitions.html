@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nastavení soutěží – UHK Grants</title>
+  <title data-i18n="meta.adminComp">Nastavení soutěží – UHK Grants</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/app.css">
@@ -80,7 +80,7 @@
     <div class="topbar__inner">
       <div class="topbar__logo">
         <img src="../img/uhk-abb-w.png" alt="UHK" style="height:26px;opacity:.9;">
-        <span class="topbar__title">Grantové soutěže</span>
+        <span class="topbar__title" data-i18n="nav.grantsHub">Grantové soutěže</span>
       </div>
       <div class="topbar__right">
         <div class="topbar__user">
@@ -90,8 +90,8 @@
             <div class="user-role" id="userRole">–</div>
           </div>
         </div>
-        <a href="dashboard.html" class="btn-logout">← Rozcestník</a>
-        <button class="btn-logout" onclick="Auth.logout()">Odhlásit</button>
+        <a href="dashboard.html" class="btn-logout" data-i18n="nav.backHub">← Rozcestník</a>
+        <button class="btn-logout" onclick="Auth.logout()" data-i18n="nav.logout">Odhlásit</button>
       </div>
     </div>
   </header>
@@ -133,8 +133,15 @@
   <div class="toast" id="toast"></div>
 
   <script src="../js/config.js"></script>
+  <script src="../js/i18n.js"></script>
   <script src="../js/auth.js"></script>
   <script>
+
+    I18n.init();
+    (function () {
+      var el = document.querySelector(".topbar__right");
+      if (el) I18n.mountLangSwitch(el, "first");
+    })();
 
     const user = Auth.requireLogin(["ADMIN"]);
     document.getElementById("userName").textContent  = user.name || user.email;
@@ -391,17 +398,23 @@
 
       try {
         const session = Auth._getSession();
-        await fetch(API_URL, {
+        const params = new URLSearchParams();
+        params.set("action", "updateConfig");
+        params.set("token", session?.token || "");
+        params.set("competitionId", activeTab);
+        params.set("updates", JSON.stringify(updates));
+        const res = await fetch(API_URL, {
           method: "POST",
-          mode:   "no-cors",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action:        "updateConfig",
-            token:         session?.token || "",
-            competitionId: activeTab,
-            updates,
-          }),
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: params.toString(),
         });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || json.error) {
+          throw new Error(json.error || json.message || ("HTTP " + res.status));
+        }
+        if (json.success === false) {
+          throw new Error(json.message || "Uložení se nezdařilo.");
+        }
         const msg = document.getElementById("savedMsg");
         msg.classList.add("show");
         setTimeout(() => msg.classList.remove("show"), 3000);
