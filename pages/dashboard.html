@@ -326,10 +326,16 @@
       return card;
     }
 
+    /** Nové podání přihlášky jen ve stavu OPEN (RUNNING / CLOSED / DRAFT = uzavřeno pro žadatele). */
+    function competitionAllowsApplications(comp) {
+      const st = String(comp.status || "").toUpperCase().trim();
+      return st === "OPEN";
+    }
+
     // Akce dle role a stavu soutěže
     function getActionsForRole(role, comp) {
       const id     = comp.id;
-      const isOpen = String(comp.status || "").toUpperCase() === "OPEN";
+      const isOpen = competitionAllowsApplications(comp);
       const type   = comp.type;
 
       // Odkaz na hodnoticí formulář
@@ -344,17 +350,14 @@
         type === "UHK_PRESTIGE"   ? `apply-prestige.html` :
         null; // Návraty nemají přihlášku přes web
 
-      // Connect: přehled přihlášek odděleně od formuláře
+      // Connect: přehled na my-connect; u uzavřené ReGa/Prestige nevést na formulář, ale na přehled projektů
       const myApplicationsHref =
-        type === "UHK_CONNECT" ? `my-connect.html?c=${id}` : applyHref;
+        type === "UHK_CONNECT"
+          ? `my-connect.html?c=${id}`
+          : (type === "UHK_REGA" || type === "UHK_PRESTIGE") && !isOpen
+            ? "my-projects.html"
+            : applyHref;
       const myListLabel = type === "UHK_CONNECT" ? I18n.t("dashboard.actionMyProjects") : I18n.t("dashboard.actionMyApps");
-
-      // Přihlášky (pouze ne-Návraty soutěže)
-      const applyActions = applyHref && isOpen ? [
-        { label: I18n.t("dashboard.actionSubmit"), href: applyHref, style: "primary", icon: "📝" },
-      ] : applyHref ? [
-        { label: myListLabel,  href: myApplicationsHref, style: "ghost",   icon: "📁" },
-      ] : [];
 
       const actionMap = {
         ADMIN: type === "OP_JAK_NAVRATY" ? [
@@ -362,7 +365,9 @@
           { label: I18n.t("dashboard.actionManageUsers"), href: "admin-users.html",       style: "ghost",     icon: "👥" },
           { label: I18n.t("dashboard.actionSettings"),        href: "admin-competitions.html", style: "ghost",     icon: "⚙️" },
         ] : [
-          { label: I18n.t("dashboard.actionSubmit"), href: applyHref || "#",          style: "primary",   icon: "📝" },
+          ...(isOpen && applyHref
+            ? [{ label: I18n.t("dashboard.actionSubmit"), href: applyHref, style: "primary", icon: "📝" }]
+            : []),
           { label: I18n.t("dashboard.actionManageApps"),href: "coordinator.html",         style: "secondary", icon: "📋" },
           { label: I18n.t("dashboard.actionReview"),       href: reviewHref,                 style: "ghost",     icon: "⭐" },
           { label: I18n.t("dashboard.actionSettings"),       href: "admin-competitions.html",  style: "ghost",     icon: "⚙️" },
@@ -380,7 +385,9 @@
         ],
 
         TESTER: [
-          { label: I18n.t("dashboard.actionSubmit"), href: applyHref || "#",          style: "primary",   icon: "📝" },
+          ...(isOpen && applyHref
+            ? [{ label: I18n.t("dashboard.actionSubmit"), href: applyHref, style: "primary", icon: "📝" }]
+            : []),
           { label: I18n.t("dashboard.actionManageApps"),href: "coordinator.html",         style: "secondary", icon: "📋" },
           { label: I18n.t("dashboard.actionReview"),       href: reviewHref,                 style: "ghost",     icon: "⭐" },
           { label: I18n.t("dashboard.actionSettings"),       href: "admin-competitions.html",  style: "ghost",     icon: "⚙️" },
@@ -407,10 +414,12 @@
         ],
       };
 
-      return actionMap[role] || (applyHref ? [
-        { label: I18n.t("dashboard.actionEnter"),  href: applyHref,  style: "primary", icon: "→" },
+      return actionMap[role] || (applyHref ? (isOpen ? [
+        { label: I18n.t("dashboard.actionEnter"), href: applyHref, style: "primary", icon: "→" },
       ] : [
-        { label: I18n.t("dashboard.actionReview"), href: reviewHref, style: "ghost",   icon: "→" },
+        { label: myListLabel, href: myApplicationsHref, style: "ghost", icon: "📁" },
+      ]) : [
+        { label: I18n.t("dashboard.actionReview"), href: reviewHref, style: "ghost", icon: "→" },
       ]);
     }
 
