@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Koordinátorka – UHK Granty</title>
+  <title data-i18n="meta.coordinator">Správa přihlášek – UHK Granty</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/connect-postaward.css">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -160,11 +161,11 @@
 <header class="topbar">
   <div class="topbar__left">
     <img src="../img/uhk-abb-w.png" alt="UHK" style="height:26px;opacity:.9;">
-    <span class="topbar__title">Správa přihlášek</span>
+    <span class="topbar__title" data-i18n="dashboard.adminApps">Správa přihlášek</span>
   </div>
   <div class="topbar__right">
-    <span class="topbar__user">Přihlášena: <strong id="topbarName">—</strong></span>
-    <a href="dashboard.html" class="btn-back">← Rozcestník</a>
+    <span class="topbar__user"><span data-i18n="coordinator.signedInLabel">Přihlášena:</span> <strong id="topbarName">—</strong></span>
+    <a href="dashboard.html" class="btn-back" data-i18n="nav.backHub">← Rozcestník</a>
   </div>
 </header>
 
@@ -177,6 +178,7 @@
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
       <button type="button" class="btn btn-navy" onclick="exportConnectDeliverablesCsv()">Export Connect (CSV)</button>
+      <button type="button" class="btn btn-outline" onclick="exportSelectedConnectAttachmentsLinksHtml()">HTML přehled příloh (vybrané Connect)</button>
       <button class="btn btn-outline" onclick="loadAll()">↺ Obnovit</button>
     </div>
   </div>
@@ -233,6 +235,9 @@
     <table>
       <thead>
         <tr>
+          <th style="width:40px;text-align:center;" title="Výběr pro export příloh Connect">
+            <input type="checkbox" id="selectAllApps" onclick="event.stopPropagation();toggleSelectAllFiltered(event)" aria-label="Vybrat vše zobrazené Connect">
+          </th>
           <th onclick="sortBy('application_id')">ID ↕</th>
           <th onclick="sortBy('competition_id')">Soutěž ↕</th>
           <th onclick="sortBy('applicant_name')">Žadatel ↕</th>
@@ -245,7 +250,7 @@
       </thead>
       <tbody id="tableBody">
         <tr class="loading-row">
-          <td colspan="8"><span class="spinner"></span>Načítám přihlášky…</td>
+          <td colspan="9"><span class="spinner"></span>Načítám přihlášky…</td>
         </tr>
       </tbody>
     </table>
@@ -271,9 +276,16 @@
 <div class="toast" id="toast"></div>
 
 <script src="../js/config.js"></script>
+<script src="../js/i18n.js"></script>
 <script src="../js/auth.js"></script>
 <script src="../js/api.js"></script>
 <script>
+
+  I18n.init();
+  (function () {
+    var el = document.querySelector(".topbar__right");
+    if (el) I18n.mountLangSwitch(el, "first");
+  })();
 
   const user = Auth.requireLogin(["ADMIN","TESTER"]);
   document.getElementById("topbarName").textContent = user.name || user.email;
@@ -302,6 +314,164 @@
   let currentApp = null;
 
   const CONNECT_EXPORT_ID = "uhk_connect_2026_v2";
+
+  function escapeHtmlCoord(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function toggleSelectAllFiltered() {
+    const master = document.getElementById("selectAllApps");
+    if (!master) return;
+    document.querySelectorAll("#tableBody .appSel").forEach((b) => {
+      b.checked = master.checked;
+    });
+  }
+
+  async function exportSelectedConnectAttachmentsLinksHtml() {
+    const boxes = [...document.querySelectorAll("#tableBody .appSel:checked")];
+    const pairs = boxes
+      .map((b) => ({ app: b.dataset.app, comp: b.dataset.comp }))
+      .filter((x) => x.comp === CONNECT_EXPORT_ID && x.app);
+    if (!pairs.length) {
+      showToast("Vyberte přihlášky UHK Connect zaškrtávacím sloupcem vlevo.", "err");
+      return;
+    }
+    showToast("Skládám HTML…");
+    const sections = [];
+    for (const { app, comp } of pairs) {
+      try {
+        const data = await API.getConnectPostAward(comp, app);
+        if (!data || data.error || !data.applicable) continue;
+        const title = escapeHtmlCoord(data.projectTitle || app);
+        const files = data.uploaded_drive_files || [];
+        const manifest = escapeHtmlCoord(
+          data.checklist && data.checklist.attachments_manifest ? data.checklist.attachments_manifest : ""
+        );
+        let fileRows = files
+          .map((f) => {
+            const id = escapeHtmlCoord(f.id);
+            const nm = escapeHtmlCoord(f.name);
+            const view = "https://drive.google.com/file/d/" + id + "/view";
+            const dl = "https://drive.google.com/uc?export=download&id=" + id;
+            return `<tr><td>${nm}</td><td><a href="${view}">Otevřít na Disku</a></td><td><a href="${dl}">Stáhnout</a></td></tr>`;
+          })
+          .join("");
+        if (!fileRows)
+          fileRows =
+            '<tr><td colspan="3"><i>Žádné soubory nahrané přes tlačítko v aplikaci (ověřte manifest níže).</i></td></tr>';
+        sections.push(
+          `<section style="margin-bottom:2.5rem;page-break-inside:avoid"><h2 style="font-size:1.1rem">${title}</h2><p style="font-family:DM Mono,monospace;font-size:12px">${escapeHtmlCoord(
+            app
+          )}</p>` +
+            `<h3 style="font-size:0.95rem;margin-top:1rem">Soubory na Google Disku (prefix ID přihlášky)</h3><table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%;max-width:900px"><thead><tr><th align="left">Soubor</th><th>Disk</th><th>Stažení</th></tr></thead><tbody>${fileRows}</tbody></table>` +
+            `<h3 style="font-size:0.95rem;margin-top:1rem">Manifest z aplikace (odkazy / poznámky)</h3><pre style="white-space:pre-wrap;background:#f5f5f5;padding:12px;border-radius:6px;font-size:12px">${manifest}</pre></section>`
+        );
+      } catch (e) {
+        sections.push(
+          `<section><p style="color:#991B1B">Chyba u ${escapeHtmlCoord(app)}: ${escapeHtmlCoord(e.message)}</p></section>`
+        );
+      }
+    }
+    if (!sections.length) {
+      showToast("U vybraných řádků není část 2 Connect aktivní (Podpořeno/Kráceno).", "err");
+      return;
+    }
+    const doc =
+      "<!DOCTYPE html><html lang=\"cs\"><head><meta charset=\"UTF-8\"><title>Connect – přílohy</title></head><body style=\"font-family:system-ui,sans-serif;padding:24px;max-width:960px;margin:0 auto\">" +
+      "<h1>UHK Connect – přehled příloh z výběru</h1><p style=\"color:#555;font-size:14px\">Soubory jsou ve sdílené složce soutěže na Google Disku; odkazy fungují po přihlášení k účtu s přístupem (případně použijte v aplikaci „Obnovit sdílení příloh“).</p>" +
+      sections.join("") +
+      `<p style="margin-top:2rem;font-size:12px;color:#888">Vygenerováno ${escapeHtmlCoord(
+        new Date().toLocaleString("cs-CZ")
+      )}</p></body></html>`;
+    const blob = new Blob(["\uFEFF" + doc], { type: "text/html;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "uhk_connect_prilohy_vyber_" + new Date().toISOString().slice(0, 10) + ".html";
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showToast("Staženo HTML (" + sections.length + " projektů). Tiskem uložíte jako PDF.");
+  }
+
+  async function loadConnectPostAwardAttachBlock(compId, appId) {
+    const el = document.getElementById("modalPostAwardSlot");
+    if (!el) return;
+    if (compId !== CONNECT_EXPORT_ID) {
+      el.innerHTML = "";
+      return;
+    }
+    el.innerHTML =
+      '<p style="font-size:12px;color:var(--muted);margin-top:4px">Načítám přílohy části 2 (Connect)…</p>';
+    try {
+      const data = await API.getConnectPostAward(compId, appId);
+      if (!data || data.error || !data.applicable) {
+        el.innerHTML = "";
+        return;
+      }
+      const files = data.uploaded_drive_files || [];
+      const manifestRaw =
+        data.checklist && data.checklist.attachments_manifest ? String(data.checklist.attachments_manifest) : "";
+      if (!files.length && !manifestRaw.trim()) {
+        el.innerHTML = "";
+        return;
+      }
+      let list =
+        files.length > 0
+          ? "<ul style=\"margin:6px 0 0;padding-left:18px;font-size:13px;line-height:1.55\">" +
+            files
+              .map((f) => {
+                const id = escapeHtmlCoord(f.id);
+                const nm = escapeHtmlCoord(f.name);
+                const view = "https://drive.google.com/file/d/" + id + "/view";
+                const dl = "https://drive.google.com/uc?export=download&id=" + id;
+                return `<li><span style="font-family:DM Mono,monospace;font-size:11px">${nm}</span><br><a href="${view}" target="_blank" rel="noopener">Disk</a> · <a href="${dl}" target="_blank" rel="noopener">Stáhnout</a></li>`;
+              })
+              .join("") +
+            "</ul>"
+          : "<p style=\"font-size:12px;color:var(--muted)\">Žádné soubory z tlačítka nahrání – zkontrolujte manifest.</p>";
+      let html =
+        '<div style="border-top:1px solid var(--border);padding-top:14px;margin-top:6px">' +
+        '<div style="font-size:11px;font-weight:600;color:var(--navy);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Connect – přílohy části 2</div>' +
+        list +
+        (manifestRaw.trim()
+          ? '<div style="font-size:11px;font-weight:600;margin:12px 0 4px;color:var(--navy)">Manifest</div><pre style="white-space:pre-wrap;font-size:12px;background:var(--navy-lite);padding:10px;border-radius:6px;max-height:200px;overflow:auto">' +
+            escapeHtmlCoord(manifestRaw) +
+            "</pre>"
+          : "");
+      if (data.showAdminDriveTools && typeof API.repairConnectPostAwardAttachmentSharing === "function") {
+        html +=
+          '<p style="margin-top:10px"><button type="button" class="btn-sm" id="modalRepairSharingBtn">Obnovit sdílení příloh na Disku</button> <span id="modalRepairSharingSt" style="font-size:12px;color:var(--muted)"></span></p>';
+      }
+      html += "</div>";
+      el.innerHTML = html;
+      const mrb = document.getElementById("modalRepairSharingBtn");
+      if (mrb) {
+        mrb.addEventListener("click", async () => {
+          const st = document.getElementById("modalRepairSharingSt");
+          mrb.disabled = true;
+          if (st) st.textContent = "Probíhá…";
+          try {
+            const res = await API.repairConnectPostAwardAttachmentSharing(compId, appId);
+            if (res.error) throw new Error(res.error);
+            if (st) st.textContent = "Upraveno: " + (res.filesTouched != null ? res.filesTouched : 0) + " souborů.";
+            showToast("Sdílení příloh obnoveno.");
+            await loadConnectPostAwardAttachBlock(compId, appId);
+          } catch (e) {
+            if (st) st.textContent = "";
+            showToast(e.message || "Selhalo", "err");
+          } finally {
+            mrb.disabled = false;
+          }
+        });
+      }
+    } catch (e) {
+      el.innerHTML =
+        '<p style="font-size:12px;color:#991B1B;margin-top:4px">' + escapeHtmlCoord(e.message) + "</p>";
+    }
+  }
 
   function csvEscape(val) {
     const s = String(val == null ? "" : val).replace(/"/g, '""');
@@ -403,7 +573,7 @@
   // ── Načtení přihlášek ─────────────────────────────────────
   async function loadAll() {
     document.getElementById("tableBody").innerHTML =
-      '<tr class="loading-row"><td colspan="8"><span class="spinner"></span>Načítám…</td></tr>';
+      '<tr class="loading-row"><td colspan="9"><span class="spinner"></span>Načítám…</td></tr>';
 
     const competitions = ["uhk_connect_2026_v2","uhk_rega_2026_v1","uhk_prestige_2026"];
     const all = [];
@@ -495,7 +665,7 @@
   function renderTable() {
     const body = document.getElementById("tableBody");
     if (!filtered.length) {
-      body.innerHTML = `<tr><td colspan="8">
+      body.innerHTML = `<tr><td colspan="9">
         <div class="empty-state">
           <div class="empty-icon">📭</div>
           <div>Žádné přihlášky neodpovídají filtru</div>
@@ -518,7 +688,13 @@
         quickBtns = `<button class="btn-sm btn-sm-primary" onclick="quickAction(event,'${a.application_id}','${a.competition_id}','IN_REVIEW')">Spustit review</button>`;
       }
 
+      const selTd =
+        a.competition_id === CONNECT_EXPORT_ID
+          ? `<td onclick="event.stopPropagation()" style="text-align:center;vertical-align:middle"><input class="appSel" type="checkbox" data-app="${a.application_id}" data-comp="${a.competition_id}" aria-label="Vybrat pro export příloh"></td>`
+          : `<td onclick="event.stopPropagation()"></td>`;
+
       return `<tr onclick="openDetail('${a.application_id}')">
+        ${selTd}
         <td class="td-id">${a.application_id}</td>
         <td><span style="font-size:11px;background:var(--navy-lite);color:var(--navy);padding:2px 7px;border-radius:4px;font-weight:600;">${comp}</span></td>
         <td class="td-name">${a.applicant_name || "—"}</td>
@@ -628,7 +804,8 @@
       <div>
         <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px;">Poznámka koordinátorky</div>
         <textarea class="note-area" id="coordNote" placeholder="Interní poznámka – uvidí jen koordinátorka a admin…">${a.note || ""}</textarea>
-      </div>`;
+      </div>
+      <div id="modalPostAwardSlot"></div>`;
 
     document.getElementById("modalFooter").innerHTML = `
       <button type="button" class="btn btn-outline" style="margin-right:auto;color:var(--red);border-color:#FECACA;" onclick="adminDeleteSelectedApplication()">Smazat přihlášku</button>
@@ -636,6 +813,7 @@
       <button type="button" class="btn btn-navy" onclick="saveNote()">Uložit poznámku</button>`;
 
     document.getElementById("detailModal").classList.add("open");
+    void loadConnectPostAwardAttachBlock(a.competition_id, a.application_id);
   }
 
   function closeModal() {
