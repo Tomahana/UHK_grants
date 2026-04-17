@@ -198,6 +198,8 @@ function doPost(e) {
         return corsResponse(saveConnectPostAward(body));
       case "uploadConnectPostAwardAttachment":
         return corsResponse(uploadConnectPostAwardAttachment(body));
+      case "repairConnectPostAwardAttachmentSharing":
+        return corsResponse(repairConnectPostAwardAttachmentSharing(body));
       case "adminDeleteApplication":
         return corsResponse(adminDeleteApplication(body));
       default:                 return corsResponse({ error: "Neznámá POST akce: " + body.action });
@@ -909,7 +911,8 @@ function connectApplicantWorkflowLabel_(status, hasProrektorOutcome) {
 /** Výsledek pro žadatele (jen po zápisu prorektora). */
 function connectApplicantResultLabel_(outcome) {
   if (!outcome || !outcome.decision) return "—";
-  var d = String(outcome.decision).toUpperCase();
+  var d =
+    connectCanonicalProrektorDecision_(outcome.decision) || String(outcome.decision).toUpperCase();
   if (d === "SUPPORT") return "Podpořeno";
   if (d === "CUT") return "Kráceno";
   if (d === "REJECT") return "Nepodpořeno";
@@ -1307,13 +1310,14 @@ function getConnectPostAward(competitionId, applicationId, token) {
   var priv = connectPostAwardPrivileged_(auth);
   if (!owner && !priv) throw new Error("K této přihlášce nemáte přístup.");
 
-  var outcome = findProrektorOutcomeForApp_(ss, aid);
+  var outcome = findProrektorOutcomeForApp_(ss, aid, row);
   var dec = outcome && outcome.decision ? String(outcome.decision).toUpperCase() : "";
   if (dec !== "SUPPORT" && dec !== "CUT") {
     return {
       success: true,
       applicable: false,
-      reason: "Povinné výstupy se vztahují jen na projekty s rozhodnutím Podpořeno nebo Kráceno.",
+      reason:
+        "Povinné výstupy se vztahují jen na projekty s rozhodnutím Podpořeno nebo Kráceno (vč. legacy FUND / FUND_REDUCED), případně na přihlášku ve stavu Schváleno.",
     };
   }
 
@@ -1392,6 +1396,10 @@ function getConnectPostAward(competitionId, applicationId, token) {
           : {},
     },
     canEdit: owner,
+    /** Soubory ve složce Connect s prefixem applicationId (nahrané přes aplikaci). */
+    uploaded_drive_files: connectListPostAwardDriveFilesForApp_(aid),
+    /** Oprávnění ke správcovským akcím u příloh na Disku (sdílení). */
+    showAdminDriveTools: priv && authHasAnyRole_(auth, ["ADMIN", "TESTER"]),
   };
 }
 
@@ -1421,7 +1429,7 @@ function saveConnectPostAward(body) {
   if (String(row.applicant_email || "").toLowerCase().trim() !== me)
     throw new Error("Ukládat checklist může jen žadatel/řešitel uvedený u přihlášky.");
 
-  var outcome = findProrektorOutcomeForApp_(ss, applicationId);
+  var outcome = findProrektorOutcomeForApp_(ss, applicationId, row);
   var dec = outcome && outcome.decision ? String(outcome.decision).toUpperCase() : "";
   if (dec !== "SUPPORT" && dec !== "CUT") throw new Error("Checklist lze ukládat jen u podpořených nebo krácených projektů.");
 
@@ -1749,7 +1757,7 @@ function uhkTryArchiveProrektorEvaluationPdf_(ss, competitionId, applicationId) 
   if (!folder) return;
   var appRow = uhkFindApplicationRowByAnyId_(ss, applicationId);
   var fd = appRow ? connectParseFormDataObject_(appRow) : {};
-  var outcome = findProrektorOutcomeForApp_(ss, applicationId);
+  var outcome = findProrektorOutcomeForApp_(ss, applicationId, appRow);
   var em = String((appRow && appRow.applicant_email) || "").trim();
   var title = "Hodnocení komise a vyjádření prorektora – " + String(applicationId);
   var lines = [];
@@ -1782,7 +1790,7 @@ function uhkTryArchiveConnectClosurePdf_(ss, competitionId, applicationId, check
   var folder = uhkGetArchiveFolder_(ss, competitionId);
   if (!folder) return;
   var fd = appRow ? connectParseFormDataObject_(appRow) : {};
-  var outcome = findProrektorOutcomeForApp_(ss, applicationId);
+  var outcome = findProrektorOutcomeForApp_(ss, applicationId, appRow);
   var em = String((appRow && appRow.applicant_email) || "").trim();
   var title = "Závěrečné uzavření projektu (Connect) – " + String(applicationId);
   var zz = String(checklist.final_report_final || checklist.final_report_draft || "").trim();
@@ -1828,6 +1836,98 @@ function uhkTryArchiveConnectClosurePdf_(ss, competitionId, applicationId, check
 }
 
 /**
+ * Soubory části 2 Connect v CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID mají název applicationId_timestamp_orig.ext
+ */
+function connectListPostAwardDriveFilesForApp_(applicationId) {
+  var prefix = String(applicationId || "").trim() + "_";
+  if (!prefix || prefix === "_") return [];
+  var out = [];
+  try {
+    var folder = DriveApp.getFolderById(CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID);
+    var it = folder.getFiles();
+    while (it.hasNext()) {
+      var f = it.next();
+      var n = f.getName();
+      if (n.indexOf(prefix) !== 0) continue;
+      out.push({
+        id: f.getId(),
+        name: n,
+        url: f.getUrl(),
+        mimeType: f.getMimeType(),
+      });
+    }
+  } catch (e) {
+    return [];
+  }
+  out.sort(function (a, b) {
+    return String(a.name).localeCompare(String(b.name), "cs");
+  });
+  return out;
+}
+
+/** Zpřístupní soubor kolegům z domény / případně odkazem (nutné pro stažení správcem mimo vlastníka skriptu). */
+function connectApplyViewSharingToPostAwardFile_(driveFile) {
+  if (!driveFile) return;
+  try {
+    driveFile.setSharing(DriveApp.Access.DOMAIN, DriveApp.Permission.VIEW);
+    return;
+  } catch (e1) {
+    /* např. osobní účet bez Workspace domény */
+  }
+  try {
+    driveFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  } catch (e2) {
+    /* ponechat výchozí */
+  }
+}
+
+/**
+ * ADMIN/TESTER: znovu nastaví sdílení u všech příloh dané přihlášky ve složce Connect (legacy soubory).
+ * body: token, competitionId, applicationId
+ */
+function repairConnectPostAwardAttachmentSharing(body) {
+  var auth = requireAuth(body.token);
+  if (!authHasAnyRole_(auth, ["ADMIN", "TESTER"])) throw new Error("Akci mohou spustit jen administrátoři.");
+
+  var competitionId = body.competitionId;
+  var applicationId = String(body.applicationId || "").trim();
+  if (!competitionId || !applicationId) throw new Error("chybí competitionId nebo applicationId");
+
+  var ss = getSpreadsheet(competitionId);
+  var sheet = ss.getSheetByName(SHEETS.APPLICATIONS);
+  if (!sheet) throw new Error("List APPLICATIONS nenalezen.");
+
+  var rows = sheetToObjects(sheet).map(applicationsSheetRowNormalize_);
+  var row = rows.find(function (r) {
+    return String(r.application_id || "").trim() === applicationId;
+  });
+  if (!row) throw new Error("Přihláška nenalezena.");
+
+  var outcome = findProrektorOutcomeForApp_(ss, applicationId, row);
+  var dec = outcome && outcome.decision ? String(outcome.decision).toUpperCase() : "";
+  if (dec !== "SUPPORT" && dec !== "CUT") throw new Error("Přílohy této fáze jsou jen u Podpořeno / Kráceno.");
+
+  var list = connectListPostAwardDriveFilesForApp_(applicationId);
+  var fixed = 0;
+  for (var i = 0; i < list.length; i++) {
+    try {
+      var f = DriveApp.getFileById(list[i].id);
+      connectApplyViewSharingToPostAwardFile_(f);
+      fixed++;
+    } catch (e) {
+      /* přeskočit */
+    }
+  }
+  try {
+    writeAudit(ss, "CONNECT_POSTAWARD_SHARING_REPAIR", applicationId, String(fixed), auth.email || "", "");
+  } catch (aud) {
+    /* ignore */
+  }
+
+  return { success: true, applicationId: applicationId, filesTouched: fixed, uploaded_drive_files: connectListPostAwardDriveFilesForApp_(applicationId) };
+}
+
+/**
  * Nahraje jeden soubor do sdílené složky na Disku (Connect – část 2).
  * body: token, competitionId, applicationId, fileName, mimeType, fileBase64 (čistý base64 nebo data URL)
  */
@@ -1859,7 +1959,7 @@ function uploadConnectPostAwardAttachment(body) {
   if (String(row.applicant_email || "").toLowerCase().trim() !== me)
     throw new Error("Nahrávat přílohy může jen žadatel/řešitel uvedený u přihlášky.");
 
-  var outcome = findProrektorOutcomeForApp_(ss, applicationId);
+  var outcome = findProrektorOutcomeForApp_(ss, applicationId, row);
   var dec = outcome && outcome.decision ? String(outcome.decision).toUpperCase() : "";
   if (dec !== "SUPPORT" && dec !== "CUT")
     throw new Error("Přílohy lze nahrávat jen u podpořených nebo krácených projektů.");
@@ -1893,6 +1993,7 @@ function uploadConnectPostAwardAttachment(body) {
   var blob = Utilities.newBlob(bytes, mimeType, finalName);
   var driveFile = folder.createFile(blob);
   driveFile.setName(finalName);
+  connectApplyViewSharingToPostAwardFile_(driveFile);
 
   try {
     writeAudit(ss, "CONNECT_POSTAWARD_UPLOAD", applicationId, driveFile.getId(), finalName, me);
@@ -1929,7 +2030,7 @@ function getConnectMyApplications(competitionId, token) {
     var id = String(r.application_id || "").trim();
     var st = r.status;
     var isDraft = st === "DRAFT";
-    var outcome = isDraft ? null : findProrektorOutcomeForApp_(ss, id);
+    var outcome = isDraft ? null : findProrektorOutcomeForApp_(ss, id, r);
     var hasPr = !!(outcome && outcome.decision);
     var prDec = outcome && outcome.decision ? String(outcome.decision).toUpperCase() : "";
     var fd = connectParseFormDataObject_(r);
@@ -2200,7 +2301,7 @@ function getConnectFundingSummary(competitionId, token) {
     if (st !== "APPROVED") return;
     const id = String(row.application_id || "").trim();
     if (!id) return;
-    const outcome = findProrektorOutcomeForApp_(ss, id);
+    const outcome = findProrektorOutcomeForApp_(ss, id, row);
     const dec = outcome && outcome.decision ? String(outcome.decision).toUpperCase() : "";
     if (dec !== "SUPPORT" && dec !== "CUT") return;
     const fd = connectParseFormDataObject_(row);
@@ -2249,7 +2350,7 @@ function getConnectDeliverablesExport(competitionId, token) {
   const out = rows.map(function (r) {
     const id = String(r.application_id || "").trim();
     const pa = readConnectPostawardChecklist_(r);
-    const outcome = findProrektorOutcomeForApp_(ss, id);
+    const outcome = findProrektorOutcomeForApp_(ss, id, r);
     const fd = connectParseFormDataObject_(r);
     var prComment = "";
     if (outcome && outcome.comment)
@@ -3577,37 +3678,84 @@ function validateConnectDeliverableDecl_(fulfilled, note, label) {
     throw new Error('U „' + label + '“ potvrďte splnění, nebo vysvětlete, proč výstup splněn nebyl (min. 15 znaků).');
 }
 
-/** Poslední řádek prorektora (PROREKTOR_DECISION) pro přihlášku, nejnovější podle submitted_at. */
-function findProrektorOutcomeForApp_(ss, applicationId) {
+/**
+ * Sjednocení kódů rozhodnutí (Connect i starší zápis z jiných výzev).
+ * Vrací SUPPORT | CUT | REJECT nebo "" (neznámá hodnota).
+ */
+function connectCanonicalProrektorDecision_(raw) {
+  var d = String(raw || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "_");
+  if (!d) return "";
+  if (d === "SUPPORT" || d === "FUND" || d === "FUND_FULL" || d === "APPROVE" || d === "PODPOŘIT" || d === "PODPORIT")
+    return "SUPPORT";
+  if (d === "CUT" || d === "FUND_REDUCED" || d === "REDUCED" || d === "KRÁCENO" || d === "KRACENO") return "CUT";
+  if (d === "REJECT" || d === "REJECTED" || d === "DENY" || d === "NEPODPORIT" || d === "NEPODPOŘIT") return "REJECT";
+  return "";
+}
+
+/**
+ * Poslední řádek prorektora (PROREKTOR_DECISION) pro přihlášku, nejnovější podle submitted_at.
+ * @param {Object} [optApplicationRow] – řádek APPLICATIONS; při chybějícím REVIEWS a stavu APPROVED doplní výsledek jako plná podpora (legacy / ruční schválení).
+ */
+function findProrektorOutcomeForApp_(ss, applicationId, optApplicationRow) {
+  function syntheticApproved_(appRow) {
+    if (!appRow) return null;
+    var st = String(appRow.status || "")
+      .toUpperCase()
+      .trim();
+    if (st !== "APPROVED") return null;
+    var fd = connectParseFormDataObject_(appRow);
+    var req = Number(fd.budget_total) || 0;
+    return {
+      decision: "SUPPORT",
+      decisionLabel: "Schváleno (stav přihlášky; v REVIEWS chybí PROREKTOR_DECISION)",
+      comment: "",
+      decidedAt: "",
+      supported_amount_czk: req > 0 ? req : 0,
+      budget_lines: null,
+    };
+  }
+
   const sheet = ss.getSheetByName(SHEETS.REVIEWS);
-  if (!sheet) return null;
+  if (!sheet) return syntheticApproved_(optApplicationRow);
   const rows = sheetToObjects(sheet);
   const aid = String(applicationId || "").trim();
   const matches = rows.filter(function (r) {
     const id = String(r.application_id || r.project_id || "").trim();
     return id === aid && String(r.comment_internal || "").trim() === "PROREKTOR_DECISION";
   });
-  if (!matches.length) return null;
+  if (!matches.length) return syntheticApproved_(optApplicationRow) || null;
   matches.sort(function (a, b) {
     const ta = parseSubmittedAt_(a.submitted_at) || new Date(0);
     const tb = parseSubmittedAt_(b.submitted_at) || new Date(0);
     return tb - ta;
   });
   const r = matches[0];
-  const dec = String(r.recommendation || "").toUpperCase();
+  const rawRec = String(r.recommendation || "").trim();
+  const decUpper = rawRec.toUpperCase();
+  var canon = connectCanonicalProrektorDecision_(rawRec);
+  var finalDec = canon || decUpper;
   let label = "—";
-  if (dec === "SUPPORT") label = "Podpořit";
-  else if (dec === "CUT") label = "Krátit rozpočet";
-  else if (dec === "REJECT") label = "Nepodpořit";
+  if (finalDec === "SUPPORT") label = "Podpořit";
+  else if (finalDec === "CUT") label = "Krátit rozpočet";
+  else if (finalDec === "REJECT") label = "Nepodpořit";
+  else if (decUpper) label = decUpper;
   var bl = connectParseProrektorBudgetLinesJson_(r);
-  return {
-    decision: dec,
+  var out = {
+    decision: finalDec,
     decisionLabel: label,
     comment: String(r.comment_public || "").trim(),
     decidedAt: r.submitted_at ? String(r.submitted_at) : "",
     supported_amount_czk: connectProrektorSupportedFromReviewRow_(r),
     budget_lines: bl,
   };
+  if (finalDec !== "REJECT" && finalDec !== "SUPPORT" && finalDec !== "CUT") {
+    var syn = syntheticApproved_(optApplicationRow);
+    if (syn) return syn;
+  }
+  return out;
 }
 
 function applicantNonDraftRows_(rows, applicantLower) {
@@ -3661,7 +3809,7 @@ function getDraft(competitionId, applicantEmail, token, focusApplicationId) {
       );
     });
     if (focused && focused.status !== "DRAFT") {
-      var outcomeF = findProrektorOutcomeForApp_(ss, focusId);
+      var outcomeF = findProrektorOutcomeForApp_(ss, focusId, focused);
       return {
         success: true,
         draft: null,
@@ -3684,7 +3832,7 @@ function getDraft(competitionId, applicantEmail, token, focusApplicationId) {
   let prorektorOutcome = null;
   let submittedSummary = null;
   if (latestSub && latestSub.application_id) {
-    prorektorOutcome = findProrektorOutcomeForApp_(ss, latestSub.application_id);
+    prorektorOutcome = findProrektorOutcomeForApp_(ss, latestSub.application_id, latestSub);
     submittedSummary = {
       application_id: latestSub.application_id,
       status: latestSub.status,
