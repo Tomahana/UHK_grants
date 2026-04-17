@@ -106,6 +106,11 @@ const API = {
    * Nahraj přílohu části 2 Connect na sdílený Google Disk (viz CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID v Apps Script).
    * Max. 18 MB na soubor; může jen řešitel u přihlášky u projektu Podpořeno/Kráceno.
    */
+  /** ADMIN/TESTER: DOMAIN / odkazové sdílení u příloh dané přihlášky ve složce Connect (legacy soubory). */
+  async repairConnectPostAwardAttachmentSharing(competitionId, applicationId) {
+    return this.post("repairConnectPostAwardAttachmentSharing", { competitionId, applicationId });
+  },
+
   async uploadConnectPostAwardAttachment(competitionId, applicationId, file) {
     const max = 18 * 1024 * 1024;
     if (!file || file.size > max) {
