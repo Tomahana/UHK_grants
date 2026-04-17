@@ -27,6 +27,50 @@
       .replace(/"/g, "&quot;");
   }
 
+  /** Soubory z Google Disku (prefix applicationId_) + volitelně správcovské opravení sdílení. */
+  function buildUploadedDriveFilesHtml(data) {
+    var files = data.uploaded_drive_files || [];
+    var showAdm = !!data.showAdminDriveTools;
+    var adm = showAdm
+      ? '<p style="margin-top:12px;">' +
+        '<button type="button" class="btn btn-secondary" id="pa_repairSharingBtn">' +
+        escapeHtml("Obnovit sdílení příloh na Disku (starší soubory)") +
+        '</button> <span id="pa_repairSharingStatus" style="font-size:12px;color:var(--muted);"></span></p>'
+      : "";
+    if (!files.length && !adm) return "";
+    var list =
+      files.length > 0
+        ? '<ul style="margin:8px 0 0;padding-left:20px;line-height:1.5;">' +
+          files
+            .map(function (f) {
+              var id = escapeHtml(String(f.id || ""));
+              var nm = escapeHtml(String(f.name || ""));
+              var view = "https://drive.google.com/file/d/" + id + "/view";
+              var dl = "https://drive.google.com/uc?export=download&id=" + id;
+              return (
+                "<li style=\"margin:6px 0;\">" +
+                "<span style=\"font-family:'DM Mono',monospace;font-size:12px;\">" +
+                nm +
+                "</span><br>" +
+                '<a href="' +
+                view +
+                '" target="_blank" rel="noopener">Otevřít na Disku</a> · <a href="' +
+                dl +
+                '" target="_blank" rel="noopener">Stáhnout</a></li>'
+              );
+            })
+            .join("") +
+          "</ul>"
+        : '<p style="font-size:12px;color:var(--muted);margin-top:6px;">Žádné soubory nahrané přes tlačítko v aplikaci (pouze text v poli výše / ruční odkazy).</p>';
+    return (
+      '<div class="pa-drive-files" style="margin-top:14px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--r);background:rgba(232,237,248,.4);">' +
+      '<p style="font-size:12px;font-weight:600;color:var(--navy);margin:0 0 6px;">Soubory nahrané přes aplikaci (složka soutěže na Google Disku)</p>' +
+      list +
+      adm +
+      "</div>"
+    );
+  }
+
   function buildConnectPostAwardPanel(data, mode, ctx) {
     const d = data.deadlines || {};
     const c = data.checklist || {};
@@ -392,6 +436,7 @@
       ">" +
       att +
       "</textarea>" +
+      buildUploadedDriveFilesHtml(data) +
       '<p style="margin-top:12px;font-size:12px;color:var(--muted);">Další poznámka pro vás / OVTZ (nepovinné):</p>' +
       '<textarea class="postaward-notes" id="pa_notes" placeholder="např. datum odeslání, doplňující informace…"' +
       (readOnly ? " disabled" : "") +
@@ -472,6 +517,39 @@
     }
 
     return "<p class=\"postaward-mail\">Neznámý režim panelu.</p>";
+  }
+
+  function bindConnectPostAwardAdminDriveTools(competitionId, applicationId, showToast, remount, data) {
+    if (!data || !data.showAdminDriveTools) return;
+    var btn = document.getElementById("pa_repairSharingBtn");
+    if (!btn) return;
+    btn.addEventListener("click", function () {
+      var st = document.getElementById("pa_repairSharingStatus");
+      btn.disabled = true;
+      if (st) st.textContent = "Probíhá…";
+      var client = api();
+      if (typeof client.repairConnectPostAwardAttachmentSharing !== "function") {
+        if (st) st.textContent = "";
+        btn.disabled = false;
+        showToast("Aktualizujte api.js (chybí repairConnectPostAwardAttachmentSharing).", "err");
+        return;
+      }
+      void client
+        .repairConnectPostAwardAttachmentSharing(competitionId, applicationId)
+        .then(function (res) {
+          if (res && res.error) throw new Error(res.error);
+          if (st) st.textContent = "Upraveno souborů: " + (res.filesTouched != null ? res.filesTouched : 0);
+          showToast("Sdílení příloh na Disku bylo obnoveno.");
+          return remount();
+        })
+        .catch(function (e) {
+          if (st) st.textContent = "";
+          showToast(e.message || "Akce selhala.", "err");
+        })
+        .finally(function () {
+          btn.disabled = false;
+        });
+    });
   }
 
   function bindConnectPostAwardForm(data, applicationId, competitionId, callbacks) {
@@ -705,6 +783,7 @@
           mountState.zzCleanup = fn;
         },
       });
+      bindConnectPostAwardAdminDriveTools(competitionId, applicationId, showToast, remount, data);
     } catch (e) {
       rootEl.innerHTML = '<p style="font-size:13px;color:#991B1B;">' + escapeHtml(e.message) + "</p>";
     }
