@@ -1148,7 +1148,13 @@
           );
           const sid = data.submittedApplication.application_id;
           const dec = data.prorektorOutcome && String(data.prorektorOutcome.decision || "").toUpperCase();
-          if (sid && (dec === "SUPPORT" || dec === "CUT")) void mountConnectPostAward(sid);
+          const postAwardDec =
+            dec === "SUPPORT" ||
+            dec === "CUT" ||
+            dec === "FUND" ||
+            dec === "FUND_REDUCED" ||
+            dec === "REDUCED";
+          if (sid && postAwardDec) void mountConnectPostAward(sid);
           return true;
         }
 
