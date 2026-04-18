@@ -399,6 +399,69 @@
       return "badge-draft";
     }
 
+    function fileFieldLabelSubmitted(fid) {
+      return tf("fileField_" + fid);
+    }
+
+    /** Přílohy z API (getDraft → file_fields): název souboru nebo odkaz z uloženého JSON. */
+    function renderSubmittedFileFieldsBlock(sub) {
+      const rows = sub.file_fields;
+      const foot =
+        '<p style="font-size:12px;color:var(--muted);margin-top:10px;line-height:1.45">' +
+        escapeHtml(tf("submittedAttachmentsFootnote")) +
+        "</p>";
+      if (!rows || !rows.length) {
+        return (
+          '<div class="submitted-files" style="text-align:left;margin:20px auto;max-width:560px;font-size:13px;color:var(--muted);line-height:1.5;padding:14px 16px;background:#f8f9fc;border-radius:var(--r);border:1px solid #e2e8f0;">' +
+          '<strong style="color:var(--navy)">' +
+          escapeHtml(tf("submittedAttachmentsTitle")) +
+          "</strong>" +
+          '<p style="margin:8px 0 0">' +
+          escapeHtml(tf("submittedAttachmentsNone")) +
+          "</p>" +
+          foot +
+          "</div>"
+        );
+      }
+      const trs = rows
+        .map(function (h) {
+          const lab = fileFieldLabelSubmitted(h.field_id);
+          const val = String(h.value || "");
+          const isUrl = !!h.isLikelyUrl;
+          const shortVal = val.length > 120 ? val.slice(0, 120) + "…" : val;
+          const cell = isUrl
+            ? '<a href="' +
+              escapeAttr(val) +
+              '" target="_blank" rel="noopener noreferrer">' +
+              escapeHtml(tf("submittedAttachmentOpenLink")) +
+              '</a> <span style="color:var(--muted);font-size:12px">(' +
+              escapeHtml(shortVal) +
+              ")</span>"
+            : '<span style="font-family:ui-monospace,\'DM Mono\',monospace;word-break:break-all">' +
+              escapeHtml(val) +
+              "</span>";
+          return (
+            "<tr><th style=\"text-align:left;padding:8px 12px 8px 0;vertical-align:top;color:var(--navy);font-weight:600;width:38%\">" +
+            escapeHtml(lab) +
+            '</th><td style="padding:8px 0">' +
+            cell +
+            "</td></tr>"
+          );
+        })
+        .join("");
+      return (
+        '<div class="submitted-files" style="text-align:left;margin:24px auto;max-width:640px;">' +
+        '<h3 style="font-size:15px;color:var(--navy);margin-bottom:10px">' +
+        escapeHtml(tf("submittedAttachmentsTitle")) +
+        "</h3>" +
+        '<table style="width:100%;font-size:13px;border-collapse:collapse">' +
+        trs +
+        "</table>" +
+        foot +
+        "</div>"
+      );
+    }
+
     function renderSubmittedApplicationView(sub, outcome, hasOtherDraft) {
       document.getElementById("loadingState")?.remove();
       document.querySelector(".progress-wrap")?.style.setProperty("opacity", "0.45");
@@ -433,6 +496,7 @@
           <h2 style="font-size:20px;color:var(--navy);margin-bottom:8px;">${escapeHtml(sub.project_title || tf("appTitleFallback"))}</h2>
           <p style="font-size:13px;color:var(--muted);margin-bottom:8px;">${escapeHtml(tf("appIdLabel"))} <span style="font-family:'DM Mono',monospace;">${escapeHtml(sub.application_id)}</span></p>
           <p style="font-size:13px;color:var(--muted);margin-bottom:4px;">${escapeHtml(tf("statusLabel"))} <strong>${escapeHtml(sub.status)}</strong></p>
+          ${renderSubmittedFileFieldsBlock(sub)}
           ${outcomeBlock}
           ${draftNote}
           <div id="postawardRoot" style="display:none;"></div>
