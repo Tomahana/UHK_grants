@@ -125,7 +125,7 @@ const FALLBACK_COMPETITIONS = [
     name:        "UHK ReGa – výzva č. 1",
     type:        "UHK_REGA",
     status:      "CLOSED",
-    description: "Podpora dopracování a znovupodání nezafinancovaných projektů GA ČR.",
+    description: "Podpora dopracování a znovupodání nezafinancovaných projektů základního výzkumu.",
     deadline:    "2026-04-01",
     allocation:  2000000,
     maxBudget:   500000,
