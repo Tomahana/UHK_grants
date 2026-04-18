@@ -329,6 +329,18 @@
     }
 
     const COMPETITION_ID = new URLSearchParams(location.search).get("c") || "uhk_connect_2026_v2";
+    /** Stažení PDF z listu APPLICATION_FILE_BLOBS (GET, vyžaduje přihlášení). */
+    function buildConnectApplicationFileDownloadUrl(applicationId, fieldId) {
+      if (!applicationId || !fieldId) return "";
+      const session = Auth._getSession();
+      const u = new URL(API_URL);
+      u.searchParams.set("action", "downloadConnectApplicationFile");
+      u.searchParams.set("competitionId", COMPETITION_ID);
+      u.searchParams.set("applicationId", String(applicationId).trim());
+      u.searchParams.set("fieldId", String(fieldId).trim());
+      u.searchParams.set("token", session?.token || "");
+      return u.toString();
+    }
     const MAX_BUDGET = 80000;
     const IRIS_UHK_URL = "https://tomahana.github.io/IRIS_UHK/";
 
@@ -428,8 +440,19 @@
           const lab = fileFieldLabelSubmitted(h.field_id);
           const val = String(h.value || "");
           const isUrl = !!h.isLikelyUrl;
+          const appIdForDl = String(h.application_id || sub.application_id || "").trim();
+          const dlStored =
+            h.isSheetBlob && appIdForDl ? buildConnectApplicationFileDownloadUrl(appIdForDl, h.field_id) : "";
           const shortVal = val.length > 120 ? val.slice(0, 120) + "…" : val;
-          const cell = isUrl
+          const cell = dlStored
+            ? '<a href="' +
+              escapeAttr(dlStored) +
+              '" target="_blank" rel="noopener noreferrer">' +
+              escapeHtml(tf("submittedAttachmentOpenPdf")) +
+              '</a> <span style="color:var(--muted);font-size:12px">(' +
+              escapeHtml(shortVal) +
+              ")</span>"
+            : isUrl
             ? '<a href="' +
               escapeAttr(val) +
               '" target="_blank" rel="noopener noreferrer">' +
@@ -791,6 +814,9 @@
         const fmtHint = escapeHtml(tf("fileFormat")) + " " + escapeHtml(f.options || (I18n.getLang() === "en" ? "any" : "jakýkoli"));
         const valStr = String(val || "").trim();
         const isUrl = /^https?:\/\//i.test(valStr);
+        const isSheetBlob = /^UHKAFILE\|/i.test(valStr);
+        const blobDl =
+          isSheetBlob && draftId ? buildConnectApplicationFileDownloadUrl(draftId, f.field_id) : "";
         const hasStored = !!valStr;
         let nameSpanHtml = "";
         if (isUrl) {
@@ -801,8 +827,16 @@
             "\" target=\"_blank\" rel=\"noopener noreferrer\">" +
             escapeHtml(tf("submittedAttachmentOpenLink")) +
             "</a>";
+        } else if (isSheetBlob && blobDl) {
+          nameSpanHtml =
+            escapeHtml(tc("fileUploadedAppStorageLabel")) +
+            " · <a href=\"" +
+            escapeAttr(blobDl) +
+            "\" target=\"_blank\" rel=\"noopener noreferrer\">" +
+            escapeHtml(tf("submittedAttachmentOpenPdf")) +
+            "</a>";
         } else if (valStr) {
-          nameSpanHtml = escapeHtml(valStr);
+          nameSpanHtml = escapeHtml(valStr.replace(/^UHKAFILE\|/i, ""));
         }
         return `<div class="field">
           <label class="field-label">${f.field_label} ${req?'<span class="field-required">*</span>':""}</label>
@@ -1063,6 +1097,8 @@
           return;
         }
         const url = String(formData[id] || "").trim();
+        const isBlobVal = /^UHKAFILE\|/i.test(url);
+        const blobDl = isBlobVal && draftId ? buildConnectApplicationFileDownloadUrl(draftId, id) : "";
         if (info) info.style.display = "flex";
         if (nameEl && /^https?:\/\//i.test(url)) {
           nameEl.innerHTML =
@@ -1071,6 +1107,14 @@
             escapeAttr(url) +
             "\" target=\"_blank\" rel=\"noopener noreferrer\">" +
             escapeHtml(tf("submittedAttachmentOpenLink")) +
+            "</a>";
+        } else if (nameEl && isBlobVal && blobDl) {
+          nameEl.innerHTML =
+            escapeHtml(tc("fileUploadedAppStorageLabel")) +
+            " · <a href=\"" +
+            escapeAttr(blobDl) +
+            "\" target=\"_blank\" rel=\"noopener noreferrer\">" +
+            escapeHtml(tf("submittedAttachmentOpenPdf")) +
             "</a>";
         }
         isDirty = true;
