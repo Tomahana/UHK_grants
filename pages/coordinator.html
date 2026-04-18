@@ -374,6 +374,17 @@
     return u.toString();
   }
 
+  function coordinatorConnectPostAwardBlobDownloadUrl_(competitionId, applicationId, blobKey) {
+    const session = Auth._getSession();
+    const u = new URL(API_URL);
+    u.searchParams.set("action", "downloadConnectPostAwardFile");
+    u.searchParams.set("competitionId", String(competitionId || "").trim());
+    u.searchParams.set("applicationId", String(applicationId || "").trim());
+    u.searchParams.set("blobKey", String(blobKey || "").trim());
+    if (session && session.token) u.searchParams.set("token", session.token);
+    return u.toString();
+  }
+
   /** application_file_hints z getConnectPostAward – PDF v listu tabulky (UHKAFILE). */
   function coordinatorApplicationFileHintsListHtml_(competitionId, applicationId, hints) {
     const arr = Array.isArray(hints) ? hints : [];
@@ -397,6 +408,19 @@
         }
         if (h && h.isLikelyUrl) {
           const v = String(h.value || "").trim();
+          const staleG =
+            !!h.staleGoogleDriveUrl ||
+            /^(https?:\/\/)?(drive|docs)\.google\.com\//i.test(v);
+          if (staleG) {
+            return (
+              "<li><code>" +
+              escapeHtmlCoord(fid) +
+              '</code> · <span style="color:#92400e;font-size:12px">Starý odkaz na Disk — znovu nahrajte PDF v konceptu, nebo </span>' +
+              '<a href="' +
+              escapeHtmlCoord(v) +
+              '" target="_blank" rel="noopener">zkusit odkaz</a></li>'
+            );
+          }
           return (
             "<li><code>" +
             escapeHtmlCoord(fid) +
@@ -569,8 +593,12 @@
     const fileList = files || [];
     let fileRows = fileList
       .map((f) => {
-        const id = escapeHtmlCoord(f.id);
         const nm = escapeHtmlCoord(f.name);
+        if (f.isSheetBlob && competitionId && applicationId && f.id) {
+          const href = coordinatorConnectPostAwardBlobDownloadUrl_(competitionId, applicationId, f.id);
+          return `<tr><td>${nm}</td><td>tabulka</td><td><a href="${escapeHtmlCoord(href)}">Stáhnout</a></td></tr>`;
+        }
+        const id = escapeHtmlCoord(f.id);
         const view = "https://drive.google.com/file/d/" + id + "/view";
         const dl = "https://drive.google.com/uc?export=download&id=" + id;
         return `<tr><td>${nm}</td><td><a href="${view}">Otevřít na Disku</a></td><td><a href="${dl}">Stáhnout</a></td></tr>`;
@@ -598,7 +626,7 @@
         title
       )}</h2><p style="font-family:DM Mono,monospace;font-size:12px">${escapeHtmlCoord(app)}</p>${note}` +
       formPdfBlock +
-      `<h3 style="font-size:0.95rem;margin-top:1rem">Soubory v seznamu aplikace (stejná složka jako nahrání z části 2)</h3><table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%;max-width:900px"><thead><tr><th align="left">Soubor</th><th>Disk</th><th>Stažení</th></tr></thead><tbody>${fileRows}</tbody></table>${folderFoot}` +
+      `<h3 style="font-size:0.95rem;margin-top:1rem">Přílohy části 2 (tabulka / případně Disk)</h3><table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%;max-width:900px"><thead><tr><th align="left">Soubor</th><th>Zdroj</th><th>Stažení</th></tr></thead><tbody>${fileRows}</tbody></table>${folderFoot}` +
       `<h3 style="font-size:0.95rem;margin-top:1rem">Manifest z aplikace (odkazy / poznámky)</h3><pre style="white-space:pre-wrap;background:#f5f5f5;padding:12px;border-radius:6px;font-size:12px">${manifest}</pre></section>`
     );
   }
@@ -805,8 +833,12 @@
           ? "<ul style=\"margin:6px 0 0;padding-left:18px;font-size:13px;line-height:1.55\">" +
             files
               .map((f) => {
-                const id = escapeHtmlCoord(f.id);
                 const nm = escapeHtmlCoord(f.name);
+                if (f.isSheetBlob && compId && appId && f.id) {
+                  const href = coordinatorConnectPostAwardBlobDownloadUrl_(compId, appId, f.id);
+                  return `<li><span style="font-family:DM Mono,monospace;font-size:11px">${nm}</span><br><a href="${escapeHtmlCoord(href)}" target="_blank" rel="noopener">Stáhnout z aplikace</a></li>`;
+                }
+                const id = escapeHtmlCoord(f.id);
                 const view = "https://drive.google.com/file/d/" + id + "/view";
                 const dl = "https://drive.google.com/uc?export=download&id=" + id;
                 return `<li><span style="font-family:DM Mono,monospace;font-size:11px">${nm}</span><br><a href="${view}" target="_blank" rel="noopener">Disk</a> · <a href="${dl}" target="_blank" rel="noopener">Stáhnout</a></li>`;
@@ -821,7 +853,7 @@
         formHintsHtml +
         '<div style="font-size:11px;font-weight:600;color:var(--navy);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;margin-top:' +
         (formHintsHtml ? "14px" : "0") +
-        '">Connect – přílohy části 2 (složka soutěže, prefix názvu = ID přihlášky_)</div>' +
+        '">Connect – přílohy části 2 (tabulka / případně Disk)</div>' +
         list +
         folderA +
         (manifestRaw.trim()
@@ -844,6 +876,11 @@
           try {
             const res = await API.repairConnectPostAwardAttachmentSharing(compId, appId);
             if (res.error) throw new Error(res.error);
+            if (res.skipped) {
+              if (st) st.textContent = String(res.message || "").slice(0, 200);
+              showToast(res.message || "Oprava Disku se nepoužívá (přílohy v tabulce).");
+              return;
+            }
             if (st) st.textContent = "Upraveno: " + (res.filesTouched != null ? res.filesTouched : 0) + " souborů.";
             showToast("Sdílení příloh obnoveno.");
             await loadConnectPostAwardAttachBlock(compId, appId);
