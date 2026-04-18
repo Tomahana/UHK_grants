@@ -1683,25 +1683,39 @@ function downloadConnectApplicationFile_(competitionId, applicationId, fieldId, 
   var fd = connectParseFormDataObject_(appRow);
   var cellVal = fd && Object.prototype.hasOwnProperty.call(fd, fid) ? fd[fid] : "";
   var driveRef = connectParseUhkDriveCell_(cellVal);
+  var blobSh = ss.getSheetByName(SHEETS.APPLICATION_FILE_BLOBS);
+  var meta = blobSh ? connectReadPdfBlobFromSheet_(blobSh, aid, fid) : null;
+  var sheetOk = !!(meta && meta.bytes && meta.bytes.length > 0);
+
   if (driveRef && driveRef.fileId) {
     try {
       var f = DriveApp.getFileById(driveRef.fileId);
       var b = f.getBlob();
-      if (!b || b.getBytes().length < 1) throw new Error("Soubor na Disku je prázdný.");
-      var nm = String(driveRef.displayName || b.getName() || "soubor.pdf")
+      if (b && b.getBytes().length > 0) {
+        var nm = String(driveRef.displayName || b.getName() || "soubor.pdf")
+          .replace(/[^a-zA-Z0-9._\-]/g, "_")
+          .replace(/_+/g, "_")
+          .slice(0, 180);
+        if (!/\.pdf$/i.test(nm)) nm = (nm || "soubor") + ".pdf";
+        return b.setName(nm);
+      }
+    } catch (eDrive) {
+      /* prázdný / nedostupný Disk → záloha v tabulce */
+    }
+    if (sheetOk) {
+      var safeName2 = String(meta.fileName || "soubor.pdf")
         .replace(/[^a-zA-Z0-9._\-]/g, "_")
         .replace(/_+/g, "_")
         .slice(0, 180);
-      if (!/\.pdf$/i.test(nm)) nm = (nm || "soubor") + ".pdf";
-      return b.setName(nm);
-    } catch (eDrive) {
-      /* fallback na tabulku níže */
+      if (!/\.pdf$/i.test(safeName2)) safeName2 = (safeName2 || "soubor") + ".pdf";
+      return Utilities.newBlob(meta.bytes, meta.mimeType || "application/pdf", safeName2).setName(safeName2);
     }
+    throw new Error(
+      "Soubor na Google Disku je prázdný nebo nedostupný a v tabulce není záloha. Nahrajte PDF znovu v konceptu (nebo kontaktujte správce)."
+    );
   }
-  var blobSh = ss.getSheetByName(SHEETS.APPLICATION_FILE_BLOBS);
   if (!blobSh) throw new Error("Úložiště příloh není k dispozici.");
-  var meta = connectReadPdfBlobFromSheet_(blobSh, aid, fid);
-  if (!meta || !meta.bytes || meta.bytes.length < 1) throw new Error("Soubor nenalezen nebo je prázdný.");
+  if (!sheetOk) throw new Error("Soubor nenalezen nebo je prázdný.");
   var safeName = String(meta.fileName || "soubor.pdf")
     .replace(/[^a-zA-Z0-9._\-]/g, "_")
     .replace(/_+/g, "_")
@@ -1818,6 +1832,9 @@ function connectProcessApplicationFileUploads_(ss, competitionId, applicationId,
     var safe = fileName.replace(/[^a-zA-Z0-9._\-]/g, "_").replace(/_+/g, "_").slice(0, 120);
     if (!/\.pdf$/i.test(safe)) safe = (safe || "dokument") + ".pdf";
 
+    /** Vždy zapsat do tabulky (záloha + spolehlivé stažení). Disk je navíc – po úspěchu na Disku se chunky NEMAŽOU. */
+    connectWritePdfBlobChunks_(blobSheet, applicationId, fieldId, safe, "application/pdf", bytes);
+
     var stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd_HHmmss");
     var driveName = applicationId + "_apply_" + fieldId + "_" + stamp + "_" + safe;
     var driveTry = connectTryCreateApplicationPdfOnDrive_(ss, bytes, driveName);
@@ -1826,7 +1843,6 @@ function connectProcessApplicationFileUploads_(ss, competitionId, applicationId,
       var fidDrive = driveTry.file.getId();
       patch[fieldId] = "UHKDRIVE|" + fidDrive + "|" + safe;
       diagnostics[fieldId] = { storage: "drive" };
-      connectTrashBlobChunks_(blobSheet, applicationId, fieldId);
       try {
         writeAudit(ss, "CONNECT_APPLY_DRIVE", applicationId, fieldId, safe, applicantLower);
       } catch (audD) {
@@ -1835,7 +1851,6 @@ function connectProcessApplicationFileUploads_(ss, competitionId, applicationId,
     } else {
       var errMsg = driveTry && driveTry.error ? String(driveTry.error).slice(0, 400) : "";
       console.error("connectProcessApplicationFileUploads_ Drive failed: " + errMsg);
-      connectWritePdfBlobChunks_(blobSheet, applicationId, fieldId, safe, "application/pdf", bytes);
       patch[fieldId] = "UHKAFILE|" + safe;
       diagnostics[fieldId] = { storage: "sheet", driveError: errMsg };
       try {
