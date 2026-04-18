@@ -341,6 +341,24 @@
       u.searchParams.set("token", session?.token || "");
       return u.toString();
     }
+
+    /**
+     * POST na Web App s JSON v těle jako text/plain – „simple request“ bez CORS preflightu
+     * (application/json často spustí OPTIONS a v některých prohlížečích/sítích skončí „Failed to fetch“).
+     * Apps Script parseDoPostBody_ tělo i tak zparsuje jako JSON.
+     */
+    async function connectPostJson(body) {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=UTF-8" },
+        body: JSON.stringify(body),
+      });
+      const out = await res.json().catch(function () {
+        return {};
+      });
+      return { res, out };
+    }
+
     const MAX_BUDGET = 80000;
     const IRIS_UHK_URL = "https://tomahana.github.io/IRIS_UHK/";
 
@@ -1294,14 +1312,10 @@
         if (fileUploads && fileUploads.length) {
           body.fileUploads = fileUploads;
         }
-        const res = await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        const out = await res.json().catch(function () {
-          return {};
-        });
+        const { res, out } = await connectPostJson(body);
+        if (!res.ok) {
+          throw new Error("HTTP " + res.status);
+        }
         if (out.error) {
           throw new Error(out.error);
         }
@@ -1321,7 +1335,17 @@
         if (st) st.textContent = I18n.tReplace("applyRega.footerSavedAt", { time: now });
         if (showMessage) showToast(trf("toastDraftSaved"));
       } catch (e) {
-        if (showMessage) showToast(e && e.message ? String(e.message) : trf("toastSaveFailed"), "err");
+        if (showMessage) {
+          const raw = e && e.message ? String(e.message) : "";
+          const msg =
+            raw === "Failed to fetch"
+              ? trf("toastSaveFailedNetwork")
+              : raw || trf("toastSaveFailed");
+          showToast(msg, "err");
+        }
+        if (fileUploads && fileUploads.length) {
+          throw e;
+        }
       }
     }
 
@@ -1406,22 +1430,18 @@
 
       try {
         const session = Auth._getSession();
-        const res = await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "submitApplication",
-            token:  session?.token || "",
-            competitionId: COMPETITION_ID,
-            draftId,
-            formData,
-            applicantEmail: user.email,
-            applicantName:  user.name || user.email,
-          }),
+        const { res, out: subOut } = await connectPostJson({
+          action: "submitApplication",
+          token: session?.token || "",
+          competitionId: COMPETITION_ID,
+          draftId,
+          formData,
+          applicantEmail: user.email,
+          applicantName: user.name || user.email,
         });
-        const subOut = await res.json().catch(function () {
-          return {};
-        });
+        if (!res.ok) {
+          throw new Error("HTTP " + res.status);
+        }
         if (subOut.error) {
           throw new Error(subOut.error);
         }
@@ -1441,7 +1461,8 @@
         showToast(trf("submitSuccessToast"));
       } catch (e) {
         btn.disabled = false; btn.textContent = submitLabel;
-        showToast(e && e.message ? String(e.message) : trf("submitError"), "err");
+        const raw = e && e.message ? String(e.message) : "";
+        showToast(raw === "Failed to fetch" ? trf("toastSaveFailedNetwork") : raw || trf("submitError"), "err");
       }
     }
 
