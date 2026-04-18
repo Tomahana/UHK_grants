@@ -363,6 +363,54 @@
       .replace(/"/g, "&quot;");
   }
 
+  function coordinatorConnectApplicationFileDownloadUrl_(competitionId, applicationId, fieldId) {
+    const session = Auth._getSession();
+    const u = new URL(API_URL);
+    u.searchParams.set("action", "downloadConnectApplicationFile");
+    u.searchParams.set("competitionId", String(competitionId || "").trim());
+    u.searchParams.set("applicationId", String(applicationId || "").trim());
+    u.searchParams.set("fieldId", String(fieldId || "").trim());
+    if (session && session.token) u.searchParams.set("token", session.token);
+    return u.toString();
+  }
+
+  /** application_file_hints z getConnectPostAward – PDF v listu tabulky (UHKAFILE). */
+  function coordinatorApplicationFileHintsListHtml_(competitionId, applicationId, hints) {
+    const arr = Array.isArray(hints) ? hints : [];
+    if (!arr.length) return "";
+    const aid = String(applicationId || "").trim();
+    const inner = arr
+      .map(function (h) {
+        const fid = String((h && h.field_id) || "").trim();
+        const disp = escapeHtmlCoord(String((h && h.value) || ""));
+        if (h && h.isSheetBlob && aid && fid) {
+          const href = coordinatorConnectApplicationFileDownloadUrl_(competitionId, aid, fid);
+          return (
+            "<li><code>" +
+            escapeHtmlCoord(fid) +
+            '</code> · <span style="font-family:DM Mono,monospace;font-size:11px">' +
+            disp +
+            '</span> · <a href="' +
+            escapeHtmlCoord(href) +
+            '" target="_blank" rel="noopener">Otevřít PDF</a></li>'
+          );
+        }
+        if (h && h.isLikelyUrl) {
+          const v = String(h.value || "").trim();
+          return (
+            "<li><code>" +
+            escapeHtmlCoord(fid) +
+            '</code> · <a href="' +
+            escapeHtmlCoord(v) +
+            '" target="_blank" rel="noopener">odkaz</a></li>'
+          );
+        }
+        return "<li><code>" + escapeHtmlCoord(fid) + "</code> · " + disp + "</li>";
+      })
+      .join("");
+    return '<ul style="margin:6px 0 0;padding-left:18px;line-height:1.5;font-size:13px">' + inner + "</ul>";
+  }
+
   /** Shodně s backend connectCanonical – z řádku exportu rozhodnutí (Podpořeno / Kráceno). */
   function coordinatorProrektorMeansPart2_(dec) {
     const u = String(dec == null ? "" : dec)
@@ -505,7 +553,18 @@
     }
   }
 
-  function buildConnectAttachmentsSectionHtml_(title, app, files, manifestText, noteHtml, folderUrl, scanNote) {
+  function buildConnectAttachmentsSectionHtml_(
+    title,
+    app,
+    files,
+    manifestText,
+    noteHtml,
+    folderUrl,
+    scanNote,
+    competitionId,
+    applicationId,
+    hints
+  ) {
     const manifest = escapeHtmlCoord(manifestText || "");
     const fileList = files || [];
     let fileRows = fileList
@@ -529,10 +588,16 @@
       folderUrl && /^https:\/\/drive\.google\.com\//i.test(String(folderUrl))
         ? `<p style="font-size:12px;margin-top:10px"><a href="${escapeHtmlCoord(folderUrl)}">Otevřít sdílenou složku soutěže na Google Disku (ruční kontrola všech souborů)</a></p>`
         : "";
+    const formPdfBlock =
+      competitionId && applicationId && Array.isArray(hints) && hints.length
+        ? '<h3 style="font-size:0.95rem;margin-top:1rem">Podací formulář (PDF v aplikaci)</h3>' +
+          coordinatorApplicationFileHintsListHtml_(competitionId, applicationId, hints)
+        : "";
     return (
       `<section style="margin-bottom:2.5rem;page-break-inside:avoid"><h2 style="font-size:1.1rem">${escapeHtmlCoord(
         title
       )}</h2><p style="font-family:DM Mono,monospace;font-size:12px">${escapeHtmlCoord(app)}</p>${note}` +
+      formPdfBlock +
       `<h3 style="font-size:0.95rem;margin-top:1rem">Soubory v seznamu aplikace (stejná složka jako nahrání z části 2)</h3><table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%;max-width:900px"><thead><tr><th align="left">Soubor</th><th>Disk</th><th>Stažení</th></tr></thead><tbody>${fileRows}</tbody></table>${folderFoot}` +
       `<h3 style="font-size:0.95rem;margin-top:1rem">Manifest z aplikace (odkazy / poznámky)</h3><pre style="white-space:pre-wrap;background:#f5f5f5;padding:12px;border-radius:6px;font-size:12px">${manifest}</pre></section>`
     );
@@ -576,7 +641,10 @@
               data.checklist && data.checklist.attachments_manifest ? data.checklist.attachments_manifest : "",
               "",
               data.attachmentsDriveFolderUrl || bulkFolderUrl || "",
-              scanN
+              scanN,
+              comp,
+              app,
+              data.application_file_hints || []
             )
           );
           continue;
@@ -593,7 +661,10 @@
               man,
               "Záložní přehled z exportu checklistu (getConnectDeliverablesExport). Odkazy na soubory z tlačítka nahrání doplní aktuální skript u getConnectPostAward, případně použijte v detailu přihlášky „PDF přehled Connect“.",
               bulkFolderUrl,
-              bulkScanNote ? bulkScanNote.replace(/«ID_přihlášky_»/g, "«" + app + "_»") : coordinatorDriveScanNoteForApp_(app)
+              bulkScanNote ? bulkScanNote.replace(/«ID_přihlášky_»/g, "«" + app + "_»") : coordinatorDriveScanNoteForApp_(app),
+              comp,
+              app,
+              []
             )
           );
           continue;
@@ -607,7 +678,10 @@
               "",
               "",
               bulkFolderUrl,
-              bulkScanNote ? bulkScanNote.replace(/«ID_přihlášky_»/g, "«" + app + "_»") : coordinatorDriveScanNoteForApp_(app)
+              bulkScanNote ? bulkScanNote.replace(/«ID_přihlášky_»/g, "«" + app + "_»") : coordinatorDriveScanNoteForApp_(app),
+              comp,
+              app,
+              []
             )
           );
         }
@@ -708,9 +782,10 @@
         return;
       }
       const files = data.uploaded_drive_files || [];
+      const formHints = data.application_file_hints || [];
       const manifestRaw =
         data.checklist && data.checklist.attachments_manifest ? String(data.checklist.attachments_manifest) : "";
-      if (!files.length && !manifestRaw.trim()) {
+      if (!files.length && !manifestRaw.trim() && !formHints.length) {
         el.innerHTML = "";
         return;
       }
@@ -721,6 +796,10 @@
         folderU.indexOf("https://drive.google.com/") === 0
           ? `<p style="margin-top:8px"><a href="${escapeHtmlCoord(folderU)}" target="_blank" rel="noopener">Otevřít sdílenou složku soutěže na Google Disku</a></p>`
           : "";
+      const formHintsHtml = formHints.length
+        ? '<div style="font-size:11px;font-weight:600;color:var(--navy);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Podací formulář (PDF v tabulce)</div>' +
+          coordinatorApplicationFileHintsListHtml_(compId, appId, formHints)
+        : "";
       let list =
         files.length > 0
           ? "<ul style=\"margin:6px 0 0;padding-left:18px;font-size:13px;line-height:1.55\">" +
@@ -739,7 +818,10 @@
             "</p>";
       let html =
         '<div style="border-top:1px solid var(--border);padding-top:14px;margin-top:6px">' +
-        '<div style="font-size:11px;font-weight:600;color:var(--navy);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Connect – přílohy části 2 (složka soutěže, prefix názvu = ID přihlášky_)</div>' +
+        formHintsHtml +
+        '<div style="font-size:11px;font-weight:600;color:var(--navy);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;margin-top:' +
+        (formHintsHtml ? "14px" : "0") +
+        '">Connect – přílohy části 2 (složka soutěže, prefix názvu = ID přihlášky_)</div>' +
         list +
         folderA +
         (manifestRaw.trim()
