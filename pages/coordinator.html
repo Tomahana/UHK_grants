@@ -393,8 +393,11 @@
     const inner = arr
       .map(function (h) {
         const fid = String((h && h.field_id) || "").trim();
-        const disp = escapeHtmlCoord(String((h && h.value) || ""));
-        if (h && h.isSheetBlob && aid && fid) {
+        const valRaw = String((h && h.value) || "").trim();
+        const dispPlain = /^UHKAFILE\|/i.test(valRaw) ? valRaw.replace(/^UHKAFILE\|/i, "") : valRaw;
+        const disp = escapeHtmlCoord(dispPlain.slice(0, 2000));
+        const asAppBlob = !!(h && (h.isSheetBlob || /^UHKAFILE\|/i.test(valRaw)) && aid && fid);
+        if (asAppBlob) {
           const href = coordinatorConnectApplicationFileDownloadUrl_(competitionId, aid, fid);
           return (
             "<li><code>" +
@@ -594,9 +597,15 @@
     let fileRows = fileList
       .map((f) => {
         const nm = escapeHtmlCoord(f.name);
-        if (f.isSheetBlob && competitionId && applicationId && f.id) {
+        const idRaw = String(f.id || "").trim();
+        const useBlob =
+          !!(f.isSheetBlob || /^paward_/i.test(idRaw)) && competitionId && applicationId && idRaw;
+        if (useBlob) {
           const href = coordinatorConnectPostAwardBlobDownloadUrl_(competitionId, applicationId, f.id);
           return `<tr><td>${nm}</td><td>tabulka</td><td><a href="${escapeHtmlCoord(href)}">Stáhnout</a></td></tr>`;
+        }
+        if (!idRaw) {
+          return `<tr><td>${nm}</td><td colspan="2" style="color:#92400e;font-size:12px">Chybí ID souboru (nelze sestavit odkaz).</td></tr>`;
         }
         const id = escapeHtmlCoord(f.id);
         const view = "https://drive.google.com/file/d/" + id + "/view";
@@ -834,9 +843,14 @@
             files
               .map((f) => {
                 const nm = escapeHtmlCoord(f.name);
-                if (f.isSheetBlob && compId && appId && f.id) {
+                const idRaw = String(f.id || "").trim();
+                const useBlob = !!(f.isSheetBlob || /^paward_/i.test(idRaw)) && compId && appId && idRaw;
+                if (useBlob) {
                   const href = coordinatorConnectPostAwardBlobDownloadUrl_(compId, appId, f.id);
                   return `<li><span style="font-family:DM Mono,monospace;font-size:11px">${nm}</span><br><a href="${escapeHtmlCoord(href)}" target="_blank" rel="noopener">Stáhnout z aplikace</a></li>`;
+                }
+                if (!idRaw) {
+                  return `<li><span style="font-family:DM Mono,monospace;font-size:11px">${nm}</span><br><span style="color:var(--muted);font-size:12px">Chybí ID souboru.</span></li>`;
                 }
                 const id = escapeHtmlCoord(f.id);
                 const view = "https://drive.google.com/file/d/" + id + "/view";
