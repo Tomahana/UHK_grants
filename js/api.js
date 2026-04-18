@@ -242,9 +242,106 @@ const API = {
   async getReviews(competitionId, applicationId) {
     return this.get("getReviews", { competitionId, applicationId });
   },
+
+  /**
+   * Stažení binárního souboru z Web Appu (POST + token v těle).
+   * Otevře PDF v novém panelu jako blob: URL (obchází nešťastné přesměrování / chyby u GET na script.google.com).
+   */
+  async openConnectBinaryDownload(action, fields) {
+    const session = Auth._getSession();
+    if (!session?.token) {
+      const msg =
+        typeof I18n !== "undefined" && I18n.t
+          ? I18n.t("api.needLoginDownload")
+          : "Pro stažení souboru se přihlaste.";
+      throw new Error(msg);
+    }
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=UTF-8" },
+      body: JSON.stringify({
+        action,
+        token: session.token,
+        ...fields,
+      }),
+    });
+    const ct = (res.headers.get("content-type") || "").toLowerCase();
+    if (!res.ok) {
+      const t = await res.text().catch(() => "");
+      throw new Error((t && t.slice(0, 500)) || "HTTP " + res.status);
+    }
+    if (
+      ct.indexOf("application/pdf") >= 0 ||
+      ct.indexOf("application/octet-stream") >= 0 ||
+      ct.indexOf("binary/octet-stream") >= 0
+    ) {
+      const blob = await res.blob();
+      const u = URL.createObjectURL(blob);
+      const w = window.open(u, "_blank", "noopener,noreferrer");
+      if (!w) {
+        const a = document.createElement("a");
+        a.href = u;
+        a.target = "_blank";
+        a.rel = "noopener";
+        a.download = "dokument.pdf";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+      setTimeout(() => {
+        try {
+          URL.revokeObjectURL(u);
+        } catch (e) {
+          /* ignore */
+        }
+      }, 300000);
+      return;
+    }
+    if (ct.indexOf("application/json") >= 0) {
+      const j = await res.json().catch(() => ({}));
+      throw new Error(j.error || "Stažení se nepodařilo.");
+    }
+    const t = await res.text().catch(() => "");
+    throw new Error(t.slice(0, 500) || "Neočekávaná odpověď serveru.");
+  },
 };
 
 /** Dostupné i pro skripty v jiném lexikálním oboru (např. IIFE v connect-postaward-panel.js). */
 if (typeof globalThis !== "undefined") {
   globalThis.API = API;
 }
+
+/** Delegace kliku na <a class="uhk-blob-dl" data-dl-action="…" …> (Connect PDF z tabulky). */
+(function installUhkBlobDlDelegation_() {
+  if (typeof document === "undefined") return;
+  if (globalThis.__uhkBlobDlDelegationInstalled) return;
+  globalThis.__uhkBlobDlDelegationInstalled = true;
+  document.addEventListener(
+    "click",
+    function (ev) {
+      var a = ev.target.closest && ev.target.closest("a.uhk-blob-dl");
+      if (!a || !a.getAttribute) return;
+      var action = a.getAttribute("data-dl-action");
+      if (!action || typeof globalThis.API === "undefined" || !API.openConnectBinaryDownload) return;
+      var cid = a.getAttribute("data-dl-competition-id");
+      var appId = a.getAttribute("data-dl-application-id");
+      if (!cid || !appId) return;
+      ev.preventDefault();
+      var fields = { competitionId: cid, applicationId: appId };
+      if (action === "downloadConnectApplicationFile") {
+        var fid = a.getAttribute("data-dl-field-id");
+        if (!fid) return;
+        fields.fieldId = fid;
+      } else if (action === "downloadConnectPostAwardFile") {
+        var bid = a.getAttribute("data-dl-blob-key");
+        if (!bid) return;
+        fields.blobKey = bid;
+      } else return;
+      API.openConnectBinaryDownload(action, fields).catch(function (err) {
+        var msg = (err && err.message) || String(err);
+        if (typeof alert !== "undefined") alert(msg);
+      });
+    },
+    true
+  );
+})();
