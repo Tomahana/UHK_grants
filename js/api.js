@@ -245,8 +245,8 @@ const API = {
 
   /**
    * Otevře PDF z Web Appu v novém tabu — bez fetch() (u script.google.com často „Failed to fetch“ kvůli CORS).
-   * Vždy POST formulář (application/x-www-form-urlencoded): token a parametry v těle, ne v GET URL
-   * (dlouhé URL se ořezávají / blokují; stejný mechanismus jako upload).
+   * Když vejde do rozumné délky URL: GET → doGet vrací PDF přímo (bez blob:/data: v POST HTML — Chrome méně blokuje).
+   * Jinak POST formulář (token v těle); server vrátí stránku s &lt;embed src="data:application/pdf;base64,…"&gt;.
    */
   async openConnectBinaryDownload(action, fields) {
     const session = Auth._getSession();
@@ -264,6 +264,44 @@ const API = {
       throw new Error(
         typeof I18n !== "undefined" && I18n.t ? I18n.t("api.downloadNetworkError") : "Neplatná adresa API."
       );
+    }
+
+    let getUrl = "";
+    try {
+      const u = new URL(baseUrl);
+      u.searchParams.set("action", action);
+      u.searchParams.set("token", session.token);
+      Object.entries(fields || {}).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && String(v) !== "") u.searchParams.set(k, String(v));
+      });
+      getUrl = u.toString();
+    } catch (eBuild) {
+      throw new Error(
+        typeof I18n !== "undefined" && I18n.t ? I18n.t("api.downloadNetworkError") : "Neplatná adresa API."
+      );
+    }
+
+    const openInNewTab = (href) => {
+      let w = null;
+      try {
+        w = window.open(href, "_blank", "noopener,noreferrer");
+      } catch (e0) {
+        w = null;
+      }
+      if (!w) {
+        const a = document.createElement("a");
+        a.href = href;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+    };
+
+    if (getUrl.length <= 7500) {
+      openInNewTab(getUrl);
+      return;
     }
 
     const form = document.createElement("form");
