@@ -111,7 +111,7 @@
       if (g) {
         g.innerHTML = `<div class="empty-state">
           <div class="empty-state__icon">🔐</div>
-          <div class="empty-state__text">Nejste přihlášeni. Otevřete <a href="login.html" style="color:var(--navy,#1C2E5A);font-weight:600;">přihlášení</a>.</div>
+          <div class="empty-state__text">Nejste přihlášeni. Otevřete <a href="../login.html" style="color:var(--navy,#1C2E5A);font-weight:600;">přihlášení</a>.</div>
         </div>`;
       }
     } else {
@@ -438,7 +438,7 @@
     function switchRole() {
       const session = Auth._getSession();
       if (!session) {
-        window.location.href = "login.html";
+        window.location.href = "../login.html";
         return;
       }
       let allRoles = session.allRoles || [session.role];
