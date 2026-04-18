@@ -156,6 +156,8 @@
       api: {
         fileReadError: "Soubor se nepodařilo načíst.",
         needLoginDownload: "Pro otevření PDF se přihlaste (session vypršela). Obnovte stránku a přihlaste se znovu.",
+        downloadNetworkError:
+          "Spojení při otevírání PDF selhalo (síť nebo blokovaný požadavek k serveru). Zkuste znovu; na firemní Wi‑Fi zkuste jiný prohlížeč nebo mobilní data. Pokud problém přetrvává, dejte vědět správci.",
       },
       roles: {
         ADMIN: { name: "Správce", desc: "Plný přístup – správa uživatelů a nastavení" },
@@ -437,16 +439,28 @@
         stepAttachments: "Přílohy",
         fileUploading: "Nahrávám PDF…",
         fileUploadOk:
-          "Příloha je uložena do tabulky soutěže Google (list s binárními daty), ne na sdílený Google Disk. Otevřete ji tlačítkem „Otevřít PDF“ níže.",
+          "Příloha je uložena do tabulky soutěže (záloha), protože upload na Disk se nepodařil. Otevřete ji tlačítkem „Otevřít PDF“ níže.",
+        fileUploadOkDrive:
+          "Příloha je uložena na Google Disk přes aplikaci (složka účtu webové aplikace). Otevřete ji tlačítkem „Otevřít PDF“ níže.",
+        fileUploadDriveFallbackDetail:
+          "Soubor je jen v tabulce (záloha). Disk: {{err}} — zkontrolujte sdílení složky s účtem Web App (Execute as) nebo oprávnění Disku.",
         fileUploadErr: "Nahrání přílohy se nepodařilo.",
+        fileUploadBadResponse:
+          "Server po nahrání nevrátil platný JSON (prázdná nebo HTML odpověď). Zkuste menší PDF, obnovte stránku nebo zkontrolujte nasazení Web Appu.",
+        fileUploadHttpErr: "Server odpověděl chybou HTTP {{status}}. Zkuste znovu nebo kontaktujte správce.",
+        fileUploadOldScriptHint:
+          "Na Google pravděpodobně běží starší verze skriptu bez akce upload. Znovu nasaďte Web App z aktuálního kódu. Detail:",
+        fileUploadFormNotStored:
+          "Příloha je na Disku, ale nepodařilo se ji zapsat do přihlášky v tabulce. Obnovte stránku; pokud po obnovení chybí, znovu nasaďte Web App (aktuální skript zapisuje odkaz hned po nahrání).",
         fileUploadedDriveLabel: "PDF na Disku",
-        fileUploadedAppStorageLabel: "PDF v aplikaci (tabulka)",
+        fileUploadedDriveApiLabel: "PDF na Disku (nahráno aplikací)",
+        fileUploadedAppStorageLabel: "PDF v tabulce (záloha)",
         filePdfOnly: "Povolen je pouze soubor ve formátu PDF.",
         fileTooBig: "Soubor je větší než 18 MB.",
         fileNeedDraftRetry:
           "Nejdřív se musí vytvořit koncept přihlášky. Zkuste soubor znovu za chvíli (po automatickém uložení) nebo klepněte na „Uložit draft“.",
         attachmentsStorageNote:
-          "PDF z tohoto kroku se ukládá do tabulky soutěže Google (list s přílohami), ne do sdílené složky na Disku. Po uložení otevřete soubor přes „Otevřít PDF“ v této aplikaci (musíte být přihlášeni). Prázdná složka na Disku z textu výzvy u podacích příloh tedy neznamená, že soubor chybí.",
+          "PDF z podacího formuláře se ukládá na Google Disk do složky nastavené pro webovou aplikaci (DriveApp). Volitelně lze v CONFIG zadat samostatné ID složky klíčem connect_application_attachments_folder_id; jinak se použije stejná složka jako u příloh části 2. Při výpadku Disku zůstane záloha v tabulce. Otevření je vždy přes „Otevřít PDF“ po přihlášení.",
       },
       applyPrestige: {
         loadingForm: "Načítám formulář…",
@@ -645,6 +659,8 @@
       api: {
         fileReadError: "Could not read the file.",
         needLoginDownload: "Sign in again to open the PDF (session expired). Refresh the page and log in.",
+        downloadNetworkError:
+          "The connection failed while opening the PDF (network or blocked request). Try again; on a corporate network try another browser or mobile data. Contact an administrator if it keeps happening.",
       },
       roles: {
         ADMIN: { name: "Administrator", desc: "Full access – users and settings" },
@@ -926,16 +942,28 @@
         stepAttachments: "Attachments",
         fileUploading: "Uploading PDF…",
         fileUploadOk:
-          "The file was saved in the competition Google Sheet (binary storage), not on shared Drive. Open it with “Open PDF” below.",
+          "The file was saved in the competition spreadsheet (fallback) because the Drive upload failed. Open it with “Open PDF” below.",
+        fileUploadOkDrive:
+          "The file was saved on Google Drive via the app (web-app account folder). Open it with “Open PDF” below.",
+        fileUploadDriveFallbackDetail:
+          "The file was stored in the spreadsheet only (fallback). Drive: {{err}} — check folder sharing with the Web App account (Execute as) or Drive permissions.",
         fileUploadErr: "Attachment upload failed.",
+        fileUploadBadResponse:
+          "The server did not return valid JSON after upload (empty or HTML). Try a smaller PDF, refresh, or check the Web App deployment.",
+        fileUploadHttpErr: "The server returned HTTP {{status}}. Try again or contact an administrator.",
+        fileUploadOldScriptHint:
+          "The deployed Apps Script may be missing the upload action. Redeploy the Web App from the current code. Detail:",
+        fileUploadFormNotStored:
+          "The file is on Drive but could not be written into the application row in the sheet. Refresh; if it is still missing, redeploy the Web App (current script writes the link right after upload).",
         fileUploadedDriveLabel: "PDF on Drive",
-        fileUploadedAppStorageLabel: "PDF in app (spreadsheet)",
+        fileUploadedDriveApiLabel: "PDF on Drive (uploaded by the app)",
+        fileUploadedAppStorageLabel: "PDF in spreadsheet (fallback)",
         filePdfOnly: "Only PDF files are allowed.",
         fileTooBig: "The file is larger than 18 MB.",
         fileNeedDraftRetry:
           "A draft application ID is required first. Try the file again in a moment (after autosave) or click “Save draft”.",
         attachmentsStorageNote:
-          "PDFs from this step are stored in the competition Google Sheet (attachments list), not in a shared Drive folder. After saving, open the file via “Open PDF” in this app (you must be signed in). An empty Drive folder from the call text does not mean your file is missing.",
+          "PDFs from the Connect application form are stored on Google Drive in the folder configured for the web app (DriveApp). Optionally set a separate folder ID in CONFIG as connect_application_attachments_folder_id; otherwise the same folder as Connect part 2 attachments is used. If Drive fails, a spreadsheet backup is kept. Opening is always via “Open PDF” while signed in.",
       },
       applyPrestige: {
         loadingForm: "Loading form…",
