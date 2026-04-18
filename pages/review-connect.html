@@ -594,17 +594,15 @@ async function loadReviewConnectAttachments() {
         const appAid = String(h.application_id || (cur && cur.application_id) || "").trim();
         var link;
         if ((h.isSheetBlob || /^UHKAFILE\|/i.test(vTrim)) && appAid && h.field_id) {
-          const u = new URL(API_URL);
-          u.searchParams.set("action", "downloadConnectApplicationFile");
-          u.searchParams.set("competitionId", CID);
-          u.searchParams.set("applicationId", appAid);
-          u.searchParams.set("fieldId", String(h.field_id));
-          const s = Auth._getSession();
-          if (s && s.token) u.searchParams.set("token", s.token);
           link =
-            '<a href="' +
-            escAttr(u.toString()) +
-            '" target="_blank" rel="noopener">PDF (úložiště aplikace)</a> · <span style="font-family:DM Mono,monospace;font-size:12px">' +
+            '<a href="#" class="uhk-blob-dl" data-dl-action="downloadConnectApplicationFile" ' +
+            'data-dl-competition-id="' +
+            escAttr(CID) +
+            '" data-dl-application-id="' +
+            escAttr(appAid) +
+            '" data-dl-field-id="' +
+            escAttr(String(h.field_id)) +
+            '">PDF (úložiště aplikace)</a> · <span style="font-family:DM Mono,monospace;font-size:12px">' +
             esc(v) +
             "</span>";
         } else if (h.isLikelyUrl) {
@@ -645,19 +643,17 @@ async function loadReviewConnectAttachments() {
         const useBlob =
           !!(f.isSheetBlob || /^paward_/i.test(idRaw)) && cur && cur.application_id && idRaw;
         if (useBlob) {
-          const u = new URL(API_URL);
-          u.searchParams.set("action", "downloadConnectPostAwardFile");
-          u.searchParams.set("competitionId", CID);
-          u.searchParams.set("applicationId", String(cur.application_id));
-          u.searchParams.set("blobKey", idRaw);
-          const s = Auth._getSession();
-          if (s && s.token) u.searchParams.set("token", s.token);
           parts.push(
             "<li><span style=\"font-family:DM Mono,monospace;font-size:11px\">" +
               nm +
-              '</span> · <a href="' +
-              escAttr(u.toString()) +
-              '" target="_blank" rel="noopener">stáhnout z aplikace</a></li>'
+              '</span> · <a href="#" class="uhk-blob-dl" data-dl-action="downloadConnectPostAwardFile" ' +
+              'data-dl-competition-id="' +
+              escAttr(CID) +
+              '" data-dl-application-id="' +
+              escAttr(String(cur.application_id)) +
+              '" data-dl-blob-key="' +
+              escAttr(idRaw) +
+              '">stáhnout z aplikace</a></li>'
           );
         } else if (!idRaw) {
           parts.push(
