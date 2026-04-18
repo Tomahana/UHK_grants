@@ -178,6 +178,10 @@
           </div>
           <div class="pb">
             <div class="dbox" id="appDetail"></div>
+            <div class="dbox" id="panelConnectAttachments" style="display:none;">
+              <div class="dl">Přílohy k přihlášce (formulář + část 2)</div>
+              <div id="panelConnectAttachmentsBody" style="margin-top:8px;font-size:13px;line-height:1.5;color:var(--navy);"></div>
+            </div>
             <div class="flow-panel">
               <div class="flow-h" data-i18n="reviewConnect.flowTitle">Postup a lhůty (výzva Connect)</div>
               <div class="flow-grid">
@@ -274,6 +278,7 @@
 <script src="../js/config.js"></script>
 <script src="../js/i18n.js"></script>
 <script src="../js/auth.js"></script>
+<script src="../js/api.js"></script>
 <script>
 I18n.init();
 (function () {
@@ -281,7 +286,7 @@ I18n.init();
   if (el) I18n.mountLangSwitch(el, "first");
 })();
 
-const user = Auth.requireLogin(["KOMISAR","PROREKTOR","ADMIN","TESTER"]);
+const user = Auth.requireLogin(["KOMISAR", "KOMISAŘ", "PROREKTOR", "ADMIN", "TESTER", "READONLY"]);
 document.getElementById("topbarName").textContent = user.name||user.email;
 const params = new URLSearchParams(window.location.search);
 const CID = params.get("c")||"uhk_connect_2026_v2";
@@ -540,13 +545,109 @@ function selApp(id){
     document.getElementById("cPub").value=ex.comment_public||"";
     document.getElementById("cInt").value=ex.comment_internal||"";
   }else{document.getElementById("cPub").value="";document.getElementById("cInt").value=""}
-  renderDetail();renderCrit();updateRec();updateScore();
+  renderDetail();
+  void loadReviewConnectAttachments();
+  renderCrit();updateRec();updateScore();
   const b=document.getElementById("rBadge");
   if(ex){b.className="badge bdone";b.textContent=tx("badgeDone")}else{b.className="badge bnew";b.textContent=tx("badgeNew")}
   document.getElementById("rTitle").textContent=cur._f.project_title||id;
   document.getElementById("rSub").textContent=id+" · "+(cur.applicant_email||"");
   document.getElementById("reviewForm").style.display="block";
   renderList();window.scrollTo({top:0,behavior:"smooth"});
+}
+
+async function loadReviewConnectAttachments() {
+  const wrap = document.getElementById("panelConnectAttachments");
+  const body = document.getElementById("panelConnectAttachmentsBody");
+  if (!wrap || !body || !cur) return;
+  wrap.style.display = "none";
+  body.innerHTML = '<span class="spin"></span> Načítám přílohy…';
+  try {
+    if (typeof API === "undefined" || !API.getConnectPostAward) {
+      body.innerHTML = "";
+      return;
+    }
+    const data = await API.getConnectPostAward(CID, cur.application_id);
+    if (!data || data.error || !data.applicable) {
+      var why =
+        data && data.reason
+          ? data.reason
+          : data && data.error
+            ? String(data.error)
+            : "Přílohy části 2 nejsou k dispozici. Zkuste obnovit stránku po nasazení aktuálního skriptu.";
+      body.innerHTML = '<span style="color:var(--muted)">' + esc(why) + "</span>";
+      wrap.style.display = "block";
+      return;
+    }
+    const parts = [];
+    if (data.previewMode) {
+      parts.push(
+        '<p style="font-size:12px;color:#92400e;margin:0 0 10px;line-height:1.45;">Náhled: před finálním rozhodnutím prorektora mohou být u rozpočtu zobrazeny údaje z žádosti.</p>'
+      );
+    }
+    const hints = data.application_file_hints || [];
+    if (hints.length) {
+      parts.push("<strong>Dokumenty z podacího formuláře</strong><ul style=\"margin:6px 0 0 18px\">");
+      hints.forEach(function (h) {
+        const v = String(h.value || "");
+        const link =
+          h.isLikelyUrl
+            ? '<a href="' + escAttr(v) + '" target="_blank" rel="noopener">otevřít odkaz</a>'
+            : esc(v);
+        parts.push("<li><code>" + esc(h.field_id) + "</code>: " + link + "</li>");
+      });
+      parts.push("</ul>");
+    }
+    const man = data.checklist && data.checklist.attachments_manifest ? String(data.checklist.attachments_manifest).trim() : "";
+    if (man) {
+      parts.push(
+        "<strong>Manifest části 2</strong><pre style=\"white-space:pre-wrap;background:var(--navy-lite);padding:10px;border-radius:6px;margin-top:6px;font-size:12px\">" +
+          esc(man) +
+          "</pre>"
+      );
+    }
+    const files = data.uploaded_drive_files || [];
+    if (files.length) {
+      parts.push("<strong>Soubory nahrané na Disk (část 2)</strong><ul style=\"margin:6px 0 0 18px\">");
+      files.forEach(function (f) {
+        const id = esc(String(f.id || ""));
+        const nm = esc(String(f.name || ""));
+        const view = "https://drive.google.com/file/d/" + id + "/view";
+        const dl = "https://drive.google.com/uc?export=download&id=" + id;
+        parts.push(
+          "<li><span style=\"font-family:DM Mono,monospace;font-size:11px\">" +
+            nm +
+            '</span> · <a href="' +
+            escAttr(view) +
+            '" target="_blank" rel="noopener">Disk</a> · <a href="' +
+            escAttr(dl) +
+            '" target="_blank" rel="noopener">stáhnout</a></li>'
+        );
+      });
+      parts.push("</ul>");
+    }
+    if (data.showAdminPdfExport) {
+      const u = new URL(API_URL);
+      u.searchParams.set("action", "adminExportConnectProjectDossierPdf");
+      u.searchParams.set("competitionId", CID);
+      u.searchParams.set("applicationId", cur.application_id);
+      const s = Auth._getSession();
+      if (s?.token) u.searchParams.set("token", s.token);
+      parts.push(
+        '<p style="margin-top:12px"><a class="btn btn-o" href="' +
+          escAttr(u.toString()) +
+          '" target="_blank" rel="noopener">Stáhnout PDF přehled (text + odkazy)</a></p>'
+      );
+    }
+    if (!hints.length && !man && !files.length) {
+      parts.push('<span style="color:var(--muted)">K této přihlášce zatím nejsou evidované přílohy na Disku ani manifest.</span>');
+    }
+    body.innerHTML = parts.join("");
+    wrap.style.display = "block";
+  } catch (e) {
+    body.innerHTML = '<span style="color:#991B1B">' + esc(e.message || "Chyba") + "</span>";
+    wrap.style.display = "block";
+  }
 }
 
 function renderDetail(){
