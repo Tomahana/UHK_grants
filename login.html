@@ -184,7 +184,7 @@
           <div class="field__error" id="regEmailErr"></div>
         </div>
         <div class="field">
-          <label for="regPassword"><span data-i18n="login.password">Návrh Hesla</span> <span style="color:var(--red)">*</span></label>
+          <label for="regPassword"><span data-i18n="login.password">Heslo</span> <span style="color:var(--red)">*</span></label>
           <div class="field__input-wrap">
             <svg class="field__icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3" y="7" width="10" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M5 7V5a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
             <input type="password" id="regPassword" data-i18n-placeholder="login.pwdPlaceholder" placeholder="Minimálně 8 znaků" oninput="checkStrength(this.value)">
@@ -294,6 +294,18 @@
     document.getElementById(textId).textContent = msg;
   }
 
+  /** Odpověď Web Appu může mít roles[], výjimečně jednu hodnotu v role (string). */
+  function normalizeLoginRoles_(result) {
+    if (!result) return [];
+    if (Array.isArray(result.roles) && result.roles.length) {
+      return result.roles.map((r) => String(r).trim()).filter(Boolean);
+    }
+    if (result.role != null && String(result.role).trim()) {
+      return [String(result.role).trim()];
+    }
+    return [];
+  }
+
   // ── KROK 1: Přihlášení ──────────────────────────────────────
   async function handleLogin() {
     const email    = document.getElementById("email").value.trim();
@@ -315,15 +327,20 @@
       _email = email;
       _name  = result.name;
       _token = result.token;
-      _foundRoles = result.roles;
+      const rolesNorm = normalizeLoginRoles_(result);
+      if (!rolesNorm.length) {
+        showErr("err1", "err1Text", I18n.t("login.errNoRoles"));
+        return;
+      }
+      _foundRoles = rolesNorm;
 
-      if (result.roles.length === 1) {
+      if (rolesNorm.length === 1) {
         // Jen jedna role → přímé přihlášení
-        Auth.setSession(result.token, email, result.name, result.roles[0], result.roles);
+        Auth.setSession(result.token, email, result.name, rolesNorm[0], rolesNorm);
         window.location.href = "pages/dashboard.html";
       } else {
         // Více rolí → výběr
-        renderRoles(result.roles, email, result.name);
+        renderRoles(rolesNorm, email, result.name);
         goToStep(2);
       }
     } catch {
