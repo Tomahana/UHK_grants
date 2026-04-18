@@ -421,6 +421,14 @@
         stepOutput: "Výstup",
         stepBudget: "Rozpočet",
         stepAttachments: "Přílohy",
+        fileUploading: "Nahrávám PDF na sdílený Disk…",
+        fileUploadOk: "Příloha je na Disku (odkaz uložen v přihlášce).",
+        fileUploadErr: "Nahrání na Disk se nepodařilo.",
+        fileUploadedDriveLabel: "PDF na Disku",
+        filePdfOnly: "Povolen je pouze soubor ve formátu PDF.",
+        fileTooBig: "Soubor je větší než 18 MB.",
+        fileNeedDraftRetry:
+          "Nejdřív se musí vytvořit koncept přihlášky. Zkuste soubor znovu za chvíli (po automatickém uložení) nebo klepněte na „Uložit draft“.",
       },
       applyPrestige: {
         loadingForm: "Načítám formulář…",
@@ -884,6 +892,14 @@
         stepOutput: "Output",
         stepBudget: "Budget",
         stepAttachments: "Attachments",
+        fileUploading: "Uploading PDF to shared Drive…",
+        fileUploadOk: "Attachment saved on Drive (link stored in your application).",
+        fileUploadErr: "Upload to Drive failed.",
+        fileUploadedDriveLabel: "PDF on Drive",
+        filePdfOnly: "Only PDF files are allowed.",
+        fileTooBig: "The file is larger than 18 MB.",
+        fileNeedDraftRetry:
+          "A draft application ID is required first. Try the file again in a moment (after autosave) or click “Save draft”.",
       },
       applyPrestige: {
         loadingForm: "Loading form…",
