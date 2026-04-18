@@ -177,7 +177,7 @@
       <div class="page-sub" id="pageSub">Načítám přihlášky…</div>
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
-      <button type="button" class="btn btn-navy" onclick="exportConnectDeliverablesCsv()">Export Connect (CSV)</button>
+      <button type="button" class="btn btn-navy" onclick="exportSelectedApplicationsBundle()">Export vybraných</button>
       <button type="button" class="btn btn-outline" onclick="exportSelectedConnectAttachmentsLinksHtml()">HTML přehled příloh (vybrané Connect)</button>
       <button type="button" class="btn btn-outline" onclick="openSelectedApplicantsEmailModal()">E-maily vybraných…</button>
       <button class="btn btn-outline" onclick="loadAll()">↺ Obnovit</button>
@@ -784,96 +784,159 @@
     return '"' + s + '"';
   }
 
-  async function exportConnectDeliverablesCsv() {
-    const toast = (msg) => {
-      const t = document.getElementById("toast");
-      t.textContent = msg;
-      t.classList.add("show");
-      setTimeout(() => t.classList.remove("show"), 3500);
+  function downloadTextFile(filename, text, mime) {
+    const blob = new Blob([text], { type: mime || "text/plain;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function formFieldToExportString(v) {
+    if (v == null) return "";
+    if (typeof v === "object") return JSON.stringify(v);
+    return String(v);
+  }
+
+  function flattenApplicationForExport(a) {
+    const form = a._form || {};
+    const base = {
+      competition_id: a.competition_id || "",
+      application_id: a.application_id || "",
+      applicant_email: a.applicant_email || "",
+      applicant_name: a.applicant_name || "",
+      status: a.status || "",
+      submitted_at: a.submitted_at || "",
+      created_at: a.created_at || "",
+      note: a.note != null ? String(a.note) : "",
     };
-    try {
-      const data = await API.getConnectDeliverablesExport(CONNECT_EXPORT_ID);
-      if (data.error) throw new Error(data.error);
-      if (!data.supported) {
-        toast("Export je k dispozici jen pro soutěž UHK Connect.");
-        return;
-      }
-      const rows = data.rows || [];
-      const headers = [
-        "application_id",
-        "applicant_email",
-        "applicant_name",
-        "status",
-        "project_title",
-        "budget_total_requested",
-        "budget_official_czk",
-        "prorektor_decision",
-        "prorektor_comment",
-        "accepts_prorektor_comment",
-        "agrees_solution_and_budget",
-        "consent_saved_at",
-        "deliverable_zprava_fulfilled",
-        "deliverable_vystup_fulfilled",
-        "deliverable_aktivita_fulfilled",
-        "budget_actual_spent_czk",
-        "budget_variance_explanation",
-        "dissemination_fulfilled",
-        "package_emailed_declared",
-        "consequences_acknowledged",
-        "completion_saved_at",
-        "attachments_manifest",
-        "notes",
-        "checklist_last_saved",
-        "export_generated_at",
-      ];
-      const lines = [headers.join(";")];
-      const gen = data.generatedAt || "";
-      rows.forEach((r) => {
-        lines.push(
-          [
-            r.application_id,
-            r.applicant_email,
-            r.applicant_name,
-            r.status,
-            r.project_title,
-            r.budget_total_requested,
-            r.budget_official_czk,
-            r.prorektor_decision,
-            r.prorektor_comment,
-            r.accepts_prorektor_comment,
-            r.agrees_solution_and_budget,
-            r.consent_saved_at,
-            r.deliverable_zprava_fulfilled,
-            r.deliverable_vystup_fulfilled,
-            r.deliverable_aktivita_fulfilled,
-            r.budget_actual_spent_czk,
-            r.budget_variance_explanation,
-            r.dissemination_fulfilled,
-            r.package_emailed_declared,
-            r.consequences_acknowledged,
-            r.completion_saved_at,
-            r.attachments_manifest,
-            r.notes,
-            r.checklist_last_saved,
-            gen,
-          ]
-            .map(csvEscape)
-            .join(";")
+    const out = Object.assign({}, base);
+    Object.keys(form).forEach((k) => {
+      out["form." + k] = formFieldToExportString(form[k]);
+    });
+    return out;
+  }
+
+  function buildExportHeadersFromFlatRows(flatRows) {
+    const priority = [
+      "competition_id",
+      "application_id",
+      "applicant_email",
+      "applicant_name",
+      "status",
+      "submitted_at",
+      "created_at",
+      "note",
+    ];
+    const set = new Set();
+    flatRows.forEach((r) => {
+      Object.keys(r).forEach((k) => set.add(k));
+    });
+    const rest = [...set].filter((k) => priority.indexOf(k) < 0).sort();
+    return [...priority.filter((k) => set.has(k)), ...rest];
+  }
+
+  function escapeXmlText(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  function escapeXmlAttr(s) {
+    return escapeXmlText(s).replace(/"/g, "&quot;");
+  }
+
+  function buildPrintableHtmlExport_(apps, flatRows, headers) {
+    const stamp = new Date().toLocaleString("cs-CZ", { dateStyle: "medium", timeStyle: "short" });
+    const blocks = apps
+      .map((a, idx) => {
+        const flat = flatRows[idx];
+        const title =
+          escapeHtmlCoord(String(flat.application_id || "")) +
+          " — " +
+          escapeHtmlCoord(String(flat.applicant_name || ""));
+        const rows = headers
+          .map(
+            (h) =>
+              "<tr><th style=\"text-align:left;padding:6px 10px;border:1px solid #ccc;width:28%;vertical-align:top\">" +
+              escapeHtmlCoord(h) +
+              "</th><td style=\"padding:6px 10px;border:1px solid #ccc;word-break:break-word\">" +
+              escapeHtmlCoord(String(flat[h] != null ? flat[h] : "")) +
+              "</td></tr>"
+          )
+          .join("");
+        return (
+          "<section style=\"page-break-after:always;margin-bottom:28px\">" +
+          "<h2 style=\"font-size:15px;margin-bottom:10px\">" +
+          title +
+          "</h2>" +
+          "<table style=\"width:100%;border-collapse:collapse;font-size:12px\">" +
+          rows +
+          "</table></section>"
         );
-      });
-      const blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "uhk_connect_checklist_export_" + new Date().toISOString().slice(0, 10) + ".csv";
-      a.click();
-      URL.revokeObjectURL(a.href);
-      toast("Staženo: " + rows.length + " řádků.");
-    } catch (e) {
-      const t = document.getElementById("toast");
-      t.textContent = e.message || "Export selhal.";
-      t.classList.add("show");
-      setTimeout(() => t.classList.remove("show"), 4000);
+      })
+      .join("");
+    return (
+      "<!DOCTYPE html><html lang=\"cs\"><head><meta charset=\"UTF-8\"/><title>Export vybraných přihlášek</title>" +
+      "<style>body{font-family:'DM Sans',Arial,sans-serif;color:#1C2E5A;margin:16px} @media print { body{margin:12mm} section{page-break-inside:avoid} }</style></head><body>" +
+      "<h1 style=\"font-size:18px;margin-bottom:6px\">Export vybraných přihlášek</h1>" +
+      "<p style=\"color:#555;font-size:12px;margin-bottom:20px\">" +
+      escapeHtmlCoord(stamp) +
+      " · počet přihlášek: " +
+      apps.length +
+      "</p>" +
+      "<p style=\"font-size:12px;color:#92400e;margin-bottom:16px;line-height:1.45\"><strong>PDF:</strong> v tomto souboru použijte v prohlížeči <strong>Ctrl+P</strong> (Mac: Cmd+P) a zvolte <strong>Uložit jako PDF</strong>.</p>" +
+      blocks +
+      "</body></html>"
+    );
+  }
+
+  function exportSelectedApplicationsBundle() {
+    const apps = getSelectedApplicationsFromTable_();
+    if (!apps.length) {
+      showToast("Vyberte alespoň jednu přihlášku zaškrtávacím sloupcem vlevo.", "err");
+      return;
     }
+    const flatRows = apps.map(flattenApplicationForExport);
+    const headers = buildExportHeadersFromFlatRows(flatRows);
+    const date = new Date().toISOString().slice(0, 10);
+    const base = "uhk_export_vybrane_" + date;
+
+    const sep = ";";
+    const csvLines = [headers.join(sep)];
+    flatRows.forEach((row) => {
+      csvLines.push(headers.map((h) => csvEscape(row[h] != null ? row[h] : "")).join(sep));
+    });
+    downloadTextFile(base + ".csv", "\uFEFF" + csvLines.join("\r\n"), "text/csv;charset=utf-8");
+
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<applications exported="' + escapeXmlAttr(date) + '">\n';
+    apps.forEach((a, idx) => {
+      const flat = flatRows[idx];
+      xml +=
+        '  <application application_id="' +
+        escapeXmlAttr(flat.application_id) +
+        '" competition_id="' +
+        escapeXmlAttr(flat.competition_id) +
+        '">\n';
+      headers.forEach((h) => {
+        xml +=
+          '    <field id="' +
+          escapeXmlAttr(h) +
+          '">' +
+          escapeXmlText(String(flat[h] != null ? flat[h] : "")) +
+          "</field>\n";
+      });
+      xml += "  </application>\n";
+    });
+    xml += "</applications>";
+    downloadTextFile(base + ".xml", xml, "application/xml;charset=utf-8");
+
+    const html = buildPrintableHtmlExport_(apps, flatRows, headers);
+    downloadTextFile(base + "_pro_tisk_PDF.html", html, "text/html;charset=utf-8");
+
+    showToast("Staženo 3 soubory: CSV, XML a HTML (z HTML lze uložit PDF přes Ctrl+P).");
   }
 
   // ── Načtení přihlášek ─────────────────────────────────────
