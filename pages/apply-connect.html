@@ -1047,46 +1047,28 @@
       showToast(tc("fileUploading"));
       if (wrap) wrap.style.opacity = "0.55";
       try {
-        if (!draftId) {
-          await saveDraft(false);
-        }
-        if (!draftId) {
-          showToast(tc("fileNeedDraftRetry"), "err");
-          input.value = "";
-          return;
-        }
-        const session = Auth._getSession();
         const dataUrl = await readFileAsDataUrl(file);
-        const res = await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "uploadConnectApplicationAttachment",
-            token: session?.token || "",
-            competitionId: COMPETITION_ID,
-            applicationId: draftId,
+        const uploads = [
+          {
             fieldId: id,
             fileName: file.name,
             mimeType: file.type || "application/pdf",
             fileBase64: dataUrl,
-          }),
-        });
-        const out = await res.json().catch(function () {
-          return {};
-        });
-        if (out.error) {
-          throw new Error(out.error);
+          },
+        ];
+        await saveDraft(false, uploads);
+        if (!draftId || !String(formData[id] || "").trim()) {
+          showToast(tc("fileNeedDraftRetry"), "err");
+          input.value = "";
+          return;
         }
-        if (!out.url) {
-          throw new Error("ok");
-        }
-        formData[id] = out.url;
+        const url = String(formData[id] || "").trim();
         if (info) info.style.display = "flex";
-        if (nameEl) {
+        if (nameEl && /^https?:\/\//i.test(url)) {
           nameEl.innerHTML =
             escapeHtml(tc("fileUploadedDriveLabel")) +
             " · <a href=\"" +
-            escapeAttr(String(out.url)) +
+            escapeAttr(url) +
             "\" target=\"_blank\" rel=\"noopener noreferrer\">" +
             escapeHtml(tf("submittedAttachmentOpenLink")) +
             "</a>";
@@ -1253,21 +1235,25 @@
       await saveDraft(true);
     }
 
-    async function saveDraft(showMessage) {
+    async function saveDraft(showMessage, fileUploads) {
       try {
         const session = Auth._getSession();
+        const body = {
+          action: "saveDraft",
+          token:  session?.token || "",
+          competitionId: COMPETITION_ID,
+          draftId,
+          formData,
+          applicantEmail: user.email,
+          applicantName: user.name || user.email || "",
+        };
+        if (fileUploads && fileUploads.length) {
+          body.fileUploads = fileUploads;
+        }
         const res = await fetch(API_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "saveDraft",
-            token:  session?.token || "",
-            competitionId: COMPETITION_ID,
-            draftId,
-            formData,
-            applicantEmail: user.email,
-            applicantName: user.name || user.email || "",
-          }),
+          body: JSON.stringify(body),
         });
         const out = await res.json().catch(function () {
           return {};
@@ -1277,6 +1263,9 @@
         }
         if (out.draftId) {
           draftId = out.draftId;
+        }
+        if (out.uploadedFields && typeof out.uploadedFields === "object") {
+          Object.assign(formData, out.uploadedFields);
         }
         isDirty = false;
         const now = new Date().toLocaleTimeString(I18n.numLocale(), { hour: "2-digit", minute: "2-digit" });
