@@ -28,7 +28,16 @@ const Auth = {
       url.searchParams.set("action", "login");
       url.searchParams.set("email", email.toLowerCase().trim());
       url.searchParams.set("password", password);
-      const res  = await fetch(url.toString());
+      const ctrl = new AbortController();
+      const tid = setTimeout(function () {
+        ctrl.abort();
+      }, 32000);
+      let res;
+      try {
+        res = await fetch(url.toString(), { signal: ctrl.signal });
+      } finally {
+        clearTimeout(tid);
+      }
       const data = await res.json();
       if (data.success) return data;
       return {
@@ -39,7 +48,16 @@ const Auth = {
             ? I18n.t("auth.wrongCreds")
             : "Nesprávné přihlašovací údaje."),
       };
-    } catch {
+    } catch (e) {
+      if (e && (e.name === "AbortError" || e.name === "TimeoutError")) {
+        return {
+          success: false,
+          message:
+            typeof I18n !== "undefined" && I18n.t
+              ? I18n.t("login.errTimeout")
+              : "Časový limit vypršel.",
+        };
+      }
       return this._demoLogin(email, password);
     }
   },
@@ -74,10 +92,15 @@ const Auth = {
 
   // ── Uloží session po výběru role ───────────────────────────
   setSession(token, email, name, role, allRoles = null) {
-    const existing = this._getSession();
-    const roles = allRoles || existing?.allRoles || [role];
-    const session = { token, email, name, role, allRoles: roles, loginAt: Date.now() };
-    sessionStorage.setItem(this.SESSION_KEY, JSON.stringify(session));
+    try {
+      const existing = this._getSession();
+      const roles = allRoles || existing?.allRoles || [role];
+      const session = { token, email, name, role, allRoles: roles, loginAt: Date.now() };
+      sessionStorage.setItem(this.SESSION_KEY, JSON.stringify(session));
+      return true;
+    } catch {
+      return false;
+    }
   },
 
   // ── Registrace nového uživatele ────────────────────────────
@@ -148,7 +171,11 @@ const Auth = {
   // ── Ochrana stránky ────────────────────────────────────────
   requireLogin(allowedRoles = null) {
     if (!this.isLoggedIn()) {
-      sessionStorage.setItem("uhk_redirect", window.location.href);
+      try {
+        sessionStorage.setItem("uhk_redirect", window.location.href);
+      } catch {
+        /* ignoruj – např. blokované úložiště */
+      }
       const prefix = this._pathPrefixToSiteRoot();
       window.location.href = prefix + "login.html";
       return null;
@@ -174,7 +201,11 @@ const Auth = {
 
   // ── Odhlášení ──────────────────────────────────────────────
   logout(redirect = true) {
-    sessionStorage.removeItem(this.SESSION_KEY);
+    try {
+      sessionStorage.removeItem(this.SESSION_KEY);
+    } catch {
+      /* ignoruj */
+    }
     if (redirect) {
       const prefix = this._pathPrefixToSiteRoot();
       window.location.href = prefix + "login.html";
@@ -183,7 +214,12 @@ const Auth = {
 
   // ── Interní ────────────────────────────────────────────────
   _getSession() {
-    try { return JSON.parse(sessionStorage.getItem(this.SESSION_KEY)); }
-    catch { return null; }
+    try {
+      const raw = sessionStorage.getItem(this.SESSION_KEY);
+      if (raw == null || raw === "") return null;
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
   },
 };
