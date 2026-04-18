@@ -27,7 +27,19 @@
       .replace(/"/g, "&quot;");
   }
 
-  /** Soubory z Google Disku (prefix applicationId_) + volitelně správcovské opravení sdílení. */
+  function buildPostAwardBlobDownloadUrl(competitionId, applicationId, blobKey) {
+    if (typeof API_URL === "undefined" || typeof Auth === "undefined") return "";
+    var session = Auth._getSession && Auth._getSession();
+    var u = new URL(API_URL);
+    u.searchParams.set("action", "downloadConnectPostAwardFile");
+    u.searchParams.set("competitionId", String(competitionId || ""));
+    u.searchParams.set("applicationId", String(applicationId || ""));
+    u.searchParams.set("blobKey", String(blobKey || ""));
+    if (session && session.token) u.searchParams.set("token", session.token);
+    return u.toString();
+  }
+
+  /** Přílohy části 2: tabulka (POSTAWARD_FILE_BLOBS); volitelně legacy z Disku. */
   function buildUploadedDriveFilesHtml(data) {
     var files = data.uploaded_drive_files || [];
     var showAdm = !!data.showAdminDriveTools;
@@ -42,13 +54,46 @@
         escapeHtml("Stáhnout PDF přehled (text žádosti, část 2, odkazy)") +
         "</a></p>"
       : "";
+    var cid = String((data && data.competitionId) || "");
+    var aid = String((data && data.applicationId) || "");
     var list =
       files.length > 0
         ? '<ul style="margin:8px 0 0;padding-left:20px;line-height:1.5;">' +
           files
             .map(function (f) {
-              var id = escapeHtml(String(f.id || ""));
               var nm = escapeHtml(String(f.name || ""));
+              var idRaw = String(f.id || "").trim();
+              var isPostAwardBlob =
+                !!(f.isSheetBlob || /^paward_/i.test(idRaw)) && cid && aid && idRaw;
+              if (isPostAwardBlob) {
+                var blobUrl = buildPostAwardBlobDownloadUrl(cid, aid, f.id);
+                if (!blobUrl) {
+                  return (
+                    "<li style=\"margin:6px 0;\">" +
+                    "<span style=\"font-family:'DM Mono',monospace;font-size:12px;\">" +
+                    nm +
+                    "</span> — <span style=\"color:var(--muted);font-size:12px;\">(chybí API_URL / Auth)</span></li>"
+                  );
+                }
+                return (
+                  "<li style=\"margin:6px 0;\">" +
+                  "<span style=\"font-family:'DM Mono',monospace;font-size:12px;\">" +
+                  nm +
+                  "</span><br>" +
+                  '<a href="' +
+                  escapeHtml(blobUrl) +
+                  '" target="_blank" rel="noopener">Stáhnout / otevřít z aplikace</a></li>'
+                );
+              }
+              var id = escapeHtml(idRaw);
+              if (!idRaw) {
+                return (
+                  "<li style=\"margin:6px 0;\">" +
+                  "<span style=\"font-family:'DM Mono',monospace;font-size:12px;\">" +
+                  nm +
+                  '</span> — <span style="color:var(--muted);font-size:12px;">(chybí ID souboru)</span></li>'
+                );
+              }
               var view = "https://drive.google.com/file/d/" + id + "/view";
               var dl = "https://drive.google.com/uc?export=download&id=" + id;
               return (
@@ -69,15 +114,14 @@
             var hint = data.attachments_drive_scan_note
               ? escapeHtml(String(data.attachments_drive_scan_note))
               : escapeHtml(
-                  "V tomto seznamu se zobrazují jen soubory ve sdílené složce soutěže, jejichž název začíná na ID vaší přihlášky a podtržítko (nahrání tlačítkem níže). " +
-                    "Soubor nahraný ručně pod jiným názvem nebo do podsložky zde nemusí být vidět — použijte pole manifestu nebo odkaz na složku."
+                  "Soubory nahrané tlačítkem níže se ukládají do tabulky soutěže (bez Google Disku). Doplňte manifest, pokud posíláte něco e-mailem."
                 );
             var fu = String(data.attachmentsDriveFolderUrl || "").trim();
             var fl =
               fu.indexOf("https://drive.google.com/") === 0
                 ? '<p style="margin-top:8px"><a href="' +
                   escapeHtml(fu) +
-                  '" target="_blank" rel="noopener">Otevřít sdílenou složku soutěže na Google Disku</a></p>'
+                  '" target="_blank" rel="noopener">Otevřít sdílenou složku na Google Disku (legacy)</a></p>'
                 : "";
             return (
               '<p style="font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5;">' +
@@ -89,7 +133,7 @@
           })();
     return (
       '<div class="pa-drive-files" style="margin-top:14px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--r);background:rgba(232,237,248,.4);">' +
-      '<p style="font-size:12px;font-weight:600;color:var(--navy);margin:0 0 6px;">Soubory zobrazené aplikací (složka soutěže — název souboru musí začínat ID přihlášky_)</p>' +
+      '<p style="font-size:12px;font-weight:600;color:var(--navy);margin:0 0 6px;">Přílohy části 2 (aplikace; případně Disk při legacy režimu)</p>' +
       list +
       adm +
       pdfLine +
@@ -286,17 +330,29 @@
       : "<p class=\"postaward-mail\">E-mail administrátorky doplníte v CONFIG listu (coordinator_email) nebo kontaktujte OVTZ.</p>";
 
     var folderHref = String(data.attachmentsDriveFolderUrl || "").trim();
-    if (!/^https:\/\/drive\.google\.com\//.test(folderHref)) {
-      folderHref = "https://drive.google.com/drive/folders/1oJ7qujZhIBygFYgiN5Im7fmpKbeADDDi";
+    var legacyFolderHint = "";
+    if (/^https:\/\/drive\.google\.com\//.test(folderHref)) {
+      legacyFolderHint =
+        '<p class="pa-attach-picker__hint" style="margin-top:8px">Volitelný výpis ze složky na Disku (legacy, CONFIG connect_postaward_legacy_drive_files): <a href="' +
+        escapeHtml(folderHref) +
+        '" target="_blank" rel="noopener">otevřít složku</a></p>';
     }
     const attachPicker = readOnly
       ? ""
       : '<div class="pa-attach-picker">' +
-        '<label class="pa-attach-picker__lbl" for="pa_attach_files">Nahrát soubory na sdílený Disk (složka soutěže)</label>' +
+        '<label class="pa-attach-picker__lbl" for="pa_attach_files">' +
+        escapeHtml(paTx("uploadLabel", "Nahrát soubory do aplikace (tabulka soutěže, bez Google Disku)")) +
+        "</label>" +
         '<input type="file" id="pa_attach_files" multiple>' +
-        '<p class="pa-attach-picker__hint">Soubory se uloží do <a href="' +
-        folderHref +
-        '" target="_blank" rel="noopener">této složky na Google Disku</a> (název souboru začíná ID přihlášky_). Do pole manifestu se dopíše odkaz (max. 18 MB na soubor). Nahrává přihlášený <strong>žadatel</strong> uvedený u přihlášky, případně účet se rolí <strong>ADMIN</strong> nebo <strong>TESTER</strong> u soutěže Connect. Doplňte položky ručně nebo poznámku dle potřeby.</p>' +
+        '<p class="pa-attach-picker__hint">' +
+        escapeHtml(
+          paTx(
+            "uploadHint",
+            "Soubory se ukládají do tabulky soutěže (bez Disku). Po nahrání je stáhnete odkazem v seznamu níže; do pole manifestu se dopíše řádek s názvem (max. 18 MB). Nahrává přihlášený žadatel uvedený u přihlášky nebo ADMIN/TESTER u Connect."
+          )
+        ) +
+        "</p>" +
+        legacyFolderHint +
         "</div>";
 
     const part1Hint =
@@ -600,6 +656,11 @@
         .repairConnectPostAwardAttachmentSharing(competitionId, applicationId)
         .then(function (res) {
           if (res && res.error) throw new Error(res.error);
+          if (res && res.skipped) {
+            if (st) st.textContent = String(res.message || "").slice(0, 180);
+            showToast(res.message || "Oprava Disku se nepoužívá.");
+            return remount();
+          }
           if (st) st.textContent = "Upraveno souborů: " + (res.filesTouched != null ? res.filesTouched : 0);
           showToast("Sdílení příloh na Disku bylo obnoveno.");
           return remount();
@@ -794,7 +855,9 @@
             try {
               var res = await client.uploadConnectPostAwardAttachment(competitionId, applicationId, file);
               if (!res || res.error) throw new Error((res && res.error) || "Server nevrátil potvrzení nahrání.");
-              var line = (res && res.name ? res.name : file.name) + " → " + (res && res.url ? res.url : "");
+              var line =
+                (res && res.name ? res.name : file.name) +
+                (res && res.isSheetBlob ? " → uloženo v aplikaci (tabulka)" : " → " + (res && res.url ? res.url : ""));
               ta.value = ta.value.trim() ? ta.value.trim() + "\n" + line : line;
               ok++;
             } catch (err) {
