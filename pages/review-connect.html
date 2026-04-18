@@ -590,10 +590,27 @@ async function loadReviewConnectAttachments() {
       parts.push("<strong>Dokumenty z podacího formuláře</strong><ul style=\"margin:6px 0 0 18px\">");
       hints.forEach(function (h) {
         const v = String(h.value || "");
-        const link =
-          h.isLikelyUrl
-            ? '<a href="' + escAttr(v) + '" target="_blank" rel="noopener">otevřít odkaz</a>'
-            : esc(v);
+        const appAid = String(h.application_id || (cur && cur.application_id) || "").trim();
+        var link;
+        if (h.isSheetBlob && appAid && h.field_id) {
+          const u = new URL(API_URL);
+          u.searchParams.set("action", "downloadConnectApplicationFile");
+          u.searchParams.set("competitionId", CID);
+          u.searchParams.set("applicationId", appAid);
+          u.searchParams.set("fieldId", String(h.field_id));
+          const s = Auth._getSession();
+          if (s && s.token) u.searchParams.set("token", s.token);
+          link =
+            '<a href="' +
+            escAttr(u.toString()) +
+            '" target="_blank" rel="noopener">PDF (úložiště aplikace)</a> · <span style="font-family:DM Mono,monospace;font-size:12px">' +
+            esc(v) +
+            "</span>";
+        } else if (h.isLikelyUrl) {
+          link = '<a href="' + escAttr(v) + '" target="_blank" rel="noopener">otevřít odkaz</a>';
+        } else {
+          link = esc(v);
+        }
         parts.push("<li><code>" + esc(h.field_id) + "</code>: " + link + "</li>");
       });
       parts.push("</ul>");
