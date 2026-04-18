@@ -244,10 +244,8 @@ const API = {
   },
 
   /**
-   * Stažení binárního souboru z Web Appu (POST + token v těle).
-   * Otevře PDF v novém panelu jako blob: URL (obchází nešťastné přesměrování / chyby u GET na script.google.com).
-   * Tělo jako application/x-www-form-urlencoded = „simple request“ bez CORS preflightu
-   * (některé sítě / prohlížeče u POST na script.google.com s JSON nebo text/plain hlásí „Failed to fetch“).
+   * Otevře PDF z Web Appu v novém tabu — bez fetch() (u script.google.com často „Failed to fetch“ kvůli CORS).
+   * Primárně GET s parametry (doGet vrací PDF). Při příliš dlouhé URL: POST formulář s target=_blank.
    */
   async openConnectBinaryDownload(action, fields) {
     const session = Auth._getSession();
@@ -258,114 +256,71 @@ const API = {
           : "Pro stažení souboru se přihlaste.";
       throw new Error(msg);
     }
-    /** Otevřít okno hned (v rámci kliknutí). Po await fetch() by prohlížeč popup s blob: URL často zablokoval. */
-    let pdfWindow = null;
+    let getUrl = "";
     try {
-      /* Bez noopener – jinak některé prohlížeče vrátí null a nelze pak přiřadit location s PDF. */
-      pdfWindow = window.open("about:blank", "_blank");
-    } catch (eWin) {
-      pdfWindow = null;
+      const u = new URL(API_URL);
+      u.searchParams.set("action", action);
+      u.searchParams.set("token", session.token);
+      Object.entries(fields || {}).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && String(v) !== "") u.searchParams.set(k, String(v));
+      });
+      getUrl = u.toString();
+    } catch (eUrl) {
+      throw new Error(
+        typeof I18n !== "undefined" && I18n.t ? I18n.t("api.downloadNetworkError") : "Neplatná adresa API."
+      );
     }
-    const params = new URLSearchParams();
-    params.set("action", action);
-    params.set("token", session.token);
-    Object.entries(fields || {}).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && String(v) !== "") params.set(k, String(v));
-    });
-    const closePlaceholder = () => {
+
+    const openInNewTab = (href) => {
+      let w = null;
       try {
-        if (pdfWindow && !pdfWindow.closed) pdfWindow.close();
-      } catch (e) {
-        /* ignore */
+        w = window.open(href, "_blank", "noopener,noreferrer");
+      } catch (e0) {
+        w = null;
+      }
+      if (!w) {
+        const a = document.createElement("a");
+        a.href = href;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
       }
     };
-    let res;
-    try {
-      res = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: params.toString(),
-      });
-    } catch (e) {
-      closePlaceholder();
-      const hint =
-        typeof I18n !== "undefined" && I18n.t
-          ? I18n.t("api.downloadNetworkError")
-          : "Spojení se serverem selhalo. Zkuste znovu nebo jinou síť.";
-      throw new Error(hint);
-    }
-    const ct = (res.headers.get("content-type") || "").toLowerCase();
-    if (!res.ok) {
-      closePlaceholder();
-      const t = await res.text().catch(() => "");
-      throw new Error((t && t.slice(0, 500)) || "HTTP " + res.status);
-    }
-    /** Apps Script někdy vrátí text/plain i pro PDF; ověření podle hlavičky souboru %PDF-. */
-    const buf = await res.arrayBuffer();
-    const head = new Uint8Array(buf.slice(0, 5));
-    /* PDF začíná ASCII „%PDF“ (0x25 0x50 0x44 0x46), pátý znak bývá „-“ u verze */
-    const pdfMagic =
-      head.length >= 4 &&
-      head[0] === 0x25 &&
-      head[1] === 0x50 &&
-      head[2] === 0x44 &&
-      head[3] === 0x46;
-    const looksLikePdf =
-      pdfMagic ||
-      ct.indexOf("application/pdf") >= 0 ||
-      ct.indexOf("application/octet-stream") >= 0 ||
-      ct.indexOf("binary/octet-stream") >= 0;
-    if (looksLikePdf) {
-      const blob = new Blob([buf], { type: "application/pdf" });
-      const u = URL.createObjectURL(blob);
-      let opened = false;
-      if (pdfWindow && !pdfWindow.closed) {
-        try {
-          pdfWindow.location.assign(u);
-          opened = true;
-        } catch (eLoc) {
-          /* fallback */
-        }
-      }
-      if (!opened) {
-        const w = window.open(u, "_blank", "noopener,noreferrer");
-        if (!w) {
-          const a = document.createElement("a");
-          a.href = u;
-          a.target = "_blank";
-          a.rel = "noopener";
-          a.download = "dokument.pdf";
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-        }
-      }
-      setTimeout(() => {
-        try {
-          URL.revokeObjectURL(u);
-        } catch (e) {
-          /* ignore */
-        }
-      }, 300000);
+
+    if (getUrl.length <= 7500) {
+      openInNewTab(getUrl);
       return;
     }
-    closePlaceholder();
-    var errTxt = "";
-    try {
-      errTxt = new TextDecoder("utf-8").decode(buf);
-    } catch (eDec) {
-      errTxt = "";
-    }
-    if (errTxt) {
+
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = API_URL;
+    form.target = "_blank";
+    form.acceptCharset = "UTF-8";
+    form.style.display = "none";
+    const addField = (name, val) => {
+      const inp = document.createElement("input");
+      inp.type = "hidden";
+      inp.name = name;
+      inp.value = String(val);
+      form.appendChild(inp);
+    };
+    addField("action", action);
+    addField("token", session.token);
+    Object.entries(fields || {}).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && String(v) !== "") addField(k, v);
+    });
+    document.body.appendChild(form);
+    form.submit();
+    setTimeout(() => {
       try {
-        const j = JSON.parse(errTxt);
-        if (j && j.error) throw new Error(String(j.error));
-      } catch (eOut) {
-        if (eOut instanceof Error && String(eOut.message || "").length && !String(eOut.message).includes("Neočekávaná"))
-          throw eOut;
+        form.remove();
+      } catch (eR) {
+        /* ignore */
       }
-    }
-    throw new Error((errTxt && errTxt.slice(0, 500)) || "Neočekávaná odpověď serveru.");
+    }, 500);
   },
 };
 
