@@ -1397,6 +1397,14 @@ function getConnectPostAward(competitionId, applicationId, token) {
 
   var appFileHints = connectApplicationFileFieldHints_(fd);
 
+  var cid = String(competitionId || "").trim();
+  var adminTesterConnectEdit =
+    priv &&
+    authHasAnyRole_(auth, ["ADMIN", "TESTER"]) &&
+    cid === CONNECT_COMPETITION_ID &&
+    isSupportedOutcome &&
+    !previewMode;
+
   return {
     success: true,
     applicable: true,
@@ -1452,7 +1460,7 @@ function getConnectPostAward(competitionId, applicationId, token) {
           ? checklist.budget_line_notes
           : {},
     },
-    canEdit: owner && isSupportedOutcome,
+    canEdit: (owner && isSupportedOutcome) || adminTesterConnectEdit,
     /** Soubory v kořeni sdílené složky s názvem začínajícím na applicationId_ (ne vše, co může být na Disku). */
     uploaded_drive_files: connectListPostAwardDriveFilesForApp_(aid),
     /** Oprávnění ke správcovským akcím u příloh na Disku (sdílení). */
@@ -1569,10 +1577,11 @@ function adminExportConnectProjectDossierPdf(competitionId, applicationId, token
 }
 
 /**
- * Uložení self-checklistu řešitele (jen vlastník řádku, jen SUPPORT/CUT).
+ * Uložení self-checklistu řešitele (vlastník řádku nebo ADMIN/TESTER u UHK Connect; jen Podpořeno/Kráceno).
  */
 function saveConnectPostAward(body) {
   var auth = requireAuth(body.token);
+  var me = String(auth.email || "").toLowerCase().trim();
   var competitionId = body.competitionId;
   var applicationId = String(body.applicationId || "").trim();
   if (!competitionId || !applicationId) throw new Error("chybí competitionId nebo applicationId");
@@ -1590,9 +1599,10 @@ function saveConnectPostAward(body) {
   });
   if (!row) throw new Error("Přihláška nenalezena.");
 
-  var me = String(auth.email || "").toLowerCase().trim();
-  if (String(row.applicant_email || "").toLowerCase().trim() !== me)
-    throw new Error("Ukládat checklist může jen žadatel/řešitel uvedený u přihlášky.");
+  if (!connectIsApplicantOrAdminTesterPostAward_(auth, competitionId, row.applicant_email))
+    throw new Error(
+      "Ukládat checklist může jen žadatel/řešitel uvedený u přihlášky, nebo účet správce/tester u soutěži UHK Connect."
+    );
 
   var outcome = findProrektorOutcomeForApp_(ss, applicationId, row);
   var dec = connectOutcomeDecisionCode_(outcome);
@@ -2117,11 +2127,22 @@ function repairConnectPostAwardAttachmentSharing(body) {
 }
 
 /**
+ * Žadatel vlastní řádek, nebo ADMIN/TESTER u soutěže UHK Connect (testování / zápis za řešitele).
+ */
+function connectIsApplicantOrAdminTesterPostAward_(auth, competitionId, applicantEmail) {
+  var me = String(auth.email || "").toLowerCase().trim();
+  if (String(applicantEmail || "").toLowerCase().trim() === me) return true;
+  if (String(competitionId || "").trim() !== CONNECT_COMPETITION_ID) return false;
+  return authHasAnyRole_(auth, ["ADMIN", "TESTER"]);
+}
+
+/**
  * Nahraje jeden soubor do sdílené složky na Disku (Connect – část 2).
  * body: token, competitionId, applicationId, fileName, mimeType, fileBase64 (čistý base64 nebo data URL)
  */
 function uploadConnectPostAwardAttachment(body) {
   var auth = requireAuth(body.token);
+  var me = String(auth.email || "").toLowerCase().trim();
   var competitionId = body.competitionId;
   var applicationId = String(body.applicationId || "").trim();
   var fileName = String(body.fileName || "soubor").trim();
@@ -2144,9 +2165,10 @@ function uploadConnectPostAwardAttachment(body) {
   });
   if (!row) throw new Error("Přihláška nenalezena.");
 
-  var me = String(auth.email || "").toLowerCase().trim();
-  if (String(row.applicant_email || "").toLowerCase().trim() !== me)
-    throw new Error("Nahrávat přílohy může jen žadatel/řešitel uvedený u přihlášky.");
+  if (!connectIsApplicantOrAdminTesterPostAward_(auth, competitionId, row.applicant_email))
+    throw new Error(
+      "Nahrávat přílohy může jen žadatel/řešitel uvedený u přihlášky, nebo účet správce/tester u soutěže UHK Connect (stejný e-mail jako u přihlášky, případně role ADMIN/TESTER)."
+    );
 
   var outcome = findProrektorOutcomeForApp_(ss, applicationId, row);
   var dec = connectOutcomeDecisionCode_(outcome);
