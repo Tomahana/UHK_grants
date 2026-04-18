@@ -179,6 +179,7 @@
     <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
       <button type="button" class="btn btn-navy" onclick="exportConnectDeliverablesCsv()">Export Connect (CSV)</button>
       <button type="button" class="btn btn-outline" onclick="exportSelectedConnectAttachmentsLinksHtml()">HTML přehled příloh (vybrané Connect)</button>
+      <button type="button" class="btn btn-outline" onclick="openSelectedApplicantsEmailModal()">E-maily vybraných…</button>
       <button class="btn btn-outline" onclick="loadAll()">↺ Obnovit</button>
     </div>
   </div>
@@ -235,8 +236,8 @@
     <table>
       <thead>
         <tr>
-          <th style="width:40px;text-align:center;" title="Výběr pro export příloh Connect">
-            <input type="checkbox" id="selectAllApps" onclick="event.stopPropagation();toggleSelectAllFiltered(event)" aria-label="Vybrat vše zobrazené Connect">
+          <th style="width:40px;text-align:center;" title="Výběr řádků (export příloh Connect, seznam e-mailů žadatelů…)">
+            <input type="checkbox" id="selectAllApps" onclick="event.stopPropagation();toggleSelectAllFiltered(event)" aria-label="Vybrat vše zobrazené přihlášky">
           </th>
           <th onclick="sortBy('application_id')">ID ↕</th>
           <th onclick="sortBy('competition_id')">Soutěž ↕</th>
@@ -274,6 +275,29 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- MODAL: E-maily vybraných přihlášek -->
+<div class="modal-bg" id="emailModal" onclick="if (event.target === this) closeEmailModal()">
+  <div class="modal" style="max-width: 560px" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">E-maily žadatelů</div>
+        <div class="modal-sub" id="emailModalSub">Vybrané přihlášky</div>
+      </div>
+      <button type="button" class="modal-close" onclick="closeEmailModal()" aria-label="Zavřít">✕</button>
+    </div>
+    <div class="modal-body" id="emailModalBody"></div>
+    <div class="modal-footer" style="flex-wrap: wrap; justify-content: space-between">
+      <span style="font-size: 12px; color: var(--muted); max-width: 100%"
+        >Stejná adresa u více přihlášek je v seznamu jen jednou. Pole označíte kliknutím (Ctrl+C).</span>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap">
+        <button type="button" class="btn btn-outline" onclick="copyEmailListFormat('lines')">Kopírovat (řádky)</button>
+        <button type="button" class="btn btn-outline" onclick="copyEmailListFormat('comma')">Kopírovat (čárky)</button>
+        <button type="button" class="btn btn-navy" onclick="closeEmailModal()">Zavřít</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script src="../js/config.js"></script>
 <script src="../js/i18n.js"></script>
@@ -388,6 +412,84 @@
     document.querySelectorAll("#tableBody .appSel").forEach((b) => {
       b.checked = master.checked;
     });
+  }
+
+  function getSelectedApplicationsFromTable_() {
+    const boxes = [...document.querySelectorAll("#tableBody .appSel:checked")];
+    const out = [];
+    for (const b of boxes) {
+      const id = String(b.dataset.app || "").trim();
+      if (!id) continue;
+      const a = allApps.find((x) => String(x.application_id || "").trim() === id);
+      if (a) out.push(a);
+    }
+    return out;
+  }
+
+  function closeEmailModal() {
+    const m = document.getElementById("emailModal");
+    if (m) m.classList.remove("open");
+  }
+
+  function openSelectedApplicantsEmailModal() {
+    const apps = getSelectedApplicationsFromTable_();
+    if (!apps.length) {
+      showToast("Vyberte alespoň jednu přihlášku zaškrtávacím sloupcem vlevo.", "err");
+      return;
+    }
+    const seen = new Set();
+    const emails = [];
+    for (const a of apps) {
+      const raw = String(a.applicant_email || "").trim();
+      const low = raw.toLowerCase();
+      if (!low || seen.has(low)) continue;
+      seen.add(low);
+      emails.push(raw);
+    }
+    const lineText = emails.join("\n");
+    const commaText = emails.join(", ");
+    const sub = document.getElementById("emailModalSub");
+    if (sub) {
+      sub.textContent =
+        "Vybraných přihlášek: " + apps.length + " · jedinečných e-mailů: " + emails.length;
+    }
+    const body = document.getElementById("emailModalBody");
+    if (body) {
+      body.innerHTML =
+        '<p style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.55">' +
+        "Seznam obsahuje e-mailové adresy žadatelů u zaškrtnutých řádků (podle aktuálního filtru tabulky). " +
+        "Formát <strong>čárky</strong> je vhodný například pro pole skrytá kopie (BCC).</p>" +
+        '<label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Jeden e-mail na řádek</label>' +
+        '<textarea id="emailListLines" readonly rows="' +
+        Math.min(16, Math.max(4, emails.length + 1)) +
+        '" style="width:100%;font-family:DM Mono,monospace;font-size:12px;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;resize:vertical;box-sizing:border-box" onclick="this.select()"></textarea>' +
+        '<label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 6px">Oddělené čárkou</label>' +
+        '<textarea id="emailListComma" readonly rows="3" style="width:100%;font-family:DM Mono,monospace;font-size:12px;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;resize:vertical;box-sizing:border-box" onclick="this.select()"></textarea>';
+      const t1 = document.getElementById("emailListLines");
+      const t2 = document.getElementById("emailListComma");
+      if (t1) t1.value = lineText;
+      if (t2) t2.value = commaText;
+    }
+    document.getElementById("emailModal").classList.add("open");
+  }
+
+  async function copyEmailListFormat(kind) {
+    const id = kind === "comma" ? "emailListComma" : "emailListLines";
+    const ta = document.getElementById(id);
+    if (!ta) return;
+    const text = ta.value;
+    if (!text) {
+      showToast("Žádné e-maily ke kopírování.", "err");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast(kind === "comma" ? "Seznam (čárky) zkopírován do schránky." : "Seznam (řádky) zkopírován do schránky.");
+    } catch {
+      ta.focus();
+      ta.select();
+      showToast("Zkopírujte výběr ručně (Ctrl+C).", "err");
+    }
   }
 
   function buildConnectAttachmentsSectionHtml_(title, app, files, manifestText, noteHtml, folderUrl, scanNote) {
@@ -879,10 +981,9 @@
         quickBtns = `<button class="btn-sm btn-sm-primary" onclick="quickAction(event,'${a.application_id}','${a.competition_id}','IN_REVIEW')">Spustit review</button>`;
       }
 
-      const selTd =
-        a.competition_id === CONNECT_EXPORT_ID
-          ? `<td onclick="event.stopPropagation()" style="text-align:center;vertical-align:middle"><input class="appSel" type="checkbox" data-app="${a.application_id}" data-comp="${a.competition_id}" aria-label="Vybrat pro export příloh"></td>`
-          : `<td onclick="event.stopPropagation()"></td>`;
+      const selTd = `<td onclick="event.stopPropagation()" style="text-align:center;vertical-align:middle"><input class="appSel" type="checkbox" data-app="${escapeHtmlCoord(
+        a.application_id
+      )}" data-comp="${escapeHtmlCoord(a.competition_id)}" aria-label="Vybrat přihlášku (export / e-maily)"></td>`;
 
       return `<tr onclick="openDetail('${a.application_id}')">
         ${selTd}
@@ -898,6 +999,8 @@
         </td>
       </tr>`;
     }).join("");
+    const master = document.getElementById("selectAllApps");
+    if (master) master.checked = false;
   }
 
   // ── Rychlá akce z tabulky ─────────────────────────────────
