@@ -293,6 +293,7 @@
       <div style="display: flex; gap: 8px; flex-wrap: wrap">
         <button type="button" class="btn btn-outline" onclick="copyEmailListFormat('lines')">Kopírovat (řádky)</button>
         <button type="button" class="btn btn-outline" onclick="copyEmailListFormat('comma')">Kopírovat (čárky)</button>
+        <button type="button" class="btn btn-outline" onclick="copyEmailListFormat('semi')">Kopírovat (středníky)</button>
         <button type="button" class="btn btn-navy" onclick="closeEmailModal()">Zavřít</button>
       </div>
     </div>
@@ -448,6 +449,7 @@
     }
     const lineText = emails.join("\n");
     const commaText = emails.join(", ");
+    const semiText = emails.join("; ");
     const sub = document.getElementById("emailModalSub");
     if (sub) {
       sub.textContent =
@@ -458,23 +460,28 @@
       body.innerHTML =
         '<p style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.55">' +
         "Seznam obsahuje e-mailové adresy žadatelů u zaškrtnutých řádků (podle aktuálního filtru tabulky). " +
-        "Formát <strong>čárky</strong> je vhodný například pro pole skrytá kopie (BCC).</p>" +
+        "Formáty <strong>čárky</strong> nebo <strong>středníky</strong> používají některé poštovní klienty (např. skrytá kopie).</p>" +
         '<label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Jeden e-mail na řádek</label>' +
         '<textarea id="emailListLines" readonly rows="' +
         Math.min(16, Math.max(4, emails.length + 1)) +
         '" style="width:100%;font-family:DM Mono,monospace;font-size:12px;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;resize:vertical;box-sizing:border-box" onclick="this.select()"></textarea>' +
         '<label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 6px">Oddělené čárkou</label>' +
-        '<textarea id="emailListComma" readonly rows="3" style="width:100%;font-family:DM Mono,monospace;font-size:12px;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;resize:vertical;box-sizing:border-box" onclick="this.select()"></textarea>';
+        '<textarea id="emailListComma" readonly rows="3" style="width:100%;font-family:DM Mono,monospace;font-size:12px;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;resize:vertical;box-sizing:border-box" onclick="this.select()"></textarea>' +
+        '<label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 6px">Oddělené středníkem</label>' +
+        '<textarea id="emailListSemi" readonly rows="3" style="width:100%;font-family:DM Mono,monospace;font-size:12px;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;resize:vertical;box-sizing:border-box" onclick="this.select()"></textarea>';
       const t1 = document.getElementById("emailListLines");
       const t2 = document.getElementById("emailListComma");
+      const t3 = document.getElementById("emailListSemi");
       if (t1) t1.value = lineText;
       if (t2) t2.value = commaText;
+      if (t3) t3.value = semiText;
     }
     document.getElementById("emailModal").classList.add("open");
   }
 
   async function copyEmailListFormat(kind) {
-    const id = kind === "comma" ? "emailListComma" : "emailListLines";
+    const id =
+      kind === "comma" ? "emailListComma" : kind === "semi" ? "emailListSemi" : "emailListLines";
     const ta = document.getElementById(id);
     if (!ta) return;
     const text = ta.value;
@@ -482,9 +489,15 @@
       showToast("Žádné e-maily ke kopírování.", "err");
       return;
     }
+    const msg =
+      kind === "comma"
+        ? "Seznam (čárky) zkopírován do schránky."
+        : kind === "semi"
+          ? "Seznam (středníky) zkopírován do schránky."
+          : "Seznam (řádky) zkopírován do schránky.";
     try {
       await navigator.clipboard.writeText(text);
-      showToast(kind === "comma" ? "Seznam (čárky) zkopírován do schránky." : "Seznam (řádky) zkopírován do schránky.");
+      showToast(msg);
     } catch {
       ta.focus();
       ta.select();
