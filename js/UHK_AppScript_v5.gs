@@ -1286,6 +1286,98 @@ function findApplicationsSheetRowNumber_(sheet, applicationId) {
   return -1;
 }
 
+/** Přepíše buňku form_data_json u řádku s daným application_id. */
+function applicationsSetFormDataJsonForAppId_(sheet, applicationId, fdObj) {
+  var rowNum = findApplicationsSheetRowNumber_(sheet, applicationId);
+  if (rowNum < 0) return false;
+  var data = sheet.getDataRange().getValues();
+  var COL = mapColumns(data[HEADER_ROW - 1]);
+  var fCol = findCol(COL, "form_data_json", "form_data", "data_json", "json_data", "formdata", "prihlaska_json");
+  if (fCol < 0) return false;
+  sheet.getRange(rowNum, fCol + 1).setValue(JSON.stringify(fdObj || {}));
+  return true;
+}
+
+/**
+ * Nahraje jeden nebo více PDF z podacího formuláře Connect na Disk; vrátí mapu fieldId → URL.
+ * fileUploads: pole { fieldId, fileName, mimeType, fileBase64 }
+ */
+function connectProcessApplicationFileUploads_(ss, competitionId, applicationId, applicantLower, fileUploads) {
+  var patch = {};
+  if (!fileUploads || !fileUploads.length) return patch;
+  if (String(competitionId || "").trim() !== CONNECT_COMPETITION_ID) {
+    throw new Error("Přílohy PDF z formuláře jsou jen pro soutěž UHK Connect.");
+  }
+  var sheet = ss.getSheetByName(SHEETS.APPLICATIONS);
+  if (!sheet) throw new Error("List APPLICATIONS nenalezen.");
+  var rows = sheetToObjects(sheet).map(applicationsSheetRowNormalize_);
+  var row = rows.find(function (r) {
+    return String(r.application_id || "").trim() === String(applicationId || "").trim();
+  });
+  if (!row) throw new Error("Koncept / přihláška nenalezena.");
+  if (String(row.applicant_email || "").toLowerCase().trim() !== applicantLower) {
+    throw new Error("K této přihlášce nemáte oprávnění nahrávat soubory.");
+  }
+  if (String(row.status || "").toUpperCase() !== "DRAFT") {
+    throw new Error("Soubor z podacího formuláře lze nahrávat jen u rozpracovaného konceptu (DRAFT).");
+  }
+
+  var allowed = { attach_invitation: 1, attach_annex1: 1, attach_annex2: 1, attach_annex3: 1 };
+  var maxBytes = 18 * 1024 * 1024;
+  var folder;
+  try {
+    folder = DriveApp.getFolderById(CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID);
+  } catch (e2) {
+    throw new Error("Složka pro přílohy na Disku není dostupná. Kontaktujte administrátora.");
+  }
+
+  for (var i = 0; i < fileUploads.length; i++) {
+    var item = fileUploads[i] || {};
+    var fieldId = String(item.fieldId || item.field_id || "").trim();
+    var fileName = String(item.fileName || "dokument.pdf").trim();
+    var mimeType = String(item.mimeType || "application/pdf").trim();
+    var b64 = item.fileBase64;
+    if (!allowed[fieldId]) throw new Error("Neplatné pole přílohy: " + fieldId);
+    var ext = fileName.indexOf(".") >= 0 ? fileName.split(".").pop().toLowerCase() : "";
+    if (ext !== "pdf") throw new Error("Povolen je pouze soubor PDF.");
+    var mtLow = mimeType.toLowerCase();
+    if (mtLow && mtLow.indexOf("pdf") < 0 && mtLow.indexOf("octet-stream") < 0) {
+      throw new Error("Soubor musí být typu PDF.");
+    }
+    if (!b64 || typeof b64 !== "string") throw new Error("Chybí obsah souboru u pole " + fieldId + ".");
+    var rawB64 = String(b64).replace(/\s/g, "");
+    var idx = rawB64.indexOf("base64,");
+    if (idx >= 0) rawB64 = rawB64.slice(idx + 7);
+    var bytes;
+    try {
+      bytes = Utilities.base64Decode(rawB64);
+    } catch (e) {
+      throw new Error("Neplatný formát souboru.");
+    }
+    if (!bytes || bytes.length < 1) throw new Error("Prázdný soubor.");
+    if (bytes.length > maxBytes) throw new Error("Soubor je příliš velký (max. 18 MB).");
+
+    var safe = fileName.replace(/[^a-zA-Z0-9._\-]/g, "_").replace(/_+/g, "_").slice(0, 120);
+    if (!/\.pdf$/i.test(safe)) safe = (safe || "dokument") + ".pdf";
+    var stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd_HHmmss");
+    var namePrefix = applicationId + "_apply_" + fieldId + "_";
+    connectTrashDriveFilesNamePrefixInFolder_(CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID, namePrefix);
+    var finalName = namePrefix + stamp + "_" + safe;
+
+    var blob = Utilities.newBlob(bytes, "application/pdf", finalName);
+    var driveFile = folder.createFile(blob);
+    driveFile.setName(finalName);
+    connectApplyViewSharingToPostAwardFile_(driveFile);
+    patch[fieldId] = driveFile.getUrl();
+    try {
+      writeAudit(ss, "CONNECT_APPLY_UPLOAD", applicationId, driveFile.getId(), finalName, applicantLower);
+    } catch (aud) {
+      /* ignore */
+    }
+  }
+  return patch;
+}
+
 function connectPostAwardPrivileged_(auth) {
   var rolesU = (auth.roles || []).map(function (x) {
     return String(x).trim().toUpperCase();
@@ -2264,81 +2356,14 @@ function uploadConnectApplicationAttachment(body) {
   var fileName = String(body.fileName || "dokument.pdf").trim();
   var mimeType = String(body.mimeType || "application/pdf").trim();
   var b64 = body.fileBase64;
-
-  if (competitionId !== CONNECT_COMPETITION_ID)
-    throw new Error("Nahrání přílohy z formuláře je jen pro soutěž UHK Connect.");
-
-  var allowed = { attach_invitation: 1, attach_annex1: 1, attach_annex2: 1, attach_annex3: 1 };
-  if (!allowed[fieldId]) throw new Error("Neplatné pole přílohy.");
-
-  var ext = fileName.indexOf(".") >= 0 ? fileName.split(".").pop().toLowerCase() : "";
-  if (ext !== "pdf") throw new Error("Povolen je pouze soubor PDF.");
-  var mtLow = mimeType.toLowerCase();
-  if (mtLow && mtLow.indexOf("pdf") < 0 && mtLow.indexOf("octet-stream") < 0)
-    throw new Error("Soubor musí být typu PDF.");
-
   if (!applicationId) throw new Error("Chybí ID přihlášky (koncept). Nejprve uložte rozpracovanou přihlášku, pak zvolte soubor znovu.");
-  if (!b64 || typeof b64 !== "string") throw new Error("Chybí obsah souboru.");
-
   var ss = getSpreadsheet(competitionId);
-  var sheet = ss.getSheetByName(SHEETS.APPLICATIONS);
-  if (!sheet) throw new Error("List APPLICATIONS nenalezen.");
-
-  var rows = sheetToObjects(sheet).map(applicationsSheetRowNormalize_);
-  var row = rows.find(function (r) {
-    return String(r.application_id || "").trim() === applicationId;
-  });
-  if (!row) throw new Error("Koncept / přihláška nenalezena.");
-  if (String(row.applicant_email || "").toLowerCase().trim() !== me)
-    throw new Error("K této přihlášce nemáte oprávnění nahrávat soubory.");
-  if (String(row.status || "").toUpperCase() !== "DRAFT")
-    throw new Error("Soubor z podacího formuláře lze nahrávat jen u rozpracovaného konceptu (DRAFT). Po odeslání přihlášky již nelze měnit.");
-
-  var maxBytes = 18 * 1024 * 1024;
-  var rawB64 = String(b64).replace(/\s/g, "");
-  var idx = rawB64.indexOf("base64,");
-  if (idx >= 0) rawB64 = rawB64.slice(idx + 7);
-  var bytes;
-  try {
-    bytes = Utilities.base64Decode(rawB64);
-  } catch (e) {
-    throw new Error("Neplatný formát souboru.");
-  }
-  if (!bytes || bytes.length < 1) throw new Error("Prázdný soubor.");
-  if (bytes.length > maxBytes) throw new Error("Soubor je příliš velký (max. 18 MB).");
-
-  var safe = fileName.replace(/[^a-zA-Z0-9._\-]/g, "_").replace(/_+/g, "_").slice(0, 120);
-  if (!/\.pdf$/i.test(safe)) safe = (safe || "dokument") + ".pdf";
-  var stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd_HHmmss");
-  var namePrefix = applicationId + "_apply_" + fieldId + "_";
-  connectTrashDriveFilesNamePrefixInFolder_(CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID, namePrefix);
-  var finalName = namePrefix + stamp + "_" + safe;
-
-  var folder;
-  try {
-    folder = DriveApp.getFolderById(CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID);
-  } catch (e2) {
-    throw new Error("Složka pro přílohy na Disku není dostupná. Kontaktujte administrátora.");
-  }
-
-  var blob = Utilities.newBlob(bytes, "application/pdf", finalName);
-  var driveFile = folder.createFile(blob);
-  driveFile.setName(finalName);
-  connectApplyViewSharingToPostAwardFile_(driveFile);
-
-  try {
-    writeAudit(ss, "CONNECT_APPLY_UPLOAD", applicationId, driveFile.getId(), finalName, me);
-  } catch (aud) {
-    /* ignore */
-  }
-
-  return {
-    success: true,
-    fieldId: fieldId,
-    name: driveFile.getName(),
-    url: driveFile.getUrl(),
-    id: driveFile.getId(),
-  };
+  var patch = connectProcessApplicationFileUploads_(ss, competitionId, applicationId, me, [
+    { fieldId: fieldId, fileName: fileName, mimeType: mimeType, fileBase64: b64 },
+  ]);
+  var url = patch[fieldId];
+  if (!url) throw new Error("Nahrání se nezdařilo.");
+  return { success: true, fieldId: fieldId, name: "", url: url, id: "" };
 }
 
 /**
@@ -3927,6 +3952,7 @@ function saveDraft(body) {
   const sCol   = findCol(COL, "status", "stav");
   const fCol   = findCol(COL, "form_data_json", "form_data", "data_json", "json_data", "formdata", "prihlaska_json");
   const uCol   = findCol(COL, "updated_at", "upraveno");
+  const idCol  = findCol(COL, "application_id", "id", "app_id", "project_id");
   if (eCol < 0 || sCol < 0 || fCol < 0)
     throw new Error("List APPLICATIONS: chybí sloupce applicant_email, status nebo form_data_json (záhlaví na řádku " + HEADER_ROW + ").");
 
@@ -3935,17 +3961,30 @@ function saveDraft(body) {
     const rowEmail  = String(data[i][eCol] || "").toLowerCase();
     const rowStatus = String(data[i][sCol] || "").toUpperCase();
     if (rowEmail === body.applicantEmail?.toLowerCase() && rowStatus === "DRAFT") {
-      // Aktualizuj existující řádek
-      sheet.getRange(i + 1, fCol + 1).setValue(JSON.stringify(body.formData || {}));
+      const appId = idCol >= 0 ? String(data[i][idCol] || "").trim() : String(data[i][0] || "").trim();
+      var fdUp = {};
+      try {
+        fdUp = Object.assign({}, body.formData || {});
+      } catch (e0) {
+        fdUp = {};
+      }
+      var patchUp = connectProcessApplicationFileUploads_(ss, body.competitionId, appId, applicant, body.fileUploads || []);
+      Object.assign(fdUp, patchUp);
+      sheet.getRange(i + 1, fCol + 1).setValue(JSON.stringify(fdUp));
       sheet.getRange(i + 1, uCol + 1).setValue(fmtDate(new Date()));
-      return { success: true, draftId: data[i][0] };
+      return { success: true, draftId: appId, uploadedFields: patchUp };
     }
   }
 
   // Vytvoř nový draft
   const newId = "APP-" + Utilities.formatDate(new Date(), "Europe/Prague", "yyMMdd") + "-" +
     Utilities.getUuid().substring(0, 5).toUpperCase();
-  var fd = body.formData || {};
+  var fd = {};
+  try {
+    fd = Object.assign({}, body.formData || {});
+  } catch (e1) {
+    fd = {};
+  }
   appendApplicationsRowFromMap(sheet, {
     application_id: newId,
     competition_id: body.competitionId,
@@ -3959,7 +3998,12 @@ function saveDraft(body) {
     note: "",
     project_title: fd.project_title ? String(fd.project_title) : "",
   });
-  return { success: true, draftId: newId };
+  var patchNew = connectProcessApplicationFileUploads_(ss, body.competitionId, newId, applicant, body.fileUploads || []);
+  if (patchNew && Object.keys(patchNew).length) {
+    Object.assign(fd, patchNew);
+    applicationsSetFormDataJsonForAppId_(sheet, newId, fd);
+  }
+  return { success: true, draftId: newId, uploadedFields: patchNew };
 }
 
 /** Název projektu z řádku APPLICATIONS. */
@@ -4347,8 +4391,16 @@ function submitApplication(body) {
     const rowStatus = String(data[i][sCol] || "").toUpperCase();
     if (rowEmail === body.applicantEmail?.toLowerCase() && rowStatus === "DRAFT") {
       const appId = idCol >= 0 ? String(data[i][idCol] || "").trim() : String(data[i][0] || "").trim();
+      var fdMerged = {};
+      try {
+        fdMerged = Object.assign({}, body.formData || {});
+      } catch (eM) {
+        fdMerged = {};
+      }
+      var patchS = connectProcessApplicationFileUploads_(ss, body.competitionId, appId, applicant, body.fileUploads || []);
+      Object.assign(fdMerged, patchS);
       sheet.getRange(i + 1, sCol + 1).setValue("SUBMITTED");
-      sheet.getRange(i + 1, fCol + 1).setValue(JSON.stringify(body.formData || {}));
+      sheet.getRange(i + 1, fCol + 1).setValue(JSON.stringify(fdMerged));
       sheet.getRange(i + 1, subCol + 1).setValue(fmtDate(new Date()));
       writeAudit(ss, "APPLICATION_SUBMITTED", data[i][0], "DRAFT", "SUBMITTED", body.applicantEmail);
 
@@ -4357,7 +4409,7 @@ function submitApplication(body) {
         body.competitionId,
         body.applicantName,
         body.applicantEmail,
-        body.formData || {},
+        fdMerged,
         appId
       );
       const subAt = fmtDate(new Date());
@@ -4367,7 +4419,7 @@ function submitApplication(body) {
             ss,
             body.competitionId,
             appId,
-            body.formData || {},
+            fdMerged,
             body.applicantEmail,
             body.applicantName,
             subAt
@@ -4375,7 +4427,7 @@ function submitApplication(body) {
       } catch (archE) {
         console.error("uhkTryArchiveFinalSubmissionPdf_: " + archE.message);
       }
-      return { success: true };
+      return { success: true, uploadedFields: patchS };
     }
   }
 
@@ -4383,7 +4435,12 @@ function submitApplication(body) {
   const newId = "APP-" + Utilities.formatDate(new Date(), "Europe/Prague", "yyMMdd") + "-" +
     Utilities.getUuid().substring(0, 5).toUpperCase();
   const now = fmtDate(new Date());
-  var fd2 = body.formData || {};
+  var fd2 = {};
+  try {
+    fd2 = Object.assign({}, body.formData || {});
+  } catch (e2) {
+    fd2 = {};
+  }
   appendApplicationsRowFromMap(sheet, {
     application_id: newId,
     competition_id: body.competitionId,
@@ -4397,6 +4454,11 @@ function submitApplication(body) {
     note: "",
     project_title: fd2.project_title ? String(fd2.project_title) : "",
   });
+  var patch2 = connectProcessApplicationFileUploads_(ss, body.competitionId, newId, applicant, body.fileUploads || []);
+  if (patch2 && Object.keys(patch2).length) {
+    Object.assign(fd2, patch2);
+    applicationsSetFormDataJsonForAppId_(sheet, newId, fd2);
+  }
   try {
     uhkTryArchiveFinalSubmissionPdf_(
       ss,
@@ -4418,7 +4480,7 @@ function submitApplication(body) {
     fd2,
     newId
   );
-  return { success: true };
+  return { success: true, uploadedFields: patch2 };
 }
 
 /**
