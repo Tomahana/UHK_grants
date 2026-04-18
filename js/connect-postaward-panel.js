@@ -37,7 +37,11 @@
         escapeHtml("Obnovit sdílení příloh na Disku (starší soubory)") +
         '</button> <span id="pa_repairSharingStatus" style="font-size:12px;color:var(--muted);"></span></p>'
       : "";
-    if (!files.length && !adm) return "";
+    var pdfLine = data.showAdminPdfExport
+      ? '<p style="margin-top:10px;"><a class="btn btn-secondary" id="pa_adminPdfLink" href="#" target="_blank" rel="noopener">' +
+        escapeHtml("Stáhnout PDF přehled (text žádosti, část 2, odkazy)") +
+        "</a></p>"
+      : "";
     var list =
       files.length > 0
         ? '<ul style="margin:8px 0 0;padding-left:20px;line-height:1.5;">' +
@@ -61,12 +65,34 @@
             })
             .join("") +
           "</ul>"
-        : '<p style="font-size:12px;color:var(--muted);margin-top:6px;">Žádné soubory nahrané přes tlačítko v aplikaci (pouze text v poli výše / ruční odkazy).</p>';
+        : (function () {
+            var hint = data.attachments_drive_scan_note
+              ? escapeHtml(String(data.attachments_drive_scan_note))
+              : escapeHtml(
+                  "V tomto seznamu se zobrazují jen soubory ve sdílené složce soutěže, jejichž název začíná na ID vaší přihlášky a podtržítko (nahrání tlačítkem níže). " +
+                    "Soubor nahraný ručně pod jiným názvem nebo do podsložky zde nemusí být vidět — použijte pole manifestu nebo odkaz na složku."
+                );
+            var fu = String(data.attachmentsDriveFolderUrl || "").trim();
+            var fl =
+              fu.indexOf("https://drive.google.com/") === 0
+                ? '<p style="margin-top:8px"><a href="' +
+                  escapeHtml(fu) +
+                  '" target="_blank" rel="noopener">Otevřít sdílenou složku soutěže na Google Disku</a></p>'
+                : "";
+            return (
+              '<p style="font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5;">' +
+              "<strong>Žádné soubory v tomto seznamu.</strong> " +
+              hint +
+              "</p>" +
+              fl
+            );
+          })();
     return (
       '<div class="pa-drive-files" style="margin-top:14px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--r);background:rgba(232,237,248,.4);">' +
-      '<p style="font-size:12px;font-weight:600;color:var(--navy);margin:0 0 6px;">Soubory nahrané přes aplikaci (složka soutěže na Google Disku)</p>' +
+      '<p style="font-size:12px;font-weight:600;color:var(--navy);margin:0 0 6px;">Soubory zobrazené aplikací (složka soutěže — název souboru musí začínat ID přihlášky_)</p>' +
       list +
       adm +
+      pdfLine +
       "</div>"
     );
   }
@@ -94,11 +120,15 @@
     const readOnly = !data.canEdit;
     const offB = Number(data.budgetOfficialCzk) || 0;
     const part1Title =
-      data.outcomeDecision === "CUT"
-        ? paTx("part1Cut", "Část 1 – Souhlas s krácením rozpočtu projektu")
-        : paTx("part1Alloc", "Část 1 – Souhlas s přidělením projektu");
+      data.outcomeDecision === "REJECT"
+        ? "Stav: Nepodpořeno (náhled pro správu)"
+        : data.outcomeDecision === "CUT"
+          ? paTx("part1Cut", "Část 1 – Souhlas s krácením rozpočtu projektu")
+          : paTx("part1Alloc", "Část 1 – Souhlas s přidělením projektu");
     const agreeBudgetLabel =
-      data.outcomeDecision === "CUT"
+      data.outcomeDecision === "REJECT"
+        ? "Projekt nebyl podpořen – souhlas se neuplatní."
+        : data.outcomeDecision === "CUT"
         ? paTx(
             "agreeCut",
             "Souhlasím se schváleným krácením rozpočtu podle položek v tabulce výše a s řešením projektu v tomto rozsahu."
@@ -469,9 +499,21 @@
     const detailHref = (ctx && ctx.detailHref) || "#";
     const myConnectHref = (ctx && ctx.myConnectHref) || "#";
 
+    const topBanner =
+      data.previewMode
+        ? '<div style="background:#fef3c7;border:1px solid #fbbf24;padding:12px 14px;border-radius:var(--r);margin-bottom:14px;font-size:13px;line-height:1.5;color:#92400e">' +
+          escapeHtml(
+            data.outcomeDecision === "REJECT"
+              ? "Náhled pro správu: přihláška nebyla podpořena. Údaje níže jsou pouze informativní."
+              : "Náhled pro komisi nebo správu: dokud prorektor nevydá stanovisko Podpořeno nebo Kráceno, může být v tabulce rozpočtu zobrazena žádost z přihlášky (ne závazné schválení)."
+          ) +
+          "</div>"
+        : "";
+
     if (mode === "consent") {
       return (
         '<div class="postaward-wrap">' +
+        topBanner +
         "<h3>Po schválení přihlášky</h3>" +
         '<p class="postaward-sub">Platí pro stanovisko <strong>' +
         escapeHtml(data.outcomeLabel || "") +
@@ -496,6 +538,7 @@
     if (mode === "closeout") {
       return (
         '<div class="postaward-wrap">' +
+        topBanner +
         "<h3>Část 2 – závěrečná zpráva, výstupy a vyúčtování</h3>" +
         '<p class="postaward-sub">Projekt: <strong>' +
         escapeHtml(ps.project_title || data.projectTitle || "—") +
@@ -517,6 +560,25 @@
     }
 
     return "<p class=\"postaward-mail\">Neznámý režim panelu.</p>";
+  }
+
+  function bindAdminPdfLink(competitionId, applicationId) {
+    var a = document.getElementById("pa_adminPdfLink");
+    if (!a) return;
+    var base = typeof API_URL !== "undefined" ? API_URL : "";
+    if (!base) return;
+    try {
+      var u = new URL(base);
+      u.searchParams.set("action", "adminExportConnectProjectDossierPdf");
+      u.searchParams.set("competitionId", competitionId);
+      u.searchParams.set("applicationId", applicationId);
+      var session =
+        typeof Auth !== "undefined" && Auth._getSession ? Auth._getSession() : null;
+      if (session && session.token) u.searchParams.set("token", session.token);
+      a.href = u.toString();
+    } catch (err) {
+      /* ignore */
+    }
   }
 
   function bindConnectPostAwardAdminDriveTools(competitionId, applicationId, showToast, remount, data) {
@@ -784,6 +846,7 @@
         },
       });
       bindConnectPostAwardAdminDriveTools(competitionId, applicationId, showToast, remount, data);
+      bindAdminPdfLink(competitionId, applicationId);
     } catch (e) {
       rootEl.innerHTML = '<p style="font-size:13px;color:#991B1B;">' + escapeHtml(e.message) + "</p>";
     }
