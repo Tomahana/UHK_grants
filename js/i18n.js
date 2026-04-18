@@ -338,6 +338,8 @@
         footerSavedAt: "Uloženo {{time}}",
         toastDraftSaved: "Draft uložen ✓",
         toastSaveFailed: "Ukládání selhalo.",
+        toastSaveFailedNetwork:
+          "Spojení se serverem se nepodařilo (síť nebo blokování požadavku). Zkuste znovu; při velkém PDF uložte nejdřív text formuláře, pak nahrajte soubor.",
         validateRequiredAll: "Vyplňte prosím všechna povinná pole.",
         toastConfirmDeclaration: "Potvrďte prohlášení žadatele.",
         submitSending: "Odesílám…",
@@ -811,6 +813,8 @@
         footerSavedAt: "Saved {{time}}",
         toastDraftSaved: "Draft saved ✓",
         toastSaveFailed: "Save failed.",
+        toastSaveFailedNetwork:
+          "Could not reach the server (network or blocked request). Try again; for a large PDF save the form text first, then upload the file.",
         validateRequiredAll: "Please fill in all required fields.",
         toastConfirmDeclaration: "Please confirm the applicant declaration.",
         submitSending: "Submitting…",
