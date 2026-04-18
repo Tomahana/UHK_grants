@@ -112,13 +112,13 @@
           </div>
           <div class="field__error" id="passwordErr"></div>
         </div>
-        <button class="btn-login" id="loginBtn" onclick="handleLogin()">
+        <button type="button" class="btn-login" id="loginBtn">
           <span id="loginBtnText" data-i18n="login.loginBtn">Přihlásit se →</span>
           <div class="btn-login__spinner" id="loginSpinner" style="display:none;"></div>
         </button>
         <div class="register-link">
           <span data-i18n="login.noAccess">Nemáte přístup?</span>
-          <a onclick="showRegister()" data-i18n="login.requestAccess">Požádat o přístup</a>
+          <a href="#" id="loginShowRegister" data-i18n="login.requestAccess">Požádat o přístup</a>
         </div>
       </div>
 
@@ -132,7 +132,7 @@
           <div class="step-bar__dot"></div>
           <span class="step-bar__label" data-i18n="login.stepRole">Výběr role</span>
         </div>
-        <button class="btn-back" onclick="goToStep(1)" data-i18n="login.back">← Zpět</button>
+        <button type="button" class="btn-back" id="loginBackFromRole" data-i18n="login.back">← Zpět</button>
         <div class="auth-summary">
           <div class="auth-summary__avatar" id="avatarLetter">?</div>
           <div><span data-i18n="login.loggedAs">Přihlášen jako</span> <strong id="summaryEmail">–</strong></div>
@@ -154,7 +154,7 @@
           <div class="step-bar__dot active"></div>
           <span class="step-bar__label" data-i18n="login.stepNew">Nový účet</span>
         </div>
-        <button class="btn-back" onclick="goToStep(1)" data-i18n="login.backToLogin">← Zpět na přihlášení</button>
+        <button type="button" class="btn-back" id="loginBackFromReg" data-i18n="login.backToLogin">← Zpět na přihlášení</button>
         <div class="login-form__header">
           <h2 class="login-form__title" style="font-size:26px;" data-i18n="login.newAccessTitle">Nový přístup</h2>
           <p class="login-form__sub" data-i18n-html="login.newAccessSubHtml">Vyplňte údaje. Účet se vytvoří okamžitě jako <strong>Žadatel / Řešitel</strong>.</p>
@@ -204,7 +204,7 @@
           </div>
           <div class="field__error" id="regPwd2Err"></div>
         </div>
-        <button class="btn-login" id="regBtn" onclick="handleRegister()">
+        <button type="button" class="btn-login" id="regBtn">
           <span id="regBtnText" data-i18n="login.createAccount">Vytvořit účet →</span>
           <div class="btn-login__spinner" id="regSpinner" style="display:none;"></div>
         </button>
@@ -220,7 +220,7 @@
             Nyní se můžete přihlásit.
           </p>
         </div>
-        <button class="btn-login" style="margin-top:24px;" onclick="goToStep(1)" data-i18n="login.loginBtn">
+        <button type="button" class="btn-login" style="margin-top:24px;" id="loginBackFromSuccess" data-i18n="login.loginBtn">
           Přihlásit se →
         </button>
       </div>
@@ -242,8 +242,21 @@
   I18n.init();
   I18n.mountLangSwitch(document.getElementById("loginLangHost"));
 
+  /** Absolutní URL rozcestníku (funguje i na GitHub Pages v podsložce). */
+  function dashboardHref_() {
+    try {
+      return new URL("pages/dashboard.html", window.location.href).href;
+    } catch (e) {
+      return "pages/dashboard.html";
+    }
+  }
+
   // Přesměruj pokud již přihlášen
-  if (Auth.isLoggedIn()) window.location.href = "pages/dashboard.html";
+  try {
+    if (Auth.isLoggedIn()) window.location.replace(dashboardHref_());
+  } catch (e) {
+    /* např. blokované sessionStorage – zůstat na přihlášení */
+  }
 
   // Stav mezi kroky
   let _email = "", _name = "", _foundRoles = [], _token = "";
@@ -336,8 +349,11 @@
 
       if (rolesNorm.length === 1) {
         // Jen jedna role → přímé přihlášení
-        Auth.setSession(result.token, email, result.name, rolesNorm[0], rolesNorm);
-        window.location.href = "pages/dashboard.html";
+        if (!Auth.setSession(result.token, email, result.name, rolesNorm[0], rolesNorm)) {
+          showErr("err1", "err1Text", I18n.t("login.errSessionStorage"));
+          return;
+        }
+        window.location.replace(dashboardHref_());
       } else {
         // Více rolí → výběr
         renderRoles(rolesNorm, email, result.name);
@@ -362,8 +378,9 @@
     document.getElementById("roleList").innerHTML = roles.map(role => {
       const meta = I18n.roleLoginMeta(role);
       const m = { name: meta.name, desc: meta.desc, color: ROLE_COLORS[role] || "#6B7280" };
+      const enc = encodeURIComponent(String(role));
       return `
-        <button class="role-btn" onclick="selectRole('${role}')">
+        <button type="button" class="role-btn" data-role="${enc}">
           <div class="role-btn__dot" style="background:${m.color}"></div>
           <div class="role-btn__info">
             <div class="role-btn__name">${m.name}</div>
@@ -376,8 +393,13 @@
 
   function selectRole(role) {
     document.querySelectorAll(".role-btn").forEach(b => b.classList.add("loading"));
-    Auth.setSession(_token, _email, _name, role, _foundRoles);
-    window.location.href = "pages/dashboard.html";
+    if (!Auth.setSession(_token, _email, _name, role, _foundRoles)) {
+      document.querySelectorAll(".role-btn").forEach(b => b.classList.remove("loading"));
+      showErr("err1", "err1Text", I18n.t("login.errSessionStorage"));
+      goToStep(1);
+      return;
+    }
+    window.location.replace(dashboardHref_());
   }
 
   // ── KROK 3: Registrace ──────────────────────────────────────
@@ -426,6 +448,57 @@
     if (document.getElementById("step1").classList.contains("active")) handleLogin();
     if (document.getElementById("step3").classList.contains("active")) handleRegister();
   });
+
+  function bindLoginPageControls_() {
+    var lb = document.getElementById("loginBtn");
+    if (lb) {
+      lb.addEventListener("click", function (e) {
+        e.preventDefault();
+        void handleLogin();
+      });
+    }
+    var rb = document.getElementById("regBtn");
+    if (rb) {
+      rb.addEventListener("click", function (e) {
+        e.preventDefault();
+        void handleRegister();
+      });
+    }
+    var sr = document.getElementById("loginShowRegister");
+    if (sr) {
+      sr.addEventListener("click", function (e) {
+        e.preventDefault();
+        showRegister();
+      });
+    }
+    var b1 = document.getElementById("loginBackFromRole");
+    if (b1) b1.addEventListener("click", function () { goToStep(1); });
+    var b2 = document.getElementById("loginBackFromReg");
+    if (b2) b2.addEventListener("click", function () { goToStep(1); });
+    var b3 = document.getElementById("loginBackFromSuccess");
+    if (b3) b3.addEventListener("click", function () { goToStep(1); });
+    var rl = document.getElementById("roleList");
+    if (rl) {
+      rl.addEventListener("click", function (e) {
+        var btn = e.target.closest && e.target.closest("button.role-btn");
+        if (!btn || !btn.getAttribute) return;
+        var r = btn.getAttribute("data-role");
+        if (!r) return;
+        e.preventDefault();
+        try {
+          selectRole(decodeURIComponent(r));
+        } catch (ex) {
+          selectRole(r);
+        }
+      });
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bindLoginPageControls_);
+  } else {
+    bindLoginPageControls_();
+  }
 </script>
 </body>
 </html>
