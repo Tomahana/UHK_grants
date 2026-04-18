@@ -608,7 +608,7 @@ async function loadReviewConnectAttachments() {
     }
     const files = data.uploaded_drive_files || [];
     if (files.length) {
-      parts.push("<strong>Soubory nahrané na Disk (část 2)</strong><ul style=\"margin:6px 0 0 18px\">");
+      parts.push("<strong>Soubory v seznamu aplikace (část 2, prefix názvu = ID přihlášky_)</strong><ul style=\"margin:6px 0 0 18px\">");
       files.forEach(function (f) {
         const id = esc(String(f.id || ""));
         const nm = esc(String(f.name || ""));
@@ -625,6 +625,23 @@ async function loadReviewConnectAttachments() {
         );
       });
       parts.push("</ul>");
+    } else {
+      const sn = data.attachments_drive_scan_note
+        ? String(data.attachments_drive_scan_note)
+        : "V tomto seznamu jsou jen soubory ve sdílené složce soutěže s názvem začínajícím na ID přihlášky a podtržítko. Jiný název nebo podsložka znamená, že soubor na Disku může být, ale zde se nezobrazí — ověřte manifest nebo složku na Disku.";
+      parts.push(
+        "<p style=\"font-size:12px;color:var(--muted);line-height:1.5;margin-top:6px\"><strong>Žádné soubory v automatickém seznamu.</strong> " +
+          esc(sn) +
+          "</p>"
+      );
+      const fu = String(data.attachmentsDriveFolderUrl || "").trim();
+      if (fu.indexOf("https://drive.google.com/") === 0) {
+        parts.push(
+          '<p style="margin-top:6px"><a href="' +
+            escAttr(fu) +
+            '" target="_blank" rel="noopener">Otevřít sdílenou složku soutěže na Google Disku</a></p>'
+        );
+      }
     }
     if (data.showAdminPdfExport) {
       const u = new URL(API_URL);
@@ -640,7 +657,9 @@ async function loadReviewConnectAttachments() {
       );
     }
     if (!hints.length && !man && !files.length) {
-      parts.push('<span style="color:var(--muted)">K této přihlášce zatím nejsou evidované přílohy na Disku ani manifest.</span>');
+      parts.push(
+        '<span style="color:var(--muted)">K této přihlášce zatím není vyplněný manifest ani dokumenty z formuláře; automatický seznam souborů z Disku (prefix ID přihlášky_) je také prázdný.</span>'
+      );
     }
     body.innerHTML = parts.join("");
     wrap.style.display = "block";
