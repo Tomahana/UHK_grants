@@ -374,6 +374,48 @@
       return { res, out };
     }
 
+    /**
+     * POST jako application/x-www-form-urlencoded – vhodné pro velké fileBase64
+     * (některé nasazení Apps Scriptu u JSON POST vrací prázdnou/HTML odpověď → „Nahrání se nepodařilo“).
+     */
+    async function connectPostFormUrlEncoded(body) {
+      const params = new URLSearchParams();
+      Object.keys(body || {}).forEach(function (k) {
+        var v = body[k];
+        if (v === undefined || v === null) return;
+        params.set(k, String(v));
+      });
+      let res;
+      try {
+        res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: params.toString(),
+        });
+      } catch (e) {
+        return {
+          res: { ok: false, status: 0 },
+          out: { error: typeof I18n !== "undefined" && I18n.t ? I18n.t("api.downloadNetworkError") : "Síť" },
+        };
+      }
+      const raw = await res.text().catch(function () {
+        return "";
+      });
+      let out = {};
+      try {
+        out = raw ? JSON.parse(raw) : {};
+      } catch (eJ) {
+        out = {
+          error:
+            typeof I18n !== "undefined" && I18n.t
+              ? I18n.t("applyConnect.fileUploadBadResponse")
+              : "Server nevrátil JSON. Zkuste znovu nebo aktualizujte Web App.",
+          _rawPreview: String(raw || "").slice(0, 200),
+        };
+      }
+      return { res, out };
+    }
+
     const MAX_BUDGET = 80000;
     const IRIS_UHK_URL = "https://tomahana.github.io/IRIS_UHK/";
 
@@ -1147,7 +1189,7 @@
         }
         const dataUrl = await readFileAsDataUrl(file);
         const session = Auth._getSession();
-        const { res, out } = await connectPostJson({
+        const { res, out } = await connectPostFormUrlEncoded({
           action: "uploadConnectApplicationAttachment",
           token: session?.token || "",
           competitionId: COMPETITION_ID,
@@ -1158,10 +1200,20 @@
           fileBase64: dataUrl,
         });
         if (!res.ok) {
-          throw new Error("HTTP " + res.status);
+          const hint =
+            out && out.error
+              ? String(out.error)
+              : typeof I18n !== "undefined" && I18n.t
+                ? I18n.t("applyConnect.fileUploadHttpErr", { status: String(res.status) })
+                : "HTTP " + res.status;
+          throw new Error(hint);
         }
         if (out && out.error) {
-          throw new Error(String(out.error));
+          var errStr = String(out.error);
+          if (/Neznámá POST akce/i.test(errStr) && typeof I18n !== "undefined" && I18n.t) {
+            errStr = I18n.t("applyConnect.fileUploadOldScriptHint") + " " + errStr;
+          }
+          throw new Error(errStr);
         }
         if (out && out.url) {
           formData[id] = String(out.url);
@@ -1175,7 +1227,11 @@
           },
         };
         if (!String(formData[id] || "").trim()) {
-          throw new Error(tc("fileUploadErr"));
+          var fb =
+            out && out._rawPreview
+              ? " " + String(out._rawPreview).replace(/\s+/g, " ").slice(0, 120)
+              : "";
+          throw new Error(tc("fileUploadErr") + fb);
         }
         const url = String(formData[id] || "").trim();
         const isBlobVal = /^UHKAFILE\|/i.test(url);

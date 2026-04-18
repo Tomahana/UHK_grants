@@ -445,6 +445,11 @@
         fileUploadDriveFallbackDetail:
           "Soubor je jen v tabulce (záloha). Disk: {{err}} — zkontrolujte sdílení složky s účtem Web App (Execute as) nebo oprávnění Disku.",
         fileUploadErr: "Nahrání přílohy se nepodařilo.",
+        fileUploadBadResponse:
+          "Server po nahrání nevrátil platný JSON (prázdná nebo HTML odpověď). Zkuste menší PDF, obnovte stránku nebo zkontrolujte nasazení Web Appu.",
+        fileUploadHttpErr: "Server odpověděl chybou HTTP {{status}}. Zkuste znovu nebo kontaktujte správce.",
+        fileUploadOldScriptHint:
+          "Na Google pravděpodobně běží starší verze skriptu bez akce upload. Znovu nasaďte Web App z aktuálního kódu. Detail:",
         fileUploadedDriveLabel: "PDF na Disku",
         fileUploadedDriveApiLabel: "PDF na Disku (nahráno aplikací)",
         fileUploadedAppStorageLabel: "PDF v tabulce (záloha)",
@@ -941,6 +946,11 @@
         fileUploadDriveFallbackDetail:
           "The file was stored in the spreadsheet only (fallback). Drive: {{err}} — check folder sharing with the Web App account (Execute as) or Drive permissions.",
         fileUploadErr: "Attachment upload failed.",
+        fileUploadBadResponse:
+          "The server did not return valid JSON after upload (empty or HTML). Try a smaller PDF, refresh, or check the Web App deployment.",
+        fileUploadHttpErr: "The server returned HTTP {{status}}. Try again or contact an administrator.",
+        fileUploadOldScriptHint:
+          "The deployed Apps Script may be missing the upload action. Redeploy the Web App from the current code. Detail:",
         fileUploadedDriveLabel: "PDF on Drive",
         fileUploadedDriveApiLabel: "PDF on Drive (uploaded by the app)",
         fileUploadedAppStorageLabel: "PDF in spreadsheet (fallback)",
