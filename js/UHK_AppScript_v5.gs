@@ -116,6 +116,14 @@ function doGet(e) {
         return corsResponse(getConnectPostAward(p.competitionId, p.applicationId || p.app, p.token));
       case "getConnectDeliverablesExport":
         return corsResponse(getConnectDeliverablesExport(p.competitionId, p.token));
+      case "adminExportConnectProjectDossierPdf":
+        try {
+          return adminExportConnectProjectDossierPdf(p.competitionId, p.applicationId || p.app, p.token);
+        } catch (pdfErr) {
+          return ContentService.createTextOutput("Chyba PDF: " + (pdfErr.message || String(pdfErr))).setMimeType(
+            ContentService.MimeType.PLAIN
+          );
+        }
       case "getProjects":      return corsResponse(getProjects(p.competitionId, p.token));
       case "getUsers":         return corsResponse(getUsers(p.token));
       case "getUserRoles":     return corsResponse(getUserRoles(p.email, p.token));
@@ -1070,7 +1078,7 @@ function connectResolveOfficialBudgetLines_(outcome, fd) {
       ? outcome.budget_lines
       : null;
   if (parsed && connectSumBudgetLinesObj_(parsed) > 0) return parsed;
-  var dec = outcome && outcome.decision ? String(outcome.decision).toUpperCase() : "";
+  var dec = connectOutcomeDecisionCode_(outcome);
   var sup = outcome && outcome.supported_amount_czk ? Number(outcome.supported_amount_czk) : 0;
   if (dec === "SUPPORT") {
     var o = {};
@@ -1311,13 +1319,26 @@ function getConnectPostAward(competitionId, applicationId, token) {
   if (!owner && !priv) throw new Error("K této přihlášce nemáte přístup.");
 
   var outcome = findProrektorOutcomeForApp_(ss, aid, row);
-  var dec = outcome && outcome.decision ? String(outcome.decision).toUpperCase() : "";
-  if (dec !== "SUPPORT" && dec !== "CUT") {
+  var dec = connectOutcomeDecisionCode_(outcome);
+  var isSupportedOutcome = dec === "SUPPORT" || dec === "CUT";
+  var previewRejected = priv && dec === "REJECT";
+  var previewBeforeDecision = priv && !isSupportedOutcome && !previewRejected;
+
+  if (!isSupportedOutcome && !previewBeforeDecision && !previewRejected) {
     return {
       success: true,
       applicable: false,
       reason:
-        "Povinné výstupy se vztahují jen na projekty s rozhodnutím Podpořeno nebo Kráceno (vč. legacy FUND / FUND_REDUCED), případně na přihlášku ve stavu Schváleno.",
+        "Část 2 je určena řešiteli po stanovisku prorektora Podpořeno nebo Kráceno. Po zveřejnění výsledku obnovte stránku nebo otevřete odkaz znovu z Moje projekty.",
+    };
+  }
+
+  if (!isSupportedOutcome && !priv) {
+    return {
+      success: true,
+      applicable: false,
+      reason:
+        "Část 2 je k dispozici až po rozhodnutí prorektora (Podpořeno / Kráceno). Komise a správci mají náhled v hodnocení / správě přihlášek.",
     };
   }
 
@@ -1334,8 +1355,38 @@ function getConnectPostAward(competitionId, applicationId, token) {
   var checklist = readConnectPostawardChecklist_(row);
   var fd = connectParseFormDataObject_(row);
   var budgetRequested = Number(fd.budget_total) || 0;
-  var budgetOfficial = connectEffectiveSupportedCzk_(outcome, budgetRequested);
-  var officialLines = connectResolveOfficialBudgetLines_(outcome, fd);
+
+  var previewMode = !!(previewBeforeDecision || previewRejected);
+  var budgetOutcome = outcome;
+  var outcomeDecisionApi = dec;
+  var outcomeLabelApi = dec === "SUPPORT" ? "Podpořeno" : dec === "CUT" ? "Kráceno" : "—";
+  var outcomeCommentApi = outcome && outcome.comment ? String(outcome.comment) : "";
+
+  if (previewBeforeDecision) {
+    budgetOutcome = {
+      decision: "SUPPORT",
+      supported_amount_czk: budgetRequested,
+      budget_lines: null,
+      comment: "",
+      decidedAt: "",
+    };
+    outcomeDecisionApi = "PENDING";
+    outcomeLabelApi = "Náhled před rozhodnutím prorektora";
+    outcomeCommentApi = "";
+  } else if (previewRejected) {
+    budgetOutcome = outcome || {
+      decision: "REJECT",
+      supported_amount_czk: 0,
+      budget_lines: null,
+      comment: "",
+      decidedAt: "",
+    };
+    outcomeDecisionApi = "REJECT";
+    outcomeLabelApi = "Nepodpořeno";
+  }
+
+  var budgetOfficial = connectEffectiveSupportedCzk_(budgetOutcome, budgetRequested);
+  var officialLines = connectResolveOfficialBudgetLines_(budgetOutcome, fd);
   var budgetRows = connectBudgetRowsForApi_(fd, officialLines);
   var promisedSummary = {
     project_title: String(fd.project_title || applicationRowTitle_(row) || "").slice(0, 500),
@@ -1344,17 +1395,20 @@ function getConnectPostAward(competitionId, applicationId, token) {
     budget_justification: String(fd.budget_justification || "").slice(0, 3000),
   };
 
+  var appFileHints = connectApplicationFileFieldHints_(fd);
+
   return {
     success: true,
     applicable: true,
+    previewMode: previewMode,
     rulesVersion: CONNECT_POSTAWARD_RULES_VERSION,
     applicationId: aid,
     attachmentsDriveFolderUrl:
       "https://drive.google.com/drive/folders/" + CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID,
     projectTitle: applicationRowTitle_(row),
-    outcomeDecision: dec,
-    outcomeLabel: dec === "SUPPORT" ? "Podpořeno" : "Kráceno",
-    outcomeComment: outcome && outcome.comment ? String(outcome.comment) : "",
+    outcomeDecision: outcomeDecisionApi,
+    outcomeLabel: outcomeLabelApi,
+    outcomeComment: outcomeCommentApi,
     budgetRequestedCzk: budgetRequested,
     budgetOfficialCzk: budgetOfficial,
     budgetRows: budgetRows,
@@ -1362,6 +1416,7 @@ function getConnectPostAward(competitionId, applicationId, token) {
     coordinatorEmail: String(coord).trim(),
     activityEndIso: actIso,
     deadlines: deadline,
+    application_file_hints: appFileHints,
     checklist: {
       dissemination_fulfilled: !!checklist.dissemination_fulfilled,
       package_emailed_declared: !!checklist.package_emailed_declared,
@@ -1395,12 +1450,117 @@ function getConnectPostAward(competitionId, applicationId, token) {
           ? checklist.budget_line_notes
           : {},
     },
-    canEdit: owner,
+    canEdit: owner && isSupportedOutcome,
     /** Soubory ve složce Connect s prefixem applicationId (nahrané přes aplikaci). */
     uploaded_drive_files: connectListPostAwardDriveFilesForApp_(aid),
     /** Oprávnění ke správcovským akcím u příloh na Disku (sdílení). */
     showAdminDriveTools: priv && authHasAnyRole_(auth, ["ADMIN", "TESTER"]),
+    /** PDF přehled projektu (část 2 + odkazy) – jen vybrané role. */
+    showAdminPdfExport: priv && authHasAnyRole_(auth, ["ADMIN", "TESTER", "PROREKTOR", "KOMISAR", "KOMISAŘ", "READONLY"]),
   };
+}
+
+/** Údaje z přihlášky k polím typu soubor (často jen název souboru z formuláře). */
+function connectApplicationFileFieldHints_(fd) {
+  if (!fd || typeof fd !== "object") return [];
+  var keys = ["attach_invitation", "attach_annex1", "attach_annex2", "attach_annex3"];
+  var out = [];
+  keys.forEach(function (k) {
+    if (!Object.prototype.hasOwnProperty.call(fd, k)) return;
+    var v = fd[k];
+    if (v == null || String(v).trim() === "") return;
+    out.push({
+      field_id: k,
+      value: String(v).slice(0, 2000),
+      isLikelyUrl: /^https?:\/\//i.test(String(v).trim()),
+    });
+  });
+  return out;
+}
+
+/**
+ * PDF přehled: text žádosti, checklist části 2, odkazy na soubory na Disku (GET adminExportConnectProjectDossierPdf).
+ */
+function adminBuildConnectDossierPdfBlob_(competitionId, applicationId, token) {
+  var auth = requireAuth(token);
+  if (!authHasAnyRole_(auth, ["ADMIN", "TESTER", "PROREKTOR", "KOMISAR", "KOMISAŘ", "READONLY"]))
+    throw new Error("PDF export: nedostatečná oprávnění.");
+  var cid = String(competitionId || "").trim();
+  var aid = String(applicationId || "").trim();
+  if (!cid || !aid) throw new Error("chybí competitionId nebo applicationId");
+  if (cid !== CONNECT_COMPETITION_ID) throw new Error("PDF export je jen pro soutěž UHK Connect.");
+  var ss = getSpreadsheet(cid);
+  var sheet = ss.getSheetByName(SHEETS.APPLICATIONS);
+  if (!sheet) throw new Error("List APPLICATIONS nenalezen.");
+  var rows = sheetToObjects(sheet).map(applicationsSheetRowNormalize_);
+  var row = rows.find(function (r) {
+    return String(r.application_id || "").trim() === aid;
+  });
+  if (!row) throw new Error("Přihláška nenalezena.");
+  var fd = connectParseFormDataObject_(row);
+  var checklist = readConnectPostawardChecklist_(row);
+  var outcome = findProrektorOutcomeForApp_(ss, aid, row);
+  var files = connectListPostAwardDriveFilesForApp_(aid);
+  var title = applicationRowTitle_(row) || aid;
+  var lines = [];
+  lines.push("UHK Connect – přehled projektu a příloh");
+  lines.push("ID: " + aid);
+  lines.push("Žadatel: " + String(row.applicant_name || ""));
+  lines.push("E-mail: " + String(row.applicant_email || ""));
+  lines.push("Stav přihlášky: " + String(row.status || ""));
+  lines.push("");
+  lines.push("── Rozhodnutí prorektora ──");
+  if (outcome && outcome.decision) {
+    lines.push("Výsledek: " + String(outcome.decision) + " – " + String(outcome.decisionLabel || ""));
+    lines.push("Komentář: " + String(outcome.comment || "—"));
+  } else lines.push("(záznam PROREKTOR_DECISION nenalezen)");
+  lines.push("");
+  lines.push("── Shrnutí žádosti ──");
+  lines.push("Název: " + String(fd.project_title || ""));
+  lines.push("Cíl aktivity: " + String(fd.activity_goal || "").slice(0, 1800));
+  lines.push("Rozpočet celkem (žádost): " + String(fd.budget_total || "") + " Kč");
+  lines.push("");
+  lines.push("── Část 2: checklist ──");
+  lines.push("Souhlas uložen: " + String(checklist.consent_saved_at || "—"));
+  lines.push("Uzavření uloženo: " + String(checklist.completion_saved_at || "—"));
+  lines.push("Manifest příloh:");
+  lines.push(String(checklist.attachments_manifest || "—").slice(0, 6000));
+  lines.push("");
+  lines.push("── Závěrečná zpráva (zkráceno) ──");
+  lines.push(String(checklist.final_report_final || checklist.final_report_draft || "").slice(0, 6500) || "—");
+  lines.push("");
+  lines.push("── Soubory na Google Disku (prefix ID) ──");
+  if (!files.length) lines.push("(žádné)");
+  else
+    files.forEach(function (f) {
+      lines.push(String(f.name) + " → " + String(f.url));
+    });
+  lines.push("");
+  lines.push("── Pole souborů z podacího formuláře ──");
+  var hints = connectApplicationFileFieldHints_(fd);
+  if (!hints.length) lines.push("(v JSON často jen název souboru, ne binární obsah)");
+  else
+    hints.forEach(function (h) {
+      lines.push(h.field_id + ": " + h.value);
+    });
+  var bodyHtml =
+    "<h1>" +
+    uhkHtmlEscape_(title) +
+    "</h1><p><b>ID:</b> " +
+    uhkHtmlEscape_(aid) +
+    "</p><pre style=\"white-space:pre-wrap;font-family:Arial,sans-serif;font-size:9pt\">" +
+    uhkHtmlEscape_(lines.join("\n")) +
+    "</pre>";
+  var html =
+    "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"/><style>body{font-family:Arial,sans-serif;font-size:11pt;color:#111;padding:14px}</style></head><body>" +
+    bodyHtml +
+    "</body></html>";
+  return HtmlService.createHtmlOutput(html).getAs(MimeType.PDF);
+}
+
+function adminExportConnectProjectDossierPdf(competitionId, applicationId, token) {
+  var blob = adminBuildConnectDossierPdfBlob_(competitionId, applicationId, token);
+  return ContentService.createBlobOutput(blob.getBytes()).setMimeType(MimeType.PDF);
 }
 
 /**
@@ -1430,7 +1590,7 @@ function saveConnectPostAward(body) {
     throw new Error("Ukládat checklist může jen žadatel/řešitel uvedený u přihlášky.");
 
   var outcome = findProrektorOutcomeForApp_(ss, applicationId, row);
-  var dec = outcome && outcome.decision ? String(outcome.decision).toUpperCase() : "";
+  var dec = connectOutcomeDecisionCode_(outcome);
   if (dec !== "SUPPORT" && dec !== "CUT") throw new Error("Checklist lze ukládat jen u podpořených nebo krácených projektů.");
 
   var prev = readConnectPostawardChecklist_(row);
@@ -1606,6 +1766,14 @@ function uhkGetArchiveFolder_(ss, competitionId) {
     console.error("uhkGetArchiveFolder_: " + e.message);
     return null;
   }
+}
+
+function uhkHtmlEscape_(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 function uhkArchivePdfFileBase_(applicationId, stageTag) {
@@ -1904,7 +2072,7 @@ function repairConnectPostAwardAttachmentSharing(body) {
   if (!row) throw new Error("Přihláška nenalezena.");
 
   var outcome = findProrektorOutcomeForApp_(ss, applicationId, row);
-  var dec = outcome && outcome.decision ? String(outcome.decision).toUpperCase() : "";
+  var dec = connectOutcomeDecisionCode_(outcome);
   if (dec !== "SUPPORT" && dec !== "CUT") throw new Error("Přílohy této fáze jsou jen u Podpořeno / Kráceno.");
 
   var list = connectListPostAwardDriveFilesForApp_(applicationId);
@@ -1960,7 +2128,7 @@ function uploadConnectPostAwardAttachment(body) {
     throw new Error("Nahrávat přílohy může jen žadatel/řešitel uvedený u přihlášky.");
 
   var outcome = findProrektorOutcomeForApp_(ss, applicationId, row);
-  var dec = outcome && outcome.decision ? String(outcome.decision).toUpperCase() : "";
+  var dec = connectOutcomeDecisionCode_(outcome);
   if (dec !== "SUPPORT" && dec !== "CUT")
     throw new Error("Přílohy lze nahrávat jen u podpořených nebo krácených projektů.");
 
@@ -2032,7 +2200,7 @@ function getConnectMyApplications(competitionId, token) {
     var isDraft = st === "DRAFT";
     var outcome = isDraft ? null : findProrektorOutcomeForApp_(ss, id, r);
     var hasPr = !!(outcome && outcome.decision);
-    var prDec = outcome && outcome.decision ? String(outcome.decision).toUpperCase() : "";
+    var prDec = connectOutcomeDecisionCode_(outcome);
     var fd = connectParseFormDataObject_(r);
     var budgetRequested = Number(fd.budget_total) || 0;
     var pa = isDraft ? {} : readConnectPostawardChecklist_(r);
@@ -2302,7 +2470,7 @@ function getConnectFundingSummary(competitionId, token) {
     const id = String(row.application_id || "").trim();
     if (!id) return;
     const outcome = findProrektorOutcomeForApp_(ss, id, row);
-    const dec = outcome && outcome.decision ? String(outcome.decision).toUpperCase() : "";
+    const dec = connectOutcomeDecisionCode_(outcome);
     if (dec !== "SUPPORT" && dec !== "CUT") return;
     const fd = connectParseFormDataObject_(row);
     const requested = Number(fd.budget_total) || 0;
@@ -2367,7 +2535,7 @@ function getConnectDeliverablesExport(competitionId, token) {
       project_title: applicationRowTitle_(r),
       budget_total_requested: Number(fd.budget_total) || 0,
       budget_official_czk: offAmt,
-      prorektor_decision: outcome && outcome.decision ? String(outcome.decision).toUpperCase() : "",
+      prorektor_decision: connectOutcomeDecisionCode_(outcome),
       prorektor_comment: prComment.slice(0, 1500),
       accepts_prorektor_comment: !!pa.accepts_prorektor_public_comment,
       agrees_solution_and_budget: !!pa.agrees_solution_and_budget,
@@ -3660,7 +3828,7 @@ function connectEffectiveSupportedCzk_(outcome, budgetRequested) {
   var req = Number(budgetRequested) || 0;
   if (req < 0) req = 0;
   if (!outcome || !outcome.decision) return 0;
-  var dec = String(outcome.decision).toUpperCase();
+  var dec = connectOutcomeDecisionCode_(outcome);
   var bl = outcome.budget_lines;
   if (bl && typeof bl === "object") {
     var ls = connectSumBudgetLinesObj_(bl);
@@ -3678,6 +3846,35 @@ function validateConnectDeliverableDecl_(fulfilled, note, label) {
     throw new Error('U „' + label + '“ potvrďte splnění, nebo vysvětlete, proč výstup splněn nebyl (min. 15 znaků).');
 }
 
+/** ASCII verze řetězce pro porovnání kódů rozhodnutí (Sheets často ukládá „Podpořit“ s diakritikou). */
+function connectAsciiFoldCsUpperForDecision_(s) {
+  var map = {
+    Á: "A",
+    Č: "C",
+    Ď: "D",
+    É: "E",
+    Ě: "E",
+    Í: "I",
+    Ň: "N",
+    Ó: "O",
+    Ř: "R",
+    Š: "S",
+    Ť: "T",
+    Ú: "U",
+    Ů: "U",
+    Ý: "Y",
+    Ž: "Z",
+  };
+  var t = String(s || "");
+  var o = "";
+  for (var i = 0; i < t.length; i++) {
+    var ch = t.charAt(i);
+    var up = ch.toUpperCase();
+    o += map[up] || map[ch] || up;
+  }
+  return o.replace(/\s+/g, "_");
+}
+
 /**
  * Sjednocení kódů rozhodnutí (Connect i starší zápis z jiných výzev).
  * Vrací SUPPORT | CUT | REJECT nebo "" (neznámá hodnota).
@@ -3688,11 +3885,62 @@ function connectCanonicalProrektorDecision_(raw) {
     .toUpperCase()
     .replace(/\s+/g, "_");
   if (!d) return "";
-  if (d === "SUPPORT" || d === "FUND" || d === "FUND_FULL" || d === "APPROVE" || d === "PODPOŘIT" || d === "PODPORIT")
+  var a = connectAsciiFoldCsUpperForDecision_(d);
+  if (
+    d === "SUPPORT" ||
+    d === "FUND" ||
+    d === "FUND_FULL" ||
+    d === "APPROVE" ||
+    d === "PODPOŘIT" ||
+    d === "PODPORIT" ||
+    d === "PODPOŘENO" ||
+    d === "PODPORENO" ||
+    a === "PODPORIT" ||
+    a === "PODPORENO" ||
+    a === "SCHVALENO"
+  )
     return "SUPPORT";
-  if (d === "CUT" || d === "FUND_REDUCED" || d === "REDUCED" || d === "KRÁCENO" || d === "KRACENO") return "CUT";
-  if (d === "REJECT" || d === "REJECTED" || d === "DENY" || d === "NEPODPORIT" || d === "NEPODPOŘIT") return "REJECT";
+  if (
+    d === "CUT" ||
+    d === "FUND_REDUCED" ||
+    d === "REDUCED" ||
+    d === "KRÁCENO" ||
+    d === "KRACENO" ||
+    a === "KRACENO" ||
+    a === "KRATIT_ROZPOCET" ||
+    a === "KRATIT"
+  )
+    return "CUT";
+  if (
+    d === "REJECT" ||
+    d === "REJECTED" ||
+    d === "DENY" ||
+    d === "NEPODPORIT" ||
+    d === "NEPODPOŘIT" ||
+    d === "NEPODPOŘENO" ||
+    d === "NEPODPORENO" ||
+    a === "NEPODPORIT" ||
+    a === "NEPODPORENO" ||
+    a === "ZAMITNUTO"
+  )
+    return "REJECT";
   return "";
+}
+
+/** Kanonický kód rozhodnutí z outcome (SUPPORT / CUT / REJECT), jinak horní verze řetězce. */
+function connectOutcomeDecisionCode_(outcome) {
+  var raw = outcome && outcome.decision ? String(outcome.decision) : "";
+  return connectCanonicalProrektorDecision_(raw) || String(raw).toUpperCase().trim();
+}
+
+/** Označení řádku finálního rozhodnutí prorektora v REVIEWS (odolné vůči BOM / mezerám). */
+function connectReviewRowIsProrektorDecision_(r) {
+  var t = String((r && r.comment_internal) || "")
+    .replace(/^\uFEFF/, "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "_");
+  return t === "PROREKTOR_DECISION";
 }
 
 /**
@@ -3724,7 +3972,7 @@ function findProrektorOutcomeForApp_(ss, applicationId, optApplicationRow) {
   const aid = String(applicationId || "").trim();
   const matches = rows.filter(function (r) {
     const id = String(r.application_id || r.project_id || "").trim();
-    return id === aid && String(r.comment_internal || "").trim() === "PROREKTOR_DECISION";
+    return id === aid && connectReviewRowIsProrektorDecision_(r);
   });
   if (!matches.length) return syntheticApproved_(optApplicationRow) || null;
   matches.sort(function (a, b) {
@@ -3733,7 +3981,10 @@ function findProrektorOutcomeForApp_(ss, applicationId, optApplicationRow) {
     return tb - ta;
   });
   const r = matches[0];
-  const rawRec = String(r.recommendation || "").trim();
+  var rawRec =
+    r.recommendation != null && String(r.recommendation).trim() !== ""
+      ? String(r.recommendation).trim()
+      : "";
   const decUpper = rawRec.toUpperCase();
   var canon = connectCanonicalProrektorDecision_(rawRec);
   var finalDec = canon || decUpper;
@@ -3751,6 +4002,14 @@ function findProrektorOutcomeForApp_(ss, applicationId, optApplicationRow) {
     supported_amount_czk: connectProrektorSupportedFromReviewRow_(r),
     budget_lines: bl,
   };
+  var normEnd = connectCanonicalProrektorDecision_(rawRec) || connectCanonicalProrektorDecision_(String(out.decision || ""));
+  if (normEnd === "SUPPORT" || normEnd === "CUT" || normEnd === "REJECT") {
+    out.decision = normEnd;
+    if (normEnd === "SUPPORT") out.decisionLabel = "Podpořeno";
+    else if (normEnd === "CUT") out.decisionLabel = "Kráceno";
+    else out.decisionLabel = "Nepodpořeno";
+    return out;
+  }
   if (finalDec !== "REJECT" && finalDec !== "SUPPORT" && finalDec !== "CUT") {
     var syn = syntheticApproved_(optApplicationRow);
     if (syn) return syn;
