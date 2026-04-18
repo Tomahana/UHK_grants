@@ -607,7 +607,19 @@ async function loadReviewConnectAttachments() {
             esc(v) +
             "</span>";
         } else if (h.isLikelyUrl) {
-          link = '<a href="' + escAttr(v) + '" target="_blank" rel="noopener">otevřít odkaz</a>';
+          var rawU = String(v || "").trim();
+          var staleG =
+            !!h.staleGoogleDriveUrl ||
+            /^(https?:\/\/)?(drive|docs)\.google\.com\//i.test(rawU);
+          if (staleG) {
+            link =
+              '<span style="color:#92400e;font-size:12px;line-height:1.45">Údaj vypadá jako starý odkaz na Google Disk (obvykle nefunguje). Soubor je v tabulce — použijte PDF z aplikace výše, nebo </span>' +
+              '<a href="' +
+              escAttr(rawU) +
+              '" target="_blank" rel="noopener">zkuste původní odkaz</a>';
+          } else {
+            link = '<a href="' + escAttr(v) + '" target="_blank" rel="noopener">otevřít odkaz</a>';
+          }
         } else {
           link = esc(v);
         }
@@ -625,21 +637,38 @@ async function loadReviewConnectAttachments() {
     }
     const files = data.uploaded_drive_files || [];
     if (files.length) {
-      parts.push("<strong>Soubory v seznamu aplikace (část 2, prefix názvu = ID přihlášky_)</strong><ul style=\"margin:6px 0 0 18px\">");
+      parts.push("<strong>Přílohy části 2 (tabulka / případně Disk)</strong><ul style=\"margin:6px 0 0 18px\">");
       files.forEach(function (f) {
-        const id = esc(String(f.id || ""));
         const nm = esc(String(f.name || ""));
-        const view = "https://drive.google.com/file/d/" + id + "/view";
-        const dl = "https://drive.google.com/uc?export=download&id=" + id;
-        parts.push(
-          "<li><span style=\"font-family:DM Mono,monospace;font-size:11px\">" +
-            nm +
-            '</span> · <a href="' +
-            escAttr(view) +
-            '" target="_blank" rel="noopener">Disk</a> · <a href="' +
-            escAttr(dl) +
-            '" target="_blank" rel="noopener">stáhnout</a></li>'
-        );
+        if (f.isSheetBlob && cur && cur.application_id && f.id) {
+          const u = new URL(API_URL);
+          u.searchParams.set("action", "downloadConnectPostAwardFile");
+          u.searchParams.set("competitionId", CID);
+          u.searchParams.set("applicationId", String(cur.application_id));
+          u.searchParams.set("blobKey", String(f.id));
+          const s = Auth._getSession();
+          if (s && s.token) u.searchParams.set("token", s.token);
+          parts.push(
+            "<li><span style=\"font-family:DM Mono,monospace;font-size:11px\">" +
+              nm +
+              '</span> · <a href="' +
+              escAttr(u.toString()) +
+              '" target="_blank" rel="noopener">stáhnout z aplikace</a></li>'
+          );
+        } else {
+          const id = esc(String(f.id || ""));
+          const view = "https://drive.google.com/file/d/" + id + "/view";
+          const dl = "https://drive.google.com/uc?export=download&id=" + id;
+          parts.push(
+            "<li><span style=\"font-family:DM Mono,monospace;font-size:11px\">" +
+              nm +
+              '</span> · <a href="' +
+              escAttr(view) +
+              '" target="_blank" rel="noopener">Disk</a> · <a href="' +
+              escAttr(dl) +
+              '" target="_blank" rel="noopener">stáhnout</a></li>'
+          );
+        }
       });
       parts.push("</ul>");
     } else {
