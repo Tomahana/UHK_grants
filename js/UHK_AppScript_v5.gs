@@ -11,7 +11,8 @@
  *     Execute as: Me | Who has access: Anyone
  *  5. Zkopíruj URL → vlož do js/config.js
  *
- *  Přílohy Connect (podací formulář i část 2 na Disku): účet „Execute as“ musí mít Editor v cílové složce.
+ *  Přílohy Connect (Disk): účet Web App (Deploy → Execute as: Me) musí mít u složky oprávnění Editor.
+ *  Nestačí „kdokoli s odkazem může zobrazit“ — to je jen čtení; bez Editora účet soubor nevytvoří.
  *  Podací PDF: CONFIG connect_application_attachments_folder_id (nebo stejné ID jako u části 2 — viz níže).
  *  Část 2: CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID nebo CONFIG connect_postaward_attachments_folder_id.
  *  Do buňky uveďte jen ID složky (část URL za …/folders/), ne celou adresu a ne „?usp=sharing“ — jinak Disk hlásí, že soubor nelze otevřít; skript ID stejně ořízne.
@@ -163,10 +164,11 @@ function connectGetPostAwardDriveFolderThrowing_(ss) {
     console.error("connectGetPostAwardDriveFolderThrowing_: folderId=" + folderId + " → " + em);
     throw new Error(
       "Složka pro přílohy Connect na Disku není dostupná účtu webové aplikace (Deploy → Execute as: Me). " +
-        "Nasdílejte složku s tímto účtem jako Editor, nebo v CONFIG nastavte connect_postaward_attachments_folder_id na jinou složku, ke které má účet přístup. " +
+        "Nasdílejte složku s tímto účtem jako Editor (ne jen odkaz pro zobrazení), nebo v CONFIG nastavte connect_postaward_attachments_folder_id. " +
         "Aktuální ID: " +
         folderId +
-        ". Kontaktujte administrátora."
+        "." +
+        connectDriveUploadActorHint_()
     );
   }
 }
@@ -188,10 +190,11 @@ function connectGetApplicationAttachmentsDriveFolderThrowing_(ss) {
     console.error("connectGetApplicationAttachmentsDriveFolderThrowing_: folderId=" + folderId + " → " + em);
     throw new Error(
       "Složka pro podací přílohy Connect na Disku není dostupná účtu webové aplikace (Deploy → Execute as: Me). " +
-        "Nasdílejte složku s tímto účtem jako Editor, nebo v CONFIG nastavte connect_application_attachments_folder_id. " +
-        "Aktuální ID: " +
+        "Nasdílejte složku s tímto účtem jako Editor (ne jen „kdokoli s odkazem zobrazit“). " +
+        "Nebo v CONFIG nastavte connect_application_attachments_folder_id. Aktuální ID: " +
         folderId +
-        "."
+        "." +
+        connectDriveUploadActorHint_()
     );
   }
 }
@@ -1729,6 +1732,23 @@ function downloadConnectApplicationFile_(competitionId, applicationId, fieldId, 
  * Zkusí vytvořit PDF na Disku: nejdřív složka z CONFIG, pak kořen „Můj disk“ účtu webové aplikace (fallback).
  * Vrací { ok, file?, error? }.
  */
+/** Doplněk k chybám při uploadu na Disk – který účet potřebuje Editor u složky. */
+function connectDriveUploadActorHint_() {
+  try {
+    var em = Session.getEffectiveUser().getEmail();
+    if (em) {
+      return (
+        " Web App běží jako: " +
+        em +
+        ". Přidejte tento e-mail ke složce na Disku jako Editor (ne jen odkaz pro zobrazení)."
+      );
+    }
+  } catch (e) {
+    /* ignore */
+  }
+  return " Přidejte účet Web App (Execute as: Me) ke složce jako Editor.";
+}
+
 function connectTryCreateApplicationPdfOnDrive_(ss, bytes, driveName) {
   var folders = [];
   function addFolder(f) {
@@ -1769,7 +1789,7 @@ function connectTryCreateApplicationPdfOnDrive_(ss, bytes, driveName) {
       lastErr = e && e.message ? String(e.message) : String(e);
     }
   }
-  return { ok: false, error: lastErr || "Disk" };
+  return { ok: false, error: (lastErr || "Disk") + connectDriveUploadActorHint_() };
 }
 
 /**
