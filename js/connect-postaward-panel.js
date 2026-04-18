@@ -296,7 +296,7 @@
         '<input type="file" id="pa_attach_files" multiple>' +
         '<p class="pa-attach-picker__hint">Soubory se uloží do <a href="' +
         folderHref +
-        '" target="_blank" rel="noopener">této složky na Google Disku</a>. Do pole níže se dopíše název souboru a odkaz (max. 18 MB na soubor). Můžete také zapsat další položky ručně nebo doplnit poznámku.</p>' +
+        '" target="_blank" rel="noopener">této složky na Google Disku</a> (název souboru začíná ID přihlášky_). Do pole manifestu se dopíše odkaz (max. 18 MB na soubor). Nahrává přihlášený <strong>žadatel</strong> uvedený u přihlášky, případně účet se rolí <strong>ADMIN</strong> nebo <strong>TESTER</strong> u soutěže Connect. Doplňte položky ručně nebo poznámku dle potřeby.</p>' +
         "</div>";
 
     const part1Hint =
@@ -793,7 +793,7 @@
             }
             try {
               var res = await client.uploadConnectPostAwardAttachment(competitionId, applicationId, file);
-              if (res && res.error) throw new Error(res.error);
+              if (!res || res.error) throw new Error((res && res.error) || "Server nevrátil potvrzení nahrání.");
               var line = (res && res.name ? res.name : file.name) + " → " + (res && res.url ? res.url : "");
               ta.value = ta.value.trim() ? ta.value.trim() + "\n" + line : line;
               ok++;
@@ -801,7 +801,14 @@
               showToast(err.message || "Nahrání selhalo: " + file.name, "err");
             }
           }
-          if (ok > 0) showToast("Nahráno souborů: " + ok + ". Nezapomeňte uložit finální uzavření projektu.");
+          if (ok > 0) {
+            showToast("Nahráno souborů: " + ok + ". Nezapomeňte uložit finální uzavření projektu.");
+            try {
+              await remount();
+            } catch (rmErr) {
+              /* ignore */
+            }
+          }
         })();
       });
     }
