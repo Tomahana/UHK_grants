@@ -217,6 +217,51 @@ function corsResponse(data) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+/**
+ * Web App: doPost smí vracet jen HtmlOutput nebo TextOutput — ne Blob.
+ * Pro stažení PDF po POST (form z prohlížeče) vrátíme malou stránku, která z base64
+ * vytvoří Blob a přesměruje okno na object URL (inline PDF).
+ */
+function connectPdfBlobToHtmlOpenTabOutput_(pdfBlob) {
+  var blob = pdfBlob && pdfBlob.copyBlob ? pdfBlob.copyBlob() : pdfBlob;
+  if (!blob) throw new Error("Chybí soubor.");
+  var bytes = blob.getBytes();
+  if (!bytes || bytes.length === 0) throw new Error("Soubor je prázdný.");
+  var b64 = Utilities.base64Encode(bytes);
+  var fname = String(blob.getName() || "document.pdf")
+    .replace(/[\r\n\\]/g, "_")
+    .replace(/"/g, "_")
+    .slice(0, 200);
+  if (!/\.pdf$/i.test(fname)) fname = (fname || "document") + ".pdf";
+  var titleEsc = String(fname)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  var script =
+    "<script>(function(){\n" +
+    "var b64=" +
+    JSON.stringify(b64) +
+    ";\n" +
+    "try {\n" +
+    "  var bin = atob(b64);\n" +
+    "  var len = bin.length;\n" +
+    "  var u8 = new Uint8Array(len);\n" +
+    "  for (var i = 0; i < len; i++) u8[i] = bin.charCodeAt(i) & 255;\n" +
+    "  var url = URL.createObjectURL(new Blob([u8], { type: 'application/pdf' }));\n" +
+    "  window.location.replace(url);\n" +
+    "} catch (e) {\n" +
+    "  document.body.textContent = (e && e.message) ? e.message : String(e);\n" +
+    "}\n" +
+    "})();</script>";
+  var html =
+    "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>" +
+    titleEsc +
+    "</title></head><body>" +
+    script +
+    "</body></html>";
+  return HtmlService.createHtmlOutput(html);
+}
+
 
 // ============================================================
 // GET ROUTER
@@ -353,23 +398,25 @@ function doPost(e) {
       /** Stažení PDF z tabulky (token v těle POST – spolehlivější než dlouhý GET na /exec). */
       case "downloadConnectApplicationFile":
         try {
-          return downloadConnectApplicationFile_(
+          var appPdf = downloadConnectApplicationFile_(
             body.competitionId,
             body.applicationId || body.app,
             body.fieldId || body.field,
             body.token
           );
+          return connectPdfBlobToHtmlOpenTabOutput_(appPdf);
         } catch (dlApp) {
           return ContentService.createTextOutput(String(dlApp.message || dlApp)).setMimeType(ContentService.MimeType.PLAIN);
         }
       case "downloadConnectPostAwardFile":
         try {
-          return downloadConnectPostAwardFile_(
+          var paBlob = downloadConnectPostAwardFile_(
             body.competitionId,
             body.applicationId || body.app,
             body.blobKey || body.blob || body.field,
             body.token
           );
+          return connectPdfBlobToHtmlOpenTabOutput_(paBlob);
         } catch (dlPa) {
           return ContentService.createTextOutput(String(dlPa.message || dlPa)).setMimeType(ContentService.MimeType.PLAIN);
         }
