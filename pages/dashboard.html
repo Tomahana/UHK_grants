@@ -484,7 +484,10 @@
     function selectNewRole(role) {
       const session = Auth._getSession();
       if (!session) return;
-      Auth.setSession(session.token, session.email, session.name, role, session.allRoles);
+      if (!Auth.setSession(session.token, session.email, session.name, role, session.allRoles)) {
+        alert(typeof I18n !== "undefined" && I18n.t ? I18n.t("login.errSessionStorage") : "Nelze uložit relaci v prohlížeči.");
+        return;
+      }
       closeRoleModal();
       window.location.reload();
     }
