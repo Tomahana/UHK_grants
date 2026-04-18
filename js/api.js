@@ -245,7 +245,8 @@ const API = {
 
   /**
    * Otevře PDF z Web Appu v novém tabu — bez fetch() (u script.google.com často „Failed to fetch“ kvůli CORS).
-   * Primárně GET s parametry (doGet vrací PDF). Při příliš dlouhé URL: POST formulář s target=_blank.
+   * Vždy POST formulář (application/x-www-form-urlencoded): token a parametry v těle, ne v GET URL
+   * (dlouhé URL se ořezávají / blokují; stejný mechanismus jako upload).
    */
   async openConnectBinaryDownload(action, fields) {
     const session = Auth._getSession();
@@ -256,47 +257,19 @@ const API = {
           : "Pro stažení souboru se přihlaste.";
       throw new Error(msg);
     }
-    let getUrl = "";
+    const baseUrl = String(typeof API_URL !== "undefined" ? API_URL : "").trim();
     try {
-      const u = new URL(API_URL);
-      u.searchParams.set("action", action);
-      u.searchParams.set("token", session.token);
-      Object.entries(fields || {}).forEach(([k, v]) => {
-        if (v !== undefined && v !== null && String(v) !== "") u.searchParams.set(k, String(v));
-      });
-      getUrl = u.toString();
+      new URL(baseUrl);
     } catch (eUrl) {
       throw new Error(
         typeof I18n !== "undefined" && I18n.t ? I18n.t("api.downloadNetworkError") : "Neplatná adresa API."
       );
     }
 
-    const openInNewTab = (href) => {
-      let w = null;
-      try {
-        w = window.open(href, "_blank", "noopener,noreferrer");
-      } catch (e0) {
-        w = null;
-      }
-      if (!w) {
-        const a = document.createElement("a");
-        a.href = href;
-        a.target = "_blank";
-        a.rel = "noopener noreferrer";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      }
-    };
-
-    if (getUrl.length <= 7500) {
-      openInNewTab(getUrl);
-      return;
-    }
-
     const form = document.createElement("form");
     form.method = "POST";
-    form.action = API_URL;
+    form.action = baseUrl;
+    form.enctype = "application/x-www-form-urlencoded";
     form.target = "_blank";
     form.acceptCharset = "UTF-8";
     form.style.display = "none";
