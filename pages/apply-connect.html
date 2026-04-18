@@ -789,18 +789,33 @@
       } else if (f.field_type === "file") {
         const accept = f.options ? f.options.split(",").map(e=>"."+e.trim()).join(",") : "*";
         const fmtHint = escapeHtml(tf("fileFormat")) + " " + escapeHtml(f.options || (I18n.getLang() === "en" ? "any" : "jakýkoli"));
+        const valStr = String(val || "").trim();
+        const isUrl = /^https?:\/\//i.test(valStr);
+        const hasStored = !!valStr;
+        let nameSpanHtml = "";
+        if (isUrl) {
+          nameSpanHtml =
+            escapeHtml(tc("fileUploadedDriveLabel")) +
+            " · <a href=\"" +
+            escapeAttr(valStr) +
+            "\" target=\"_blank\" rel=\"noopener noreferrer\">" +
+            escapeHtml(tf("submittedAttachmentOpenLink")) +
+            "</a>";
+        } else if (valStr) {
+          nameSpanHtml = escapeHtml(valStr);
+        }
         return `<div class="field">
           <label class="field-label">${f.field_label} ${req?'<span class="field-required">*</span>':""}</label>
           ${f.help_text ? `<div class="field-help">${f.help_text}</div>` : ""}
-          <div class="file-zone" onclick="document.getElementById('f-${f.field_id}').click()">
+          <div class="file-zone" id="file-zone-wrap-${f.field_id}" onclick="document.getElementById('f-${f.field_id}').click()">
             <div class="file-zone-icon">📎</div>
             <div class="file-zone-text">${escapeHtml(tf("filePick"))}</div>
             <div class="file-zone-hint">${fmtHint}</div>
             <input type="file" id="f-${f.field_id}" accept="${accept}"
-              onchange="onFileChange('${f.field_id}',this)">
+              onchange="void onFileChange('${f.field_id}',this)">
           </div>
-          <div id="file-info-${f.field_id}" style="display:none;" class="file-selected">
-            <span>✓</span> <span id="file-name-${f.field_id}"></span>
+          <div id="file-info-${f.field_id}" style="display:${hasStored ? "flex" : "none"};" class="file-selected">
+            <span>✓</span> <span id="file-name-${f.field_id}">${nameSpanHtml}</span>
           </div>
           <div class="field-error" id="err-${f.field_id}">${errFile}</div>
         </div>`;
@@ -996,14 +1011,97 @@
       clearError(id);
     }
 
-    function onFileChange(id, input) {
-      if (input.files[0]) {
-        formData[id] = input.files[0].name;
-        document.getElementById("file-info-" + id).style.display = "flex";
-        document.getElementById("file-name-" + id).textContent = input.files[0].name;
+    function readFileAsDataUrl(file) {
+      return new Promise(function (resolve, reject) {
+        const r = new FileReader();
+        r.onload = function () {
+          resolve(String(r.result || ""));
+        };
+        r.onerror = function () {
+          reject(new Error("read"));
+        };
+        r.readAsDataURL(file);
+      });
+    }
+
+    async function onFileChange(id, input) {
+      const file = input.files && input.files[0];
+      const info = document.getElementById("file-info-" + id);
+      const nameEl = document.getElementById("file-name-" + id);
+      const wrap = document.getElementById("file-zone-wrap-" + id);
+      if (!file) {
+        return;
+      }
+      const lower = String(file.name || "").toLowerCase();
+      if (!lower.endsWith(".pdf")) {
+        showToast(tc("filePdfOnly"), "err");
+        input.value = "";
+        return;
+      }
+      const maxB = 18 * 1024 * 1024;
+      if (file.size > maxB) {
+        showToast(tc("fileTooBig"), "err");
+        input.value = "";
+        return;
+      }
+      showToast(tc("fileUploading"));
+      if (wrap) wrap.style.opacity = "0.55";
+      try {
+        if (!draftId) {
+          await saveDraft(false);
+        }
+        if (!draftId) {
+          showToast(tc("fileNeedDraftRetry"), "err");
+          input.value = "";
+          return;
+        }
+        const session = Auth._getSession();
+        const dataUrl = await readFileAsDataUrl(file);
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "uploadConnectApplicationAttachment",
+            token: session?.token || "",
+            competitionId: COMPETITION_ID,
+            applicationId: draftId,
+            fieldId: id,
+            fileName: file.name,
+            mimeType: file.type || "application/pdf",
+            fileBase64: dataUrl,
+          }),
+        });
+        const out = await res.json().catch(function () {
+          return {};
+        });
+        if (out.error) {
+          throw new Error(out.error);
+        }
+        if (!out.url) {
+          throw new Error("ok");
+        }
+        formData[id] = out.url;
+        if (info) info.style.display = "flex";
+        if (nameEl) {
+          nameEl.innerHTML =
+            escapeHtml(tc("fileUploadedDriveLabel")) +
+            " · <a href=\"" +
+            escapeAttr(String(out.url)) +
+            "\" target=\"_blank\" rel=\"noopener noreferrer\">" +
+            escapeHtml(tf("submittedAttachmentOpenLink")) +
+            "</a>";
+        }
         isDirty = true;
+        scheduleAutoSave();
         updateChecklist();
         clearError(id);
+        showToast(tc("fileUploadOk"));
+      } catch (e) {
+        const msg = e && e.message && e.message !== "ok" ? e.message : tc("fileUploadErr");
+        showToast(msg, "err");
+        input.value = "";
+      } finally {
+        if (wrap) wrap.style.opacity = "";
       }
     }
 
@@ -1158,8 +1256,8 @@
     async function saveDraft(showMessage) {
       try {
         const session = Auth._getSession();
-        await fetch(API_URL, {
-          method: "POST", mode: "no-cors",
+        const res = await fetch(API_URL, {
+          method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             action: "saveDraft",
@@ -1168,8 +1266,18 @@
             draftId,
             formData,
             applicantEmail: user.email,
+            applicantName: user.name || user.email || "",
           }),
         });
+        const out = await res.json().catch(function () {
+          return {};
+        });
+        if (out.error) {
+          throw new Error(out.error);
+        }
+        if (out.draftId) {
+          draftId = out.draftId;
+        }
         isDirty = false;
         const now = new Date().toLocaleTimeString(I18n.numLocale(), { hour: "2-digit", minute: "2-digit" });
         const ls = document.getElementById("lastSaved");
@@ -1179,8 +1287,8 @@
         const st = document.getElementById("saveStatusText");
         if (st) st.textContent = I18n.tReplace("applyRega.footerSavedAt", { time: now });
         if (showMessage) showToast(trf("toastDraftSaved"));
-      } catch {
-        if (showMessage) showToast(trf("toastSaveFailed"), "err");
+      } catch (e) {
+        if (showMessage) showToast(e && e.message ? String(e.message) : trf("toastSaveFailed"), "err");
       }
     }
 
@@ -1265,8 +1373,8 @@
 
       try {
         const session = Auth._getSession();
-        await fetch(API_URL, {
-          method: "POST", mode: "no-cors",
+        const res = await fetch(API_URL, {
+          method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             action: "submitApplication",
@@ -1278,6 +1386,12 @@
             applicantName:  user.name || user.email,
           }),
         });
+        const subOut = await res.json().catch(function () {
+          return {};
+        });
+        if (subOut.error) {
+          throw new Error(subOut.error);
+        }
 
         document.getElementById("formPanel").innerHTML = `
           <div style="padding:48px 32px;text-align:center;">
@@ -1292,9 +1406,9 @@
           badge.className = "badge badge-submitted";
         }
         showToast(trf("submitSuccessToast"));
-      } catch {
+      } catch (e) {
         btn.disabled = false; btn.textContent = submitLabel;
-        showToast(trf("submitError"), "err");
+        showToast(e && e.message ? String(e.message) : trf("submitError"), "err");
       }
     }
 
