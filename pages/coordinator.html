@@ -315,6 +315,21 @@
 
   const CONNECT_EXPORT_ID = "uhk_connect_2026_v2";
 
+  function openConnectAdminDossierPdf(appId) {
+    const session = Auth._getSession();
+    const u = new URL(API_URL);
+    u.searchParams.set("action", "adminExportConnectProjectDossierPdf");
+    u.searchParams.set("competitionId", CONNECT_EXPORT_ID);
+    u.searchParams.set("applicationId", appId);
+    if (session?.token) u.searchParams.set("token", session.token);
+    window.open(u.toString(), "_blank");
+  }
+
+  function openConnectAdminDossierPdfFromModal() {
+    if (!currentApp || currentApp.competition_id !== CONNECT_EXPORT_ID) return;
+    openConnectAdminDossierPdf(currentApp.application_id);
+  }
+
   function escapeHtmlCoord(s) {
     return String(s == null ? "" : s)
       .replace(/&/g, "&amp;")
@@ -807,8 +822,14 @@
       </div>
       <div id="modalPostAwardSlot"></div>`;
 
+    const pdfFooterBtn =
+      a.competition_id === CONNECT_EXPORT_ID && Auth.hasAnyRole(["ADMIN", "TESTER", "PROREKTOR"])
+        ? `<button type="button" class="btn btn-outline" onclick="openConnectAdminDossierPdfFromModal()">PDF přehled Connect</button>`
+        : "";
+
     document.getElementById("modalFooter").innerHTML = `
       <button type="button" class="btn btn-outline" style="margin-right:auto;color:var(--red);border-color:#FECACA;" onclick="adminDeleteSelectedApplication()">Smazat přihlášku</button>
+      ${pdfFooterBtn}
       <button type="button" class="btn btn-outline" onclick="closeModal()">Zavřít</button>
       <button type="button" class="btn btn-navy" onclick="saveNote()">Uložit poznámku</button>`;
 
