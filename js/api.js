@@ -246,6 +246,8 @@ const API = {
   /**
    * Stažení binárního souboru z Web Appu (POST + token v těle).
    * Otevře PDF v novém panelu jako blob: URL (obchází nešťastné přesměrování / chyby u GET na script.google.com).
+   * Tělo jako application/x-www-form-urlencoded = „simple request“ bez CORS preflightu
+   * (některé sítě / prohlížeče u POST na script.google.com s JSON nebo text/plain hlásí „Failed to fetch“).
    */
   async openConnectBinaryDownload(action, fields) {
     const session = Auth._getSession();
@@ -256,37 +258,87 @@ const API = {
           : "Pro stažení souboru se přihlaste.";
       throw new Error(msg);
     }
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=UTF-8" },
-      body: JSON.stringify({
-        action,
-        token: session.token,
-        ...fields,
-      }),
+    /** Otevřít okno hned (v rámci kliknutí). Po await fetch() by prohlížeč popup s blob: URL často zablokoval. */
+    let pdfWindow = null;
+    try {
+      /* Bez noopener – jinak některé prohlížeče vrátí null a nelze pak přiřadit location s PDF. */
+      pdfWindow = window.open("about:blank", "_blank");
+    } catch (eWin) {
+      pdfWindow = null;
+    }
+    const params = new URLSearchParams();
+    params.set("action", action);
+    params.set("token", session.token);
+    Object.entries(fields || {}).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && String(v) !== "") params.set(k, String(v));
     });
+    const closePlaceholder = () => {
+      try {
+        if (pdfWindow && !pdfWindow.closed) pdfWindow.close();
+      } catch (e) {
+        /* ignore */
+      }
+    };
+    let res;
+    try {
+      res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: params.toString(),
+      });
+    } catch (e) {
+      closePlaceholder();
+      const hint =
+        typeof I18n !== "undefined" && I18n.t
+          ? I18n.t("api.downloadNetworkError")
+          : "Spojení se serverem selhalo. Zkuste znovu nebo jinou síť.";
+      throw new Error(hint);
+    }
     const ct = (res.headers.get("content-type") || "").toLowerCase();
     if (!res.ok) {
+      closePlaceholder();
       const t = await res.text().catch(() => "");
       throw new Error((t && t.slice(0, 500)) || "HTTP " + res.status);
     }
-    if (
+    /** Apps Script někdy vrátí text/plain i pro PDF; ověření podle hlavičky souboru %PDF-. */
+    const buf = await res.arrayBuffer();
+    const head = new Uint8Array(buf.slice(0, 5));
+    /* PDF začíná ASCII „%PDF“ (0x25 0x50 0x44 0x46), pátý znak bývá „-“ u verze */
+    const pdfMagic =
+      head.length >= 4 &&
+      head[0] === 0x25 &&
+      head[1] === 0x50 &&
+      head[2] === 0x44 &&
+      head[3] === 0x46;
+    const looksLikePdf =
+      pdfMagic ||
       ct.indexOf("application/pdf") >= 0 ||
       ct.indexOf("application/octet-stream") >= 0 ||
-      ct.indexOf("binary/octet-stream") >= 0
-    ) {
-      const blob = await res.blob();
+      ct.indexOf("binary/octet-stream") >= 0;
+    if (looksLikePdf) {
+      const blob = new Blob([buf], { type: "application/pdf" });
       const u = URL.createObjectURL(blob);
-      const w = window.open(u, "_blank", "noopener,noreferrer");
-      if (!w) {
-        const a = document.createElement("a");
-        a.href = u;
-        a.target = "_blank";
-        a.rel = "noopener";
-        a.download = "dokument.pdf";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+      let opened = false;
+      if (pdfWindow && !pdfWindow.closed) {
+        try {
+          pdfWindow.location.assign(u);
+          opened = true;
+        } catch (eLoc) {
+          /* fallback */
+        }
+      }
+      if (!opened) {
+        const w = window.open(u, "_blank", "noopener,noreferrer");
+        if (!w) {
+          const a = document.createElement("a");
+          a.href = u;
+          a.target = "_blank";
+          a.rel = "noopener";
+          a.download = "dokument.pdf";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        }
       }
       setTimeout(() => {
         try {
@@ -297,12 +349,23 @@ const API = {
       }, 300000);
       return;
     }
-    if (ct.indexOf("application/json") >= 0) {
-      const j = await res.json().catch(() => ({}));
-      throw new Error(j.error || "Stažení se nepodařilo.");
+    closePlaceholder();
+    var errTxt = "";
+    try {
+      errTxt = new TextDecoder("utf-8").decode(buf);
+    } catch (eDec) {
+      errTxt = "";
     }
-    const t = await res.text().catch(() => "");
-    throw new Error(t.slice(0, 500) || "Neočekávaná odpověď serveru.");
+    if (errTxt) {
+      try {
+        const j = JSON.parse(errTxt);
+        if (j && j.error) throw new Error(String(j.error));
+      } catch (eOut) {
+        if (eOut instanceof Error && String(eOut.message || "").length && !String(eOut.message).includes("Neočekávaná"))
+          throw eOut;
+      }
+    }
+    throw new Error((errTxt && errTxt.slice(0, 500)) || "Neočekávaná odpověď serveru.");
   },
 };
 
