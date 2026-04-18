@@ -457,16 +457,21 @@
         .map(function (h) {
           const lab = fileFieldLabelSubmitted(h.field_id);
           const val = String(h.value || "");
+          const valTrim = val.trim();
           const isUrl = !!h.isLikelyUrl;
           const appIdForDl = String(h.application_id || sub.application_id || "").trim();
-          const dlStored =
-            h.isSheetBlob && appIdForDl ? buildConnectApplicationFileDownloadUrl(appIdForDl, h.field_id) : "";
-          const shortVal = val.length > 120 ? val.slice(0, 120) + "…" : val;
+          const isAppStoredPdf =
+            !!(h.isSheetBlob || /^UHKAFILE\|/i.test(valTrim)) && appIdForDl && h.field_id;
+          const dlStored = isAppStoredPdf
+            ? buildConnectApplicationFileDownloadUrl(appIdForDl, h.field_id)
+            : "";
+          const dispVal = valTrim.replace(/^UHKAFILE\|/i, "") || val;
+          const shortVal = dispVal.length > 120 ? dispVal.slice(0, 120) + "…" : dispVal;
           const staleDrive =
             !!h.staleGoogleDriveUrl ||
             (isUrl &&
               !dlStored &&
-              /^(https?:\/\/)?(drive|docs)\.google\.com\//i.test(val.trim()));
+              /^(https?:\/\/)?(drive|docs)\.google\.com\//i.test(valTrim));
           const cell = dlStored
             ? '<a href="' +
               escapeAttr(dlStored) +
@@ -494,7 +499,7 @@
               escapeHtml(shortVal) +
               ")</span>"
             : '<span style="font-family:ui-monospace,\'DM Mono\',monospace;word-break:break-all">' +
-              escapeHtml(val) +
+              escapeHtml(dispVal) +
               "</span>";
           return (
             "<tr><th style=\"text-align:left;padding:8px 12px 8px 0;vertical-align:top;color:var(--navy);font-weight:600;width:38%\">" +
