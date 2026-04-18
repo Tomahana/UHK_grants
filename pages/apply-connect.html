@@ -329,17 +329,24 @@
     }
 
     const COMPETITION_ID = new URLSearchParams(location.search).get("c") || "uhk_connect_2026_v2";
-    /** Stažení PDF z listu APPLICATION_FILE_BLOBS (GET, vyžaduje přihlášení). */
-    function buildConnectApplicationFileDownloadUrl(applicationId, fieldId) {
+    /**
+     * Odkaz „Otevřít PDF“ pro podací přílohu (PDF je v tabulce, ne na Disku).
+     * Používá třídu uhk-blob-dl + delegaci v api.js → POST stažení (token v těle).
+     */
+    function connectApplicationPdfDlAnchor_(applicationId, fieldId, innerLabelHtml) {
       if (!applicationId || !fieldId) return "";
-      const session = Auth._getSession();
-      const u = new URL(API_URL);
-      u.searchParams.set("action", "downloadConnectApplicationFile");
-      u.searchParams.set("competitionId", COMPETITION_ID);
-      u.searchParams.set("applicationId", String(applicationId).trim());
-      u.searchParams.set("fieldId", String(fieldId).trim());
-      u.searchParams.set("token", session?.token || "");
-      return u.toString();
+      return (
+        '<a href="#" class="uhk-blob-dl" data-dl-action="downloadConnectApplicationFile" ' +
+        'data-dl-competition-id="' +
+        escapeAttr(COMPETITION_ID) +
+        '" data-dl-application-id="' +
+        escapeAttr(String(applicationId).trim()) +
+        '" data-dl-field-id="' +
+        escapeAttr(String(fieldId).trim()) +
+        '">' +
+        innerLabelHtml +
+        "</a>"
+      );
     }
 
     /**
@@ -462,22 +469,16 @@
           const appIdForDl = String(h.application_id || sub.application_id || "").trim();
           const isAppStoredPdf =
             !!(h.isSheetBlob || /^UHKAFILE\|/i.test(valTrim)) && appIdForDl && h.field_id;
-          const dlStored = isAppStoredPdf
-            ? buildConnectApplicationFileDownloadUrl(appIdForDl, h.field_id)
-            : "";
           const dispVal = valTrim.replace(/^UHKAFILE\|/i, "") || val;
           const shortVal = dispVal.length > 120 ? dispVal.slice(0, 120) + "…" : dispVal;
           const staleDrive =
             !!h.staleGoogleDriveUrl ||
             (isUrl &&
-              !dlStored &&
+              !isAppStoredPdf &&
               /^(https?:\/\/)?(drive|docs)\.google\.com\//i.test(valTrim));
-          const cell = dlStored
-            ? '<a href="' +
-              escapeAttr(dlStored) +
-              '" target="_blank" rel="noopener noreferrer">' +
-              escapeHtml(tf("submittedAttachmentOpenPdf")) +
-              '</a> <span style="color:var(--muted);font-size:12px">(' +
+          const cell = isAppStoredPdf
+            ? connectApplicationPdfDlAnchor_(appIdForDl, h.field_id, escapeHtml(tf("submittedAttachmentOpenPdf"))) +
+              ' <span style="color:var(--muted);font-size:12px">(' +
               escapeHtml(shortVal) +
               ")</span>"
             : staleDrive
@@ -859,8 +860,6 @@
         const valStr = String(val || "").trim();
         const isUrl = /^https?:\/\//i.test(valStr);
         const isSheetBlob = /^UHKAFILE\|/i.test(valStr);
-        const blobDl =
-          isSheetBlob && draftId ? buildConnectApplicationFileDownloadUrl(draftId, f.field_id) : "";
         const hasStored = !!valStr;
         let nameSpanHtml = "";
         if (isUrl) {
@@ -871,14 +870,11 @@
             "\" target=\"_blank\" rel=\"noopener noreferrer\">" +
             escapeHtml(tf("submittedAttachmentOpenLink")) +
             "</a>";
-        } else if (isSheetBlob && blobDl) {
+        } else if (isSheetBlob && draftId) {
           nameSpanHtml =
             escapeHtml(tc("fileUploadedAppStorageLabel")) +
-            " · <a href=\"" +
-            escapeAttr(blobDl) +
-            "\" target=\"_blank\" rel=\"noopener noreferrer\">" +
-            escapeHtml(tf("submittedAttachmentOpenPdf")) +
-            "</a>";
+            " · " +
+            connectApplicationPdfDlAnchor_(draftId, f.field_id, escapeHtml(tf("submittedAttachmentOpenPdf")));
         } else if (valStr) {
           nameSpanHtml = escapeHtml(valStr.replace(/^UHKAFILE\|/i, ""));
         }
@@ -1142,9 +1138,14 @@
         }
         const url = String(formData[id] || "").trim();
         const isBlobVal = /^UHKAFILE\|/i.test(url);
-        const blobDl = isBlobVal && draftId ? buildConnectApplicationFileDownloadUrl(draftId, id) : "";
+        const isWebUrl = /^https?:\/\//i.test(url);
+        if (!isBlobVal && !isWebUrl) {
+          showToast(tc("fileUploadErr"), "err");
+          input.value = "";
+          return;
+        }
         if (info) info.style.display = "flex";
-        if (nameEl && /^https?:\/\//i.test(url)) {
+        if (nameEl && isWebUrl) {
           nameEl.innerHTML =
             escapeHtml(tc("fileUploadedDriveLabel")) +
             " · <a href=\"" +
@@ -1152,14 +1153,11 @@
             "\" target=\"_blank\" rel=\"noopener noreferrer\">" +
             escapeHtml(tf("submittedAttachmentOpenLink")) +
             "</a>";
-        } else if (nameEl && isBlobVal && blobDl) {
+        } else if (nameEl && isBlobVal && draftId) {
           nameEl.innerHTML =
             escapeHtml(tc("fileUploadedAppStorageLabel")) +
-            " · <a href=\"" +
-            escapeAttr(blobDl) +
-            "\" target=\"_blank\" rel=\"noopener noreferrer\">" +
-            escapeHtml(tf("submittedAttachmentOpenPdf")) +
-            "</a>";
+            " · " +
+            connectApplicationPdfDlAnchor_(draftId, id, escapeHtml(tf("submittedAttachmentOpenPdf")));
         }
         isDirty = true;
         scheduleAutoSave();
