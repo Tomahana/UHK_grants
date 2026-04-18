@@ -2816,6 +2816,12 @@ function connectIsApplicantOrAdminTesterPostAward_(auth, competitionId, applican
  * body: token, competitionId, applicationId, fileName, mimeType, fileBase64 (čistý base64 nebo data URL)
  */
 function uploadConnectPostAwardAttachment(body) {
+  if (!body || typeof body !== "object") {
+    throw new Error(
+      "uploadConnectPostAwardAttachment: nespouštějte z editoru tlačítkem Spustit – chybí POST tělo (token, soubor). Použijte webovou aplikaci po přihlášení."
+    );
+  }
+  if (!body.token) throw new Error("Chybí token. Nahrajte soubor z webové aplikace po přihlášení.");
   var auth = requireAuth(body.token);
   var me = String(auth.email || "").toLowerCase().trim();
   var competitionId = body.competitionId;
@@ -2918,6 +2924,12 @@ function connectTrashDriveFilesNamePrefixInFolder_(folderId, namePrefix) {
  * body: token, competitionId, applicationId (ID konceptu), fieldId, fileName, mimeType, fileBase64
  */
 function uploadConnectApplicationAttachment(body) {
+  if (!body || typeof body !== "object") {
+    throw new Error(
+      "uploadConnectApplicationAttachment: nespouštějte z editoru tlačítkem Spustit – chybí POST tělo (token, soubor). Použijte webovou aplikaci po přihlášení."
+    );
+  }
+  if (!body.token) throw new Error("Chybí token. Nahrajte přílohu z webové aplikace po přihlášení.");
   var auth = requireAuth(body.token);
   var me = String(auth.email || "").toLowerCase().trim();
   var competitionId = String(body.competitionId || "").trim();
