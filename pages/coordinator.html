@@ -363,28 +363,6 @@
       .replace(/"/g, "&quot;");
   }
 
-  function coordinatorConnectApplicationFileDownloadUrl_(competitionId, applicationId, fieldId) {
-    const session = Auth._getSession();
-    const u = new URL(API_URL);
-    u.searchParams.set("action", "downloadConnectApplicationFile");
-    u.searchParams.set("competitionId", String(competitionId || "").trim());
-    u.searchParams.set("applicationId", String(applicationId || "").trim());
-    u.searchParams.set("fieldId", String(fieldId || "").trim());
-    if (session && session.token) u.searchParams.set("token", session.token);
-    return u.toString();
-  }
-
-  function coordinatorConnectPostAwardBlobDownloadUrl_(competitionId, applicationId, blobKey) {
-    const session = Auth._getSession();
-    const u = new URL(API_URL);
-    u.searchParams.set("action", "downloadConnectPostAwardFile");
-    u.searchParams.set("competitionId", String(competitionId || "").trim());
-    u.searchParams.set("applicationId", String(applicationId || "").trim());
-    u.searchParams.set("blobKey", String(blobKey || "").trim());
-    if (session && session.token) u.searchParams.set("token", session.token);
-    return u.toString();
-  }
-
   /** application_file_hints z getConnectPostAward – PDF v listu tabulky (UHKAFILE). */
   function coordinatorApplicationFileHintsListHtml_(competitionId, applicationId, hints) {
     const arr = Array.isArray(hints) ? hints : [];
@@ -398,15 +376,20 @@
         const disp = escapeHtmlCoord(dispPlain.slice(0, 2000));
         const asAppBlob = !!(h && (h.isSheetBlob || /^UHKAFILE\|/i.test(valRaw)) && aid && fid);
         if (asAppBlob) {
-          const href = coordinatorConnectApplicationFileDownloadUrl_(competitionId, aid, fid);
+          const cid = String(competitionId || "").trim();
           return (
             "<li><code>" +
             escapeHtmlCoord(fid) +
             '</code> · <span style="font-family:DM Mono,monospace;font-size:11px">' +
             disp +
-            '</span> · <a href="' +
-            escapeHtmlCoord(href) +
-            '" target="_blank" rel="noopener">Otevřít PDF</a></li>'
+            '</span> · <a href="#" class="uhk-blob-dl" data-dl-action="downloadConnectApplicationFile" ' +
+            'data-dl-competition-id="' +
+            escapeHtmlCoord(cid) +
+            '" data-dl-application-id="' +
+            escapeHtmlCoord(aid) +
+            '" data-dl-field-id="' +
+            escapeHtmlCoord(fid) +
+            '">Otevřít PDF</a></li>'
           );
         }
         if (h && h.isLikelyUrl) {
@@ -601,8 +584,13 @@
         const useBlob =
           !!(f.isSheetBlob || /^paward_/i.test(idRaw)) && competitionId && applicationId && idRaw;
         if (useBlob) {
-          const href = coordinatorConnectPostAwardBlobDownloadUrl_(competitionId, applicationId, f.id);
-          return `<tr><td>${nm}</td><td>tabulka</td><td><a href="${escapeHtmlCoord(href)}">Stáhnout</a></td></tr>`;
+          const cid = escapeHtmlCoord(String(competitionId || "").trim());
+          const app = escapeHtmlCoord(String(applicationId || "").trim());
+          const bkid = escapeHtmlCoord(String(idRaw));
+          return (
+            `<tr><td>${nm}</td><td>tabulka</td><td><a href="#" class="uhk-blob-dl" data-dl-action="downloadConnectPostAwardFile" ` +
+            `data-dl-competition-id="${cid}" data-dl-application-id="${app}" data-dl-blob-key="${bkid}">Stáhnout</a></td></tr>`
+          );
         }
         if (!idRaw) {
           return `<tr><td>${nm}</td><td colspan="2" style="color:#92400e;font-size:12px">Chybí ID souboru (nelze sestavit odkaz).</td></tr>`;
@@ -846,8 +834,14 @@
                 const idRaw = String(f.id || "").trim();
                 const useBlob = !!(f.isSheetBlob || /^paward_/i.test(idRaw)) && compId && appId && idRaw;
                 if (useBlob) {
-                  const href = coordinatorConnectPostAwardBlobDownloadUrl_(compId, appId, f.id);
-                  return `<li><span style="font-family:DM Mono,monospace;font-size:11px">${nm}</span><br><a href="${escapeHtmlCoord(href)}" target="_blank" rel="noopener">Stáhnout z aplikace</a></li>`;
+                  const cid = escapeHtmlCoord(String(compId || "").trim());
+                  const ap = escapeHtmlCoord(String(appId || "").trim());
+                  const bkid = escapeHtmlCoord(String(idRaw));
+                  return (
+                    `<li><span style="font-family:DM Mono,monospace;font-size:11px">${nm}</span><br>` +
+                    `<a href="#" class="uhk-blob-dl" data-dl-action="downloadConnectPostAwardFile" ` +
+                    `data-dl-competition-id="${cid}" data-dl-application-id="${ap}" data-dl-blob-key="${bkid}">Stáhnout z aplikace</a></li>`
+                  );
                 }
                 if (!idRaw) {
                   return `<li><span style="font-family:DM Mono,monospace;font-size:11px">${nm}</span><br><span style="color:var(--muted);font-size:12px">Chybí ID souboru.</span></li>`;
