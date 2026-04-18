@@ -1286,6 +1286,9 @@
         } else {
           showToast(/^UHKDRIVE\|/i.test(String(formData[id] || "")) ? tc("fileUploadOkDrive") : tc("fileUploadOk"));
         }
+        if (out && out.formDataPersisted === false && typeof I18n !== "undefined" && I18n.t) {
+          showToast(I18n.t("applyConnect.fileUploadFormNotStored"), "err");
+        }
       } catch (e) {
         const msg = e && e.message && e.message !== "ok" ? e.message : tc("fileUploadErr");
         showToast(msg, "err");

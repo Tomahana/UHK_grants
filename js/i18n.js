@@ -450,6 +450,8 @@
         fileUploadHttpErr: "Server odpověděl chybou HTTP {{status}}. Zkuste znovu nebo kontaktujte správce.",
         fileUploadOldScriptHint:
           "Na Google pravděpodobně běží starší verze skriptu bez akce upload. Znovu nasaďte Web App z aktuálního kódu. Detail:",
+        fileUploadFormNotStored:
+          "Příloha je na Disku, ale nepodařilo se ji zapsat do přihlášky v tabulce. Obnovte stránku; pokud po obnovení chybí, znovu nasaďte Web App (aktuální skript zapisuje odkaz hned po nahrání).",
         fileUploadedDriveLabel: "PDF na Disku",
         fileUploadedDriveApiLabel: "PDF na Disku (nahráno aplikací)",
         fileUploadedAppStorageLabel: "PDF v tabulce (záloha)",
@@ -951,6 +953,8 @@
         fileUploadHttpErr: "The server returned HTTP {{status}}. Try again or contact an administrator.",
         fileUploadOldScriptHint:
           "The deployed Apps Script may be missing the upload action. Redeploy the Web App from the current code. Detail:",
+        fileUploadFormNotStored:
+          "The file is on Drive but could not be written into the application row in the sheet. Refresh; if it is still missing, redeploy the Web App (current script writes the link right after upload).",
         fileUploadedDriveLabel: "PDF on Drive",
         fileUploadedDriveApiLabel: "PDF on Drive (uploaded by the app)",
         fileUploadedAppStorageLabel: "PDF in spreadsheet (fallback)",

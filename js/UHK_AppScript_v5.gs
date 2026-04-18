@@ -1461,6 +1461,30 @@ function applicationsSetFormDataJsonForAppId_(sheet, applicationId, fdObj) {
   return true;
 }
 
+/**
+ * Zapíše hodnotu pole přílohy (UHKAFILE|… / UHKDRIVE|…) do form_data_json daného konceptu.
+ * Volá se hned po uploadu, aby příloha byla v tabulce i když následný saveDraft z prohlížeče selže.
+ */
+function connectMergeAttachmentIntoApplicationForm_(ss, applicationId, applicantLower, fieldId, urlValue) {
+  var aid = String(applicationId || "").trim();
+  var fid = String(fieldId || "").trim();
+  if (!aid || !fid) return false;
+  var sheet = ss.getSheetByName(SHEETS.APPLICATIONS);
+  if (!sheet) return false;
+  var rows = sheetToObjects(sheet).map(applicationsSheetRowNormalize_);
+  var row = rows.find(function (r) {
+    return String(r.application_id || "").trim() === aid;
+  });
+  if (!row) return false;
+  if (String(row.applicant_email || "").toLowerCase().trim() !== String(applicantLower || "").toLowerCase().trim()) {
+    return false;
+  }
+  if (String(row.status || "").toUpperCase() !== "DRAFT") return false;
+  var fd = connectParseFormDataObject_(row);
+  fd[fid] = String(urlValue || "").trim();
+  return applicationsSetFormDataJsonForAppId_(sheet, aid, fd);
+}
+
 function ensureApplicationFileBlobsSheet_(ss) {
   var name = SHEETS.APPLICATION_FILE_BLOBS;
   var sh = ss.getSheetByName(name);
@@ -2948,6 +2972,7 @@ function uploadConnectApplicationAttachment(body) {
   var url = patch[fieldId];
   if (!url) throw new Error("Nahrání se nezdařilo.");
   var sk = /^UHKDRIVE\|/i.test(String(url)) ? "drive" : "sheet";
+  var persisted = connectMergeAttachmentIntoApplicationForm_(ss, applicationId, me, fieldId, url);
   return {
     success: true,
     fieldId: fieldId,
@@ -2956,6 +2981,7 @@ function uploadConnectApplicationAttachment(body) {
     id: "",
     storageKind: sk,
     driveError: diag.driveError || "",
+    formDataPersisted: !!persisted,
   };
 }
 
@@ -4551,6 +4577,38 @@ function saveDraft(body) {
   const idCol  = findCol(COL, "application_id", "id", "app_id", "project_id");
   if (eCol < 0 || sCol < 0 || fCol < 0)
     throw new Error("List APPLICATIONS: chybí sloupce applicant_email, status nebo form_data_json (záhlaví na řádku " + HEADER_ROW + ").");
+
+  /** Klient poslal konkrétní ID konceptu – aktualizuj tento řádek (řeší dva DRAFTy u stejného e-mailu). */
+  const draftIdReq = String(body.draftId || body.applicationId || "").trim();
+  if (draftIdReq && idCol >= 0) {
+    for (let j = HEADER_ROW; j < data.length; j++) {
+      const rid = String(data[j][idCol] || "").trim();
+      if (rid !== draftIdReq) continue;
+      const rowEmailJ = String(data[j][eCol] || "").toLowerCase();
+      const rowStatusJ = String(data[j][sCol] || "").toUpperCase();
+      if (rowEmailJ !== body.applicantEmail?.toLowerCase() || rowStatusJ !== "DRAFT") {
+        throw new Error("Koncept s tímto ID neexistuje, není DRAFT, nebo nepatří přihlášenému účtu.");
+      }
+      var fdById = {};
+      try {
+        fdById = Object.assign({}, body.formData || {});
+      } catch (eBy) {
+        fdById = {};
+      }
+      var upById = connectProcessApplicationFileUploads_(ss, body.competitionId, draftIdReq, applicant, body.fileUploads || []);
+      var patchById = upById.patch || {};
+      Object.assign(fdById, patchById);
+      sheet.getRange(j + 1, fCol + 1).setValue(JSON.stringify(fdById));
+      if (uCol >= 0) sheet.getRange(j + 1, uCol + 1).setValue(fmtDate(new Date()));
+      return {
+        success: true,
+        draftId: draftIdReq,
+        uploadedFields: patchById,
+        uploadDiagnostics: upById.diagnostics || {},
+      };
+    }
+    throw new Error("Koncept s ID " + draftIdReq + " v tabulce nenalezen.");
+  }
 
   // Hledej existující draft
   for (let i = HEADER_ROW; i < data.length; i++) {
