@@ -1137,20 +1137,45 @@
       showToast(tc("fileUploading"));
       if (wrap) wrap.style.opacity = "0.55";
       try {
-        const dataUrl = await readFileAsDataUrl(file);
-        const uploads = [
-          {
-            fieldId: id,
-            fileName: file.name,
-            mimeType: file.type || "application/pdf",
-            fileBase64: dataUrl,
-          },
-        ];
-        const saveOut = await saveDraft(false, uploads, true);
-        if (!draftId || !String(formData[id] || "").trim()) {
+        if (!draftId) {
+          await saveDraft(false);
+        }
+        if (!draftId) {
           showToast(tc("fileNeedDraftRetry"), "err");
           input.value = "";
           return;
+        }
+        const dataUrl = await readFileAsDataUrl(file);
+        const session = Auth._getSession();
+        const { res, out } = await connectPostJson({
+          action: "uploadConnectApplicationAttachment",
+          token: session?.token || "",
+          competitionId: COMPETITION_ID,
+          applicationId: draftId,
+          fieldId: id,
+          fileName: file.name,
+          mimeType: file.type || "application/pdf",
+          fileBase64: dataUrl,
+        });
+        if (!res.ok) {
+          throw new Error("HTTP " + res.status);
+        }
+        if (out && out.error) {
+          throw new Error(String(out.error));
+        }
+        if (out && out.url) {
+          formData[id] = String(out.url);
+        }
+        const saveOut = {
+          uploadDiagnostics: {
+            [id]: {
+              storage: out && out.storageKind ? String(out.storageKind) : "",
+              driveError: out && out.driveError ? String(out.driveError) : "",
+            },
+          },
+        };
+        if (!String(formData[id] || "").trim()) {
+          throw new Error(tc("fileUploadErr"));
         }
         const url = String(formData[id] || "").trim();
         const isBlobVal = /^UHKAFILE\|/i.test(url);
