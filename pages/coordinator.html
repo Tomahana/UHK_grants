@@ -338,12 +338,70 @@
       .replace(/"/g, "&quot;");
   }
 
+  /** Shodně s backend connectCanonical – z řádku exportu rozhodnutí (Podpořeno / Kráceno). */
+  function coordinatorProrektorMeansPart2_(dec) {
+    const u = String(dec == null ? "" : dec)
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, "_");
+    if (u === "SUPPORT" || u === "CUT" || u === "FUND" || u === "FUND_REDUCED" || u === "REDUCED") return true;
+    const fold = u
+      .replace(/Á/g, "A")
+      .replace(/Č/g, "C")
+      .replace(/Ď/g, "D")
+      .replace(/É/g, "E")
+      .replace(/Ě/g, "E")
+      .replace(/Í/g, "I")
+      .replace(/Ň/g, "N")
+      .replace(/Ó/g, "O")
+      .replace(/Ř/g, "R")
+      .replace(/Š/g, "S")
+      .replace(/Ť/g, "T")
+      .replace(/Ú/g, "U")
+      .replace(/Ů/g, "U")
+      .replace(/Ý/g, "Y")
+      .replace(/Ž/g, "Z");
+    return (
+      fold === "PODPORENO" ||
+      fold === "PODPORIT" ||
+      fold === "SCHVALENO" ||
+      fold === "KRACENO" ||
+      fold === "KRATIT_ROZPOCET" ||
+      fold === "KRATIT"
+    );
+  }
+
   function toggleSelectAllFiltered() {
     const master = document.getElementById("selectAllApps");
     if (!master) return;
     document.querySelectorAll("#tableBody .appSel").forEach((b) => {
       b.checked = master.checked;
     });
+  }
+
+  function buildConnectAttachmentsSectionHtml_(title, app, files, manifestText, noteHtml) {
+    const manifest = escapeHtmlCoord(manifestText || "");
+    const fileList = files || [];
+    let fileRows = fileList
+      .map((f) => {
+        const id = escapeHtmlCoord(f.id);
+        const nm = escapeHtmlCoord(f.name);
+        const view = "https://drive.google.com/file/d/" + id + "/view";
+        const dl = "https://drive.google.com/uc?export=download&id=" + id;
+        return `<tr><td>${nm}</td><td><a href="${view}">Otevřít na Disku</a></td><td><a href="${dl}">Stáhnout</a></td></tr>`;
+      })
+      .join("");
+    if (!fileRows)
+      fileRows =
+        '<tr><td colspan="3"><i>Žádné soubory nahrané přes tlačítko v aplikaci (ověřte manifest níže).</i></td></tr>';
+    const note = noteHtml ? `<p style="font-size:13px;color:#92400e;margin-bottom:10px;line-height:1.45">${noteHtml}</p>` : "";
+    return (
+      `<section style="margin-bottom:2.5rem;page-break-inside:avoid"><h2 style="font-size:1.1rem">${escapeHtmlCoord(
+        title
+      )}</h2><p style="font-family:DM Mono,monospace;font-size:12px">${escapeHtmlCoord(app)}</p>${note}` +
+      `<h3 style="font-size:0.95rem;margin-top:1rem">Soubory na Google Disku (prefix ID přihlášky)</h3><table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%;max-width:900px"><thead><tr><th align="left">Soubor</th><th>Disk</th><th>Stažení</th></tr></thead><tbody>${fileRows}</tbody></table>` +
+      `<h3 style="font-size:0.95rem;margin-top:1rem">Manifest z aplikace (odkazy / poznámky)</h3><pre style="white-space:pre-wrap;background:#f5f5f5;padding:12px;border-radius:6px;font-size:12px">${manifest}</pre></section>`
+    );
   }
 
   async function exportSelectedConnectAttachmentsLinksHtml() {
@@ -356,35 +414,52 @@
       return;
     }
     showToast("Skládám HTML…");
+    let deliverById = null;
+    try {
+      const bulk = await API.getConnectDeliverablesExport(CONNECT_EXPORT_ID);
+      if (bulk && bulk.supported && Array.isArray(bulk.rows)) {
+        deliverById = new Map(bulk.rows.map((r) => [String(r.application_id || "").trim(), r]));
+      }
+    } catch {
+      deliverById = null;
+    }
     const sections = [];
+    let firstSkipReason = "";
     for (const { app, comp } of pairs) {
       try {
         const data = await API.getConnectPostAward(comp, app);
-        if (!data || data.error || !data.applicable) continue;
-        const title = escapeHtmlCoord(data.projectTitle || app);
-        const files = data.uploaded_drive_files || [];
-        const manifest = escapeHtmlCoord(
-          data.checklist && data.checklist.attachments_manifest ? data.checklist.attachments_manifest : ""
-        );
-        let fileRows = files
-          .map((f) => {
-            const id = escapeHtmlCoord(f.id);
-            const nm = escapeHtmlCoord(f.name);
-            const view = "https://drive.google.com/file/d/" + id + "/view";
-            const dl = "https://drive.google.com/uc?export=download&id=" + id;
-            return `<tr><td>${nm}</td><td><a href="${view}">Otevřít na Disku</a></td><td><a href="${dl}">Stáhnout</a></td></tr>`;
-          })
-          .join("");
-        if (!fileRows)
-          fileRows =
-            '<tr><td colspan="3"><i>Žádné soubory nahrané přes tlačítko v aplikaci (ověřte manifest níže).</i></td></tr>';
-        sections.push(
-          `<section style="margin-bottom:2.5rem;page-break-inside:avoid"><h2 style="font-size:1.1rem">${title}</h2><p style="font-family:DM Mono,monospace;font-size:12px">${escapeHtmlCoord(
-            app
-          )}</p>` +
-            `<h3 style="font-size:0.95rem;margin-top:1rem">Soubory na Google Disku (prefix ID přihlášky)</h3><table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%;max-width:900px"><thead><tr><th align="left">Soubor</th><th>Disk</th><th>Stažení</th></tr></thead><tbody>${fileRows}</tbody></table>` +
-            `<h3 style="font-size:0.95rem;margin-top:1rem">Manifest z aplikace (odkazy / poznámky)</h3><pre style="white-space:pre-wrap;background:#f5f5f5;padding:12px;border-radius:6px;font-size:12px">${manifest}</pre></section>`
-        );
+        if (data && data.applicable && !data.error) {
+          sections.push(
+            buildConnectAttachmentsSectionHtml_(
+              data.projectTitle || app,
+              app,
+              data.uploaded_drive_files || [],
+              data.checklist && data.checklist.attachments_manifest ? data.checklist.attachments_manifest : "",
+              ""
+            )
+          );
+          continue;
+        }
+        if (data && data.reason && !firstSkipReason) firstSkipReason = String(data.reason);
+        const er = deliverById ? deliverById.get(String(app).trim()) : null;
+        const man = er && er.attachments_manifest ? String(er.attachments_manifest).trim() : "";
+        if (er && coordinatorProrektorMeansPart2_(er.prorektor_decision) && man) {
+          sections.push(
+            buildConnectAttachmentsSectionHtml_(
+              er.project_title || app,
+              app,
+              [],
+              man,
+              "Záložní přehled z exportu checklistu (getConnectDeliverablesExport). Odkazy na soubory z tlačítka nahrání doplní aktuální skript u getConnectPostAward, případně použijte v detailu přihlášky „PDF přehled Connect“."
+            )
+          );
+          continue;
+        }
+        if (er && coordinatorProrektorMeansPart2_(er.prorektor_decision) && !man) {
+          sections.push(
+            buildConnectAttachmentsSectionHtml_(er.project_title || app, app, [], "", "")
+          );
+        }
       } catch (e) {
         sections.push(
           `<section><p style="color:#991B1B">Chyba u ${escapeHtmlCoord(app)}: ${escapeHtmlCoord(e.message)}</p></section>`
@@ -392,7 +467,11 @@
       }
     }
     if (!sections.length) {
-      showToast("U vybraných řádků není část 2 Connect aktivní (Podpořeno/Kráceno).", "err");
+      showToast(
+        "Nepodařilo se složit přehled: zkuste nasadit aktuální Apps Script a obnovit stránku. " +
+          (firstSkipReason ? "Důvod z API: " + firstSkipReason.slice(0, 220) : ""),
+        "err"
+      );
       return;
     }
     const doc =
@@ -422,7 +501,56 @@
       '<p style="font-size:12px;color:var(--muted);margin-top:4px">Načítám přílohy části 2 (Connect)…</p>';
     try {
       const data = await API.getConnectPostAward(compId, appId);
-      if (!data || data.error || !data.applicable) {
+      if (data && data.applicable && !data.error) {
+        /* pokračuj níže */
+      } else {
+        let er = null;
+        try {
+          const bulk = await API.getConnectDeliverablesExport(compId);
+          if (bulk && bulk.rows)
+            er = bulk.rows.find((x) => String(x.application_id || "").trim() === String(appId).trim()) || null;
+        } catch {
+          er = null;
+        }
+        const man = er && er.attachments_manifest ? String(er.attachments_manifest).trim() : "";
+        if (er && coordinatorProrektorMeansPart2_(er.prorektor_decision)) {
+          const files = [];
+          const manifestRaw = man;
+          if (!files.length && !manifestRaw.trim()) {
+            el.innerHTML =
+              '<div style="border-top:1px solid var(--border);padding-top:14px;margin-top:6px">' +
+              '<div style="font-size:11px;font-weight:600;color:var(--navy);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Connect – část 2</div>' +
+              '<p style="font-size:12px;color:var(--muted);line-height:1.45">U projektu je v exportu evidováno rozhodnutí Podpořeno/Kráceno, ale manifest příloh je zatím prázdný. Odkazy na soubory z tlačítka nahrání zobrazí aktualizovaný skript (getConnectPostAward) nebo PDF přehled v detailu.</p></div>';
+            return;
+          }
+          let list =
+            files.length > 0
+              ? "<ul style=\"margin:6px 0 0;padding-left:18px;font-size:13px;line-height:1.55\">" +
+                files
+                  .map((f) => {
+                    const id = escapeHtmlCoord(f.id);
+                    const nm = escapeHtmlCoord(f.name);
+                    const view = "https://drive.google.com/file/d/" + id + "/view";
+                    const dl = "https://drive.google.com/uc?export=download&id=" + id;
+                    return `<li><span style="font-family:DM Mono,monospace;font-size:11px">${nm}</span><br><a href="${view}" target="_blank" rel="noopener">Disk</a> · <a href="${dl}" target="_blank" rel="noopener">Stáhnout</a></li>`;
+                  })
+                  .join("") +
+                "</ul>"
+              : "<p style=\"font-size:12px;color:var(--muted)\">Žádné soubory z tlačítka nahrání – zkontrolujte manifest.</p>";
+          let html =
+            '<div style="border-top:1px solid var(--border);padding-top:14px;margin-top:6px">' +
+            '<div style="font-size:11px;font-weight:600;color:var(--navy);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Connect – přílohy části 2 (záložní)</div>' +
+            '<p style="font-size:12px;color:#92400e;margin-bottom:8px;line-height:1.45">Zobrazen manifest z exportu checklistu. Po nasazení nového skriptu se doplní odkazy na soubory z Disku.</p>' +
+            list +
+            (manifestRaw.trim()
+              ? '<div style="font-size:11px;font-weight:600;margin:12px 0 4px;color:var(--navy)">Manifest</div><pre style="white-space:pre-wrap;font-size:12px;background:var(--navy-lite);padding:10px;border-radius:6px;max-height:200px;overflow:auto">' +
+                escapeHtmlCoord(manifestRaw) +
+                "</pre>"
+              : "");
+          html += "</div>";
+          el.innerHTML = html;
+          return;
+        }
         el.innerHTML = "";
         return;
       }
