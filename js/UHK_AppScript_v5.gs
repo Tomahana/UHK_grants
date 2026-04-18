@@ -1405,6 +1405,8 @@ function getConnectPostAward(competitionId, applicationId, token) {
     applicationId: aid,
     attachmentsDriveFolderUrl:
       "https://drive.google.com/drive/folders/" + CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID,
+    /** Pro prázdný seznam souborů: není totéž jako „není nic nahrané“. */
+    attachments_drive_scan_note: connectAttachmentsDriveListNoteCs_(aid),
     projectTitle: applicationRowTitle_(row),
     outcomeDecision: outcomeDecisionApi,
     outcomeLabel: outcomeLabelApi,
@@ -1451,7 +1453,7 @@ function getConnectPostAward(competitionId, applicationId, token) {
           : {},
     },
     canEdit: owner && isSupportedOutcome,
-    /** Soubory ve složce Connect s prefixem applicationId (nahrané přes aplikaci). */
+    /** Soubory v kořeni sdílené složky s názvem začínajícím na applicationId_ (ne vše, co může být na Disku). */
     uploaded_drive_files: connectListPostAwardDriveFilesForApp_(aid),
     /** Oprávnění ke správcovským akcím u příloh na Disku (sdílení). */
     showAdminDriveTools: priv && authHasAnyRole_(auth, ["ADMIN", "TESTER"]),
@@ -1530,7 +1532,10 @@ function adminBuildConnectDossierPdfBlob_(competitionId, applicationId, token) {
   lines.push(String(checklist.final_report_final || checklist.final_report_draft || "").slice(0, 6500) || "—");
   lines.push("");
   lines.push("── Soubory na Google Disku (prefix ID) ──");
-  if (!files.length) lines.push("(žádné)");
+  if (!files.length)
+    lines.push(
+      "(v automatickém seznamu žádný soubor s názvem začínajícím na ID přihlášky a podtržítkem — viz manifest; soubor může být na Disku pod jiným názvem, v podsložce nebo mimo dosah účtu aplikace)"
+    );
   else
     files.forEach(function (f) {
       lines.push(String(f.name) + " → " + String(f.url));
@@ -2001,6 +2006,22 @@ function uhkTryArchiveConnectClosurePdf_(ss, competitionId, applicationId, check
   lines.push(zz || "—");
   var fn = uhkArchivePdfFileBase_(applicationId, "3_uzavreni_projektu");
   uhkSavePdfToArchive_(folder, fn, title, lines.join("\n"), ss, "ARCHIVE_CONNECT_CLOSURE", applicationId, em);
+}
+
+/**
+ * Vysvětlení pro UI: seznam souborů z aplikace není totéž co „nic se nenahrálo“.
+ * Zobrazují se jen soubory v kořeni sdílené složky soutěže s názvem začínajícím na applicationId_
+ */
+function connectAttachmentsDriveListNoteCs_(applicationId) {
+  var id = String(applicationId || "").trim();
+  var pref = id ? "«" + id + "_»" : "«ID_přihlášky_»";
+  return (
+    "V tomto seznamu se zobrazují pouze soubory ve sdílené složce soutěže na Google Disku, jejichž název začíná řetězcem " +
+    pref +
+    " (běžně nahrání přes tlačítko v části 2). " +
+    "Soubor přidaný ručně pod jiným názvem, uložený v podsložce, nebo nedostupný účtu webové aplikace se v seznamu nemusí objevit, i když na Disku existuje. " +
+    "Ověřte proto také manifest níže nebo obsah složky na Disku."
+  );
 }
 
 /**
@@ -2555,7 +2576,14 @@ function getConnectDeliverablesExport(competitionId, token) {
     };
   });
 
-  return { success: true, supported: true, generatedAt: fmtDate(new Date()), rows: out };
+  return {
+    success: true,
+    supported: true,
+    generatedAt: fmtDate(new Date()),
+    rows: out,
+    attachmentsDriveFolderUrl: "https://drive.google.com/drive/folders/" + CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID,
+    attachments_drive_scan_note: connectAttachmentsDriveListNoteCs_(""),
+  };
 }
 
 function deleteConnectReviewsByReviewer_(sheet, applicationId, reviewerEmail) {
