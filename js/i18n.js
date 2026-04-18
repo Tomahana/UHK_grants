@@ -383,10 +383,11 @@
         irisRequiredToast: "Vyplňte referenční ID IRIS UHK (UUID z potvrzení) a souhrn z IRIS (povinná součást přihlášky).",
         submittedAttachmentsTitle: "Přílohy u podané přihlášky",
         submittedAttachmentsFootnote:
-          "Jde o údaje uložené při podání. U souboru z počítače je v evidenci často jen název souboru, ne celý dokument. Zadal-li jste odkaz (https://), lze jej otevřít v novém okně.",
+          "Jde o údaje uložené při podání. PDF nahrané z počítače je uloženo v tabulce soutěže (lze znovu otevřít odkazem „Otevřít PDF“ po přihlášení). Zadal-li jste odkaz (https://), lze jej otevřít v novém okně.",
         submittedAttachmentsNone:
           "U příloh není v evidenci uložen název souboru ani odkaz (pole zůstalo prázdné nebo se data nepodařilo načíst).",
         submittedAttachmentOpenLink: "Otevřít odkaz",
+        submittedAttachmentOpenPdf: "Otevřít PDF",
         fileField_attach_invitation: "Doklad o spolupráci",
         fileField_attach_annex1: "Příloha 1",
         fileField_attach_annex2: "Příloha 2",
@@ -425,6 +426,7 @@
         fileUploadOk: "Příloha je na Disku (odkaz uložen v přihlášce).",
         fileUploadErr: "Nahrání na Disk se nepodařilo.",
         fileUploadedDriveLabel: "PDF na Disku",
+        fileUploadedAppStorageLabel: "PDF v aplikaci (tabulka)",
         filePdfOnly: "Povolen je pouze soubor ve formátu PDF.",
         fileTooBig: "Soubor je větší než 18 MB.",
         fileNeedDraftRetry:
@@ -854,10 +856,11 @@
         irisRequiredToast: "Enter the IRIS UHK reference ID (UUID from the confirmation) and the IRIS summary (required parts of the application).",
         submittedAttachmentsTitle: "Attachments on the submitted application",
         submittedAttachmentsFootnote:
-          "This is what was stored at submission. For uploads from your computer, the sheet often stores only the file name, not the full document. If you entered an https:// link, you can open it in a new tab.",
+          "This is what was stored at submission. PDFs uploaded from your computer are stored in the competition spreadsheet (re-open with “Open PDF” while signed in). If you entered an https:// link, you can open it in a new tab.",
         submittedAttachmentsNone:
           "No file name or link is stored for attachments (the field was empty or data could not be loaded).",
         submittedAttachmentOpenLink: "Open link",
+        submittedAttachmentOpenPdf: "Open PDF",
         fileField_attach_invitation: "Evidence of collaboration",
         fileField_attach_annex1: "Annex 1",
         fileField_attach_annex2: "Annex 2",
@@ -896,6 +899,7 @@
         fileUploadOk: "Attachment saved on Drive (link stored in your application).",
         fileUploadErr: "Upload to Drive failed.",
         fileUploadedDriveLabel: "PDF on Drive",
+        fileUploadedAppStorageLabel: "PDF in app (spreadsheet)",
         filePdfOnly: "Only PDF files are allowed.",
         fileTooBig: "The file is larger than 18 MB.",
         fileNeedDraftRetry:
