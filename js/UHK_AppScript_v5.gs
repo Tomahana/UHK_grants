@@ -219,14 +219,23 @@ function corsResponse(data) {
 
 /**
  * Web App: doPost smí vracet jen HtmlOutput nebo TextOutput — ne Blob.
- * Pro stažení PDF po POST (form z prohlížeče) vrátíme malou stránku, která z base64
- * vytvoří Blob a přesměruje okno na object URL (inline PDF).
+ * Zobrazíme PDF přímo přes data: URL v &lt;embed&gt; — bez přesměrování na blob:,
+ * které Chrome na doméně script.google.com často blokuje („stránka je blokována“).
+ * Velmi velké soubory (&gt; ~1,5 MB) v data: URL také narazí na limity prohlížeče.
  */
 function connectPdfBlobToHtmlOpenTabOutput_(pdfBlob) {
   var blob = pdfBlob && pdfBlob.copyBlob ? pdfBlob.copyBlob() : pdfBlob;
   if (!blob) throw new Error("Chybí soubor.");
   var bytes = blob.getBytes();
   if (!bytes || bytes.length === 0) throw new Error("Soubor je prázdný.");
+  var maxInline = 1500000;
+  if (bytes.length > maxInline) {
+    var msg =
+      "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>PDF</title></head><body style=\"font-family:sans-serif;padding:16px;\">" +
+      "<p>Soubor je příliš velký na zobrazení v tomto okně (omezení prohlížeče). Zkuste menší PDF nebo kontaktujte správce.</p>" +
+      "</body></html>";
+    return HtmlService.createHtmlOutput(msg);
+  }
   var b64 = Utilities.base64Encode(bytes);
   var fname = String(blob.getName() || "document.pdf")
     .replace(/[\r\n\\]/g, "_")
@@ -237,27 +246,23 @@ function connectPdfBlobToHtmlOpenTabOutput_(pdfBlob) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
-  var script =
-    "<script>(function(){\n" +
-    "var b64=" +
-    JSON.stringify(b64) +
-    ";\n" +
-    "try {\n" +
-    "  var bin = atob(b64);\n" +
-    "  var len = bin.length;\n" +
-    "  var u8 = new Uint8Array(len);\n" +
-    "  for (var i = 0; i < len; i++) u8[i] = bin.charCodeAt(i) & 255;\n" +
-    "  var url = URL.createObjectURL(new Blob([u8], { type: 'application/pdf' }));\n" +
-    "  window.location.replace(url);\n" +
-    "} catch (e) {\n" +
-    "  document.body.textContent = (e && e.message) ? e.message : String(e);\n" +
-    "}\n" +
-    "})();</script>";
+  var fnEscAttr = String(fname).replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+  var dataUrl = "data:application/pdf;base64," + b64;
+  var srcAttr = dataUrl.indexOf("'") >= 0 ? dataUrl.replace(/'/g, "%27") : dataUrl;
   var html =
     "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>" +
     titleEsc +
-    "</title></head><body>" +
-    script +
+    "</title><style>html,body{margin:0;height:100%;}embed{display:block;width:100%;height:100vh;}</style></head><body>" +
+    "<embed type=\"application/pdf\" src='" +
+    srcAttr +
+    "' title=\"" +
+    fnEscAttr +
+    "\" />" +
+    "<p style=\"margin:8px;font-size:13px;\"><a href='" +
+    srcAttr +
+    "' download=\"" +
+    fnEscAttr +
+    "\">Stáhnout PDF</a> (záloha, pokud se náhled nezobrazí)</p>" +
     "</body></html>";
   return HtmlService.createHtmlOutput(html);
 }
