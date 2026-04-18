@@ -590,9 +590,10 @@ async function loadReviewConnectAttachments() {
       parts.push("<strong>Dokumenty z podacího formuláře</strong><ul style=\"margin:6px 0 0 18px\">");
       hints.forEach(function (h) {
         const v = String(h.value || "");
+        const vTrim = v.trim();
         const appAid = String(h.application_id || (cur && cur.application_id) || "").trim();
         var link;
-        if (h.isSheetBlob && appAid && h.field_id) {
+        if ((h.isSheetBlob || /^UHKAFILE\|/i.test(vTrim)) && appAid && h.field_id) {
           const u = new URL(API_URL);
           u.searchParams.set("action", "downloadConnectApplicationFile");
           u.searchParams.set("competitionId", CID);
@@ -640,12 +641,15 @@ async function loadReviewConnectAttachments() {
       parts.push("<strong>Přílohy části 2 (tabulka / případně Disk)</strong><ul style=\"margin:6px 0 0 18px\">");
       files.forEach(function (f) {
         const nm = esc(String(f.name || ""));
-        if (f.isSheetBlob && cur && cur.application_id && f.id) {
+        const idRaw = String(f.id || "").trim();
+        const useBlob =
+          !!(f.isSheetBlob || /^paward_/i.test(idRaw)) && cur && cur.application_id && idRaw;
+        if (useBlob) {
           const u = new URL(API_URL);
           u.searchParams.set("action", "downloadConnectPostAwardFile");
           u.searchParams.set("competitionId", CID);
           u.searchParams.set("applicationId", String(cur.application_id));
-          u.searchParams.set("blobKey", String(f.id));
+          u.searchParams.set("blobKey", idRaw);
           const s = Auth._getSession();
           if (s && s.token) u.searchParams.set("token", s.token);
           parts.push(
@@ -655,8 +659,14 @@ async function loadReviewConnectAttachments() {
               escAttr(u.toString()) +
               '" target="_blank" rel="noopener">stáhnout z aplikace</a></li>'
           );
+        } else if (!idRaw) {
+          parts.push(
+            "<li><span style=\"font-family:DM Mono,monospace;font-size:11px\">" +
+              nm +
+              '</span> · <span style="color:var(--muted);font-size:12px">chybí ID souboru</span></li>'
+          );
         } else {
-          const id = esc(String(f.id || ""));
+          const id = esc(idRaw);
           const view = "https://drive.google.com/file/d/" + id + "/view";
           const dl = "https://drive.google.com/uc?export=download&id=" + id;
           parts.push(
