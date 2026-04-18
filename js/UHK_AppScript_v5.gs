@@ -11,8 +11,8 @@
  *     Execute as: Me | Who has access: Anyone
  *  5. Zkopíruj URL → vlož do js/config.js
  *
- *  Přílohy Connect (podací formulář PDF + část 2): účet „Execute as“ webové aplikace musí mít
- *  právo přidávat soubory do složky CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID (Google Disk).
+ *  Přílohy Connect část 2 (Disk): účet „Execute as“ musí mít Editor v cílové složce. ID složky = konstanta
+ *  CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID nebo CONFIG connect_postaward_attachments_folder_id.
  *
  *  Archiv PDF (podání / hodnocení+prorektor / uzavření Connect): v listu CONFIG klíč
  *  archive_drive_folder_id = ID složky na Disku pro danou soutěž (jinak u Connect fallback
@@ -46,6 +46,8 @@ const SHEETS = {
   CONFIG       : "📋 CONFIG",
   FORM_FIELDS  : "📝 FORM_FIELDS",
   APPLICATIONS : "📥 APPLICATIONS",
+  /** Binární PDF z podacího formuláře Connect (chunkovaný base64) – nevyžaduje Google Disk. */
+  APPLICATION_FILE_BLOBS: "📎 APPLICATION_FILE_BLOBS",
   REVIEWS      : "⭐ REVIEWS",
   AUDIT        : "🔍 AUDIT_LOG",
   ROLES        : "🎭 ROLES",
@@ -68,8 +70,50 @@ const UHK_COMPETITION_EMAIL_SUBJECT_TAGS = {
   "uhk_navraty_2026": "OP JAK Návraty",
 };
 
-/** Složka Google Disk pro přílohy Connect (část 2). Účet „Execute as“ webové aplikace musí mít v ní právo přidávat soubory. */
+/** Výchozí složka Google Disk pro přílohy Connect (část 2). Přepište v listu CONFIG klíčem connect_postaward_attachments_folder_id (ID z URL složky). */
 const CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID = "1oJ7qujZhIBygFYgiN5Im7fmpKbeADDDi";
+
+/**
+ * ID složky na Disku pro nahrávání příloh Connect (část 2 po rozhodnutí Podpořeno/Kráceno).
+ * CONFIG (list u soutěže): connect_postaward_attachments_folder_id — má přednost před konstantou.
+ * Volitelně se použije archive_drive_folder_id / archive_folder_id, pokud není uveden výše (stejná složka jako archiv PDF).
+ */
+function connectGetPostAwardDriveFolderId_(ss) {
+  var cfg = getConfigMap(ss);
+  var raw = String(cfg["connect_postaward_attachments_folder_id"] || cfg["connect_postaward_folder_id"] || "").trim();
+  if (!raw) {
+    raw = String(cfg["archive_drive_folder_id"] || cfg["archive_folder_id"] || "").trim();
+  }
+  if (!raw) {
+    raw = String(CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID || "").trim();
+  }
+  return raw;
+}
+
+/**
+ * Složka na Disku pro přílohy části 2; vyhodí srozumitelnou chybu vč. návodu pro správce.
+ */
+function connectGetPostAwardDriveFolderThrowing_(ss) {
+  var folderId = connectGetPostAwardDriveFolderId_(ss);
+  if (!folderId) {
+    throw new Error(
+      "Není nastavena složka na Disku pro přílohy Connect. Doplňte v listu CONFIG klíč connect_postaward_attachments_folder_id (ID složky z URL Disku) nebo použijte výchozí konstantu CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID ve skriptu."
+    );
+  }
+  try {
+    return DriveApp.getFolderById(folderId);
+  } catch (e) {
+    var em = e && e.message ? String(e.message) : String(e);
+    console.error("connectGetPostAwardDriveFolderThrowing_: folderId=" + folderId + " → " + em);
+    throw new Error(
+      "Složka pro přílohy Connect na Disku není dostupná účtu webové aplikace (Deploy → Execute as: Me). " +
+        "Nasdílejte složku s tímto účtem jako Editor, nebo v CONFIG nastavte connect_postaward_attachments_folder_id na jinou složku, ke které má účet přístup. " +
+        "Aktuální ID: " +
+        folderId +
+        ". Kontaktujte administrátora."
+    );
+  }
+}
 
 /**
  * Archiv PDF podání / hodnocení / uzavření do složky soutěže na Disku.
@@ -123,6 +167,12 @@ function doGet(e) {
           return ContentService.createTextOutput("Chyba PDF: " + (pdfErr.message || String(pdfErr))).setMimeType(
             ContentService.MimeType.PLAIN
           );
+        }
+      case "downloadConnectApplicationFile":
+        try {
+          return downloadConnectApplicationFile_(p.competitionId, p.applicationId || p.app, p.fieldId || p.field, p.token);
+        } catch (dlErr) {
+          return ContentService.createTextOutput(String(dlErr.message || dlErr)).setMimeType(ContentService.MimeType.PLAIN);
         }
       case "getProjects":      return corsResponse(getProjects(p.competitionId, p.token));
       case "getUsers":         return corsResponse(getUsers(p.token));
@@ -1298,8 +1348,128 @@ function applicationsSetFormDataJsonForAppId_(sheet, applicationId, fdObj) {
   return true;
 }
 
+function ensureApplicationFileBlobsSheet_(ss) {
+  var name = SHEETS.APPLICATION_FILE_BLOBS;
+  var sh = ss.getSheetByName(name);
+  if (sh) return sh;
+  sh = ss.insertSheet(name);
+  sh.appendRow([]);
+  sh.appendRow([]);
+  sh.appendRow([]);
+  sh.getRange(HEADER_ROW, 1, HEADER_ROW, 7).setValues([
+    ["application_id", "field_id", "chunk_index", "base64_data", "mime_type", "file_name", "created_at"],
+  ]);
+  return sh;
+}
+
+function connectTrashBlobChunks_(blobSheet, applicationId, fieldId) {
+  var aid = String(applicationId || "").trim();
+  var fid = String(fieldId || "").trim();
+  var data = blobSheet.getDataRange().getValues();
+  for (var i = data.length - 1; i >= HEADER_ROW; i--) {
+    if (String(data[i][0] || "").trim() === aid && String(data[i][1] || "").trim() === fid) {
+      blobSheet.deleteRow(i + 1);
+    }
+  }
+}
+
+function connectWritePdfBlobChunks_(blobSheet, applicationId, fieldId, fileName, mimeType, bytes) {
+  connectTrashBlobChunks_(blobSheet, applicationId, fieldId);
+  var b64 = Utilities.base64Encode(bytes);
+  var CHUNK = 45000;
+  var now = fmtDate(new Date());
+  for (var off = 0, ci = 0; off < b64.length; off += CHUNK, ci++) {
+    var part = b64.substring(off, Math.min(off + CHUNK, b64.length));
+    blobSheet.appendRow([
+      applicationId,
+      fieldId,
+      ci,
+      part,
+      ci === 0 ? String(mimeType || "application/pdf") : "",
+      ci === 0 ? String(fileName || "soubor.pdf") : "",
+      ci === 0 ? now : "",
+    ]);
+  }
+}
+
+function connectReadPdfBlobFromSheet_(blobSheet, applicationId, fieldId) {
+  var aid = String(applicationId || "").trim();
+  var fid = String(fieldId || "").trim();
+  var data = blobSheet.getDataRange().getValues();
+  var chunks = {};
+  var mime = "application/pdf";
+  var fname = "soubor.pdf";
+  for (var i = HEADER_ROW; i < data.length; i++) {
+    if (String(data[i][0] || "").trim() !== aid || String(data[i][1] || "").trim() !== fid) continue;
+    var idx = Number(data[i][2]);
+    if (isNaN(idx)) idx = 0;
+    chunks[idx] = String(data[i][3] || "");
+    if (String(data[i][4] || "").trim()) mime = String(data[i][4]).trim();
+    if (String(data[i][5] || "").trim()) fname = String(data[i][5]).trim();
+  }
+  var keys = Object.keys(chunks)
+    .map(Number)
+    .filter(function (n) {
+      return !isNaN(n);
+    })
+    .sort(function (a, b) {
+      return a - b;
+    });
+  if (!keys.length) return null;
+  var full = keys
+    .map(function (k) {
+      return chunks[k];
+    })
+    .join("");
+  try {
+    var bytes = Utilities.base64Decode(full);
+    return { bytes: bytes, mimeType: mime, fileName: fname };
+  } catch (e) {
+    return null;
+  }
+}
+
+function connectCanDownloadApplicationBlob_(auth, competitionId, applicationId) {
+  if (!auth || !applicationId) return false;
+  if (String(competitionId || "").trim() !== CONNECT_COMPETITION_ID) return false;
+  if (authHasAnyRole_(auth, ["ADMIN", "TESTER", "KOMISAR", "KOMISAŘ", "PROREKTOR", "READONLY"])) return true;
+  var ss = getSpreadsheet(competitionId);
+  var sheet = ss.getSheetByName(SHEETS.APPLICATIONS);
+  if (!sheet) return false;
+  var rows = sheetToObjects(sheet).map(applicationsSheetRowNormalize_);
+  var row = rows.find(function (r) {
+    return String(r.application_id || "").trim() === String(applicationId).trim();
+  });
+  if (!row) return false;
+  return String(row.applicant_email || "").toLowerCase().trim() === String(auth.email || "").toLowerCase().trim();
+}
+
+function downloadConnectApplicationFile_(competitionId, applicationId, fieldId, token) {
+  var auth = requireAuth(token);
+  var cid = String(competitionId || "").trim();
+  var aid = String(applicationId || "").trim();
+  var fid = String(fieldId || "").trim();
+  if (cid !== CONNECT_COMPETITION_ID || !aid || !fid) throw new Error("Neplatné parametry.");
+  var allowed = { attach_invitation: 1, attach_annex1: 1, attach_annex2: 1, attach_annex3: 1 };
+  if (!allowed[fid]) throw new Error("Neplatné pole přílohy.");
+  if (!connectCanDownloadApplicationBlob_(auth, cid, aid)) throw new Error("Soubor nelze stáhnout (oprávnění).");
+  var ss = getSpreadsheet(cid);
+  var blobSh = ss.getSheetByName(SHEETS.APPLICATION_FILE_BLOBS);
+  if (!blobSh) throw new Error("Úložiště příloh není k dispozici.");
+  var meta = connectReadPdfBlobFromSheet_(blobSh, aid, fid);
+  if (!meta || !meta.bytes || meta.bytes.length < 1) throw new Error("Soubor nenalezen nebo je prázdný.");
+  var safeName = String(meta.fileName || "soubor.pdf")
+    .replace(/[^a-zA-Z0-9._\-]/g, "_")
+    .replace(/_+/g, "_")
+    .slice(0, 180);
+  if (!/\.pdf$/i.test(safeName)) safeName = (safeName || "soubor") + ".pdf";
+  var outBlob = Utilities.newBlob(meta.bytes, meta.mimeType || "application/pdf", safeName);
+  return outBlob.setName(safeName);
+}
+
 /**
- * Nahraje jeden nebo více PDF z podacího formuláře Connect na Disk; vrátí mapu fieldId → URL.
+ * Uloží PDF z podacího formuláře Connect do listu APPLICATION_FILE_BLOBS (chunkovaný base64).
+ * Do formuláře zapíše hodnotu UHKAFILE|název.pdf pro zobrazení a stažení přes downloadConnectApplicationFile.
  * fileUploads: pole { fieldId, fileName, mimeType, fileBase64 }
  */
 function connectProcessApplicationFileUploads_(ss, competitionId, applicationId, applicantLower, fileUploads) {
@@ -1324,12 +1494,7 @@ function connectProcessApplicationFileUploads_(ss, competitionId, applicationId,
 
   var allowed = { attach_invitation: 1, attach_annex1: 1, attach_annex2: 1, attach_annex3: 1 };
   var maxBytes = 18 * 1024 * 1024;
-  var folder;
-  try {
-    folder = DriveApp.getFolderById(CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID);
-  } catch (e2) {
-    throw new Error("Složka pro přílohy na Disku není dostupná. Kontaktujte administrátora.");
-  }
+  var blobSheet = ensureApplicationFileBlobsSheet_(ss);
 
   for (var i = 0; i < fileUploads.length; i++) {
     var item = fileUploads[i] || {};
@@ -1359,18 +1524,11 @@ function connectProcessApplicationFileUploads_(ss, competitionId, applicationId,
 
     var safe = fileName.replace(/[^a-zA-Z0-9._\-]/g, "_").replace(/_+/g, "_").slice(0, 120);
     if (!/\.pdf$/i.test(safe)) safe = (safe || "dokument") + ".pdf";
-    var stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd_HHmmss");
-    var namePrefix = applicationId + "_apply_" + fieldId + "_";
-    connectTrashDriveFilesNamePrefixInFolder_(CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID, namePrefix);
-    var finalName = namePrefix + stamp + "_" + safe;
 
-    var blob = Utilities.newBlob(bytes, "application/pdf", finalName);
-    var driveFile = folder.createFile(blob);
-    driveFile.setName(finalName);
-    connectApplyViewSharingToPostAwardFile_(driveFile);
-    patch[fieldId] = driveFile.getUrl();
+    connectWritePdfBlobChunks_(blobSheet, applicationId, fieldId, safe, "application/pdf", bytes);
+    patch[fieldId] = "UHKAFILE|" + safe;
     try {
-      writeAudit(ss, "CONNECT_APPLY_UPLOAD", applicationId, driveFile.getId(), finalName, applicantLower);
+      writeAudit(ss, "CONNECT_APPLY_BLOB", applicationId, fieldId, safe, applicantLower);
     } catch (aud) {
       /* ignore */
     }
@@ -1489,7 +1647,7 @@ function getConnectPostAward(competitionId, applicationId, token) {
     budget_justification: String(fd.budget_justification || "").slice(0, 3000),
   };
 
-  var appFileHints = connectApplicationFileFieldHints_(fd);
+  var appFileHints = connectApplicationFileFieldHints_(fd, aid);
 
   var cid = String(competitionId || "").trim();
   var adminTesterConnectEdit =
@@ -1506,7 +1664,7 @@ function getConnectPostAward(competitionId, applicationId, token) {
     rulesVersion: CONNECT_POSTAWARD_RULES_VERSION,
     applicationId: aid,
     attachmentsDriveFolderUrl:
-      "https://drive.google.com/drive/folders/" + CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID,
+      "https://drive.google.com/drive/folders/" + connectGetPostAwardDriveFolderId_(ss),
     /** Pro prázdný seznam souborů: není totéž jako „není nic nahrané“. */
     attachments_drive_scan_note: connectAttachmentsDriveListNoteCs_(aid),
     projectTitle: applicationRowTitle_(row),
@@ -1556,7 +1714,7 @@ function getConnectPostAward(competitionId, applicationId, token) {
     },
     canEdit: (owner && isSupportedOutcome) || adminTesterConnectEdit,
     /** Soubory v kořeni sdílené složky s názvem začínajícím na applicationId_ (ne vše, co může být na Disku). */
-    uploaded_drive_files: connectListPostAwardDriveFilesForApp_(aid),
+    uploaded_drive_files: connectListPostAwardDriveFilesForApp_(ss, aid),
     /** Oprávnění ke správcovským akcím u příloh na Disku (sdílení). */
     showAdminDriveTools: priv && authHasAnyRole_(auth, ["ADMIN", "TESTER"]),
     /** PDF přehled projektu (část 2 + odkazy) – jen vybrané role. */
@@ -1564,19 +1722,28 @@ function getConnectPostAward(competitionId, applicationId, token) {
   };
 }
 
-/** Údaje z přihlášky k polím typu soubor (často jen název souboru z formuláře). */
-function connectApplicationFileFieldHints_(fd) {
+/**
+ * Údaje z přihlášky k polím typu soubor (odkaz na Disk, UHKAFILE|… v tabulce, nebo jen název).
+ * applicationIdOpt: pro stažení z listu APPLICATION_FILE_BLOBS (API downloadConnectApplicationFile).
+ */
+function connectApplicationFileFieldHints_(fd, applicationIdOpt) {
   if (!fd || typeof fd !== "object") return [];
   var keys = ["attach_invitation", "attach_annex1", "attach_annex2", "attach_annex3"];
   var out = [];
+  var appId = String(applicationIdOpt || "").trim();
   keys.forEach(function (k) {
     if (!Object.prototype.hasOwnProperty.call(fd, k)) return;
     var v = fd[k];
     if (v == null || String(v).trim() === "") return;
+    var raw = String(v).trim();
+    var isSheetBlob = /^UHKAFILE\|/i.test(raw);
+    var disp = isSheetBlob ? raw.replace(/^UHKAFILE\|/i, "") : raw.slice(0, 2000);
     out.push({
       field_id: k,
-      value: String(v).slice(0, 2000),
-      isLikelyUrl: /^https?:\/\//i.test(String(v).trim()),
+      value: disp,
+      isLikelyUrl: /^https?:\/\//i.test(raw),
+      isSheetBlob: isSheetBlob,
+      application_id: appId,
     });
   });
   return out;
@@ -1604,7 +1771,7 @@ function adminBuildConnectDossierPdfBlob_(competitionId, applicationId, token) {
   var fd = connectParseFormDataObject_(row);
   var checklist = readConnectPostawardChecklist_(row);
   var outcome = findProrektorOutcomeForApp_(ss, aid, row);
-  var files = connectListPostAwardDriveFilesForApp_(aid);
+  var files = connectListPostAwardDriveFilesForApp_(ss, aid);
   var title = applicationRowTitle_(row) || aid;
   var lines = [];
   lines.push("UHK Connect – přehled projektu a příloh");
@@ -1644,7 +1811,7 @@ function adminBuildConnectDossierPdfBlob_(competitionId, applicationId, token) {
     });
   lines.push("");
   lines.push("── Pole souborů z podacího formuláře ──");
-  var hints = connectApplicationFileFieldHints_(fd);
+  var hints = connectApplicationFileFieldHints_(fd, aid);
   if (!hints.length) lines.push("(v JSON často jen název souboru, ne binární obsah)");
   else
     hints.forEach(function (h) {
@@ -2132,14 +2299,14 @@ function connectAttachmentsDriveListNoteCs_(applicationId) {
 }
 
 /**
- * Soubory části 2 Connect v CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID mají název applicationId_timestamp_orig.ext
+ * Soubory části 2 Connect ve složce z CONFIG / konstanty; název applicationId_timestamp_orig.ext
  */
-function connectListPostAwardDriveFilesForApp_(applicationId) {
+function connectListPostAwardDriveFilesForApp_(ss, applicationId) {
   var prefix = String(applicationId || "").trim() + "_";
   if (!prefix || prefix === "_") return [];
   var out = [];
   try {
-    var folder = DriveApp.getFolderById(CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID);
+    var folder = DriveApp.getFolderById(connectGetPostAwardDriveFolderId_(ss));
     var it = folder.getFiles();
     while (it.hasNext()) {
       var f = it.next();
@@ -2203,7 +2370,7 @@ function repairConnectPostAwardAttachmentSharing(body) {
   var dec = connectOutcomeDecisionCode_(outcome);
   if (dec !== "SUPPORT" && dec !== "CUT") throw new Error("Přílohy této fáze jsou jen u Podpořeno / Kráceno.");
 
-  var list = connectListPostAwardDriveFilesForApp_(applicationId);
+  var list = connectListPostAwardDriveFilesForApp_(ss, applicationId);
   var fixed = 0;
   for (var i = 0; i < list.length; i++) {
     try {
@@ -2220,7 +2387,12 @@ function repairConnectPostAwardAttachmentSharing(body) {
     /* ignore */
   }
 
-  return { success: true, applicationId: applicationId, filesTouched: fixed, uploaded_drive_files: connectListPostAwardDriveFilesForApp_(applicationId) };
+  return {
+    success: true,
+    applicationId: applicationId,
+    filesTouched: fixed,
+    uploaded_drive_files: connectListPostAwardDriveFilesForApp_(ss, applicationId),
+  };
 }
 
 /**
@@ -2291,12 +2463,7 @@ function uploadConnectPostAwardAttachment(body) {
   var stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd_HHmmss");
   var finalName = applicationId + "_" + stamp + "_" + safe;
 
-  var folder;
-  try {
-    folder = DriveApp.getFolderById(CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID);
-  } catch (e) {
-    throw new Error("Složka pro přílohy na Disku není dostupná. Kontaktujte administrátora.");
-  }
+  var folder = connectGetPostAwardDriveFolderThrowing_(ss);
 
   var blob = Utilities.newBlob(bytes, mimeType, finalName);
   var driveFile = folder.createFile(blob);
@@ -2749,7 +2916,7 @@ function getConnectDeliverablesExport(competitionId, token) {
     supported: true,
     generatedAt: fmtDate(new Date()),
     rows: out,
-    attachmentsDriveFolderUrl: "https://drive.google.com/drive/folders/" + CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID,
+    attachmentsDriveFolderUrl: "https://drive.google.com/drive/folders/" + connectGetPostAwardDriveFolderId_(ss),
     attachments_drive_scan_note: connectAttachmentsDriveListNoteCs_(""),
   };
 }
@@ -4292,7 +4459,7 @@ function getDraft(competitionId, applicantEmail, token, focusApplicationId) {
           status: focused.status,
           project_title: applicationRowTitle_(focused),
           submitted_at: readSubmittedAtCell_(focused) || focused.submitted_at || "",
-          file_fields: connectApplicationFileFieldHints_(connectParseFormDataObject_(focused)),
+          file_fields: connectApplicationFileFieldHints_(connectParseFormDataObject_(focused), focusId),
         },
         prorektorOutcome: outcomeF,
         hasOtherDraft: !!draft,
@@ -4312,7 +4479,7 @@ function getDraft(competitionId, applicantEmail, token, focusApplicationId) {
       application_id: latestSub.application_id,
       status: latestSub.status,
       project_title: applicationRowTitle_(latestSub),
-      file_fields: connectApplicationFileFieldHints_(connectParseFormDataObject_(latestSub)),
+      file_fields: connectApplicationFileFieldHints_(connectParseFormDataObject_(latestSub), latestSub.application_id),
     };
   }
 
