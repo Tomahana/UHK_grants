@@ -13,6 +13,7 @@
  *
  *  Přílohy Connect část 2 (Disk): účet „Execute as“ musí mít Editor v cílové složce. ID složky = konstanta
  *  CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID nebo CONFIG connect_postaward_attachments_folder_id.
+ *  Do buňky uveďte jen ID složky (část URL za …/folders/), ne celou adresu a ne „?usp=sharing“ — jinak Disk hlásí, že soubor nelze otevřít; skript ID stejně ořízne.
  *
  *  Archiv PDF (podání / hodnocení+prorektor / uzavření Connect): v listu CONFIG klíč
  *  archive_drive_folder_id = ID složky na Disku pro danou soutěž (jinak u Connect fallback
@@ -76,6 +77,29 @@ const UHK_COMPETITION_EMAIL_SUBJECT_TAGS = {
 const CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID = "1oJ7qujZhIBygFYgiN5Im7fmpKbeADDDi";
 
 /**
+ * Z buňky CONFIG nebo z vložené URL Disku vytáhne jen ID složky (bez ?usp=sharing, #…, mezer).
+ * Řeší chybu „soubor nelze otevřít“, když je v CONFIG celý odkaz včetně parametrů.
+ */
+function connectSanitizeDriveFolderId_(s) {
+  var t = String(s || "").trim();
+  if (!t) return "";
+  var m = t.match(/\/folders\/([a-zA-Z0-9_-]+)/i);
+  if (m) return m[1];
+  m = t.match(/[?&]id=([a-zA-Z0-9_-]+)/i);
+  if (m && /drive\.google\.com/i.test(t)) return m[1];
+  var q = t.split(/[?#]/)[0].trim().replace(/\/+$/, "");
+  if (q.indexOf("/") >= 0) {
+    var parts = q.split("/").filter(function (x) {
+      return x;
+    });
+    var last = parts[parts.length - 1] || "";
+    if (/^[a-zA-Z0-9_-]+$/.test(last)) return last;
+  }
+  if (/^[a-zA-Z0-9_-]+$/.test(q)) return q;
+  return q.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 128);
+}
+
+/**
  * ID složky na Disku pro nahrávání příloh Connect (část 2 po rozhodnutí Podpořeno/Kráceno).
  * CONFIG (list u soutěže): connect_postaward_attachments_folder_id — má přednost před konstantou.
  * Volitelně se použije archive_drive_folder_id / archive_folder_id, pokud není uveden výše (stejná složka jako archiv PDF).
@@ -89,7 +113,7 @@ function connectGetPostAwardDriveFolderId_(ss) {
   if (!raw) {
     raw = String(CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID || "").trim();
   }
-  return raw;
+  return connectSanitizeDriveFolderId_(raw);
 }
 
 /**
@@ -268,6 +292,29 @@ function doPost(e) {
         return corsResponse(uploadConnectApplicationAttachment(body));
       case "repairConnectPostAwardAttachmentSharing":
         return corsResponse(repairConnectPostAwardAttachmentSharing(body));
+      /** Stažení PDF z tabulky (token v těle POST – spolehlivější než dlouhý GET na /exec). */
+      case "downloadConnectApplicationFile":
+        try {
+          return downloadConnectApplicationFile_(
+            body.competitionId,
+            body.applicationId || body.app,
+            body.fieldId || body.field,
+            body.token
+          );
+        } catch (dlApp) {
+          return ContentService.createTextOutput(String(dlApp.message || dlApp)).setMimeType(ContentService.MimeType.PLAIN);
+        }
+      case "downloadConnectPostAwardFile":
+        try {
+          return downloadConnectPostAwardFile_(
+            body.competitionId,
+            body.applicationId || body.app,
+            body.blobKey || body.blob || body.field,
+            body.token
+          );
+        } catch (dlPa) {
+          return ContentService.createTextOutput(String(dlPa.message || dlPa)).setMimeType(ContentService.MimeType.PLAIN);
+        }
       case "adminDeleteApplication":
         return corsResponse(adminDeleteApplication(body));
       default:                 return corsResponse({ error: "Neznámá POST akce: " + body.action });
@@ -2199,9 +2246,9 @@ function saveConnectPostAward(body) {
 function uhkGetArchiveFolder_(ss, competitionId) {
   var cfg = getConfigMap(ss);
   var raw = String(cfg["archive_drive_folder_id"] || cfg["archive_folder_id"] || "").trim();
-  var folderId = raw;
+  var folderId = connectSanitizeDriveFolderId_(raw);
   if (!folderId && String(competitionId || "").trim() === CONNECT_COMPETITION_ID)
-    folderId = CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID;
+    folderId = connectSanitizeDriveFolderId_(CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID);
   if (!folderId) return null;
   try {
     return DriveApp.getFolderById(folderId);
@@ -2661,7 +2708,7 @@ function connectTrashDriveFilesNamePrefixInFolder_(folderId, namePrefix) {
   var pref = String(namePrefix || "");
   if (!pref) return;
   try {
-    var folder = DriveApp.getFolderById(String(folderId || "").trim());
+    var folder = DriveApp.getFolderById(connectSanitizeDriveFolderId_(folderId));
     var it = folder.getFiles();
     while (it.hasNext()) {
       var f = it.next();
