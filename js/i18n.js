@@ -156,6 +156,8 @@
       api: {
         fileReadError: "Soubor se nepodařilo načíst.",
         needLoginDownload: "Pro otevření PDF se přihlaste (session vypršela). Obnovte stránku a přihlaste se znovu.",
+        downloadNetworkError:
+          "Spojení při otevírání PDF selhalo (síť nebo blokovaný požadavek k serveru). Zkuste znovu; na firemní Wi‑Fi zkuste jiný prohlížeč nebo mobilní data. Pokud problém přetrvává, dejte vědět správci.",
       },
       roles: {
         ADMIN: { name: "Správce", desc: "Plný přístup – správa uživatelů a nastavení" },
@@ -648,6 +650,8 @@
       api: {
         fileReadError: "Could not read the file.",
         needLoginDownload: "Sign in again to open the PDF (session expired). Refresh the page and log in.",
+        downloadNetworkError:
+          "The connection failed while opening the PDF (network or blocked request). Try again; on a corporate network try another browser or mobile data. Contact an administrator if it keeps happening.",
       },
       roles: {
         ADMIN: { name: "Administrator", desc: "Full access – users and settings" },

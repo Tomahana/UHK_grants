@@ -246,6 +246,8 @@ const API = {
   /**
    * Stažení binárního souboru z Web Appu (POST + token v těle).
    * Otevře PDF v novém panelu jako blob: URL (obchází nešťastné přesměrování / chyby u GET na script.google.com).
+   * Tělo jako application/x-www-form-urlencoded = „simple request“ bez CORS preflightu
+   * (některé sítě / prohlížeče u POST na script.google.com s JSON nebo text/plain hlásí „Failed to fetch“).
    */
   async openConnectBinaryDownload(action, fields) {
     const session = Auth._getSession();
@@ -256,15 +258,26 @@ const API = {
           : "Pro stažení souboru se přihlaste.";
       throw new Error(msg);
     }
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=UTF-8" },
-      body: JSON.stringify({
-        action,
-        token: session.token,
-        ...fields,
-      }),
+    const params = new URLSearchParams();
+    params.set("action", action);
+    params.set("token", session.token);
+    Object.entries(fields || {}).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && String(v) !== "") params.set(k, String(v));
     });
+    let res;
+    try {
+      res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: params.toString(),
+      });
+    } catch (e) {
+      const hint =
+        typeof I18n !== "undefined" && I18n.t
+          ? I18n.t("api.downloadNetworkError")
+          : "Spojení se serverem selhalo. Zkuste znovu nebo jinou síť.";
+      throw new Error(hint);
+    }
     const ct = (res.headers.get("content-type") || "").toLowerCase();
     if (!res.ok) {
       const t = await res.text().catch(() => "");
