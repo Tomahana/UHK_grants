@@ -1712,13 +1712,62 @@ function downloadConnectApplicationFile_(competitionId, applicationId, fieldId, 
 }
 
 /**
- * Uloží PDF z podacího formuláře Connect primárně na Google Disk (DriveApp v cílové složce),
- * do formuláře zapíše UHKDRIVE|fileId|název.pdf. Při chybě složky / Disku uloží zálohu do APPLICATION_FILE_BLOBS (UHKAFILE|…).
+ * Zkusí vytvořit PDF na Disku: nejdřív složka z CONFIG, pak kořen „Můj disk“ účtu webové aplikace (fallback).
+ * Vrací { ok, file?, error? }.
+ */
+function connectTryCreateApplicationPdfOnDrive_(ss, bytes, driveName) {
+  var folders = [];
+  function addFolder(f) {
+    if (!f) return;
+    var id = "";
+    try {
+      id = String(f.getId() || "");
+    } catch (e0) {
+      return;
+    }
+    for (var j = 0; j < folders.length; j++) {
+      try {
+        if (String(folders[j].getId()) === id) return;
+      } catch (e1) {
+        /* ignore */
+      }
+    }
+    folders.push(f);
+  }
+  try {
+    addFolder(connectGetApplicationAttachmentsDriveFolderThrowing_(ss));
+  } catch (eCfg) {
+    /* CONFIG složka chybí nebo není dostupná */
+  }
+  try {
+    addFolder(DriveApp.getRootFolder());
+  } catch (eRoot) {
+    /* bez Disku */
+  }
+  var lastErr = "";
+  var baseBlob = Utilities.newBlob(bytes, MimeType.PDF, driveName);
+  for (var fi = 0; fi < folders.length; fi++) {
+    try {
+      var driveFile = folders[fi].createFile(baseBlob.copyBlob());
+      connectApplyViewSharingToPostAwardFile_(driveFile);
+      return { ok: true, file: driveFile };
+    } catch (e) {
+      lastErr = e && e.message ? String(e.message) : String(e);
+    }
+  }
+  return { ok: false, error: lastErr || "Disk" };
+}
+
+/**
+ * Uloží PDF z podacího formuláře Connect primárně na Google Disk (DriveApp),
+ * do formuláře zapíše UHKDRIVE|fileId|název.pdf. Při chybě Disku uloží zálohu do APPLICATION_FILE_BLOBS (UHKAFILE|…).
  * fileUploads: pole { fieldId, fileName, mimeType, fileBase64 }
+ * @returns {{ patch: Object, diagnostics: Object }} diagnostics[fieldId] = { storage: "drive"|"sheet", driveError?: string }
  */
 function connectProcessApplicationFileUploads_(ss, competitionId, applicationId, applicantLower, fileUploads) {
   var patch = {};
-  if (!fileUploads || !fileUploads.length) return patch;
+  var diagnostics = {};
+  if (!fileUploads || !fileUploads.length) return { patch: patch, diagnostics: diagnostics };
   if (String(competitionId || "").trim() !== CONNECT_COMPETITION_ID) {
     throw new Error("Přílohy PDF z formuláře jsou jen pro soutěž UHK Connect.");
   }
@@ -1739,12 +1788,6 @@ function connectProcessApplicationFileUploads_(ss, competitionId, applicationId,
   var allowed = { attach_invitation: 1, attach_annex1: 1, attach_annex2: 1, attach_annex3: 1 };
   var maxBytes = 18 * 1024 * 1024;
   var blobSheet = ensureApplicationFileBlobsSheet_(ss);
-  var driveFolder = null;
-  try {
-    driveFolder = connectGetApplicationAttachmentsDriveFolderThrowing_(ss);
-  } catch (eFold) {
-    driveFolder = null;
-  }
 
   for (var i = 0; i < fileUploads.length; i++) {
     var item = fileUploads[i] || {};
@@ -1775,31 +1818,26 @@ function connectProcessApplicationFileUploads_(ss, competitionId, applicationId,
     var safe = fileName.replace(/[^a-zA-Z0-9._\-]/g, "_").replace(/_+/g, "_").slice(0, 120);
     if (!/\.pdf$/i.test(safe)) safe = (safe || "dokument") + ".pdf";
 
-    var driveOk = false;
-    if (driveFolder) {
+    var stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd_HHmmss");
+    var driveName = applicationId + "_apply_" + fieldId + "_" + stamp + "_" + safe;
+    var driveTry = connectTryCreateApplicationPdfOnDrive_(ss, bytes, driveName);
+    var driveOk = !!(driveTry && driveTry.ok && driveTry.file);
+    if (driveOk) {
+      var fidDrive = driveTry.file.getId();
+      patch[fieldId] = "UHKDRIVE|" + fidDrive + "|" + safe;
+      diagnostics[fieldId] = { storage: "drive" };
+      connectTrashBlobChunks_(blobSheet, applicationId, fieldId);
       try {
-        var stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd_HHmmss");
-        var driveName = applicationId + "_apply_" + fieldId + "_" + stamp + "_" + safe;
-        var upBlob = Utilities.newBlob(bytes, MimeType.PDF, driveName);
-        var driveFile = driveFolder.createFile(upBlob);
-        connectApplyViewSharingToPostAwardFile_(driveFile);
-        var fidDrive = driveFile.getId();
-        patch[fieldId] = "UHKDRIVE|" + fidDrive + "|" + safe;
-        driveOk = true;
-        connectTrashBlobChunks_(blobSheet, applicationId, fieldId);
-        try {
-          writeAudit(ss, "CONNECT_APPLY_DRIVE", applicationId, fieldId, safe, applicantLower);
-        } catch (audD) {
-          /* ignore */
-        }
-      } catch (eUp) {
-        console.error("connectProcessApplicationFileUploads_ Drive: " + (eUp.message || String(eUp)));
-        driveOk = false;
+        writeAudit(ss, "CONNECT_APPLY_DRIVE", applicationId, fieldId, safe, applicantLower);
+      } catch (audD) {
+        /* ignore */
       }
-    }
-    if (!driveOk) {
+    } else {
+      var errMsg = driveTry && driveTry.error ? String(driveTry.error).slice(0, 400) : "";
+      console.error("connectProcessApplicationFileUploads_ Drive failed: " + errMsg);
       connectWritePdfBlobChunks_(blobSheet, applicationId, fieldId, safe, "application/pdf", bytes);
       patch[fieldId] = "UHKAFILE|" + safe;
+      diagnostics[fieldId] = { storage: "sheet", driveError: errMsg };
       try {
         writeAudit(ss, "CONNECT_APPLY_BLOB", applicationId, fieldId, safe, applicantLower);
       } catch (aud) {
@@ -1807,7 +1845,7 @@ function connectProcessApplicationFileUploads_(ss, competitionId, applicationId,
       }
     }
   }
-  return patch;
+  return { patch: patch, diagnostics: diagnostics };
 }
 
 function connectPostAwardPrivileged_(auth) {
@@ -2855,13 +2893,23 @@ function uploadConnectApplicationAttachment(body) {
   var b64 = body.fileBase64;
   if (!applicationId) throw new Error("Chybí ID přihlášky (koncept). Nejprve uložte rozpracovanou přihlášku, pak zvolte soubor znovu.");
   var ss = getSpreadsheet(competitionId);
-  var patch = connectProcessApplicationFileUploads_(ss, competitionId, applicationId, me, [
+  var upRes = connectProcessApplicationFileUploads_(ss, competitionId, applicationId, me, [
     { fieldId: fieldId, fileName: fileName, mimeType: mimeType, fileBase64: b64 },
   ]);
+  var patch = upRes.patch || {};
+  var diag = (upRes.diagnostics && upRes.diagnostics[fieldId]) || {};
   var url = patch[fieldId];
   if (!url) throw new Error("Nahrání se nezdařilo.");
   var sk = /^UHKDRIVE\|/i.test(String(url)) ? "drive" : "sheet";
-  return { success: true, fieldId: fieldId, name: "", url: url, id: "", storageKind: sk };
+  return {
+    success: true,
+    fieldId: fieldId,
+    name: "",
+    url: url,
+    id: "",
+    storageKind: sk,
+    driveError: diag.driveError || "",
+  };
 }
 
 /**
@@ -4469,12 +4517,18 @@ function saveDraft(body) {
       } catch (e0) {
         fdUp = {};
       }
-      var patchUp = connectProcessApplicationFileUploads_(ss, body.competitionId, appId, applicant, body.fileUploads || []);
+      var upRes = connectProcessApplicationFileUploads_(ss, body.competitionId, appId, applicant, body.fileUploads || []);
+      var patchUp = upRes.patch || {};
       Object.assign(fdUp, patchUp);
       sheet.getRange(i + 1, fCol + 1).setValue(JSON.stringify(fdUp));
       // uCol může být -1 u starších listů bez sloupce updated_at — getRange(..., 0) vyhodí „Počáteční sloupec rozsahu je příliš malý.“
       if (uCol >= 0) sheet.getRange(i + 1, uCol + 1).setValue(fmtDate(new Date()));
-      return { success: true, draftId: appId, uploadedFields: patchUp };
+      return {
+        success: true,
+        draftId: appId,
+        uploadedFields: patchUp,
+        uploadDiagnostics: upRes.diagnostics || {},
+      };
     }
   }
 
@@ -4500,12 +4554,18 @@ function saveDraft(body) {
     note: "",
     project_title: fd.project_title ? String(fd.project_title) : "",
   });
-  var patchNew = connectProcessApplicationFileUploads_(ss, body.competitionId, newId, applicant, body.fileUploads || []);
+  var upNew = connectProcessApplicationFileUploads_(ss, body.competitionId, newId, applicant, body.fileUploads || []);
+  var patchNew = upNew.patch || {};
   if (patchNew && Object.keys(patchNew).length) {
     Object.assign(fd, patchNew);
     applicationsSetFormDataJsonForAppId_(sheet, newId, fd);
   }
-  return { success: true, draftId: newId, uploadedFields: patchNew };
+  return {
+    success: true,
+    draftId: newId,
+    uploadedFields: patchNew,
+    uploadDiagnostics: upNew.diagnostics || {},
+  };
 }
 
 /** Název projektu z řádku APPLICATIONS. */
@@ -4899,7 +4959,8 @@ function submitApplication(body) {
       } catch (eM) {
         fdMerged = {};
       }
-      var patchS = connectProcessApplicationFileUploads_(ss, body.competitionId, appId, applicant, body.fileUploads || []);
+      var upSub = connectProcessApplicationFileUploads_(ss, body.competitionId, appId, applicant, body.fileUploads || []);
+      var patchS = upSub.patch || {};
       Object.assign(fdMerged, patchS);
       sheet.getRange(i + 1, sCol + 1).setValue("SUBMITTED");
       sheet.getRange(i + 1, fCol + 1).setValue(JSON.stringify(fdMerged));
@@ -4929,7 +4990,7 @@ function submitApplication(body) {
       } catch (archE) {
         console.error("uhkTryArchiveFinalSubmissionPdf_: " + archE.message);
       }
-      return { success: true, uploadedFields: patchS };
+      return { success: true, uploadedFields: patchS, uploadDiagnostics: upSub.diagnostics || {} };
     }
   }
 
@@ -4956,7 +5017,8 @@ function submitApplication(body) {
     note: "",
     project_title: fd2.project_title ? String(fd2.project_title) : "",
   });
-  var patch2 = connectProcessApplicationFileUploads_(ss, body.competitionId, newId, applicant, body.fileUploads || []);
+  var up2 = connectProcessApplicationFileUploads_(ss, body.competitionId, newId, applicant, body.fileUploads || []);
+  var patch2 = up2.patch || {};
   if (patch2 && Object.keys(patch2).length) {
     Object.assign(fd2, patch2);
     applicationsSetFormDataJsonForAppId_(sheet, newId, fd2);
@@ -4982,7 +5044,7 @@ function submitApplication(body) {
     fd2,
     newId
   );
-  return { success: true, uploadedFields: patch2 };
+  return { success: true, uploadedFields: patch2, uploadDiagnostics: up2.diagnostics || {} };
 }
 
 /**

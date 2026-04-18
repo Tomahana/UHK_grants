@@ -283,12 +283,23 @@ const API = {
       const t = await res.text().catch(() => "");
       throw new Error((t && t.slice(0, 500)) || "HTTP " + res.status);
     }
-    if (
+    /** Apps Script někdy vrátí text/plain i pro PDF; ověření podle hlavičky souboru %PDF-. */
+    const buf = await res.arrayBuffer();
+    const head = new Uint8Array(buf.slice(0, 5));
+    /* PDF začíná ASCII „%PDF“ (0x25 0x50 0x44 0x46), pátý znak bývá „-“ u verze */
+    const pdfMagic =
+      head.length >= 4 &&
+      head[0] === 0x25 &&
+      head[1] === 0x50 &&
+      head[2] === 0x44 &&
+      head[3] === 0x46;
+    const looksLikePdf =
+      pdfMagic ||
       ct.indexOf("application/pdf") >= 0 ||
       ct.indexOf("application/octet-stream") >= 0 ||
-      ct.indexOf("binary/octet-stream") >= 0
-    ) {
-      const blob = await res.blob();
+      ct.indexOf("binary/octet-stream") >= 0;
+    if (looksLikePdf) {
+      const blob = new Blob([buf], { type: "application/pdf" });
       const u = URL.createObjectURL(blob);
       const w = window.open(u, "_blank", "noopener,noreferrer");
       if (!w) {
@@ -310,12 +321,22 @@ const API = {
       }, 300000);
       return;
     }
-    if (ct.indexOf("application/json") >= 0) {
-      const j = await res.json().catch(() => ({}));
-      throw new Error(j.error || "Stažení se nepodařilo.");
+    var errTxt = "";
+    try {
+      errTxt = new TextDecoder("utf-8").decode(buf);
+    } catch (eDec) {
+      errTxt = "";
     }
-    const t = await res.text().catch(() => "");
-    throw new Error(t.slice(0, 500) || "Neočekávaná odpověď serveru.");
+    if (errTxt) {
+      try {
+        const j = JSON.parse(errTxt);
+        if (j && j.error) throw new Error(String(j.error));
+      } catch (eOut) {
+        if (eOut instanceof Error && String(eOut.message || "").length && !String(eOut.message).includes("Neočekávaná"))
+          throw eOut;
+      }
+    }
+    throw new Error((errTxt && errTxt.slice(0, 500)) || "Neočekávaná odpověď serveru.");
   },
 };
 

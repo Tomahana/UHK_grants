@@ -442,6 +442,8 @@
           "Příloha je uložena do tabulky soutěže (záloha), protože upload na Disk se nepodařil. Otevřete ji tlačítkem „Otevřít PDF“ níže.",
         fileUploadOkDrive:
           "Příloha je uložena na Google Disk přes aplikaci (složka účtu webové aplikace). Otevřete ji tlačítkem „Otevřít PDF“ níže.",
+        fileUploadDriveFallbackDetail:
+          "Soubor je jen v tabulce (záloha). Disk: {{err}} — zkontrolujte sdílení složky s účtem Web App (Execute as) nebo oprávnění Disku.",
         fileUploadErr: "Nahrání přílohy se nepodařilo.",
         fileUploadedDriveLabel: "PDF na Disku",
         fileUploadedDriveApiLabel: "PDF na Disku (nahráno aplikací)",
@@ -936,6 +938,8 @@
           "The file was saved in the competition spreadsheet (fallback) because the Drive upload failed. Open it with “Open PDF” below.",
         fileUploadOkDrive:
           "The file was saved on Google Drive via the app (web-app account folder). Open it with “Open PDF” below.",
+        fileUploadDriveFallbackDetail:
+          "The file was stored in the spreadsheet only (fallback). Drive: {{err}} — check folder sharing with the Web App account (Execute as) or Drive permissions.",
         fileUploadErr: "Attachment upload failed.",
         fileUploadedDriveLabel: "PDF on Drive",
         fileUploadedDriveApiLabel: "PDF on Drive (uploaded by the app)",

@@ -1146,7 +1146,7 @@
             fileBase64: dataUrl,
           },
         ];
-        await saveDraft(false, uploads);
+        const saveOut = await saveDraft(false, uploads, true);
         if (!draftId || !String(formData[id] || "").trim()) {
           showToast(tc("fileNeedDraftRetry"), "err");
           input.value = "";
@@ -1161,9 +1161,12 @@
           input.value = "";
           return;
         }
+        const dispNameHtml = escapeHtml(connectApplicationFileDispName_(url) || file.name || "PDF");
         if (info) info.style.display = "flex";
         if (nameEl && isWebUrl) {
           nameEl.innerHTML =
+            dispNameHtml +
+            " · " +
             escapeHtml(tc("fileUploadedDriveLabel")) +
             " · <a href=\"" +
             escapeAttr(url) +
@@ -1172,20 +1175,36 @@
             "</a>";
         } else if (nameEl && isDriveApiVal && draftId) {
           nameEl.innerHTML =
+            dispNameHtml +
+            " · " +
             escapeHtml(tc("fileUploadedDriveApiLabel")) +
             " · " +
             connectApplicationPdfDlAnchor_(draftId, id, escapeHtml(tf("submittedAttachmentOpenPdf")));
         } else if (nameEl && isBlobVal && draftId) {
           nameEl.innerHTML =
+            dispNameHtml +
+            " · " +
             escapeHtml(tc("fileUploadedAppStorageLabel")) +
             " · " +
             connectApplicationPdfDlAnchor_(draftId, id, escapeHtml(tf("submittedAttachmentOpenPdf")));
+        } else if (nameEl) {
+          nameEl.innerHTML = dispNameHtml;
         }
         isDirty = true;
         scheduleAutoSave();
         updateChecklist();
         clearError(id);
-        showToast(/^UHKDRIVE\|/i.test(String(formData[id] || "")) ? tc("fileUploadOkDrive") : tc("fileUploadOk"));
+        const diag = (saveOut && saveOut.uploadDiagnostics && saveOut.uploadDiagnostics[id]) || {};
+        if (diag.storage === "sheet" && diag.driveError && typeof I18n !== "undefined" && I18n.tReplace) {
+          showToast(
+            I18n.tReplace("applyConnect.fileUploadDriveFallbackDetail", {
+              err: String(diag.driveError || "").slice(0, 320),
+            }),
+            "err"
+          );
+        } else {
+          showToast(/^UHKDRIVE\|/i.test(String(formData[id] || "")) ? tc("fileUploadOkDrive") : tc("fileUploadOk"));
+        }
       } catch (e) {
         const msg = e && e.message && e.message !== "ok" ? e.message : tc("fileUploadErr");
         showToast(msg, "err");
@@ -1343,7 +1362,12 @@
       await saveDraft(true);
     }
 
-    async function saveDraft(showMessage, fileUploads) {
+    /**
+     * @param {boolean} showMessage
+     * @param {Array|undefined} fileUploads
+     * @param {boolean} [returnDiagnostics] – pro upload souboru vrátit { uploadDiagnostics } z API
+     */
+    async function saveDraft(showMessage, fileUploads, returnDiagnostics) {
       try {
         const session = Auth._getSession();
         const body = {
@@ -1380,6 +1404,9 @@
         const st = document.getElementById("saveStatusText");
         if (st) st.textContent = I18n.tReplace("applyRega.footerSavedAt", { time: now });
         if (showMessage) showToast(trf("toastDraftSaved"));
+        if (returnDiagnostics) {
+          return { uploadDiagnostics: out.uploadDiagnostics || {} };
+        }
       } catch (e) {
         if (showMessage) {
           const raw = e && e.message ? String(e.message) : "";
@@ -1393,6 +1420,7 @@
           throw e;
         }
       }
+      return returnDiagnostics ? { uploadDiagnostics: {} } : undefined;
     }
 
     async function loadDraft() {
