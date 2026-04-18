@@ -437,16 +437,19 @@
         stepAttachments: "Přílohy",
         fileUploading: "Nahrávám PDF…",
         fileUploadOk:
-          "Příloha je uložena do tabulky soutěže Google (list s binárními daty), ne na sdílený Google Disk. Otevřete ji tlačítkem „Otevřít PDF“ níže.",
+          "Příloha je uložena do tabulky soutěže (záloha), protože upload na Disk se nepodařil. Otevřete ji tlačítkem „Otevřít PDF“ níže.",
+        fileUploadOkDrive:
+          "Příloha je uložena na Google Disk přes aplikaci (složka účtu webové aplikace). Otevřete ji tlačítkem „Otevřít PDF“ níže.",
         fileUploadErr: "Nahrání přílohy se nepodařilo.",
         fileUploadedDriveLabel: "PDF na Disku",
-        fileUploadedAppStorageLabel: "PDF v aplikaci (tabulka)",
+        fileUploadedDriveApiLabel: "PDF na Disku (nahráno aplikací)",
+        fileUploadedAppStorageLabel: "PDF v tabulce (záloha)",
         filePdfOnly: "Povolen je pouze soubor ve formátu PDF.",
         fileTooBig: "Soubor je větší než 18 MB.",
         fileNeedDraftRetry:
           "Nejdřív se musí vytvořit koncept přihlášky. Zkuste soubor znovu za chvíli (po automatickém uložení) nebo klepněte na „Uložit draft“.",
         attachmentsStorageNote:
-          "PDF z tohoto kroku se ukládá do tabulky soutěže Google (list s přílohami), ne do sdílené složky na Disku. Po uložení otevřete soubor přes „Otevřít PDF“ v této aplikaci (musíte být přihlášeni). Prázdná složka na Disku z textu výzvy u podacích příloh tedy neznamená, že soubor chybí.",
+          "PDF z podacího formuláře se ukládá na Google Disk do složky nastavené pro webovou aplikaci (DriveApp). Volitelně lze v CONFIG zadat samostatné ID složky klíčem connect_application_attachments_folder_id; jinak se použije stejná složka jako u příloh části 2. Při výpadku Disku zůstane záloha v tabulce. Otevření je vždy přes „Otevřít PDF“ po přihlášení.",
       },
       applyPrestige: {
         loadingForm: "Načítám formulář…",
@@ -926,16 +929,19 @@
         stepAttachments: "Attachments",
         fileUploading: "Uploading PDF…",
         fileUploadOk:
-          "The file was saved in the competition Google Sheet (binary storage), not on shared Drive. Open it with “Open PDF” below.",
+          "The file was saved in the competition spreadsheet (fallback) because the Drive upload failed. Open it with “Open PDF” below.",
+        fileUploadOkDrive:
+          "The file was saved on Google Drive via the app (web-app account folder). Open it with “Open PDF” below.",
         fileUploadErr: "Attachment upload failed.",
         fileUploadedDriveLabel: "PDF on Drive",
-        fileUploadedAppStorageLabel: "PDF in app (spreadsheet)",
+        fileUploadedDriveApiLabel: "PDF on Drive (uploaded by the app)",
+        fileUploadedAppStorageLabel: "PDF in spreadsheet (fallback)",
         filePdfOnly: "Only PDF files are allowed.",
         fileTooBig: "The file is larger than 18 MB.",
         fileNeedDraftRetry:
           "A draft application ID is required first. Try the file again in a moment (after autosave) or click “Save draft”.",
         attachmentsStorageNote:
-          "PDFs from this step are stored in the competition Google Sheet (attachments list), not in a shared Drive folder. After saving, open the file via “Open PDF” in this app (you must be signed in). An empty Drive folder from the call text does not mean your file is missing.",
+          "PDFs from the Connect application form are stored on Google Drive in the folder configured for the web app (DriveApp). Optionally set a separate folder ID in CONFIG as connect_application_attachments_folder_id; otherwise the same folder as Connect part 2 attachments is used. If Drive fails, a spreadsheet backup is kept. Opening is always via “Open PDF” while signed in.",
       },
       applyPrestige: {
         loadingForm: "Loading form…",

@@ -329,8 +329,16 @@
     }
 
     const COMPETITION_ID = new URLSearchParams(location.search).get("c") || "uhk_connect_2026_v2";
+    /** Z buňky formuláře vytáhne zobrazovaný název souboru (UHKAFILE|… / UHKDRIVE|id|…). */
+    function connectApplicationFileDispName_(valTrim) {
+      const t = String(valTrim || "").trim();
+      const m = /^UHKDRIVE\|[^|]+\|(.+)$/i.exec(t);
+      if (m) return (m[1] || "").trim() || t;
+      return t.replace(/^UHKAFILE\|/i, "").trim() || t;
+    }
+
     /**
-     * Odkaz „Otevřít PDF“ pro podací přílohu (PDF je v tabulce, ne na Disku).
+     * Odkaz „Otevřít PDF“ pro podací přílohu (stažení přes API z Disku nebo zálohy v tabulce).
      * Používá třídu uhk-blob-dl + delegaci v api.js → POST stažení (token v těle).
      */
     function connectApplicationPdfDlAnchor_(applicationId, fieldId, innerLabelHtml) {
@@ -468,8 +476,10 @@
           const isUrl = !!h.isLikelyUrl;
           const appIdForDl = String(h.application_id || sub.application_id || "").trim();
           const isAppStoredPdf =
-            !!(h.isSheetBlob || /^UHKAFILE\|/i.test(valTrim)) && appIdForDl && h.field_id;
-          const dispVal = valTrim.replace(/^UHKAFILE\|/i, "") || val;
+            !!(h.isSheetBlob || /^UHKAFILE\|/i.test(valTrim) || /^UHKDRIVE\|/i.test(valTrim)) &&
+            appIdForDl &&
+            h.field_id;
+          const dispVal = connectApplicationFileDispName_(valTrim) || val;
           const shortVal = dispVal.length > 120 ? dispVal.slice(0, 120) + "…" : dispVal;
           const staleDrive =
             !!h.staleGoogleDriveUrl ||
@@ -860,6 +870,7 @@
         const valStr = String(val || "").trim();
         const isUrl = /^https?:\/\//i.test(valStr);
         const isSheetBlob = /^UHKAFILE\|/i.test(valStr);
+        const isDriveApi = /^UHKDRIVE\|/i.test(valStr);
         const hasStored = !!valStr;
         let nameSpanHtml = "";
         if (isUrl) {
@@ -870,13 +881,18 @@
             "\" target=\"_blank\" rel=\"noopener noreferrer\">" +
             escapeHtml(tf("submittedAttachmentOpenLink")) +
             "</a>";
+        } else if (isDriveApi && draftId) {
+          nameSpanHtml =
+            escapeHtml(tc("fileUploadedDriveApiLabel")) +
+            " · " +
+            connectApplicationPdfDlAnchor_(draftId, f.field_id, escapeHtml(tf("submittedAttachmentOpenPdf")));
         } else if (isSheetBlob && draftId) {
           nameSpanHtml =
             escapeHtml(tc("fileUploadedAppStorageLabel")) +
             " · " +
             connectApplicationPdfDlAnchor_(draftId, f.field_id, escapeHtml(tf("submittedAttachmentOpenPdf")));
         } else if (valStr) {
-          nameSpanHtml = escapeHtml(valStr.replace(/^UHKAFILE\|/i, ""));
+          nameSpanHtml = escapeHtml(connectApplicationFileDispName_(valStr));
         }
         return `<div class="field">
           <label class="field-label">${f.field_label} ${req?'<span class="field-required">*</span>':""}</label>
@@ -1138,8 +1154,9 @@
         }
         const url = String(formData[id] || "").trim();
         const isBlobVal = /^UHKAFILE\|/i.test(url);
+        const isDriveApiVal = /^UHKDRIVE\|/i.test(url);
         const isWebUrl = /^https?:\/\//i.test(url);
-        if (!isBlobVal && !isWebUrl) {
+        if (!isBlobVal && !isDriveApiVal && !isWebUrl) {
           showToast(tc("fileUploadErr"), "err");
           input.value = "";
           return;
@@ -1153,6 +1170,11 @@
             "\" target=\"_blank\" rel=\"noopener noreferrer\">" +
             escapeHtml(tf("submittedAttachmentOpenLink")) +
             "</a>";
+        } else if (nameEl && isDriveApiVal && draftId) {
+          nameEl.innerHTML =
+            escapeHtml(tc("fileUploadedDriveApiLabel")) +
+            " · " +
+            connectApplicationPdfDlAnchor_(draftId, id, escapeHtml(tf("submittedAttachmentOpenPdf")));
         } else if (nameEl && isBlobVal && draftId) {
           nameEl.innerHTML =
             escapeHtml(tc("fileUploadedAppStorageLabel")) +
@@ -1163,7 +1185,7 @@
         scheduleAutoSave();
         updateChecklist();
         clearError(id);
-        showToast(tc("fileUploadOk"));
+        showToast(/^UHKDRIVE\|/i.test(String(formData[id] || "")) ? tc("fileUploadOkDrive") : tc("fileUploadOk"));
       } catch (e) {
         const msg = e && e.message && e.message !== "ok" ? e.message : tc("fileUploadErr");
         showToast(msg, "err");

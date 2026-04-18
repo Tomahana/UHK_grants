@@ -11,8 +11,9 @@
  *     Execute as: Me | Who has access: Anyone
  *  5. Zkopíruj URL → vlož do js/config.js
  *
- *  Přílohy Connect část 2 (Disk): účet „Execute as“ musí mít Editor v cílové složce. ID složky = konstanta
- *  CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID nebo CONFIG connect_postaward_attachments_folder_id.
+ *  Přílohy Connect (podací formulář i část 2 na Disku): účet „Execute as“ musí mít Editor v cílové složce.
+ *  Podací PDF: CONFIG connect_application_attachments_folder_id (nebo stejné ID jako u části 2 — viz níže).
+ *  Část 2: CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID nebo CONFIG connect_postaward_attachments_folder_id.
  *  Do buňky uveďte jen ID složky (část URL za …/folders/), ne celou adresu a ne „?usp=sharing“ — jinak Disk hlásí, že soubor nelze otevřít; skript ID stejně ořízne.
  *
  *  Archiv PDF (podání / hodnocení+prorektor / uzavření Connect): v listu CONFIG klíč
@@ -47,7 +48,7 @@ const SHEETS = {
   CONFIG       : "📋 CONFIG",
   FORM_FIELDS  : "📝 FORM_FIELDS",
   APPLICATIONS : "📥 APPLICATIONS",
-  /** Binární PDF z podacího formuláře Connect (chunkovaný base64) – nevyžaduje Google Disk. */
+  /** Binární PDF z podacího formuláře Connect (chunkovaný base64) – záloha / fallback, pokud Disk selže. */
   APPLICATION_FILE_BLOBS: "📎 APPLICATION_FILE_BLOBS",
   /** Přílohy Connect části 2 po Podpořeno/Kráceno (chunkovaný base64) – bez Google Disku. */
   POSTAWARD_FILE_BLOBS: "📎 POSTAWARD_FILE_BLOBS",
@@ -100,6 +101,23 @@ function connectSanitizeDriveFolderId_(s) {
 }
 
 /**
+ * Hodnota buňky formuláře UHKDRIVE|fileId|zobrazený_název.pdf (podací příloha na Disku přes API).
+ */
+function connectParseUhkDriveCell_(raw) {
+  var s = String(raw || "").trim();
+  if (!/^UHKDRIVE\|/i.test(s)) return null;
+  var parts = s.split("|");
+  if (parts.length < 2) return null;
+  var fileId = String(parts[1] || "")
+    .trim()
+    .replace(/[^a-zA-Z0-9_-]/g, "");
+  if (!fileId) return null;
+  var display = parts.length > 2 ? parts.slice(2).join("|").trim() : "";
+  if (!display) display = "dokument.pdf";
+  return { fileId: fileId, displayName: display };
+}
+
+/**
  * ID složky na Disku pro nahrávání příloh Connect (část 2 po rozhodnutí Podpořeno/Kráceno).
  * CONFIG (list u soutěže): connect_postaward_attachments_folder_id — má přednost před konstantou.
  * Volitelně se použije archive_drive_folder_id / archive_folder_id, pokud není uveden výše (stejná složka jako archiv PDF).
@@ -114,6 +132,18 @@ function connectGetPostAwardDriveFolderId_(ss) {
     raw = String(CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID || "").trim();
   }
   return connectSanitizeDriveFolderId_(raw);
+}
+
+/**
+ * Složka na Disku pro PDF z podacího formuláře Connect (DriveApp.createFile).
+ * CONFIG: connect_application_attachments_folder_id — pokud chybí, použije se stejná složka jako u části 2
+ * (connect_postaward_attachments_folder_id / archive / konstanta).
+ */
+function connectGetApplicationAttachmentsDriveFolderId_(ss) {
+  var cfg = getConfigMap(ss);
+  var raw = String(cfg["connect_application_attachments_folder_id"] || "").trim();
+  if (raw) return connectSanitizeDriveFolderId_(raw);
+  return connectGetPostAwardDriveFolderId_(ss);
 }
 
 /**
@@ -137,6 +167,31 @@ function connectGetPostAwardDriveFolderThrowing_(ss) {
         "Aktuální ID: " +
         folderId +
         ". Kontaktujte administrátora."
+    );
+  }
+}
+
+/**
+ * Složka pro podací PDF Connect; stejné oprávnění jako u části 2 (účet webové aplikace = Editor).
+ */
+function connectGetApplicationAttachmentsDriveFolderThrowing_(ss) {
+  var folderId = connectGetApplicationAttachmentsDriveFolderId_(ss);
+  if (!folderId) {
+    throw new Error(
+      "Není nastavena složka na Disku pro přílohy podacího formuláře Connect. Doplňte v CONFIG klíč connect_application_attachments_folder_id nebo connect_postaward_attachments_folder_id (ID složky z URL Disku)."
+    );
+  }
+  try {
+    return DriveApp.getFolderById(folderId);
+  } catch (e) {
+    var em = e && e.message ? String(e.message) : String(e);
+    console.error("connectGetApplicationAttachmentsDriveFolderThrowing_: folderId=" + folderId + " → " + em);
+    throw new Error(
+      "Složka pro podací přílohy Connect na Disku není dostupná účtu webové aplikace (Deploy → Execute as: Me). " +
+        "Nasdílejte složku s tímto účtem jako Editor, nebo v CONFIG nastavte connect_application_attachments_folder_id. " +
+        "Aktuální ID: " +
+        folderId +
+        "."
     );
   }
 }
@@ -1618,6 +1673,31 @@ function downloadConnectApplicationFile_(competitionId, applicationId, fieldId, 
   if (!allowed[fid]) throw new Error("Neplatné pole přílohy.");
   if (!connectCanDownloadApplicationBlob_(auth, cid, aid)) throw new Error("Soubor nelze stáhnout (oprávnění).");
   var ss = getSpreadsheet(cid);
+  var sheet = ss.getSheetByName(SHEETS.APPLICATIONS);
+  if (!sheet) throw new Error("List APPLICATIONS nenalezen.");
+  var rows = sheetToObjects(sheet).map(applicationsSheetRowNormalize_);
+  var appRow = rows.find(function (r) {
+    return String(r.application_id || "").trim() === aid;
+  });
+  if (!appRow) throw new Error("Přihláška nenalezena.");
+  var fd = connectParseFormDataObject_(appRow);
+  var cellVal = fd && Object.prototype.hasOwnProperty.call(fd, fid) ? fd[fid] : "";
+  var driveRef = connectParseUhkDriveCell_(cellVal);
+  if (driveRef && driveRef.fileId) {
+    try {
+      var f = DriveApp.getFileById(driveRef.fileId);
+      var b = f.getBlob();
+      if (!b || b.getBytes().length < 1) throw new Error("Soubor na Disku je prázdný.");
+      var nm = String(driveRef.displayName || b.getName() || "soubor.pdf")
+        .replace(/[^a-zA-Z0-9._\-]/g, "_")
+        .replace(/_+/g, "_")
+        .slice(0, 180);
+      if (!/\.pdf$/i.test(nm)) nm = (nm || "soubor") + ".pdf";
+      return b.setName(nm);
+    } catch (eDrive) {
+      /* fallback na tabulku níže */
+    }
+  }
   var blobSh = ss.getSheetByName(SHEETS.APPLICATION_FILE_BLOBS);
   if (!blobSh) throw new Error("Úložiště příloh není k dispozici.");
   var meta = connectReadPdfBlobFromSheet_(blobSh, aid, fid);
@@ -1632,8 +1712,8 @@ function downloadConnectApplicationFile_(competitionId, applicationId, fieldId, 
 }
 
 /**
- * Uloží PDF z podacího formuláře Connect do listu APPLICATION_FILE_BLOBS (chunkovaný base64).
- * Do formuláře zapíše hodnotu UHKAFILE|název.pdf pro zobrazení a stažení přes downloadConnectApplicationFile.
+ * Uloží PDF z podacího formuláře Connect primárně na Google Disk (DriveApp v cílové složce),
+ * do formuláře zapíše UHKDRIVE|fileId|název.pdf. Při chybě složky / Disku uloží zálohu do APPLICATION_FILE_BLOBS (UHKAFILE|…).
  * fileUploads: pole { fieldId, fileName, mimeType, fileBase64 }
  */
 function connectProcessApplicationFileUploads_(ss, competitionId, applicationId, applicantLower, fileUploads) {
@@ -1659,6 +1739,12 @@ function connectProcessApplicationFileUploads_(ss, competitionId, applicationId,
   var allowed = { attach_invitation: 1, attach_annex1: 1, attach_annex2: 1, attach_annex3: 1 };
   var maxBytes = 18 * 1024 * 1024;
   var blobSheet = ensureApplicationFileBlobsSheet_(ss);
+  var driveFolder = null;
+  try {
+    driveFolder = connectGetApplicationAttachmentsDriveFolderThrowing_(ss);
+  } catch (eFold) {
+    driveFolder = null;
+  }
 
   for (var i = 0; i < fileUploads.length; i++) {
     var item = fileUploads[i] || {};
@@ -1689,12 +1775,36 @@ function connectProcessApplicationFileUploads_(ss, competitionId, applicationId,
     var safe = fileName.replace(/[^a-zA-Z0-9._\-]/g, "_").replace(/_+/g, "_").slice(0, 120);
     if (!/\.pdf$/i.test(safe)) safe = (safe || "dokument") + ".pdf";
 
-    connectWritePdfBlobChunks_(blobSheet, applicationId, fieldId, safe, "application/pdf", bytes);
-    patch[fieldId] = "UHKAFILE|" + safe;
-    try {
-      writeAudit(ss, "CONNECT_APPLY_BLOB", applicationId, fieldId, safe, applicantLower);
-    } catch (aud) {
-      /* ignore */
+    var driveOk = false;
+    if (driveFolder) {
+      try {
+        var stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd_HHmmss");
+        var driveName = applicationId + "_apply_" + fieldId + "_" + stamp + "_" + safe;
+        var upBlob = Utilities.newBlob(bytes, MimeType.PDF, driveName);
+        var driveFile = driveFolder.createFile(upBlob);
+        connectApplyViewSharingToPostAwardFile_(driveFile);
+        var fidDrive = driveFile.getId();
+        patch[fieldId] = "UHKDRIVE|" + fidDrive + "|" + safe;
+        driveOk = true;
+        connectTrashBlobChunks_(blobSheet, applicationId, fieldId);
+        try {
+          writeAudit(ss, "CONNECT_APPLY_DRIVE", applicationId, fieldId, safe, applicantLower);
+        } catch (audD) {
+          /* ignore */
+        }
+      } catch (eUp) {
+        console.error("connectProcessApplicationFileUploads_ Drive: " + (eUp.message || String(eUp)));
+        driveOk = false;
+      }
+    }
+    if (!driveOk) {
+      connectWritePdfBlobChunks_(blobSheet, applicationId, fieldId, safe, "application/pdf", bytes);
+      patch[fieldId] = "UHKAFILE|" + safe;
+      try {
+        writeAudit(ss, "CONNECT_APPLY_BLOB", applicationId, fieldId, safe, applicantLower);
+      } catch (aud) {
+        /* ignore */
+      }
     }
   }
   return patch;
@@ -1938,9 +2048,13 @@ function connectApplicationFileFieldHints_(fd, applicationIdOpt, ss) {
     var raw = String(v).trim();
     var metaName = blobByField[k];
     var hasBlobRow = !!metaName;
-    var isSheetBlob = /^UHKAFILE\|/i.test(raw) || hasBlobRow;
+    var driveRef = connectParseUhkDriveCell_(raw);
+    var isSheetBlob =
+      /^UHKAFILE\|/i.test(raw) || /^UHKDRIVE\|/i.test(raw) || hasBlobRow;
     var disp = isSheetBlob
-      ? hasBlobRow
+      ? driveRef
+        ? driveRef.displayName
+        : hasBlobRow
         ? metaName
         : raw.replace(/^UHKAFILE\|/i, "")
       : raw.slice(0, 2000);
@@ -2727,8 +2841,7 @@ function connectTrashDriveFilesNamePrefixInFolder_(folderId, namePrefix) {
 }
 
 /**
- * Nahrání PDF z podacího formuláře Connect (doklad o spolupráci / přílohy) do sdílené složky soutěže na Disku.
- * Název souboru: {applicationId}_apply_{fieldId}_{timestamp}_{orig.pdf} — zobrazí se v automatickém seznamu příloh k přihlášce.
+ * Nahrání PDF z podacího formuláře Connect na Google Disk (DriveApp) nebo záloha do tabulky při selhání.
  * body: token, competitionId, applicationId (ID konceptu), fieldId, fileName, mimeType, fileBase64
  */
 function uploadConnectApplicationAttachment(body) {
@@ -2747,7 +2860,8 @@ function uploadConnectApplicationAttachment(body) {
   ]);
   var url = patch[fieldId];
   if (!url) throw new Error("Nahrání se nezdařilo.");
-  return { success: true, fieldId: fieldId, name: "", url: url, id: "" };
+  var sk = /^UHKDRIVE\|/i.test(String(url)) ? "drive" : "sheet";
+  return { success: true, fieldId: fieldId, name: "", url: url, id: "", storageKind: sk };
 }
 
 /**

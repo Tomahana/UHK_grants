@@ -372,9 +372,18 @@
       .map(function (h) {
         const fid = String((h && h.field_id) || "").trim();
         const valRaw = String((h && h.value) || "").trim();
-        const dispPlain = /^UHKAFILE\|/i.test(valRaw) ? valRaw.replace(/^UHKAFILE\|/i, "") : valRaw;
-        const disp = escapeHtmlCoord(dispPlain.slice(0, 2000));
-        const asAppBlob = !!(h && (h.isSheetBlob || /^UHKAFILE\|/i.test(valRaw)) && aid && fid);
+        const dispPlain = /^UHKDRIVE\|[^|]+\|(.+)$/i.test(valRaw)
+          ? valRaw.replace(/^UHKDRIVE\|[^|]+\|/i, "").trim()
+          : /^UHKAFILE\|/i.test(valRaw)
+            ? valRaw.replace(/^UHKAFILE\|/i, "")
+            : valRaw;
+        const disp = escapeHtmlCoord(String(dispPlain).slice(0, 2000));
+        const asAppBlob = !!(
+          h &&
+          (h.isSheetBlob || /^UHKAFILE\|/i.test(valRaw) || /^UHKDRIVE\|/i.test(valRaw)) &&
+          aid &&
+          fid
+        );
         if (asAppBlob) {
           const cid = String(competitionId || "").trim();
           return (

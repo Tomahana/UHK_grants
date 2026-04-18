@@ -593,7 +593,7 @@ async function loadReviewConnectAttachments() {
         const vTrim = v.trim();
         const appAid = String(h.application_id || (cur && cur.application_id) || "").trim();
         var link;
-        if ((h.isSheetBlob || /^UHKAFILE\|/i.test(vTrim)) && appAid && h.field_id) {
+        if ((h.isSheetBlob || /^UHKAFILE\|/i.test(vTrim) || /^UHKDRIVE\|/i.test(vTrim)) && appAid && h.field_id) {
           link =
             '<a href="#" class="uhk-blob-dl" data-dl-action="downloadConnectApplicationFile" ' +
             'data-dl-competition-id="' +
