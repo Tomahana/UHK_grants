@@ -385,11 +385,14 @@
         irisRequiredToast: "Vyplňte referenční ID IRIS UHK (UUID z potvrzení) a souhrn z IRIS (povinná součást přihlášky).",
         submittedAttachmentsTitle: "Přílohy u podané přihlášky",
         submittedAttachmentsFootnote:
-          "Jde o údaje uložené při podání. PDF nahrané z počítače je uloženo v tabulce soutěže (lze znovu otevřít odkazem „Otevřít PDF“ po přihlášení). Zadal-li jste odkaz (https://), lze jej otevřít v novém okně.",
+          "Jde o údaje uložené při podání. PDF nahrané z počítače je v tabulce soutěže (list APPLICATION_FILE_BLOBS), ne na sdíleném Disku — prázdná složka z dokumentace výzvy tedy neznamená, že příloha chybí. Otevřete „Otevřít PDF“ po přihlášení. Odkaz https:// na jiný web lze otevřít v novém okně.",
         submittedAttachmentsNone:
           "U příloh není v evidenci uložen název souboru ani odkaz (pole zůstalo prázdné nebo se data nepodařilo načíst).",
         submittedAttachmentOpenLink: "Otevřít odkaz",
         submittedAttachmentOpenPdf: "Otevřít PDF",
+        submittedAttachmentDriveStaleShort:
+          "Údaj v přihlášce vypadá jako starý odkaz na Google Disk — ten už obvykle nefunguje. Nahrajte PDF znovu v aplikaci (koncept), nebo zkuste původní odkaz níže.",
+        submittedAttachmentTryOriginalLink: "Zkusit původní odkaz",
         fileField_attach_invitation: "Doklad o spolupráci",
         fileField_attach_annex1: "Příloha 1",
         fileField_attach_annex2: "Příloha 2",
@@ -424,15 +427,17 @@
         stepOutput: "Výstup",
         stepBudget: "Rozpočet",
         stepAttachments: "Přílohy",
-        fileUploading: "Nahrávám PDF na sdílený Disk…",
-        fileUploadOk: "Příloha je na Disku (odkaz uložen v přihlášce).",
-        fileUploadErr: "Nahrání na Disk se nepodařilo.",
+        fileUploading: "Nahrávám PDF…",
+        fileUploadOk: "Příloha je uložena v aplikaci (tabulka soutěže).",
+        fileUploadErr: "Nahrání přílohy se nepodařilo.",
         fileUploadedDriveLabel: "PDF na Disku",
         fileUploadedAppStorageLabel: "PDF v aplikaci (tabulka)",
         filePdfOnly: "Povolen je pouze soubor ve formátu PDF.",
         fileTooBig: "Soubor je větší než 18 MB.",
         fileNeedDraftRetry:
           "Nejdřív se musí vytvořit koncept přihlášky. Zkuste soubor znovu za chvíli (po automatickém uložení) nebo klepněte na „Uložit draft“.",
+        attachmentsStorageNote:
+          "PDF z tohoto kroku se ukládá do tabulky soutěže Google (list s přílohami), ne do sdílené složky na Disku. Po uložení otevřete soubor přes „Otevřít PDF“ v této aplikaci (musíte být přihlášeni). Prázdná složka na Disku z textu výzvy u podacích příloh tedy neznamená, že soubor chybí.",
       },
       applyPrestige: {
         loadingForm: "Načítám formulář…",
@@ -860,11 +865,14 @@
         irisRequiredToast: "Enter the IRIS UHK reference ID (UUID from the confirmation) and the IRIS summary (required parts of the application).",
         submittedAttachmentsTitle: "Attachments on the submitted application",
         submittedAttachmentsFootnote:
-          "This is what was stored at submission. PDFs uploaded from your computer are stored in the competition spreadsheet (re-open with “Open PDF” while signed in). If you entered an https:// link, you can open it in a new tab.",
+          "This is what was stored at submission. PDFs uploaded from your computer live in the competition spreadsheet (APPLICATION_FILE_BLOBS), not in a shared Drive folder—an empty folder mentioned in the call text does not mean your attachment is missing. Use “Open PDF” while signed in. Other https:// links can be opened in a new tab.",
         submittedAttachmentsNone:
           "No file name or link is stored for attachments (the field was empty or data could not be loaded).",
         submittedAttachmentOpenLink: "Open link",
         submittedAttachmentOpenPdf: "Open PDF",
+        submittedAttachmentDriveStaleShort:
+          "This looks like an old Google Drive link and usually no longer works. Re-upload the PDF in the app (draft), or try the original link below.",
+        submittedAttachmentTryOriginalLink: "Try original link",
         fileField_attach_invitation: "Evidence of collaboration",
         fileField_attach_annex1: "Annex 1",
         fileField_attach_annex2: "Annex 2",
@@ -899,15 +907,17 @@
         stepOutput: "Output",
         stepBudget: "Budget",
         stepAttachments: "Attachments",
-        fileUploading: "Uploading PDF to shared Drive…",
-        fileUploadOk: "Attachment saved on Drive (link stored in your application).",
-        fileUploadErr: "Upload to Drive failed.",
+        fileUploading: "Uploading PDF…",
+        fileUploadOk: "Attachment saved in the app (competition spreadsheet).",
+        fileUploadErr: "Attachment upload failed.",
         fileUploadedDriveLabel: "PDF on Drive",
         fileUploadedAppStorageLabel: "PDF in app (spreadsheet)",
         filePdfOnly: "Only PDF files are allowed.",
         fileTooBig: "The file is larger than 18 MB.",
         fileNeedDraftRetry:
           "A draft application ID is required first. Try the file again in a moment (after autosave) or click “Save draft”.",
+        attachmentsStorageNote:
+          "PDFs from this step are stored in the competition Google Sheet (attachments list), not in a shared Drive folder. After saving, open the file via “Open PDF” in this app (you must be signed in). An empty Drive folder from the call text does not mean your file is missing.",
       },
       applyPrestige: {
         loadingForm: "Loading form…",
@@ -1013,9 +1023,9 @@
         approvedCzk: "Approved (CZK)",
         actualCzk: "Actual (CZK)",
         noteCol: "Note",
-        uploadLabel: "Upload files to shared Drive (competition folder)",
+        uploadLabel: "Upload files (stored in the competition spreadsheet)",
         uploadHint:
-          "Files are stored in this Google Drive folder. File names and links are appended below (max. 18 MB per file).",
+          "Files are stored in the app (no Google Drive). Names are appended to the manifest below; download links appear in the list after upload (max. 18 MB per file). Optional legacy Drive listing: set CONFIG connect_postaward_legacy_drive_files = true.",
         part1HintConsent:
           "Complete soon after the Vice-Rector’s decision. This part is independent of final accounting in Part 2 (separate page).",
         part1HintCloseout:
