@@ -27,18 +27,6 @@
       .replace(/"/g, "&quot;");
   }
 
-  function buildPostAwardBlobDownloadUrl(competitionId, applicationId, blobKey) {
-    if (typeof API_URL === "undefined" || typeof Auth === "undefined") return "";
-    var session = Auth._getSession && Auth._getSession();
-    var u = new URL(API_URL);
-    u.searchParams.set("action", "downloadConnectPostAwardFile");
-    u.searchParams.set("competitionId", String(competitionId || ""));
-    u.searchParams.set("applicationId", String(applicationId || ""));
-    u.searchParams.set("blobKey", String(blobKey || ""));
-    if (session && session.token) u.searchParams.set("token", session.token);
-    return u.toString();
-  }
-
   /** Přílohy části 2: tabulka (POSTAWARD_FILE_BLOBS); volitelně legacy z Disku. */
   function buildUploadedDriveFilesHtml(data) {
     var files = data.uploaded_drive_files || [];
@@ -66,23 +54,19 @@
               var isPostAwardBlob =
                 !!(f.isSheetBlob || /^paward_/i.test(idRaw)) && cid && aid && idRaw;
               if (isPostAwardBlob) {
-                var blobUrl = buildPostAwardBlobDownloadUrl(cid, aid, f.id);
-                if (!blobUrl) {
-                  return (
-                    "<li style=\"margin:6px 0;\">" +
-                    "<span style=\"font-family:'DM Mono',monospace;font-size:12px;\">" +
-                    nm +
-                    "</span> — <span style=\"color:var(--muted);font-size:12px;\">(chybí API_URL / Auth)</span></li>"
-                  );
-                }
                 return (
                   "<li style=\"margin:6px 0;\">" +
                   "<span style=\"font-family:'DM Mono',monospace;font-size:12px;\">" +
                   nm +
                   "</span><br>" +
-                  '<a href="' +
-                  escapeHtml(blobUrl) +
-                  '" target="_blank" rel="noopener">Stáhnout / otevřít z aplikace</a></li>'
+                  '<a href="#" class="uhk-blob-dl" data-dl-action="downloadConnectPostAwardFile" ' +
+                  'data-dl-competition-id="' +
+                  escapeHtml(String(cid || "")) +
+                  '" data-dl-application-id="' +
+                  escapeHtml(String(aid || "")) +
+                  '" data-dl-blob-key="' +
+                  escapeHtml(String(idRaw || "")) +
+                  '">Stáhnout / otevřít z aplikace</a></li>'
                 );
               }
               var id = escapeHtml(idRaw);
