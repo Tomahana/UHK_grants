@@ -258,12 +258,27 @@ const API = {
           : "Pro stažení souboru se přihlaste.";
       throw new Error(msg);
     }
+    /** Otevřít okno hned (v rámci kliknutí). Po await fetch() by prohlížeč popup s blob: URL často zablokoval. */
+    let pdfWindow = null;
+    try {
+      /* Bez noopener – jinak některé prohlížeče vrátí null a nelze pak přiřadit location s PDF. */
+      pdfWindow = window.open("about:blank", "_blank");
+    } catch (eWin) {
+      pdfWindow = null;
+    }
     const params = new URLSearchParams();
     params.set("action", action);
     params.set("token", session.token);
     Object.entries(fields || {}).forEach(([k, v]) => {
       if (v !== undefined && v !== null && String(v) !== "") params.set(k, String(v));
     });
+    const closePlaceholder = () => {
+      try {
+        if (pdfWindow && !pdfWindow.closed) pdfWindow.close();
+      } catch (e) {
+        /* ignore */
+      }
+    };
     let res;
     try {
       res = await fetch(API_URL, {
@@ -272,6 +287,7 @@ const API = {
         body: params.toString(),
       });
     } catch (e) {
+      closePlaceholder();
       const hint =
         typeof I18n !== "undefined" && I18n.t
           ? I18n.t("api.downloadNetworkError")
@@ -280,6 +296,7 @@ const API = {
     }
     const ct = (res.headers.get("content-type") || "").toLowerCase();
     if (!res.ok) {
+      closePlaceholder();
       const t = await res.text().catch(() => "");
       throw new Error((t && t.slice(0, 500)) || "HTTP " + res.status);
     }
@@ -301,16 +318,27 @@ const API = {
     if (looksLikePdf) {
       const blob = new Blob([buf], { type: "application/pdf" });
       const u = URL.createObjectURL(blob);
-      const w = window.open(u, "_blank", "noopener,noreferrer");
-      if (!w) {
-        const a = document.createElement("a");
-        a.href = u;
-        a.target = "_blank";
-        a.rel = "noopener";
-        a.download = "dokument.pdf";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+      let opened = false;
+      if (pdfWindow && !pdfWindow.closed) {
+        try {
+          pdfWindow.location.assign(u);
+          opened = true;
+        } catch (eLoc) {
+          /* fallback */
+        }
+      }
+      if (!opened) {
+        const w = window.open(u, "_blank", "noopener,noreferrer");
+        if (!w) {
+          const a = document.createElement("a");
+          a.href = u;
+          a.target = "_blank";
+          a.rel = "noopener";
+          a.download = "dokument.pdf";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        }
       }
       setTimeout(() => {
         try {
@@ -321,6 +349,7 @@ const API = {
       }, 300000);
       return;
     }
+    closePlaceholder();
     var errTxt = "";
     try {
       errTxt = new TextDecoder("utf-8").decode(buf);
