@@ -7,6 +7,19 @@ const Auth = {
 
   SESSION_KEY: "uhk_grant_session",
 
+  /**
+   * Relativní prefix ke kořeni šablony (kde je login.html).
+   * Stránky v podsložce pages/ musí používat ../ — počítání jen podle počtu lomítek
+   * pro /pages/… dává prázdný řetězec a špatně vede na pages/login.html.
+   */
+  _pathPrefixToSiteRoot() {
+    const p = String(window.location.pathname || "").replace(/\\/g, "/");
+    if (/\/pages\/[^/]+$/i.test(p)) return "../";
+    const parts = p.split("/").filter(Boolean);
+    if (parts.length <= 1) return "";
+    return "../".repeat(parts.length - 1);
+  },
+
   // ── Přihlášení ─────────────────────────────────────────────
   // Vrací: { success, token, name, roles: ["ADMIN","PROREKTOR",...] }
   async login(email, password) {
@@ -136,8 +149,7 @@ const Auth = {
   requireLogin(allowedRoles = null) {
     if (!this.isLoggedIn()) {
       sessionStorage.setItem("uhk_redirect", window.location.href);
-      const depth  = (window.location.pathname.match(/\//g) || []).length - 1;
-      const prefix = depth > 1 ? "../".repeat(depth - 1) : "";
+      const prefix = this._pathPrefixToSiteRoot();
       window.location.href = prefix + "login.html";
       return null;
     }
@@ -164,8 +176,7 @@ const Auth = {
   logout(redirect = true) {
     sessionStorage.removeItem(this.SESSION_KEY);
     if (redirect) {
-      const depth  = (window.location.pathname.match(/\//g) || []).length - 1;
-      const prefix = depth > 1 ? "../".repeat(depth - 1) : "";
+      const prefix = this._pathPrefixToSiteRoot();
       window.location.href = prefix + "login.html";
     }
   },
