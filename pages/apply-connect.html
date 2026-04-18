@@ -462,11 +462,26 @@
           const dlStored =
             h.isSheetBlob && appIdForDl ? buildConnectApplicationFileDownloadUrl(appIdForDl, h.field_id) : "";
           const shortVal = val.length > 120 ? val.slice(0, 120) + "…" : val;
+          const staleDrive =
+            !!h.staleGoogleDriveUrl ||
+            (isUrl &&
+              !dlStored &&
+              /^(https?:\/\/)?(drive|docs)\.google\.com\//i.test(val.trim()));
           const cell = dlStored
             ? '<a href="' +
               escapeAttr(dlStored) +
               '" target="_blank" rel="noopener noreferrer">' +
               escapeHtml(tf("submittedAttachmentOpenPdf")) +
+              '</a> <span style="color:var(--muted);font-size:12px">(' +
+              escapeHtml(shortVal) +
+              ")</span>"
+            : staleDrive
+            ? '<span style="color:#92400e;font-size:13px;line-height:1.45">' +
+              escapeHtml(tf("submittedAttachmentDriveStaleShort")) +
+              '</span> · <a href="' +
+              escapeAttr(val) +
+              '" target="_blank" rel="noopener noreferrer">' +
+              escapeHtml(tf("submittedAttachmentTryOriginalLink")) +
               '</a> <span style="color:var(--muted);font-size:12px">(' +
               escapeHtml(shortVal) +
               ")</span>"
@@ -744,6 +759,12 @@
         html += renderBudgetTable();
         // budget_justification je součástí renderBudgetTable - neopakovat!
       } else {
+        if (step.id === "attachments") {
+          html +=
+            '<p class="field-help" style="margin:-4px 0 18px;padding:12px 14px;background:#f0f4ff;border:1px solid #c7d2fe;border-radius:10px;font-size:13px;line-height:1.55;color:#334155">' +
+            escapeHtml(tc("attachmentsStorageNote")) +
+            "</p>";
+        }
         fields.forEach(f => {
           html += renderField(f);
         });
