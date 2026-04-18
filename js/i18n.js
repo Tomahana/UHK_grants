@@ -381,6 +381,16 @@
         toastBudgetSumMax: "Součet rozpočtu překračuje maximum {{amount}} (rok 1).",
         irisChecklistItem: "IRIS UHK (ref. ID UUID + souhrn z IRIS)",
         irisRequiredToast: "Vyplňte referenční ID IRIS UHK (UUID z potvrzení) a souhrn z IRIS (povinná součást přihlášky).",
+        submittedAttachmentsTitle: "Přílohy u podané přihlášky",
+        submittedAttachmentsFootnote:
+          "Jde o údaje uložené při podání. U souboru z počítače je v evidenci často jen název souboru, ne celý dokument. Zadal-li jste odkaz (https://), lze jej otevřít v novém okně.",
+        submittedAttachmentsNone:
+          "U příloh není v evidenci uložen název souboru ani odkaz (pole zůstalo prázdné nebo se data nepodařilo načíst).",
+        submittedAttachmentOpenLink: "Otevřít odkaz",
+        fileField_attach_invitation: "Doklad o spolupráci",
+        fileField_attach_annex1: "Příloha 1",
+        fileField_attach_annex2: "Příloha 2",
+        fileField_attach_annex3: "Příloha 3",
       },
       applyConnect: {
         loadingForm: "Načítám formulář…",
@@ -834,6 +844,16 @@
         toastBudgetSumMax: "Budget total exceeds the maximum of {{amount}} (year 1).",
         irisChecklistItem: "IRIS UHK (reference UUID + IRIS summary)",
         irisRequiredToast: "Enter the IRIS UHK reference ID (UUID from the confirmation) and the IRIS summary (required parts of the application).",
+        submittedAttachmentsTitle: "Attachments on the submitted application",
+        submittedAttachmentsFootnote:
+          "This is what was stored at submission. For uploads from your computer, the sheet often stores only the file name, not the full document. If you entered an https:// link, you can open it in a new tab.",
+        submittedAttachmentsNone:
+          "No file name or link is stored for attachments (the field was empty or data could not be loaded).",
+        submittedAttachmentOpenLink: "Open link",
+        fileField_attach_invitation: "Evidence of collaboration",
+        fileField_attach_annex1: "Annex 1",
+        fileField_attach_annex2: "Annex 2",
+        fileField_attach_annex3: "Annex 3",
       },
       applyConnect: {
         loadingForm: "Loading form…",
