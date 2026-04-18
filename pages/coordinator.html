@@ -371,6 +371,17 @@
     );
   }
 
+  /** Stejný význam jako attachments_drive_scan_note z API (záloha při starém skriptu). */
+  function coordinatorDriveScanNoteForApp_(appId) {
+    const id = String(appId || "").trim() || "ID_přihlášky";
+    return (
+      "V tabulce jsou jen soubory ve sdílené složce soutěže na Google Disku, jejichž název začíná «" +
+      id +
+      "_» (typicky nahrání přes tlačítko v části 2). " +
+      "Soubor nahraný ručně pod jiným názvem, vložený do podsložky nebo mimo dosah účtu webové aplikace se v seznamu nemusí objevit, i když na Disku existuje — ověřte manifest níže nebo přímo složku na Disku."
+    );
+  }
+
   function toggleSelectAllFiltered() {
     const master = document.getElementById("selectAllApps");
     if (!master) return;
@@ -379,7 +390,7 @@
     });
   }
 
-  function buildConnectAttachmentsSectionHtml_(title, app, files, manifestText, noteHtml) {
+  function buildConnectAttachmentsSectionHtml_(title, app, files, manifestText, noteHtml, folderUrl, scanNote) {
     const manifest = escapeHtmlCoord(manifestText || "");
     const fileList = files || [];
     let fileRows = fileList
@@ -391,15 +402,23 @@
         return `<tr><td>${nm}</td><td><a href="${view}">Otevřít na Disku</a></td><td><a href="${dl}">Stáhnout</a></td></tr>`;
       })
       .join("");
-    if (!fileRows)
-      fileRows =
-        '<tr><td colspan="3"><i>Žádné soubory nahrané přes tlačítko v aplikaci (ověřte manifest níže).</i></td></tr>';
+    const scan = String(
+      scanNote ||
+        "V seznamu jsou jen soubory ve složce soutěže, jejichž název začíná na ID přihlášky a podtržítko (typicky nahrání v části 2). Jiný název, podsložka nebo práva účtu aplikace znamenají, že soubor na Disku může být, ale v tabulce chybí — ověřte manifest níže nebo složku na Disku."
+    );
+    if (!fileRows) {
+      fileRows = `<tr><td colspan="3" style="font-size:13px;line-height:1.55;color:#333">${escapeHtmlCoord(scan)}</td></tr>`;
+    }
     const note = noteHtml ? `<p style="font-size:13px;color:#92400e;margin-bottom:10px;line-height:1.45">${noteHtml}</p>` : "";
+    const folderFoot =
+      folderUrl && /^https:\/\/drive\.google\.com\//i.test(String(folderUrl))
+        ? `<p style="font-size:12px;margin-top:10px"><a href="${escapeHtmlCoord(folderUrl)}">Otevřít sdílenou složku soutěže na Google Disku (ruční kontrola všech souborů)</a></p>`
+        : "";
     return (
       `<section style="margin-bottom:2.5rem;page-break-inside:avoid"><h2 style="font-size:1.1rem">${escapeHtmlCoord(
         title
       )}</h2><p style="font-family:DM Mono,monospace;font-size:12px">${escapeHtmlCoord(app)}</p>${note}` +
-      `<h3 style="font-size:0.95rem;margin-top:1rem">Soubory na Google Disku (prefix ID přihlášky)</h3><table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%;max-width:900px"><thead><tr><th align="left">Soubor</th><th>Disk</th><th>Stažení</th></tr></thead><tbody>${fileRows}</tbody></table>` +
+      `<h3 style="font-size:0.95rem;margin-top:1rem">Soubory v seznamu aplikace (stejná složka jako nahrání z části 2)</h3><table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%;max-width:900px"><thead><tr><th align="left">Soubor</th><th>Disk</th><th>Stažení</th></tr></thead><tbody>${fileRows}</tbody></table>${folderFoot}` +
       `<h3 style="font-size:0.95rem;margin-top:1rem">Manifest z aplikace (odkazy / poznámky)</h3><pre style="white-space:pre-wrap;background:#f5f5f5;padding:12px;border-radius:6px;font-size:12px">${manifest}</pre></section>`
     );
   }
@@ -415,11 +434,15 @@
     }
     showToast("Skládám HTML…");
     let deliverById = null;
+    let bulkFolderUrl = "";
+    let bulkScanNote = "";
     try {
       const bulk = await API.getConnectDeliverablesExport(CONNECT_EXPORT_ID);
       if (bulk && bulk.supported && Array.isArray(bulk.rows)) {
         deliverById = new Map(bulk.rows.map((r) => [String(r.application_id || "").trim(), r]));
       }
+      if (bulk && bulk.attachmentsDriveFolderUrl) bulkFolderUrl = String(bulk.attachmentsDriveFolderUrl);
+      if (bulk && bulk.attachments_drive_scan_note) bulkScanNote = String(bulk.attachments_drive_scan_note);
     } catch {
       deliverById = null;
     }
@@ -429,13 +452,16 @@
       try {
         const data = await API.getConnectPostAward(comp, app);
         if (data && data.applicable && !data.error) {
+          const scanN = data.attachments_drive_scan_note || coordinatorDriveScanNoteForApp_(app);
           sections.push(
             buildConnectAttachmentsSectionHtml_(
               data.projectTitle || app,
               app,
               data.uploaded_drive_files || [],
               data.checklist && data.checklist.attachments_manifest ? data.checklist.attachments_manifest : "",
-              ""
+              "",
+              data.attachmentsDriveFolderUrl || bulkFolderUrl || "",
+              scanN
             )
           );
           continue;
@@ -450,14 +476,24 @@
               app,
               [],
               man,
-              "Záložní přehled z exportu checklistu (getConnectDeliverablesExport). Odkazy na soubory z tlačítka nahrání doplní aktuální skript u getConnectPostAward, případně použijte v detailu přihlášky „PDF přehled Connect“."
+              "Záložní přehled z exportu checklistu (getConnectDeliverablesExport). Odkazy na soubory z tlačítka nahrání doplní aktuální skript u getConnectPostAward, případně použijte v detailu přihlášky „PDF přehled Connect“.",
+              bulkFolderUrl,
+              bulkScanNote ? bulkScanNote.replace(/«ID_přihlášky_»/g, "«" + app + "_»") : coordinatorDriveScanNoteForApp_(app)
             )
           );
           continue;
         }
         if (er && coordinatorProrektorMeansPart2_(er.prorektor_decision) && !man) {
           sections.push(
-            buildConnectAttachmentsSectionHtml_(er.project_title || app, app, [], "", "")
+            buildConnectAttachmentsSectionHtml_(
+              er.project_title || app,
+              app,
+              [],
+              "",
+              "",
+              bulkFolderUrl,
+              bulkScanNote ? bulkScanNote.replace(/«ID_přihlášky_»/g, "«" + app + "_»") : coordinatorDriveScanNoteForApp_(app)
+            )
           );
         }
       } catch (e) {
@@ -536,7 +572,9 @@
                   })
                   .join("") +
                 "</ul>"
-              : "<p style=\"font-size:12px;color:var(--muted)\">Žádné soubory z tlačítka nahrání – zkontrolujte manifest.</p>";
+              : "<p style=\"font-size:12px;color:var(--muted);line-height:1.5\"><strong>Žádné soubory v automatickém seznamu.</strong> " +
+                escapeHtmlCoord(coordinatorDriveScanNoteForApp_(appId)) +
+                "</p>";
           let html =
             '<div style="border-top:1px solid var(--border);padding-top:14px;margin-top:6px">' +
             '<div style="font-size:11px;font-weight:600;color:var(--navy);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Connect – přílohy části 2 (záložní)</div>' +
@@ -561,6 +599,13 @@
         el.innerHTML = "";
         return;
       }
+      const scanModal =
+        data.attachments_drive_scan_note || coordinatorDriveScanNoteForApp_(appId);
+      const folderU = String(data.attachmentsDriveFolderUrl || "").trim();
+      const folderA =
+        folderU.indexOf("https://drive.google.com/") === 0
+          ? `<p style="margin-top:8px"><a href="${escapeHtmlCoord(folderU)}" target="_blank" rel="noopener">Otevřít sdílenou složku soutěže na Google Disku</a></p>`
+          : "";
       let list =
         files.length > 0
           ? "<ul style=\"margin:6px 0 0;padding-left:18px;font-size:13px;line-height:1.55\">" +
@@ -574,11 +619,14 @@
               })
               .join("") +
             "</ul>"
-          : "<p style=\"font-size:12px;color:var(--muted)\">Žádné soubory z tlačítka nahrání – zkontrolujte manifest.</p>";
+          : "<p style=\"font-size:12px;color:var(--muted);line-height:1.5\"><strong>Žádné soubory v automatickém seznamu.</strong> " +
+            escapeHtmlCoord(scanModal) +
+            "</p>";
       let html =
         '<div style="border-top:1px solid var(--border);padding-top:14px;margin-top:6px">' +
-        '<div style="font-size:11px;font-weight:600;color:var(--navy);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Connect – přílohy části 2</div>' +
+        '<div style="font-size:11px;font-weight:600;color:var(--navy);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Connect – přílohy části 2 (složka soutěže, prefix názvu = ID přihlášky_)</div>' +
         list +
+        folderA +
         (manifestRaw.trim()
           ? '<div style="font-size:11px;font-weight:600;margin:12px 0 4px;color:var(--navy)">Manifest</div><pre style="white-space:pre-wrap;font-size:12px;background:var(--navy-lite);padding:10px;border-radius:6px;max-height:200px;overflow:auto">' +
             escapeHtmlCoord(manifestRaw) +
