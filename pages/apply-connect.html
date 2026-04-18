@@ -329,8 +329,16 @@
     }
 
     const COMPETITION_ID = new URLSearchParams(location.search).get("c") || "uhk_connect_2026_v2";
+    /** Z buňky formuláře vytáhne zobrazovaný název souboru (UHKAFILE|… / UHKDRIVE|id|…). */
+    function connectApplicationFileDispName_(valTrim) {
+      const t = String(valTrim || "").trim();
+      const m = /^UHKDRIVE\|[^|]+\|(.+)$/i.exec(t);
+      if (m) return (m[1] || "").trim() || t;
+      return t.replace(/^UHKAFILE\|/i, "").trim() || t;
+    }
+
     /**
-     * Odkaz „Otevřít PDF“ pro podací přílohu (PDF je v tabulce, ne na Disku).
+     * Odkaz „Otevřít PDF“ pro podací přílohu (stažení přes API z Disku nebo zálohy v tabulce).
      * Používá třídu uhk-blob-dl + delegaci v api.js → POST stažení (token v těle).
      */
     function connectApplicationPdfDlAnchor_(applicationId, fieldId, innerLabelHtml) {
@@ -363,6 +371,48 @@
       const out = await res.json().catch(function () {
         return {};
       });
+      return { res, out };
+    }
+
+    /**
+     * POST jako application/x-www-form-urlencoded – vhodné pro velké fileBase64
+     * (některé nasazení Apps Scriptu u JSON POST vrací prázdnou/HTML odpověď → „Nahrání se nepodařilo“).
+     */
+    async function connectPostFormUrlEncoded(body) {
+      const params = new URLSearchParams();
+      Object.keys(body || {}).forEach(function (k) {
+        var v = body[k];
+        if (v === undefined || v === null) return;
+        params.set(k, String(v));
+      });
+      let res;
+      try {
+        res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: params.toString(),
+        });
+      } catch (e) {
+        return {
+          res: { ok: false, status: 0 },
+          out: { error: typeof I18n !== "undefined" && I18n.t ? I18n.t("api.downloadNetworkError") : "Síť" },
+        };
+      }
+      const raw = await res.text().catch(function () {
+        return "";
+      });
+      let out = {};
+      try {
+        out = raw ? JSON.parse(raw) : {};
+      } catch (eJ) {
+        out = {
+          error:
+            typeof I18n !== "undefined" && I18n.t
+              ? I18n.t("applyConnect.fileUploadBadResponse")
+              : "Server nevrátil JSON. Zkuste znovu nebo aktualizujte Web App.",
+          _rawPreview: String(raw || "").slice(0, 200),
+        };
+      }
       return { res, out };
     }
 
@@ -468,8 +518,10 @@
           const isUrl = !!h.isLikelyUrl;
           const appIdForDl = String(h.application_id || sub.application_id || "").trim();
           const isAppStoredPdf =
-            !!(h.isSheetBlob || /^UHKAFILE\|/i.test(valTrim)) && appIdForDl && h.field_id;
-          const dispVal = valTrim.replace(/^UHKAFILE\|/i, "") || val;
+            !!(h.isSheetBlob || /^UHKAFILE\|/i.test(valTrim) || /^UHKDRIVE\|/i.test(valTrim)) &&
+            appIdForDl &&
+            h.field_id;
+          const dispVal = connectApplicationFileDispName_(valTrim) || val;
           const shortVal = dispVal.length > 120 ? dispVal.slice(0, 120) + "…" : dispVal;
           const staleDrive =
             !!h.staleGoogleDriveUrl ||
@@ -860,6 +912,7 @@
         const valStr = String(val || "").trim();
         const isUrl = /^https?:\/\//i.test(valStr);
         const isSheetBlob = /^UHKAFILE\|/i.test(valStr);
+        const isDriveApi = /^UHKDRIVE\|/i.test(valStr);
         const hasStored = !!valStr;
         let nameSpanHtml = "";
         if (isUrl) {
@@ -870,13 +923,18 @@
             "\" target=\"_blank\" rel=\"noopener noreferrer\">" +
             escapeHtml(tf("submittedAttachmentOpenLink")) +
             "</a>";
+        } else if (isDriveApi && draftId) {
+          nameSpanHtml =
+            escapeHtml(tc("fileUploadedDriveApiLabel")) +
+            " · " +
+            connectApplicationPdfDlAnchor_(draftId, f.field_id, escapeHtml(tf("submittedAttachmentOpenPdf")));
         } else if (isSheetBlob && draftId) {
           nameSpanHtml =
             escapeHtml(tc("fileUploadedAppStorageLabel")) +
             " · " +
             connectApplicationPdfDlAnchor_(draftId, f.field_id, escapeHtml(tf("submittedAttachmentOpenPdf")));
         } else if (valStr) {
-          nameSpanHtml = escapeHtml(valStr.replace(/^UHKAFILE\|/i, ""));
+          nameSpanHtml = escapeHtml(connectApplicationFileDispName_(valStr));
         }
         return `<div class="field">
           <label class="field-label">${f.field_label} ${req?'<span class="field-required">*</span>':""}</label>
@@ -1121,49 +1179,116 @@
       showToast(tc("fileUploading"));
       if (wrap) wrap.style.opacity = "0.55";
       try {
-        const dataUrl = await readFileAsDataUrl(file);
-        const uploads = [
-          {
-            fieldId: id,
-            fileName: file.name,
-            mimeType: file.type || "application/pdf",
-            fileBase64: dataUrl,
-          },
-        ];
-        await saveDraft(false, uploads);
-        if (!draftId || !String(formData[id] || "").trim()) {
+        if (!draftId) {
+          await saveDraft(false);
+        }
+        if (!draftId) {
           showToast(tc("fileNeedDraftRetry"), "err");
           input.value = "";
           return;
         }
+        const dataUrl = await readFileAsDataUrl(file);
+        const session = Auth._getSession();
+        const { res, out } = await connectPostFormUrlEncoded({
+          action: "uploadConnectApplicationAttachment",
+          token: session?.token || "",
+          competitionId: COMPETITION_ID,
+          applicationId: draftId,
+          fieldId: id,
+          fileName: file.name,
+          mimeType: file.type || "application/pdf",
+          fileBase64: dataUrl,
+        });
+        if (!res.ok) {
+          const hint =
+            out && out.error
+              ? String(out.error)
+              : typeof I18n !== "undefined" && I18n.t
+                ? I18n.t("applyConnect.fileUploadHttpErr", { status: String(res.status) })
+                : "HTTP " + res.status;
+          throw new Error(hint);
+        }
+        if (out && out.error) {
+          var errStr = String(out.error);
+          if (/Neznámá POST akce/i.test(errStr) && typeof I18n !== "undefined" && I18n.t) {
+            errStr = I18n.t("applyConnect.fileUploadOldScriptHint") + " " + errStr;
+          }
+          throw new Error(errStr);
+        }
+        if (out && out.url) {
+          formData[id] = String(out.url);
+        }
+        const saveOut = {
+          uploadDiagnostics: {
+            [id]: {
+              storage: out && out.storageKind ? String(out.storageKind) : "",
+              driveError: out && out.driveError ? String(out.driveError) : "",
+            },
+          },
+        };
+        if (!String(formData[id] || "").trim()) {
+          var fb =
+            out && out._rawPreview
+              ? " " + String(out._rawPreview).replace(/\s+/g, " ").slice(0, 120)
+              : "";
+          throw new Error(tc("fileUploadErr") + fb);
+        }
         const url = String(formData[id] || "").trim();
         const isBlobVal = /^UHKAFILE\|/i.test(url);
+        const isDriveApiVal = /^UHKDRIVE\|/i.test(url);
         const isWebUrl = /^https?:\/\//i.test(url);
-        if (!isBlobVal && !isWebUrl) {
+        if (!isBlobVal && !isDriveApiVal && !isWebUrl) {
           showToast(tc("fileUploadErr"), "err");
           input.value = "";
           return;
         }
+        const dispNameHtml = escapeHtml(connectApplicationFileDispName_(url) || file.name || "PDF");
         if (info) info.style.display = "flex";
         if (nameEl && isWebUrl) {
           nameEl.innerHTML =
+            dispNameHtml +
+            " · " +
             escapeHtml(tc("fileUploadedDriveLabel")) +
             " · <a href=\"" +
             escapeAttr(url) +
             "\" target=\"_blank\" rel=\"noopener noreferrer\">" +
             escapeHtml(tf("submittedAttachmentOpenLink")) +
             "</a>";
+        } else if (nameEl && isDriveApiVal && draftId) {
+          nameEl.innerHTML =
+            dispNameHtml +
+            " · " +
+            escapeHtml(tc("fileUploadedDriveApiLabel")) +
+            " · " +
+            connectApplicationPdfDlAnchor_(draftId, id, escapeHtml(tf("submittedAttachmentOpenPdf")));
         } else if (nameEl && isBlobVal && draftId) {
           nameEl.innerHTML =
+            dispNameHtml +
+            " · " +
             escapeHtml(tc("fileUploadedAppStorageLabel")) +
             " · " +
             connectApplicationPdfDlAnchor_(draftId, id, escapeHtml(tf("submittedAttachmentOpenPdf")));
+        } else if (nameEl) {
+          nameEl.innerHTML = dispNameHtml;
         }
         isDirty = true;
         scheduleAutoSave();
         updateChecklist();
         clearError(id);
-        showToast(tc("fileUploadOk"));
+        const diag = (saveOut && saveOut.uploadDiagnostics && saveOut.uploadDiagnostics[id]) || {};
+        if (diag.storage === "sheet" && diag.driveError && typeof I18n !== "undefined" && I18n.tReplace) {
+          showToast(
+            I18n.tReplace("applyConnect.fileUploadDriveFallbackDetail", {
+              err: String(diag.driveError || "").slice(0, 320),
+            }),
+            "err"
+          );
+        } else {
+          showToast(/^UHKDRIVE\|/i.test(String(formData[id] || "")) ? tc("fileUploadOkDrive") : tc("fileUploadOk"));
+        }
+        if (out && out.formDataPersisted === false && typeof I18n !== "undefined" && I18n.t) {
+          showToast(I18n.t("applyConnect.fileUploadFormNotStored"), "err");
+        }
       } catch (e) {
         const msg = e && e.message && e.message !== "ok" ? e.message : tc("fileUploadErr");
         showToast(msg, "err");
@@ -1321,7 +1446,12 @@
       await saveDraft(true);
     }
 
-    async function saveDraft(showMessage, fileUploads) {
+    /**
+     * @param {boolean} showMessage
+     * @param {Array|undefined} fileUploads
+     * @param {boolean} [returnDiagnostics] – pro upload souboru vrátit { uploadDiagnostics } z API
+     */
+    async function saveDraft(showMessage, fileUploads, returnDiagnostics) {
       try {
         const session = Auth._getSession();
         const body = {
@@ -1358,6 +1488,9 @@
         const st = document.getElementById("saveStatusText");
         if (st) st.textContent = I18n.tReplace("applyRega.footerSavedAt", { time: now });
         if (showMessage) showToast(trf("toastDraftSaved"));
+        if (returnDiagnostics) {
+          return { uploadDiagnostics: out.uploadDiagnostics || {} };
+        }
       } catch (e) {
         if (showMessage) {
           const raw = e && e.message ? String(e.message) : "";
@@ -1371,6 +1504,7 @@
           throw e;
         }
       }
+      return returnDiagnostics ? { uploadDiagnostics: {} } : undefined;
     }
 
     async function loadDraft() {
