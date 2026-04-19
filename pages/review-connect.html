@@ -593,7 +593,7 @@ async function loadReviewConnectAttachments() {
         const vTrim = v.trim();
         const appAid = String(h.application_id || (cur && cur.application_id) || "").trim();
         var link;
-        if ((h.isSheetBlob || /^UHKAFILE\|/i.test(vTrim)) && appAid && h.field_id) {
+        if ((h.isSheetBlob || /^UHKAFILE\|/i.test(vTrim) || /^UHKDRIVE\|/i.test(vTrim)) && appAid && h.field_id) {
           link =
             '<a href="#" class="uhk-blob-dl" data-dl-action="downloadConnectApplicationFile" ' +
             'data-dl-competition-id="' +
@@ -696,16 +696,8 @@ async function loadReviewConnectAttachments() {
       }
     }
     if (data.showAdminPdfExport) {
-      const u = new URL(API_URL);
-      u.searchParams.set("action", "adminExportConnectProjectDossierPdf");
-      u.searchParams.set("competitionId", CID);
-      u.searchParams.set("applicationId", cur.application_id);
-      const s = Auth._getSession();
-      if (s?.token) u.searchParams.set("token", s.token);
       parts.push(
-        '<p style="margin-top:12px"><a class="btn btn-o" href="' +
-          escAttr(u.toString()) +
-          '" target="_blank" rel="noopener">Stáhnout PDF přehled (text + odkazy)</a></p>'
+        '<p style="margin-top:12px"><button type="button" class="btn btn-o" id="rcAdminDossierPdfBtn">Stáhnout PDF přehled (text + odkazy)</button></p>'
       );
     }
     if (!hints.length && !man && !files.length) {
@@ -715,6 +707,20 @@ async function loadReviewConnectAttachments() {
     }
     body.innerHTML = parts.join("");
     wrap.style.display = "block";
+    const dossBtn = document.getElementById("rcAdminDossierPdfBtn");
+    if (dossBtn && data.showAdminPdfExport && cur && typeof API !== "undefined" && API.openWebAppGetInNewTab) {
+      dossBtn.addEventListener("click", function () {
+        try {
+          API.openWebAppGetInNewTab(
+            "adminExportConnectProjectDossierPdf",
+            { competitionId: CID, applicationId: String(cur.application_id || "").trim() },
+            { requireAuth: true }
+          );
+        } catch (err) {
+          showToast((err && err.message) || String(err), "err");
+        }
+      });
+    }
   } catch (e) {
     body.innerHTML = '<span style="color:#991B1B">' + esc(e.message || "Chyba") + "</span>";
     wrap.style.display = "block";
