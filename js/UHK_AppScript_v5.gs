@@ -67,6 +67,85 @@ const ADMIN_EMAIL = "hana.tomaskova@uhk.cz";
 /** ID soutěže Connect (měsíční workflow + notifikace komise) */
 const CONNECT_COMPETITION_ID = "uhk_connect_2026_v2";
 
+/**
+ * IRIS referenční ID v Connect: server nevolá IRIS API (není v projektu); kontroluje se jen rozumný formát.
+ * Přijatelné: UUID, Case ID (CASE-YYYY-…), nebo delší text s klíčovými slovy výjimky dle výzvy (tuzemská spolupráce / neaplikuje se …).
+ */
+function connectNormalizeIrisCaseIdValue_(raw) {
+  return String(raw != null ? raw : "").trim();
+}
+
+function connectIsUuidIrisCaseId_(s) {
+  var t = connectNormalizeIrisCaseIdValue_(s);
+  return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(t);
+}
+
+function connectIsCaseIdLike_(s) {
+  var t = connectNormalizeIrisCaseIdValue_(s);
+  return /^CASE-\d{4}-\d+/i.test(t);
+}
+
+function connectIsIrisExceptionText_(s) {
+  var t = connectNormalizeIrisCaseIdValue_(s).toLowerCase();
+  if (t.length < 14) return false;
+  var keys = [
+    "neaplikuje",
+    "neaplik",
+    "výjimka",
+    "vyjimka",
+    "neregistrovan",
+    "bez iriso",
+    "bez iris",
+    "tuzemsk",
+    "dle výzv",
+    "dle vyvz",
+    "dle ovtz",
+    "ovtz",
+    "nemám uuid",
+    "nemam uuid",
+    "postup dle",
+    "dle pokyn",
+    "výhradně",
+    "vyhradne",
+  ];
+  for (var i = 0; i < keys.length; i++) {
+    if (t.indexOf(keys[i]) >= 0) return true;
+  }
+  return false;
+}
+
+function connectValidateIrisCaseIdFormat_(formData) {
+  if (!formData || typeof formData !== "object") return;
+  var cid = connectNormalizeIrisCaseIdValue_(formData.iris_case_id);
+  if (!cid) return;
+  if (connectIsUuidIrisCaseId_(cid)) return;
+  if (connectIsCaseIdLike_(cid)) return;
+  if (connectIsIrisExceptionText_(cid)) return;
+  throw new Error(
+    "U pole „Referenční ID IRIS UHK“ zadejte platné UUID (např. z potvrzení IRIS), přesný Case ID ve tvaru CASE-2026-…, nebo stručné zdůvodnění výjimky dle výzvy / OVTZ (např. že IRIS na záznam neaplikujete). Živé ověření proti databázi IRIS zde není — kontrolu existence provádí komise / správce v IRIS."
+  );
+}
+
+function connectAssertIrisCaseIdOnSubmit_(formData) {
+  var cid = connectNormalizeIrisCaseIdValue_(formData && formData.iris_case_id);
+  if (!cid) throw new Error("Vyplňte referenční ID IRIS UHK (UUID), Case ID, nebo zdůvodnění výjimky dle výzvy.");
+  connectValidateIrisCaseIdFormat_(formData);
+}
+
+/** Soutěže s povinným blokem IRIS v aplikaci (Connect, Prestige). */
+function connectCompetitionUsesIrisCaseId_(competitionId) {
+  var c = String(competitionId || "").trim();
+  return c === CONNECT_COMPETITION_ID || c === "uhk_prestige_2026";
+}
+
+/** Uložení draftu: formát IRIS ID, pokud pole není prázdné. */
+function connectMaybeValidateIrisCaseIdDraft_(competitionId, formData) {
+  if (!connectCompetitionUsesIrisCaseId_(competitionId)) return;
+  if (!formData || typeof formData !== "object") return;
+  if (!connectNormalizeIrisCaseIdValue_(formData.iris_case_id)) return;
+  connectValidateIrisCaseIdFormat_(formData);
+}
+
 /** Krátký název soutěže do předmětu e-mailu, pokud v CONFIG není competition_name / email_subject_tag */
 const UHK_COMPETITION_EMAIL_SUBJECT_TAGS = {
   "uhk_connect_2026_v2": "UHK Connect",
@@ -1312,6 +1391,24 @@ function applicationsSheetRowNormalize_(r) {
 /** Verze textů pravidel (změna = řešitel může znovu potvrdit seznámení). */
 var CONNECT_POSTAWARD_RULES_VERSION = "2026-04-07";
 
+/**
+ * Buňka connect_postaward_json má limit ~50 000 znaků. Hlavní text ZZ + strukturovaná pole přílohy 2
+ * musí zůstat pod limitem i s duplicitou draft+final při uzavření.
+ */
+var CONNECT_POSTAWARD_FINAL_REPORT_MAX = 13500;
+var CONNECT_POSTAWARD_ANNEX2_FIELD_MAX = 3500;
+
+/** Volitelná strukturovaná pole (příloha 2 / výzva) – ukládají se vedle hlavního textu ZZ. */
+var CONNECT_POSTAWARD_ANNEX2_KEYS = [
+  "final_report_summary_exec",
+  "final_report_activity_desc",
+  "final_report_outputs_result",
+  "final_report_coop_partners",
+  "final_report_budget_notes",
+  "final_report_dissemination",
+  "final_report_other",
+];
+
 /** Položky rozpočtu Connect (shodné s formulářem přihlášky). */
 var CONNECT_BUDGET_LINE_KEYS = [
   "budget_travel",
@@ -2208,8 +2305,15 @@ function getConnectPostAward(competitionId, applicationId, token) {
       deliverable_aktivita_note: String(checklist.deliverable_aktivita_note || "").slice(0, 3000),
       budget_actual_spent_czk: Number(checklist.budget_actual_spent_czk) || 0,
       budget_variance_explanation: String(checklist.budget_variance_explanation || "").slice(0, 2000),
-      final_report_draft: String(checklist.final_report_draft || "").slice(0, 12000),
-      final_report_final: String(checklist.final_report_final || "").slice(0, 12000),
+      final_report_draft: String(checklist.final_report_draft || "").slice(0, CONNECT_POSTAWARD_FINAL_REPORT_MAX),
+      final_report_final: String(checklist.final_report_final || "").slice(0, CONNECT_POSTAWARD_FINAL_REPORT_MAX),
+      final_report_summary_exec: String(checklist.final_report_summary_exec || "").slice(0, CONNECT_POSTAWARD_ANNEX2_FIELD_MAX),
+      final_report_activity_desc: String(checklist.final_report_activity_desc || "").slice(0, CONNECT_POSTAWARD_ANNEX2_FIELD_MAX),
+      final_report_outputs_result: String(checklist.final_report_outputs_result || "").slice(0, CONNECT_POSTAWARD_ANNEX2_FIELD_MAX),
+      final_report_coop_partners: String(checklist.final_report_coop_partners || "").slice(0, CONNECT_POSTAWARD_ANNEX2_FIELD_MAX),
+      final_report_budget_notes: String(checklist.final_report_budget_notes || "").slice(0, CONNECT_POSTAWARD_ANNEX2_FIELD_MAX),
+      final_report_dissemination: String(checklist.final_report_dissemination || "").slice(0, CONNECT_POSTAWARD_ANNEX2_FIELD_MAX),
+      final_report_other: String(checklist.final_report_other || "").slice(0, CONNECT_POSTAWARD_ANNEX2_FIELD_MAX),
       zz_draft_saved_at: checklist.zz_draft_saved_at || "",
       final_report_final_saved_at: checklist.final_report_final_saved_at || "",
       budget_actual_lines:
@@ -2469,7 +2573,8 @@ function adminBuildConnectDossierHtmlOutput_(competitionId, applicationId, token
     "<p><b>Manifest příloh</b></p><pre style=\"white-space:pre-wrap;background:#f3f4f6;padding:10px;border-radius:6px;font-size:9.5pt;max-height:320px;overflow:auto\">" +
     uhkHtmlEscape_(String(checklist.attachments_manifest || "—").slice(0, 8000)) +
     "</pre>" +
-    "<p><b>Závěrečná zpráva</b> (zkráceno)</p><pre style=\"white-space:pre-wrap;background:#f3f4f6;padding:10px;border-radius:6px;font-size:9.5pt;max-height:280px;overflow:auto\">" +
+    connectPostAwardAnnex2DossierHtml_(checklist) +
+    "<p><b>Závěrečná zpráva</b> (zkráceno; po uzavření může být sloučena z přílohy 2 + souvislého textu)</p><pre style=\"white-space:pre-wrap;background:#f3f4f6;padding:10px;border-radius:6px;font-size:9.5pt;max-height:280px;overflow:auto\">" +
     uhkHtmlEscape_(String(checklist.final_report_final || checklist.final_report_draft || "").slice(0, 8000) || "—") +
     "</pre>" +
     "<h2>Přílohy části 2</h2>" +
@@ -2587,8 +2692,15 @@ function saveConnectPostAward(body) {
     budget_variance_explanation: pickStr_(c, prev, "budget_variance_explanation", 2000),
     budget_actual_lines: pickBudgetActualLines_(c, prev),
     budget_line_notes: pickLineNotes_(c, prev),
-    final_report_draft: pickStr_(c, prev, "final_report_draft", 12000),
-    final_report_final: pickStr_(c, prev, "final_report_final", 12000),
+    final_report_draft: pickStr_(c, prev, "final_report_draft", CONNECT_POSTAWARD_FINAL_REPORT_MAX),
+    final_report_final: pickStr_(c, prev, "final_report_final", CONNECT_POSTAWARD_FINAL_REPORT_MAX),
+    final_report_summary_exec: pickStr_(c, prev, "final_report_summary_exec", CONNECT_POSTAWARD_ANNEX2_FIELD_MAX),
+    final_report_activity_desc: pickStr_(c, prev, "final_report_activity_desc", CONNECT_POSTAWARD_ANNEX2_FIELD_MAX),
+    final_report_outputs_result: pickStr_(c, prev, "final_report_outputs_result", CONNECT_POSTAWARD_ANNEX2_FIELD_MAX),
+    final_report_coop_partners: pickStr_(c, prev, "final_report_coop_partners", CONNECT_POSTAWARD_ANNEX2_FIELD_MAX),
+    final_report_budget_notes: pickStr_(c, prev, "final_report_budget_notes", CONNECT_POSTAWARD_ANNEX2_FIELD_MAX),
+    final_report_dissemination: pickStr_(c, prev, "final_report_dissemination", CONNECT_POSTAWARD_ANNEX2_FIELD_MAX),
+    final_report_other: pickStr_(c, prev, "final_report_other", CONNECT_POSTAWARD_ANNEX2_FIELD_MAX),
     zz_draft_saved_at: String(prev.zz_draft_saved_at || ""),
     final_report_final_saved_at: String(prev.final_report_final_saved_at || ""),
   };
@@ -2599,16 +2711,22 @@ function saveConnectPostAward(body) {
       );
     next.consent_saved_at = fmtDate(new Date());
   } else if (section === "report_draft") {
-    next.final_report_draft = pickStr_(c, prev, "final_report_draft", 12000);
+    next.final_report_draft = pickStr_(c, prev, "final_report_draft", CONNECT_POSTAWARD_FINAL_REPORT_MAX);
     next.zz_draft_saved_at = fmtDate(new Date());
   } else if (section === "report_final") {
     if (!String(prev.consent_saved_at || "").trim())
       throw new Error("Nejdřív uložte souhlas v části 1.");
-    next.final_report_final = pickStr_(c, prev, "final_report_final", 12000);
-    if (String(next.final_report_final || "").trim().length < 80)
-      throw new Error("Finální závěrečná zpráva v aplikaci: doplňte text (alespoň 80 znaků).");
-    next.final_report_final_saved_at = fmtDate(new Date());
+    var mergedRf = connectMergeFinalReportBodyForStorage_(next);
+    if (String(mergedRf || "").trim().length < 80)
+      throw new Error(
+        "Finální závěrečná zpráva: vyplňte strukturovaná pole přílohy 2 a/nebo souvislý text (celkem alespoň 80 znaků)."
+      );
+    next.final_report_final = String(mergedRf || "").slice(0, CONNECT_POSTAWARD_FINAL_REPORT_MAX);
     next.final_report_draft = next.final_report_final;
+    next.final_report_final_saved_at = fmtDate(new Date());
+    CONNECT_POSTAWARD_ANNEX2_KEYS.forEach(function (k2) {
+      next[k2] = "";
+    });
   } else if (section === "completion") {
     if (!String(prev.consent_saved_at || "").trim())
       throw new Error("Nejdřív uložte souhlas v části 1 (stanovisko prorektora a schválená podpora).");
@@ -2648,11 +2766,17 @@ function saveConnectPostAward(body) {
       throw new Error(
         "Zaškrtněte potvrzení diseminační aktivity, odeslání podkladů administrátorce a seznámení s následky."
       );
-    next.final_report_final = String(next.final_report_draft || "").slice(0, 12000);
+    var mergedEnd = connectMergeFinalReportBodyForStorage_(next);
+    if (String(mergedEnd || "").trim().length < 80)
+      throw new Error(
+        "Závěrečná zpráva: vyplňte pole přílohy 2 a/nebo souvislý text níže (celkem alespoň 80 znaků)."
+      );
+    next.final_report_final = String(mergedEnd || "").slice(0, CONNECT_POSTAWARD_FINAL_REPORT_MAX);
     next.final_report_draft = next.final_report_final;
-    if (String(next.final_report_final || "").trim().length < 80)
-      throw new Error("Závěrečná zpráva v aplikaci: doplňte text (alespoň 80 znaků).");
     next.final_report_final_saved_at = fmtDate(new Date());
+    CONNECT_POSTAWARD_ANNEX2_KEYS.forEach(function (k3) {
+      next[k3] = "";
+    });
     next.completion_saved_at = fmtDate(new Date());
   }
 
@@ -4777,6 +4901,8 @@ function saveDraft(body) {
   if (!applicant || applicant !== auth.email)
     throw new Error("Draft lze ukládat jen pod vlastním přihlášeným e-mailem.");
 
+  connectMaybeValidateIrisCaseIdDraft_(body.competitionId, body.formData);
+
   const ss    = getSpreadsheet(body.competitionId);
   let sheet   = ss.getSheetByName("📥 APPLICATIONS");
   if (!sheet) {
@@ -4947,6 +5073,65 @@ function validateConnectDeliverableDecl_(fulfilled, note, label) {
   if (fulfilled) return;
   if (String(note || "").trim().length < 15)
     throw new Error('U „' + label + '“ potvrďte splnění, nebo vysvětlete, proč výstup splněn nebyl (min. 15 znaků).');
+}
+
+/** Sloučí strukturovaná pole (příloha 2 / výzva) s hlavním textem do jedné evidence pro archiv a tisk. */
+function connectMergeFinalReportBodyForStorage_(checklistObj) {
+  var c = checklistObj || {};
+  var parts = [];
+  function add(title, key) {
+    var t = String(c[key] != null ? c[key] : "").trim();
+    if (!t) return;
+    parts.push("── " + title + " ──\n" + t);
+  }
+  add("Shrnutí / výsledek aktivity (příloha 2)", "final_report_summary_exec");
+  add("Popis průběhu realizace", "final_report_activity_desc");
+  add("Dosažené výstupy vůči plánu", "final_report_outputs_result");
+  add("Spolupráce a partneři", "final_report_coop_partners");
+  add("Čerpání podpory a hospodárnost (slovní doplnění)", "final_report_budget_notes");
+  add("Diseminace / sdílení výsledků", "final_report_dissemination");
+  add("Ostatní / doplnění dle výzvy", "final_report_other");
+  var structured = parts.join("\n\n");
+  var main = String(c.final_report_draft != null ? c.final_report_draft : "").trim();
+  if (structured && main) return structured + "\n\n── Souvislý text závěrečné zprávy ──\n\n" + main;
+  if (structured) return structured;
+  return main;
+}
+
+function connectTotalFinalReportEvidenceChars_(checklist) {
+  var c = checklist || {};
+  var n = String(c.final_report_draft || "").trim().length;
+  CONNECT_POSTAWARD_ANNEX2_KEYS.forEach(function (k) {
+    n += String(c[k] || "").trim().length;
+  });
+  return n;
+}
+
+/** HTML bloku strukturovaných polí přílohy 2 pro tiskový přehled (dossier). */
+function connectPostAwardAnnex2DossierHtml_(checklist) {
+  var titles = {
+    final_report_summary_exec: "Shrnutí / výsledek aktivity",
+    final_report_activity_desc: "Průběh realizace",
+    final_report_outputs_result: "Dosažené výstupy vůči plánu",
+    final_report_coop_partners: "Spolupráce a partneři",
+    final_report_budget_notes: "Čerpání podpory a hospodárnost (slovně)",
+    final_report_dissemination: "Diseminace / sdílení výsledků",
+    final_report_other: "Ostatní dle výzvy",
+  };
+  var parts = [];
+  CONNECT_POSTAWARD_ANNEX2_KEYS.forEach(function (k) {
+    var t = String((checklist && checklist[k]) || "").trim();
+    if (!t) return;
+    parts.push(
+      "<p><b>" +
+        uhkHtmlEscape_(titles[k] || k) +
+        "</b></p><pre style=\"white-space:pre-wrap;background:#f9fafb;padding:10px;border-radius:6px;font-size:9.5pt;max-height:220px;overflow:auto\">" +
+        uhkHtmlEscape_(t.slice(0, 6000)) +
+        "</pre>"
+    );
+  });
+  if (!parts.length) return "";
+  return "<h2>Příloha 2 – strukturované odpovědi (pokud jsou vyplněny před uzavřením)</h2>" + parts.join("");
 }
 
 /** ASCII verze řetězce pro porovnání kódů rozhodnutí (Sheets často ukládá „Podpořit“ s diakritikou). */
@@ -5256,6 +5441,10 @@ function submitApplication(body) {
   const applicant = String(body.applicantEmail || "").toLowerCase().trim();
   if (!applicant || applicant !== auth.email)
     throw new Error("Přihlášku můžete odeslat jen za svůj účet.");
+
+  if (connectCompetitionUsesIrisCaseId_(body.competitionId)) {
+    connectAssertIrisCaseIdOnSubmit_(body.formData || {});
+  }
 
   assertCompetitionOpenForNewSubmission_(body.competitionId, auth);
 
