@@ -816,7 +816,7 @@
           field_type:"text",
           required:"TRUE",
           placeholder:"např. 5d6b05d2-7562-4f63-83ac-c2980be87afd",
-          help_text:'Pro ověření záznamu v IRIS uveďte <strong>jednoznačné referenční ID</strong> z potvrzení „IRIS UHK – potvrzení podání“ (řetězec ve tvaru UUID). V aplikaci IRIS → <strong>Moje podání</strong> ho vložte do pole <strong>Hledat</strong> – musí se zobrazit přesně jeden záznam. Nástroj: <a href="' + IRIS_UHK_URL + '" target="_blank" rel="noopener noreferrer">IRIS UHK</a>. Nemáte-li UUID ve starším potvrzení, doplňte alespoň <strong>Case ID</strong> (např. CASE-2026-003). U výhradně tuzemské spolupráce postupujte dle výzvy / OVTZ (např. „neaplikuje se“).',
+          help_text:'Pro ověření záznamu v IRIS uveďte <strong>jednoznačné referenční ID</strong> z potvrzení „IRIS UHK – potvrzení podání“ (řetězec ve tvaru UUID). V aplikaci IRIS → <strong>Moje podání</strong> ho vložte do pole <strong>Hledat</strong> – musí se zobrazit přesně jeden záznam. Nástroj: <a href="' + IRIS_UHK_URL + '" target="_blank" rel="noopener noreferrer">IRIS UHK</a>. Nemáte-li UUID ve starším potvrzení, doplňte alespoň <strong>Case ID</strong> (např. CASE-2026-003). U výhradně tuzemské spolupráce postupujte dle výzvy / OVTZ (např. „neaplikuje se“). <strong>Aplikace neověřuje existenci záznamu v IRIS</strong> (není k dispozici rozhraní) — při uložení se kontroluje jen rozumný tvar (UUID, Case ID nebo stručné zdůvodnění výjimky); skutečnou existenci ověří komise / správce v IRIS.',
         },
         {
           field_id:"iris_checklist_result",

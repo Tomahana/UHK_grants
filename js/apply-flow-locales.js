@@ -86,7 +86,7 @@
           required: "TRUE",
           placeholder: "e.g. 5d6b05d2-7562-4f63-83ac-c2980be87afd",
           help_text:
-            'To verify the record exists, enter the <strong>unique reference ID</strong> from the IRIS confirmation (“IRIS UHK – submission confirmation”) – a UUID string. In IRIS → <strong>My submissions</strong>, paste it into <strong>Search</strong>; exactly one record must appear. Tool: <a href="https://tomahana.github.io/IRIS_UHK/" target="_blank" rel="noopener noreferrer">IRIS UHK</a>. If your confirmation has no UUID, enter at least the <strong>Case ID</strong> (e.g. CASE-2026-003). For Czech-only collaboration, follow the call / R&D office (e.g. “not applicable”).',
+            'To verify the record exists, enter the <strong>unique reference ID</strong> from the IRIS confirmation (“IRIS UHK – submission confirmation”) – a UUID string. In IRIS → <strong>My submissions</strong>, paste it into <strong>Search</strong>; exactly one record must appear. Tool: <a href="https://tomahana.github.io/IRIS_UHK/" target="_blank" rel="noopener noreferrer">IRIS UHK</a>. If your confirmation has no UUID, enter at least the <strong>Case ID</strong> (e.g. CASE-2026-003). For Czech-only collaboration, follow the call / R&D office (e.g. “not applicable”). <strong>The app does not call IRIS to verify the ID exists</strong>; on save we only check the format (UUID, Case ID, or a short exception note). The panel/admin verifies the record in IRIS.',
         },
         {
           field_id: "iris_checklist_result",
@@ -190,7 +190,7 @@
           required: "TRUE",
           placeholder: "e.g. 5d6b05d2-7562-4f63-83ac-c2980be87afd",
           help_text:
-            'Enter the <strong>unique reference ID</strong> (UUID) from the IRIS submission confirmation so the record can be found under <strong>My submissions</strong> → <strong>Search</strong>. If no UUID is available, use at least the <strong>Case ID</strong>. <a href="https://tomahana.github.io/IRIS_UHK/" target="_blank" rel="noopener noreferrer">IRIS UHK</a>. If the checklist does not apply, state per call / R&D office (e.g. “not applicable”).',
+            'Enter the <strong>unique reference ID</strong> (UUID) from the IRIS submission confirmation so the record can be found under <strong>My submissions</strong> → <strong>Search</strong>. If no UUID is available, use at least the <strong>Case ID</strong>. <a href="https://tomahana.github.io/IRIS_UHK/" target="_blank" rel="noopener noreferrer">IRIS UHK</a>. If the checklist does not apply, state per call / R&D office (e.g. “not applicable”). <strong>The app does not call IRIS to verify the ID exists</strong>; on save we only check the format (UUID, Case ID, or a short exception note).',
         },
         {
           field_id: "iris_checklist_result",

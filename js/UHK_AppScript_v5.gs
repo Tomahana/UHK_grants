@@ -67,6 +67,85 @@ const ADMIN_EMAIL = "hana.tomaskova@uhk.cz";
 /** ID soutěže Connect (měsíční workflow + notifikace komise) */
 const CONNECT_COMPETITION_ID = "uhk_connect_2026_v2";
 
+/**
+ * IRIS referenční ID v Connect: server nevolá IRIS API (není v projektu); kontroluje se jen rozumný formát.
+ * Přijatelné: UUID, Case ID (CASE-YYYY-…), nebo delší text s klíčovými slovy výjimky dle výzvy (tuzemská spolupráce / neaplikuje se …).
+ */
+function connectNormalizeIrisCaseIdValue_(raw) {
+  return String(raw != null ? raw : "").trim();
+}
+
+function connectIsUuidIrisCaseId_(s) {
+  var t = connectNormalizeIrisCaseIdValue_(s);
+  return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(t);
+}
+
+function connectIsCaseIdLike_(s) {
+  var t = connectNormalizeIrisCaseIdValue_(s);
+  return /^CASE-\d{4}-\d+/i.test(t);
+}
+
+function connectIsIrisExceptionText_(s) {
+  var t = connectNormalizeIrisCaseIdValue_(s).toLowerCase();
+  if (t.length < 14) return false;
+  var keys = [
+    "neaplikuje",
+    "neaplik",
+    "výjimka",
+    "vyjimka",
+    "neregistrovan",
+    "bez iriso",
+    "bez iris",
+    "tuzemsk",
+    "dle výzv",
+    "dle vyvz",
+    "dle ovtz",
+    "ovtz",
+    "nemám uuid",
+    "nemam uuid",
+    "postup dle",
+    "dle pokyn",
+    "výhradně",
+    "vyhradne",
+  ];
+  for (var i = 0; i < keys.length; i++) {
+    if (t.indexOf(keys[i]) >= 0) return true;
+  }
+  return false;
+}
+
+function connectValidateIrisCaseIdFormat_(formData) {
+  if (!formData || typeof formData !== "object") return;
+  var cid = connectNormalizeIrisCaseIdValue_(formData.iris_case_id);
+  if (!cid) return;
+  if (connectIsUuidIrisCaseId_(cid)) return;
+  if (connectIsCaseIdLike_(cid)) return;
+  if (connectIsIrisExceptionText_(cid)) return;
+  throw new Error(
+    "U pole „Referenční ID IRIS UHK“ zadejte platné UUID (např. z potvrzení IRIS), přesný Case ID ve tvaru CASE-2026-…, nebo stručné zdůvodnění výjimky dle výzvy / OVTZ (např. že IRIS na záznam neaplikujete). Živé ověření proti databázi IRIS zde není — kontrolu existence provádí komise / správce v IRIS."
+  );
+}
+
+function connectAssertIrisCaseIdOnSubmit_(formData) {
+  var cid = connectNormalizeIrisCaseIdValue_(formData && formData.iris_case_id);
+  if (!cid) throw new Error("Vyplňte referenční ID IRIS UHK (UUID), Case ID, nebo zdůvodnění výjimky dle výzvy.");
+  connectValidateIrisCaseIdFormat_(formData);
+}
+
+/** Soutěže s povinným blokem IRIS v aplikaci (Connect, Prestige). */
+function connectCompetitionUsesIrisCaseId_(competitionId) {
+  var c = String(competitionId || "").trim();
+  return c === CONNECT_COMPETITION_ID || c === "uhk_prestige_2026";
+}
+
+/** Uložení draftu: formát IRIS ID, pokud pole není prázdné. */
+function connectMaybeValidateIrisCaseIdDraft_(competitionId, formData) {
+  if (!connectCompetitionUsesIrisCaseId_(competitionId)) return;
+  if (!formData || typeof formData !== "object") return;
+  if (!connectNormalizeIrisCaseIdValue_(formData.iris_case_id)) return;
+  connectValidateIrisCaseIdFormat_(formData);
+}
+
 /** Krátký název soutěže do předmětu e-mailu, pokud v CONFIG není competition_name / email_subject_tag */
 const UHK_COMPETITION_EMAIL_SUBJECT_TAGS = {
   "uhk_connect_2026_v2": "UHK Connect",
@@ -4777,6 +4856,8 @@ function saveDraft(body) {
   if (!applicant || applicant !== auth.email)
     throw new Error("Draft lze ukládat jen pod vlastním přihlášeným e-mailem.");
 
+  connectMaybeValidateIrisCaseIdDraft_(body.competitionId, body.formData);
+
   const ss    = getSpreadsheet(body.competitionId);
   let sheet   = ss.getSheetByName("📥 APPLICATIONS");
   if (!sheet) {
@@ -5256,6 +5337,10 @@ function submitApplication(body) {
   const applicant = String(body.applicantEmail || "").toLowerCase().trim();
   if (!applicant || applicant !== auth.email)
     throw new Error("Přihlášku můžete odeslat jen za svůj účet.");
+
+  if (connectCompetitionUsesIrisCaseId_(body.competitionId)) {
+    connectAssertIrisCaseIdOnSubmit_(body.formData || {});
+  }
 
   assertCompetitionOpenForNewSubmission_(body.competitionId, auth);
 
