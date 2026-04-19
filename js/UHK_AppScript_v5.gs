@@ -2301,17 +2301,39 @@ function connectApplicationFileFieldHints_(fd, applicationIdOpt, ss) {
   return out;
 }
 
+/** Aktivní pole formuláře z listu FORM_FIELDS (pořadí zobrazení). */
+function connectFormFieldDefinitionsSorted_(ss) {
+  var sheet = ss.getSheetByName(SHEETS.FORM_FIELDS);
+  if (!sheet) return [];
+  return sheetToObjects(sheet)
+    .filter(function (r) {
+      return String(r.active).toUpperCase() === "TRUE" && String(r.field_id || "").trim();
+    })
+    .map(function (r) {
+      return {
+        field_id: String(r.field_id || "").trim(),
+        label: String(r.label_cs || r.field_label || r.field_id || "").trim() || String(r.field_id || "").trim(),
+        section_order: Number(r.section_order) || 0,
+        field_order: Number(r.field_order) || 0,
+      };
+    })
+    .sort(function (a, b) {
+      if (a.section_order !== b.section_order) return a.section_order - b.section_order;
+      return a.field_order - b.field_order;
+    });
+}
+
 /**
- * PDF přehled: text žádosti, checklist části 2, odkazy na soubory na Disku (GET adminExportConnectProjectDossierPdf).
+ * Přehled projektu Connect jako HTML (Ctrl+P → Uložit jako PDF). Dříve HtmlService.getAs(PDF) často selhalo / prázdná stránka.
  */
-function adminBuildConnectDossierPdfBlob_(competitionId, applicationId, token) {
+function adminBuildConnectDossierHtmlOutput_(competitionId, applicationId, token) {
   var auth = requireAuth(token);
   if (!authHasAnyRole_(auth, ["ADMIN", "TESTER", "PROREKTOR", "KOMISAR", "KOMISAŘ", "READONLY"]))
-    throw new Error("PDF export: nedostatečná oprávnění.");
+    throw new Error("Přehled: nedostatečná oprávnění.");
   var cid = String(competitionId || "").trim();
   var aid = String(applicationId || "").trim();
   if (!cid || !aid) throw new Error("chybí competitionId nebo applicationId");
-  if (cid !== CONNECT_COMPETITION_ID) throw new Error("PDF export je jen pro soutěž UHK Connect.");
+  if (cid !== CONNECT_COMPETITION_ID) throw new Error("Přehled je jen pro soutěž UHK Connect.");
   var ss = getSpreadsheet(cid);
   var sheet = ss.getSheetByName(SHEETS.APPLICATIONS);
   if (!sheet) throw new Error("List APPLICATIONS nenalezen.");
@@ -2325,72 +2347,140 @@ function adminBuildConnectDossierPdfBlob_(competitionId, applicationId, token) {
   var outcome = findProrektorOutcomeForApp_(ss, aid, row);
   var files = connectMergePostAwardUploadedFiles_(ss, aid);
   var title = applicationRowTitle_(row) || aid;
-  var lines = [];
-  lines.push("UHK Connect – přehled projektu a příloh");
-  lines.push("ID: " + aid);
-  lines.push("Žadatel: " + String(row.applicant_name || ""));
-  lines.push("E-mail: " + String(row.applicant_email || ""));
-  lines.push("Stav přihlášky: " + String(row.status || ""));
-  lines.push("");
-  lines.push("── Rozhodnutí prorektora ──");
-  if (outcome && outcome.decision) {
-    lines.push("Výsledek: " + String(outcome.decision) + " – " + String(outcome.decisionLabel || ""));
-    lines.push("Komentář: " + String(outcome.comment || "—"));
-  } else lines.push("(záznam PROREKTOR_DECISION nenalezen)");
-  lines.push("");
-  lines.push("── Shrnutí žádosti ──");
-  lines.push("Název: " + String(fd.project_title || ""));
-  lines.push("Cíl aktivity: " + String(fd.activity_goal || "").slice(0, 1800));
-  lines.push("Rozpočet celkem (žádost): " + String(fd.budget_total || "") + " Kč");
-  lines.push("");
-  lines.push("── Část 2: checklist ──");
-  lines.push("Souhlas uložen: " + String(checklist.consent_saved_at || "—"));
-  lines.push("Uzavření uloženo: " + String(checklist.completion_saved_at || "—"));
-  lines.push("Manifest příloh:");
-  lines.push(String(checklist.attachments_manifest || "—").slice(0, 6000));
-  lines.push("");
-  lines.push("── Závěrečná zpráva (zkráceno) ──");
-  lines.push(String(checklist.final_report_final || checklist.final_report_draft || "").slice(0, 6500) || "—");
-  lines.push("");
-  lines.push("── Přílohy části 2 (aplikace / volitelně Disk) ──");
-  if (!files.length)
-    lines.push(
-      "(žádný soubor v úložišti tabulky ani v legacy seznamu z Disku — viz manifest)"
-    );
-  else
+  var fileHints = connectApplicationFileFieldHints_(fd, aid, ss);
+  var hintByField = {};
+  fileHints.forEach(function (h) {
+    if (h && h.field_id) hintByField[String(h.field_id).trim()] = h;
+  });
+  var defs = connectFormFieldDefinitionsSorted_(ss);
+  var used = {};
+  var formRowsHtml = "";
+  defs.forEach(function (d) {
+    var k = d.field_id;
+    used[k] = true;
+    if (!Object.prototype.hasOwnProperty.call(fd, k)) return;
+    var v = fd[k];
+    if (v == null || String(v).trim() === "") return;
+    var raw = String(v).trim();
+    var cell = uhkHtmlEscape_(raw);
+    var hi = hintByField[k] || {};
+    var driveId = String(hi.drive_file_id || "").trim();
+    if (!driveId) {
+      var m = /^UHKDRIVE\|([^|]+)\|/i.exec(raw);
+      if (m) driveId = String(m[1] || "").trim();
+    }
+    if (driveId) {
+      cell =
+        '<a href="https://drive.google.com/file/d/' +
+        encodeURIComponent(driveId) +
+        '/preview" target="_blank" rel="noopener">Náhled na Disku</a> · <span style="color:#555">' +
+        uhkHtmlEscape_(String(hi.value != null && String(hi.value).trim() ? hi.value : raw).slice(0, 500)) +
+        "</span>";
+    } else if (raw.length > 2000) {
+      cell = uhkHtmlEscape_(raw.slice(0, 2000)) + "…";
+    }
+    formRowsHtml +=
+      "<tr><th style=\"text-align:left;vertical-align:top;padding:8px 12px 8px 0;border-bottom:1px solid #e5e7eb;width:32%\">" +
+      uhkHtmlEscape_(d.label) +
+      '</th><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;word-break:break-word">' +
+      cell +
+      "</td></tr>";
+  });
+  Object.keys(fd).forEach(function (k) {
+    if (String(k).indexOf("_uhk_internal_") === 0) return;
+    if (used[k]) return;
+    var v = fd[k];
+    if (v == null || String(v).trim() === "") return;
+    var raw = String(v).trim();
+    var lab = k.replace(/_/g, " ");
+    var cell = raw.length > 2000 ? uhkHtmlEscape_(raw.slice(0, 2000)) + "…" : uhkHtmlEscape_(raw);
+    formRowsHtml +=
+      "<tr><th style=\"text-align:left;vertical-align:top;padding:8px 12px 8px 0;border-bottom:1px solid #e5e7eb\">" +
+      uhkHtmlEscape_(lab) +
+      ' <span style="color:#9ca3af;font-size:11px">(' +
+      uhkHtmlEscape_(k) +
+      ')</span></th><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;word-break:break-word">' +
+      cell +
+      "</td></tr>";
+  });
+  if (!formRowsHtml)
+    formRowsHtml =
+      '<tr><td colspan="2" style="color:#6b7280">Žádná vyplněná pole v JSON formuláře.</td></tr>';
+
+  var filesHtml = "";
+  if (!files.length) filesHtml = "<p style=\"color:#6b7280\">(žádný soubor v úložišti tabulky ani v legacy seznamu z Disku)</p>";
+  else {
+    filesHtml = "<ul style=\"margin:6px 0 0 18px\">";
     files.forEach(function (f) {
-      if (f.isSheetBlob) lines.push(String(f.name) + " → uloženo v tabulce (stažení z aplikace)");
-      else lines.push(String(f.name) + " → " + String(f.url || ""));
+      if (f.isSheetBlob)
+        filesHtml += "<li>" + uhkHtmlEscape_(String(f.name || "")) + " — uloženo v tabulce</li>";
+      else
+        filesHtml +=
+          "<li>" +
+          uhkHtmlEscape_(String(f.name || "")) +
+          (f.url ? ' — <a href="' + uhkHtmlEscape_(String(f.url)) + '" target="_blank" rel="noopener">Disk</a>' : "") +
+          "</li>";
     });
-  lines.push("");
-  lines.push("── Pole souborů z podacího formuláře ──");
-  var hints = connectApplicationFileFieldHints_(fd, aid, ss);
-  if (!hints.length) lines.push("(v JSON často jen název souboru, ne binární obsah)");
-  else
-    hints.forEach(function (h) {
-      lines.push(h.field_id + ": " + h.value);
-    });
-  var bodyHtml =
+    filesHtml += "</ul>";
+  }
+
+  var prBlock =
+    outcome && outcome.decision
+      ? "<p><b>Výsledek:</b> " +
+        uhkHtmlEscape_(String(outcome.decision)) +
+        " — " +
+        uhkHtmlEscape_(String(outcome.decisionLabel || "")) +
+        "</p><p><b>Komentář:</b> " +
+        uhkHtmlEscape_(String(outcome.comment || "—")) +
+        "</p>"
+      : "<p style=\"color:#6b7280\">(záznam PROREKTOR_DECISION nenalezen)</p>";
+
+  var html =
+    "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"/><title>" +
+    uhkHtmlEscape_("Connect – " + aid) +
+    "</title><style>body{font-family:Arial,Helvetica,sans-serif;font-size:11pt;color:#111;padding:16px 20px 40px;max-width:900px;margin:0 auto} h1{font-size:1.25rem} h2{font-size:1rem;margin-top:1.4rem;border-bottom:1px solid #1C2E5A;padding-bottom:4px;color:#1C2E5A} .hint{color:#92400e;font-size:12px;margin-top:12px}</style></head><body>" +
     "<h1>" +
     uhkHtmlEscape_(title) +
-    "</h1><p><b>ID:</b> " +
+    "</h1>" +
+    "<p><b>ID přihlášky:</b> " +
     uhkHtmlEscape_(aid) +
-    "</p><pre style=\"white-space:pre-wrap;font-family:Arial,sans-serif;font-size:9pt\">" +
-    uhkHtmlEscape_(lines.join("\n")) +
-    "</pre>";
-  var html =
-    "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"/><style>body{font-family:Arial,sans-serif;font-size:11pt;color:#111;padding:14px}</style></head><body>" +
-    bodyHtml +
+    "</p>" +
+    "<p><b>Žadatel:</b> " +
+    uhkHtmlEscape_(String(row.applicant_name || "")) +
+    " &lt;" +
+    uhkHtmlEscape_(String(row.applicant_email || "")) +
+    "&gt;</p>" +
+    "<p><b>Stav:</b> " +
+    uhkHtmlEscape_(String(row.status || "")) +
+    "</p>" +
+    "<h2>Rozhodnutí prorektora</h2>" +
+    prBlock +
+    "<h2>Odpovědi z podacího formuláře</h2>" +
+    '<table style="width:100%;border-collapse:collapse;font-size:10.5pt">' +
+    formRowsHtml +
+    "</table>" +
+    "<h2>Část 2 – checklist</h2>" +
+    "<p><b>Souhlas uložen:</b> " +
+    uhkHtmlEscape_(String(checklist.consent_saved_at || "—")) +
+    "</p>" +
+    "<p><b>Uzavření uloženo:</b> " +
+    uhkHtmlEscape_(String(checklist.completion_saved_at || "—")) +
+    "</p>" +
+    "<p><b>Manifest příloh</b></p><pre style=\"white-space:pre-wrap;background:#f3f4f6;padding:10px;border-radius:6px;font-size:9.5pt;max-height:320px;overflow:auto\">" +
+    uhkHtmlEscape_(String(checklist.attachments_manifest || "—").slice(0, 8000)) +
+    "</pre>" +
+    "<p><b>Závěrečná zpráva</b> (zkráceno)</p><pre style=\"white-space:pre-wrap;background:#f3f4f6;padding:10px;border-radius:6px;font-size:9.5pt;max-height:280px;overflow:auto\">" +
+    uhkHtmlEscape_(String(checklist.final_report_final || checklist.final_report_draft || "").slice(0, 8000) || "—") +
+    "</pre>" +
+    "<h2>Přílohy části 2</h2>" +
+    filesHtml +
+    '<p class="hint"><strong>PDF:</strong> v prohlížeči použijte <strong>Ctrl+P</strong> (Mac: Cmd+P) a zvolte <strong>Uložit jako PDF</strong>.</p>' +
     "</body></html>";
-  return HtmlService.createHtmlOutput(html).getAs(MimeType.PDF);
+  return HtmlService.createHtmlOutput(html).setTitle("Connect – " + aid);
 }
 
 function adminExportConnectProjectDossierPdf(competitionId, applicationId, token) {
-  var blob = adminBuildConnectDossierPdfBlob_(competitionId, applicationId, token);
-  var safe = String(applicationId || "prehled")
-    .replace(/[^a-zA-Z0-9._-]/g, "_")
-    .slice(0, 96);
-  return blob.setName("UHK_Connect_" + safe + ".pdf");
+  return adminBuildConnectDossierHtmlOutput_(competitionId, applicationId, token);
 }
 
 /**
