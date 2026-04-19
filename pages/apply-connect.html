@@ -338,8 +338,7 @@
     }
 
     /**
-     * Odkaz „Otevřít PDF“ pro podací přílohu (stažení přes API z Disku nebo zálohy v tabulce).
-     * Používá třídu uhk-blob-dl + delegaci v api.js → POST stažení (token v těle).
+     * Stažení přílohy jen ze zálohy v tabulce (UHKAFILE) – Web App; u UHKDRIVE použijte náhled na Disku.
      */
     function connectApplicationPdfDlAnchor_(applicationId, fieldId, innerLabelHtml) {
       if (!applicationId || !fieldId) return "";
@@ -353,6 +352,21 @@
         escapeAttr(String(fieldId).trim()) +
         '">' +
         innerLabelHtml +
+        "</a>"
+      );
+    }
+
+    /** Náhled PDF na Google Disku z buňky UHKDRIVE|fileId|název.pdf */
+    function connectDrivePreviewAnchorFromStored_(valStr, labelHtml) {
+      const m = /^UHKDRIVE\|([^|]+)\|/i.exec(String(valStr || "").trim());
+      if (!m || !m[1]) return "";
+      const id = String(m[1]).trim();
+      if (!id) return "";
+      return (
+        '<a href="https://drive.google.com/file/d/' +
+        encodeURIComponent(id) +
+        '/preview" target="_blank" rel="noopener noreferrer">' +
+        labelHtml +
         "</a>"
       );
     }
@@ -535,13 +549,12 @@
                   escapeHtml: function (s) {
                     return escapeHtml(s);
                   },
-                  openPdfLabel: tf("submittedAttachmentOpenPdf"),
                   drivePreviewLabel: tf("submittedAttachmentDrivePreview"),
+                  sheetDownloadLabel: tf("submittedAttachmentSheetDownload"),
                 })
               : "";
           const cell = isAppStoredPdf
-            ? (attachLinks ||
-                connectApplicationPdfDlAnchor_(appIdForDl, h.field_id, escapeHtml(tf("submittedAttachmentOpenPdf")))) +
+            ? attachLinks +
               ' <span style="color:var(--muted);font-size:12px">(' +
               escapeHtml(shortVal) +
               ")</span>"
@@ -936,15 +949,15 @@
             escapeHtml(tf("submittedAttachmentOpenLink")) +
             "</a>";
         } else if (isDriveApi && draftId) {
-          nameSpanHtml =
-            escapeHtml(tc("fileUploadedDriveApiLabel")) +
-            " · " +
-            connectApplicationPdfDlAnchor_(draftId, f.field_id, escapeHtml(tf("submittedAttachmentOpenPdf")));
+          const prevA =
+            connectDrivePreviewAnchorFromStored_(valStr, escapeHtml(tf("submittedAttachmentDrivePreview"))) ||
+            connectApplicationPdfDlAnchor_(draftId, f.field_id, escapeHtml(tf("submittedAttachmentSheetDownload")));
+          nameSpanHtml = escapeHtml(tc("fileUploadedDriveApiLabel")) + " · " + prevA;
         } else if (isSheetBlob && draftId) {
           nameSpanHtml =
             escapeHtml(tc("fileUploadedAppStorageLabel")) +
             " · " +
-            connectApplicationPdfDlAnchor_(draftId, f.field_id, escapeHtml(tf("submittedAttachmentOpenPdf")));
+            connectApplicationPdfDlAnchor_(draftId, f.field_id, escapeHtml(tf("submittedAttachmentSheetDownload")));
         } else if (valStr) {
           nameSpanHtml = escapeHtml(connectApplicationFileDispName_(valStr));
         }
@@ -1267,19 +1280,22 @@
             escapeHtml(tf("submittedAttachmentOpenLink")) +
             "</a>";
         } else if (nameEl && isDriveApiVal && draftId) {
+          const prevA =
+            connectDrivePreviewAnchorFromStored_(url, escapeHtml(tf("submittedAttachmentDrivePreview"))) ||
+            connectApplicationPdfDlAnchor_(draftId, id, escapeHtml(tf("submittedAttachmentSheetDownload")));
           nameEl.innerHTML =
             dispNameHtml +
             " · " +
             escapeHtml(tc("fileUploadedDriveApiLabel")) +
             " · " +
-            connectApplicationPdfDlAnchor_(draftId, id, escapeHtml(tf("submittedAttachmentOpenPdf")));
+            prevA;
         } else if (nameEl && isBlobVal && draftId) {
           nameEl.innerHTML =
             dispNameHtml +
             " · " +
             escapeHtml(tc("fileUploadedAppStorageLabel")) +
             " · " +
-            connectApplicationPdfDlAnchor_(draftId, id, escapeHtml(tf("submittedAttachmentOpenPdf")));
+            connectApplicationPdfDlAnchor_(draftId, id, escapeHtml(tf("submittedAttachmentSheetDownload")));
         } else if (nameEl) {
           nameEl.innerHTML = dispNameHtml;
         }
