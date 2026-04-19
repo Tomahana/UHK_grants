@@ -400,6 +400,7 @@
           "U příloh není v evidenci uložen název souboru ani odkaz (pole zůstalo prázdné nebo se data nepodařilo načíst).",
         submittedAttachmentOpenLink: "Otevřít odkaz",
         submittedAttachmentOpenPdf: "Otevřít PDF",
+        submittedAttachmentDrivePreview: "Náhled na Disku",
         submittedAttachmentDriveStaleShort:
           "Údaj v přihlášce vypadá jako starý odkaz na Google Disk — ten už obvykle nefunguje. Nahrajte PDF znovu v aplikaci (koncept), nebo zkuste původní odkaz níže.",
         submittedAttachmentTryOriginalLink: "Zkusit původní odkaz",
@@ -903,6 +904,7 @@
           "No file name or link is stored for attachments (the field was empty or data could not be loaded).",
         submittedAttachmentOpenLink: "Open link",
         submittedAttachmentOpenPdf: "Open PDF",
+        submittedAttachmentDrivePreview: "Preview on Drive",
         submittedAttachmentDriveStaleShort:
           "This looks like an old Google Drive link and usually no longer works. Re-upload the PDF in the app (draft), or try the original link below.",
         submittedAttachmentTryOriginalLink: "Try original link",
