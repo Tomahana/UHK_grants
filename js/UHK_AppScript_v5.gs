@@ -2387,6 +2387,7 @@ function adminBuildConnectDossierHtmlOutput_(competitionId, applicationId, token
       "</td></tr>";
   });
   Object.keys(fd).forEach(function (k) {
+    if (String(k).indexOf("_uhk_internal_") === 0) return;
     if (used[k]) return;
     var v = fd[k];
     if (v == null || String(v).trim() === "") return;

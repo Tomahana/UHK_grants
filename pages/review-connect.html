@@ -738,6 +738,12 @@ function renderDetail(){
     [tx("detailApplicant"),cur.applicant_name||"—"],
     [tx("detailFaculty"),(f.faculty||"—")+(f.department?" · "+f.department:"")],
     [tx("detailApplicantType"),f.applicant_type||"—"],
+    ...(String(f.applicant_type||"").indexOf("Junior/early-career")===0 && (f.phd_year!=null && String(f.phd_year).trim()!=="")
+      ? [[tx("detailPhdYear"),String(f.phd_year).trim()]]
+      : []),
+    ...(f._uhk_internal_phd_junior_eligibility_note && String(f._uhk_internal_phd_junior_eligibility_note).trim()
+      ? [[tx("detailJuniorPhdCheck"),String(f._uhk_internal_phd_junior_eligibility_note).trim()]]
+      : []),
     [tx("detailActivityType"),f.activity_type||"—"],
     [tx("detailPartner"),(f.partner_institution||"—")+(f.partner_country?", "+f.partner_country:"")],
     [tx("detailTerm"),(f.activity_start||"?")+" – "+(f.activity_end||"?")],

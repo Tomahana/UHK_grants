@@ -1082,6 +1082,9 @@
       created_at: "Vytvořeno",
       note: "Poznámka koordinátora",
     };
+    if (h === "form._uhk_internal_phd_junior_eligibility_note") {
+      return "Kontrola Junior / Ph.D. (interní poznámka)";
+    }
     return fixed[h] || h.replace(/_/g, " ");
   }
 
