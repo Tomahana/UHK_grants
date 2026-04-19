@@ -413,8 +413,34 @@
       if (/^UHKAFILE\|/i.test(valTrim) || /^UHKDRIVE\|/i.test(valTrim)) {
         const mDrive = /^UHKDRIVE\|[^|]+\|(.+)$/i.exec(valTrim);
         const disp = mDrive ? String(mDrive[1] || "").trim() : valTrim.replace(/^UHKAFILE\|/i, "").trim();
+        const hintRow = {
+          field_id: fieldId,
+          raw_cell_value: valTrim,
+          value: disp,
+          isSheetBlob: true,
+          application_id: aid,
+          drive_file_id: (function () {
+            const m = /^UHKDRIVE\|([^|]+)\|/i.exec(valTrim);
+            return m ? String(m[1] || "").trim() : "";
+          })(),
+        };
+        const linksRow =
+          typeof connectApplicationAttachmentLinksHtml_ === "function"
+            ? connectApplicationAttachmentLinksHtml_(hintRow, CONNECT_EXPORT_ID, {
+                escapeHtml: escapeHtmlCoord,
+                openPdfLabel: typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentOpenPdf") : "Otevřít PDF",
+                drivePreviewLabel:
+                  typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentDrivePreview") : "Náhled na Disku",
+              })
+            : "";
         valueHtml =
-          coordinatorConnectPdfOpenAnchor_(CONNECT_EXPORT_ID, aid, fieldId, "Otevřít PDF") +
+          (linksRow ||
+            coordinatorConnectPdfOpenAnchor_(
+              CONNECT_EXPORT_ID,
+              aid,
+              fieldId,
+              typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentOpenPdf") : "Otevřít PDF"
+            )) +
           ' <span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted);word-break:break-all">' +
           escapeHtmlCoord((disp || valTrim).slice(0, 220)) +
           "</span>";
@@ -450,33 +476,49 @@
       .map(function (h) {
         const fid = String((h && h.field_id) || "").trim();
         const valRaw = String((h && h.value) || "").trim();
-        const dispPlain = /^UHKDRIVE\|[^|]+\|(.+)$/i.test(valRaw)
-          ? valRaw.replace(/^UHKDRIVE\|[^|]+\|/i, "").trim()
-          : /^UHKAFILE\|/i.test(valRaw)
-            ? valRaw.replace(/^UHKAFILE\|/i, "")
+        const storedRaw = String((h && h.raw_cell_value) || valRaw || "").trim();
+        const dispPlain = /^UHKDRIVE\|[^|]+\|(.+)$/i.test(storedRaw)
+          ? storedRaw.replace(/^UHKDRIVE\|[^|]+\|/i, "").trim()
+          : /^UHKAFILE\|/i.test(storedRaw)
+            ? storedRaw.replace(/^UHKAFILE\|/i, "")
             : valRaw;
         const disp = escapeHtmlCoord(String(dispPlain).slice(0, 2000));
         const asAppBlob = !!(
           h &&
-          (h.isSheetBlob || /^UHKAFILE\|/i.test(valRaw) || /^UHKDRIVE\|/i.test(valRaw)) &&
+          (h.isSheetBlob || /^UHKAFILE\|/i.test(storedRaw) || /^UHKDRIVE\|/i.test(storedRaw)) &&
           aid &&
           fid
         );
         if (asAppBlob) {
           const cid = String(competitionId || "").trim();
+          const hintH = Object.assign({}, h, { application_id: aid, raw_cell_value: storedRaw });
+          const linksH =
+            typeof connectApplicationAttachmentLinksHtml_ === "function"
+              ? connectApplicationAttachmentLinksHtml_(hintH, cid, {
+                  escapeHtml: escapeHtmlCoord,
+                  openPdfLabel: typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentOpenPdf") : "Otevřít PDF",
+                  drivePreviewLabel:
+                    typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentDrivePreview") : "Náhled na Disku",
+                })
+              : "";
           return (
             "<li><code>" +
             escapeHtmlCoord(fid) +
             '</code> · <span style="font-family:DM Mono,monospace;font-size:11px">' +
             disp +
-            '</span> · <a href="#" class="uhk-blob-dl" data-dl-action="downloadConnectApplicationFile" ' +
-            'data-dl-competition-id="' +
-            escapeHtmlCoord(cid) +
-            '" data-dl-application-id="' +
-            escapeHtmlCoord(aid) +
-            '" data-dl-field-id="' +
-            escapeHtmlCoord(fid) +
-            '">Otevřít PDF</a></li>'
+            '</span> · ' +
+            (linksH ||
+              '<a href="#" class="uhk-blob-dl" data-dl-action="downloadConnectApplicationFile" ' +
+                'data-dl-competition-id="' +
+                escapeHtmlCoord(cid) +
+                '" data-dl-application-id="' +
+                escapeHtmlCoord(aid) +
+                '" data-dl-field-id="' +
+                escapeHtmlCoord(fid) +
+                '">' +
+                (typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentOpenPdf") : "Otevřít PDF") +
+                "</a>") +
+            "</li>"
           );
         }
         if (h && h.isLikelyUrl) {
