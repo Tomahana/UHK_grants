@@ -2289,6 +2289,9 @@ function connectApplicationFileFieldHints_(fd, applicationIdOpt, ss) {
     out.push({
       field_id: k,
       value: disp,
+      /** Původní řetězec z form_data_json (UHKDRIVE|… / UHKAFILE|…) – frontend podle něj pozná úložiště i když value je jen název souboru. */
+      raw_cell_value: raw,
+      drive_file_id: driveRef && driveRef.fileId ? String(driveRef.fileId).trim() : "",
       isLikelyUrl: isLikelyUrl,
       isSheetBlob: isSheetBlob,
       application_id: appId,
