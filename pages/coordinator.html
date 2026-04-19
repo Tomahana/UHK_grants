@@ -339,6 +339,9 @@
   let currentApp = null;
 
   const CONNECT_EXPORT_ID = "uhk_connect_2026_v2";
+  /** Popisky polí z getFormFields (Connect) – hlavičky exportu místo kódů form.* */
+  let connectExportFieldLabelById_ = {};
+
   /** Stejná pole PDF jako v apply-connect.html – v detailu zobrazíme „Otevřít PDF“ přes api.js (jako u žadatele). */
   const CONNECT_APPLICATION_FILE_FIELD_IDS_ = [
     "attach_invitation",
@@ -778,7 +781,7 @@
               app,
               [],
               man,
-              "Záložní přehled z exportu checklistu (getConnectDeliverablesExport). Odkazy na soubory z tlačítka nahrání doplní aktuální skript u getConnectPostAward, případně použijte v detailu přihlášky „PDF přehled Connect“.",
+              "Záložní přehled z exportu checklistu (getConnectDeliverablesExport). Odkazy na soubory z tlačítka nahrání doplní aktuální skript u getConnectPostAward, případně použijte v detailu přihlášky „Přehled Connect (tisk → PDF)“.",
               bulkFolderUrl,
               bulkScanNote ? bulkScanNote.replace(/«ID_přihlášky_»/g, "«" + app + "_»") : coordinatorDriveScanNoteForApp_(app),
               comp,
@@ -1060,6 +1063,28 @@
     return [...priority.filter((k) => set.has(k)), ...rest];
   }
 
+  /** Název sloupce v exportu: u Connect form.* → label_cs z FORM_FIELDS. */
+  function exportColumnDisplayTitle_(headerKey) {
+    const h = String(headerKey || "");
+    if (h.indexOf("form.") === 0) {
+      const fid = h.slice(5);
+      const lab = connectExportFieldLabelById_[fid];
+      if (lab) return lab;
+      return fid.replace(/_/g, " ");
+    }
+    const fixed = {
+      competition_id: "Soutěž (ID)",
+      application_id: "ID přihlášky",
+      applicant_email: "E-mail žadatele",
+      applicant_name: "Jméno žadatele",
+      status: "Stav",
+      submitted_at: "Podáno",
+      created_at: "Vytvořeno",
+      note: "Poznámka koordinátora",
+    };
+    return fixed[h] || h.replace(/_/g, " ");
+  }
+
   function escapeXmlText(s) {
     return String(s == null ? "" : s)
       .replace(/&/g, "&amp;")
@@ -1084,7 +1109,7 @@
           .map(
             (h) =>
               "<tr><th style=\"text-align:left;padding:6px 10px;border:1px solid #ccc;width:28%;vertical-align:top\">" +
-              escapeHtmlCoord(h) +
+              escapeHtmlCoord(exportColumnDisplayTitle_(h)) +
               "</th><td style=\"padding:6px 10px;border:1px solid #ccc;word-break:break-word\">" +
               escapeHtmlCoord(String(flat[h] != null ? flat[h] : "")) +
               "</td></tr>"
@@ -1128,7 +1153,7 @@
     const base = "uhk_export_vybrane_" + date;
 
     const sep = ";";
-    const csvLines = [headers.join(sep)];
+    const csvLines = [headers.map((h) => csvEscape(exportColumnDisplayTitle_(h))).join(sep)];
     flatRows.forEach((row) => {
       csvLines.push(headers.map((h) => csvEscape(row[h] != null ? row[h] : "")).join(sep));
     });
@@ -1147,6 +1172,8 @@
         xml +=
           '    <field id="' +
           escapeXmlAttr(h) +
+          '" label="' +
+          escapeXmlAttr(exportColumnDisplayTitle_(h)) +
           '">' +
           escapeXmlText(String(flat[h] != null ? flat[h] : "")) +
           "</field>\n";
@@ -1160,6 +1187,23 @@
     downloadTextFile(base + "_pro_tisk_PDF.html", html, "text/html;charset=utf-8");
 
     showToast("Staženo 3 soubory: CSV, XML a HTML (z HTML lze uložit PDF přes Ctrl+P).");
+  }
+
+  async function loadConnectFormFieldLabelsForExport_() {
+    connectExportFieldLabelById_ = {};
+    try {
+      if (typeof API === "undefined" || !API.get) return;
+      const data = await API.get("getFormFields", { competitionId: CONNECT_EXPORT_ID });
+      const fields = data && data.fields ? data.fields : [];
+      fields.forEach(function (f) {
+        const id = String((f && f.field_id) || "").trim();
+        if (!id) return;
+        const lab = String((f && (f.label_cs || f.field_label)) || id).trim() || id;
+        connectExportFieldLabelById_[id] = lab;
+      });
+    } catch {
+      connectExportFieldLabelById_ = {};
+    }
   }
 
   // ── Načtení přihlášek ─────────────────────────────────────
@@ -1198,6 +1242,7 @@
     allApps = all.length ? all : getDemoApps();
     updateStats();
     applyFilters();
+    void loadConnectFormFieldLabelsForExport_();
     document.getElementById("pageSub").textContent =
       `${allApps.length} přihlášek celkem · aktualizováno ${new Date().toLocaleTimeString("cs-CZ", {hour:"2-digit",minute:"2-digit"})}`;
   }
@@ -1408,7 +1453,7 @@
 
     const pdfFooterBtn =
       a.competition_id === CONNECT_EXPORT_ID && Auth.hasAnyRole(["ADMIN", "TESTER", "PROREKTOR"])
-        ? `<button type="button" class="btn btn-outline" onclick="openConnectAdminDossierPdfFromModal()">PDF přehled Connect</button>`
+        ? `<button type="button" class="btn btn-outline" onclick="openConnectAdminDossierPdfFromModal()">Přehled Connect (tisk → PDF)</button>`
         : "";
 
     document.getElementById("modalFooter").innerHTML = `

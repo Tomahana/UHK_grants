@@ -39,7 +39,7 @@
       : "";
     var pdfLine = data.showAdminPdfExport
       ? '<p style="margin-top:10px;"><button type="button" class="btn btn-secondary" id="pa_adminPdfLink">' +
-        escapeHtml("Stáhnout PDF přehled (text žádosti, část 2, odkazy)") +
+        escapeHtml("Přehled Connect (tisk → PDF)") +
         "</button></p>"
       : "";
     var cid = String((data && data.competitionId) || "");
