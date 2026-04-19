@@ -217,55 +217,160 @@ function corsResponse(data) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-/**
- * Web App: doPost smí vracet jen HtmlOutput nebo TextOutput — ne Blob.
- * Zobrazíme PDF přímo přes data: URL v &lt;embed&gt; — bez přesměrování na blob:,
- * které Chrome na doméně script.google.com často blokuje („stránka je blokována“).
- * Velmi velké soubory (&gt; ~1,5 MB) v data: URL také narazí na limity prohlížeče.
- */
-function connectPdfBlobToHtmlOpenTabOutput_(pdfBlob) {
-  var blob = pdfBlob && pdfBlob.copyBlob ? pdfBlob.copyBlob() : pdfBlob;
-  if (!blob) throw new Error("Chybí soubor.");
-  var bytes = blob.getBytes();
-  if (!bytes || bytes.length === 0) throw new Error("Soubor je prázdný.");
-  var maxInline = 1500000;
-  if (bytes.length > maxInline) {
-    var msg =
-      "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>PDF</title></head><body style=\"font-family:sans-serif;padding:16px;\">" +
-      "<p>Soubor je příliš velký na zobrazení v tomto okně (omezení prohlížeče). Zkuste menší PDF nebo kontaktujte správce.</p>" +
-      "</body></html>";
-    return HtmlService.createHtmlOutput(msg);
-  }
-  var b64 = Utilities.base64Encode(bytes);
-  var fname = String(blob.getName() || "document.pdf")
-    .replace(/[\r\n\\]/g, "_")
-    .replace(/"/g, "_")
-    .slice(0, 200);
-  if (!/\.pdf$/i.test(fname)) fname = (fname || "document") + ".pdf";
-  var titleEsc = String(fname)
+/** Bezpečné escapování do HTML atributu (href, meta refresh). */
+function connectEscapeHtmlAttr_(s) {
+  return String(s || "")
     .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-  var fnEscAttr = String(fname).replace(/&/g, "&amp;").replace(/"/g, "&quot;");
-  var dataUrl = "data:application/pdf;base64," + b64;
-  var srcAttr = dataUrl.indexOf("'") >= 0 ? dataUrl.replace(/'/g, "%27") : dataUrl;
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/</g, "&lt;");
+}
+
+/**
+ * Absolutní GET URL na tento Web App (doGet) s tokenem — pro přesměrování z POST HTML
+ * (HtmlService často zahodí data: / embed PDF → prázdná stránka).
+ */
+function connectBuildWebAppGetDownloadUrl_(action, token, paramMap) {
+  var base = "";
+  try {
+    base = String(ScriptApp.getService().getUrl() || "").trim();
+  } catch (eSvc) {
+    throw new Error("Web App URL není k dispozici (nasazení?).");
+  }
+  if (!base) throw new Error("Web App URL je prázdná.");
+  var parts = ["action=" + encodeURIComponent(String(action || "")), "token=" + encodeURIComponent(String(token || ""))];
+  var keys = Object.keys(paramMap || {});
+  for (var i = 0; i < keys.length; i++) {
+    var k = keys[i];
+    var v = paramMap[k];
+    if (v !== undefined && v !== null && String(v) !== "") {
+      parts.push(encodeURIComponent(k) + "=" + encodeURIComponent(String(v)));
+    }
+  }
+  return base + "?" + parts.join("&");
+}
+
+/** Po POST: stránka přesměruje na doGet, který vrátí raw PDF (HtmlService data: PDF nefunguje). */
+function connectRedirectPostToGetDownloadHtml_(action, token, paramMap) {
+  var getUrl = connectBuildWebAppGetDownloadUrl_(action, token, paramMap);
+  var href = connectEscapeHtmlAttr_(getUrl);
   var html =
-    "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>" +
-    titleEsc +
-    "</title><style>html,body{margin:0;height:100%;}embed{display:block;width:100%;height:100vh;}</style></head><body>" +
-    "<embed type=\"application/pdf\" src='" +
-    srcAttr +
-    "' title=\"" +
-    fnEscAttr +
-    "\" />" +
-    "<p style=\"margin:8px;font-size:13px;\"><a href='" +
-    srcAttr +
-    "' download=\"" +
-    fnEscAttr +
-    "\">Stáhnout PDF</a> (záloha, pokud se náhled nezobrazí)</p>" +
+    "<!DOCTYPE html><html><head><meta charset=\"utf-8\">" +
+    '<meta http-equiv="refresh" content="0;url=' +
+    href +
+    '">' +
+    "<title>PDF</title></head><body style=\"font-family:sans-serif;padding:16px;\">" +
+    "<p>Načítám soubor… Pokud se PDF neotevřelo, použijte odkaz:</p>" +
+    '<p><a href="' +
+    href +
+    '" target="_self" rel="noopener">Stáhnout / otevřít PDF</a></p>' +
     "</body></html>";
   return HtmlService.createHtmlOutput(html);
 }
+
+/**
+ * Rozhodnutí: příloha z Disku (UHKDRIVE) → náhled v iframe; jinak binární blob (záloha v tabulce).
+ * @returns {{ mode: string, fileId?: string, title?: string, blob?: GoogleAppsScript.Base.Blob }}
+ */
+function connectApplicationFileDownloadResolved_(competitionId, applicationId, fieldId, token) {
+  var auth = requireAuth(token);
+  var cid = String(competitionId || "").trim();
+  var aid = String(applicationId || "").trim();
+  var fid = String(fieldId || "").trim();
+  if (cid !== CONNECT_COMPETITION_ID || !aid || !fid) throw new Error("Neplatné parametry.");
+  var allowed = { attach_invitation: 1, attach_annex1: 1, attach_annex2: 1, attach_annex3: 1 };
+  if (!allowed[fid]) throw new Error("Neplatné pole přílohy.");
+  if (!connectCanDownloadApplicationBlob_(auth, cid, aid)) throw new Error("Soubor nelze stáhnout (oprávnění).");
+  var ss = getSpreadsheet(cid);
+  var sheet = ss.getSheetByName(SHEETS.APPLICATIONS);
+  if (!sheet) throw new Error("List APPLICATIONS nenalezen.");
+  var rows = sheetToObjects(sheet).map(applicationsSheetRowNormalize_);
+  var appRow = rows.find(function (r) {
+    return String(r.application_id || "").trim() === aid;
+  });
+  if (!appRow) throw new Error("Přihláška nenalezena.");
+  var fd = connectParseFormDataObject_(appRow);
+  var cellVal = fd && Object.prototype.hasOwnProperty.call(fd, fid) ? fd[fid] : "";
+  var driveRef = connectParseUhkDriveCell_(cellVal);
+  var blobSh = ss.getSheetByName(SHEETS.APPLICATION_FILE_BLOBS);
+  var meta = blobSh ? connectReadPdfBlobFromSheet_(blobSh, aid, fid) : null;
+  var sheetOk = !!(meta && meta.bytes && meta.bytes.length > 0);
+
+  if (driveRef && driveRef.fileId) {
+    try {
+      var f = DriveApp.getFileById(driveRef.fileId);
+      var b = f.getBlob();
+      if (b && b.getBytes().length > 0) {
+        var nm = String(driveRef.displayName || b.getName() || "soubor.pdf")
+          .replace(/[^a-zA-Z0-9._\-]/g, "_")
+          .replace(/_+/g, "_")
+          .slice(0, 180);
+        if (!/\.pdf$/i.test(nm)) nm = (nm || "soubor") + ".pdf";
+        return { mode: "drive_preview", fileId: String(driveRef.fileId).trim(), title: nm, blob: b.setName(nm) };
+      }
+    } catch (eDrive) {
+      /* prázdný / nedostupný Disk → záloha v tabulce */
+    }
+    if (sheetOk) {
+      var safeName2 = String(meta.fileName || "soubor.pdf")
+        .replace(/[^a-zA-Z0-9._\-]/g, "_")
+        .replace(/_+/g, "_")
+        .slice(0, 180);
+      if (!/\.pdf$/i.test(safeName2)) safeName2 = (safeName2 || "soubor") + ".pdf";
+      return {
+        mode: "blob",
+        blob: Utilities.newBlob(meta.bytes, meta.mimeType || "application/pdf", safeName2).setName(safeName2),
+      };
+    }
+    throw new Error(
+      "Soubor na Google Disku je prázdný nebo nedostupný a v tabulce není záloha. Nahrajte PDF znovu v konceptu (nebo kontaktujte správce)."
+    );
+  }
+  if (!blobSh) throw new Error("Úložiště příloh není k dispozici.");
+  if (!sheetOk) throw new Error("Soubor nenalezen nebo je prázdný.");
+  var safeName = String(meta.fileName || "soubor.pdf")
+    .replace(/[^a-zA-Z0-9._\-]/g, "_")
+    .replace(/_+/g, "_")
+    .slice(0, 180);
+  if (!/\.pdf$/i.test(safeName)) safeName = (safeName || "soubor") + ".pdf";
+  var outBlob = Utilities.newBlob(meta.bytes, meta.mimeType || "application/pdf", safeName);
+  return { mode: "blob", blob: outBlob.setName(safeName) };
+}
+
+/**
+ * Web App doPost: HtmlOutput — Disk → iframe náhled; tabulka → přesměrování na GET (raw PDF z doGet).
+ */
+function connectApplicationFilePostOpenHtml_(competitionId, applicationId, fieldId, token) {
+  var r = connectApplicationFileDownloadResolved_(competitionId, applicationId, fieldId, token);
+  var title = r.title || (r.blob && r.blob.getName && r.blob.getName()) || "PDF";
+  var titleTag = String(title || "PDF")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  if (r.mode === "drive_preview" && r.fileId) {
+    var src = "https://drive.google.com/file/d/" + String(r.fileId).trim() + "/preview";
+    var html =
+      "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>" +
+      titleTag +
+      "</title><style>html,body{margin:0;height:100%;}iframe{border:0;display:block;width:100%;height:100vh;}</style></head><body>" +
+      '<iframe src="' +
+      connectEscapeHtmlAttr_(src) +
+      '" title="' +
+      connectEscapeHtmlAttr_(title) +
+      '"></iframe>' +
+      '<p style="margin:8px;font-size:13px;font-family:sans-serif;"><a href="' +
+      connectEscapeHtmlAttr_(src) +
+      '" target="_blank" rel="noopener">Otevřít na Disku Google</a></p>' +
+      "</body></html>";
+    return HtmlService.createHtmlOutput(html);
+  }
+  return connectRedirectPostToGetDownloadHtml_("downloadConnectApplicationFile", token, {
+    competitionId: competitionId,
+    applicationId: applicationId,
+    fieldId: fieldId,
+  });
+}
+
 
 
 // ============================================================
@@ -403,25 +508,22 @@ function doPost(e) {
       /** Stažení PDF z tabulky (token v těle POST – spolehlivější než dlouhý GET na /exec). */
       case "downloadConnectApplicationFile":
         try {
-          var appPdf = downloadConnectApplicationFile_(
+          return connectApplicationFilePostOpenHtml_(
             body.competitionId,
             body.applicationId || body.app,
             body.fieldId || body.field,
             body.token
           );
-          return connectPdfBlobToHtmlOpenTabOutput_(appPdf);
         } catch (dlApp) {
           return ContentService.createTextOutput(String(dlApp.message || dlApp)).setMimeType(ContentService.MimeType.PLAIN);
         }
       case "downloadConnectPostAwardFile":
         try {
-          var paBlob = downloadConnectPostAwardFile_(
-            body.competitionId,
-            body.applicationId || body.app,
-            body.blobKey || body.blob || body.field,
-            body.token
-          );
-          return connectPdfBlobToHtmlOpenTabOutput_(paBlob);
+          return connectRedirectPostToGetDownloadHtml_("downloadConnectPostAwardFile", body.token, {
+            competitionId: body.competitionId,
+            applicationId: body.applicationId || body.app,
+            blobKey: body.blobKey || body.blob || body.field,
+          });
         } catch (dlPa) {
           return ContentService.createTextOutput(String(dlPa.message || dlPa)).setMimeType(ContentService.MimeType.PLAIN);
         }
@@ -708,14 +810,44 @@ function requireAuth(token) {
   return v;
 }
 
-/** Porovnání role z tokenu s povoleným seznamem (bez závislosti na velikosti písmen / mezerách). */
+/** Role z listu ROLES / tokenu: diakritika + synonymum „Správce“ → ADMIN (aby stažení PDF fungovalo i při českých popisech). */
+function connectNormalizeAuthRoleKey_(role) {
+  var s = String(role || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "_");
+  var pairs = [
+    ["Á", "A"],
+    ["Č", "C"],
+    ["Ď", "D"],
+    ["É", "E"],
+    ["Ě", "E"],
+    ["Í", "I"],
+    ["Ň", "N"],
+    ["Ó", "O"],
+    ["Ř", "R"],
+    ["Š", "S"],
+    ["Ť", "T"],
+    ["Ú", "U"],
+    ["Ů", "U"],
+    ["Ý", "Y"],
+    ["Ž", "Z"],
+  ];
+  for (var i = 0; i < pairs.length; i++) {
+    s = s.split(pairs[i][0]).join(pairs[i][1]);
+  }
+  if (s === "SPRAVCE" || s === "ADMINISTRATOR" || s === "SUPERADMIN") return "ADMIN";
+  return s;
+}
+
+/** Porovnání role z tokenu s povoleným seznamem (bez závislosti na velikosti písmen / mezerách / diakritice). */
 function authHasAnyRole_(auth, allowedRoles) {
   const want = {};
   (allowedRoles || []).forEach(function (x) {
-    want[String(x).trim().toUpperCase()] = true;
+    want[connectNormalizeAuthRoleKey_(x)] = true;
   });
   return (auth.roles || []).some(function (r) {
-    return want[String(r).trim().toUpperCase()];
+    return want[connectNormalizeAuthRoleKey_(r)];
   });
 }
 
@@ -1743,65 +1875,9 @@ function connectCanDownloadApplicationBlob_(auth, competitionId, applicationId) 
 }
 
 function downloadConnectApplicationFile_(competitionId, applicationId, fieldId, token) {
-  var auth = requireAuth(token);
-  var cid = String(competitionId || "").trim();
-  var aid = String(applicationId || "").trim();
-  var fid = String(fieldId || "").trim();
-  if (cid !== CONNECT_COMPETITION_ID || !aid || !fid) throw new Error("Neplatné parametry.");
-  var allowed = { attach_invitation: 1, attach_annex1: 1, attach_annex2: 1, attach_annex3: 1 };
-  if (!allowed[fid]) throw new Error("Neplatné pole přílohy.");
-  if (!connectCanDownloadApplicationBlob_(auth, cid, aid)) throw new Error("Soubor nelze stáhnout (oprávnění).");
-  var ss = getSpreadsheet(cid);
-  var sheet = ss.getSheetByName(SHEETS.APPLICATIONS);
-  if (!sheet) throw new Error("List APPLICATIONS nenalezen.");
-  var rows = sheetToObjects(sheet).map(applicationsSheetRowNormalize_);
-  var appRow = rows.find(function (r) {
-    return String(r.application_id || "").trim() === aid;
-  });
-  if (!appRow) throw new Error("Přihláška nenalezena.");
-  var fd = connectParseFormDataObject_(appRow);
-  var cellVal = fd && Object.prototype.hasOwnProperty.call(fd, fid) ? fd[fid] : "";
-  var driveRef = connectParseUhkDriveCell_(cellVal);
-  var blobSh = ss.getSheetByName(SHEETS.APPLICATION_FILE_BLOBS);
-  var meta = blobSh ? connectReadPdfBlobFromSheet_(blobSh, aid, fid) : null;
-  var sheetOk = !!(meta && meta.bytes && meta.bytes.length > 0);
-
-  if (driveRef && driveRef.fileId) {
-    try {
-      var f = DriveApp.getFileById(driveRef.fileId);
-      var b = f.getBlob();
-      if (b && b.getBytes().length > 0) {
-        var nm = String(driveRef.displayName || b.getName() || "soubor.pdf")
-          .replace(/[^a-zA-Z0-9._\-]/g, "_")
-          .replace(/_+/g, "_")
-          .slice(0, 180);
-        if (!/\.pdf$/i.test(nm)) nm = (nm || "soubor") + ".pdf";
-        return b.setName(nm);
-      }
-    } catch (eDrive) {
-      /* prázdný / nedostupný Disk → záloha v tabulce */
-    }
-    if (sheetOk) {
-      var safeName2 = String(meta.fileName || "soubor.pdf")
-        .replace(/[^a-zA-Z0-9._\-]/g, "_")
-        .replace(/_+/g, "_")
-        .slice(0, 180);
-      if (!/\.pdf$/i.test(safeName2)) safeName2 = (safeName2 || "soubor") + ".pdf";
-      return Utilities.newBlob(meta.bytes, meta.mimeType || "application/pdf", safeName2).setName(safeName2);
-    }
-    throw new Error(
-      "Soubor na Google Disku je prázdný nebo nedostupný a v tabulce není záloha. Nahrajte PDF znovu v konceptu (nebo kontaktujte správce)."
-    );
-  }
-  if (!blobSh) throw new Error("Úložiště příloh není k dispozici.");
-  if (!sheetOk) throw new Error("Soubor nenalezen nebo je prázdný.");
-  var safeName = String(meta.fileName || "soubor.pdf")
-    .replace(/[^a-zA-Z0-9._\-]/g, "_")
-    .replace(/_+/g, "_")
-    .slice(0, 180);
-  if (!/\.pdf$/i.test(safeName)) safeName = (safeName || "soubor") + ".pdf";
-  var outBlob = Utilities.newBlob(meta.bytes, meta.mimeType || "application/pdf", safeName);
-  return outBlob.setName(safeName);
+  var r = connectApplicationFileDownloadResolved_(competitionId, applicationId, fieldId, token);
+  if (!r || !r.blob) throw new Error("Soubor nelze načíst.");
+  return r.blob;
 }
 
 /**
