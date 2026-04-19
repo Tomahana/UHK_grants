@@ -349,7 +349,7 @@ const API = {
 
 /**
  * HTML akcí u přílohy Connect z API (`file_fields` / `application_file_hints`):
- * „Otevřít PDF“ (uhk-blob-dl) + u UHKDRIVE odkaz „Náhled na Disku“ (stejně jako u žadatele v konceptu).
+ * jen „Náhled na Disku“ u UHKDRIVE; u zálohy v tabulce (UHKAFILE / jen tabulka) odkaz stažení přes Web App.
  * Spoléhá na `raw_cell_value` + `drive_file_id` ze skriptu; zpětně parsuje UHKDRIVE z `value`, pokud chybí.
  */
 function connectApplicationAttachmentLinksHtml_(hint, competitionId, opts) {
@@ -367,8 +367,8 @@ function connectApplicationAttachmentLinksHtml_(hint, competitionId, opts) {
   const escAttr = function (s) {
     return esc(String(s == null ? "" : s)).replace(/"/g, "&quot;");
   };
-  const pdfLab = o.openPdfLabel != null ? String(o.openPdfLabel) : "Otevřít PDF";
   const driveLab = o.drivePreviewLabel != null ? String(o.drivePreviewLabel) : "Náhled na Disku";
+  const sheetLab = o.sheetDownloadLabel != null ? String(o.sheetDownloadLabel) : "Stáhnout z aplikace";
   const h = hint || {};
   const raw = String(h.raw_cell_value != null ? h.raw_cell_value : "").trim() || String(h.value || "").trim();
   const vTrim = raw;
@@ -385,28 +385,27 @@ function connectApplicationAttachmentLinksHtml_(hint, competitionId, opts) {
       (h.isSheetBlob || /^UHKAFILE\|/i.test(vTrim) || /^UHKDRIVE\|/i.test(vTrim))
     );
   if (!isStored) return "";
-  const parts = [
-    '<a href="#" class="uhk-blob-dl" data-dl-action="downloadConnectApplicationFile" ' +
-      'data-dl-competition-id="' +
-      escAttr(cid) +
-      '" data-dl-application-id="' +
-      escAttr(appAid) +
-      '" data-dl-field-id="' +
-      escAttr(fid) +
-      '">' +
-      esc(pdfLab) +
-      "</a>",
-  ];
   if (driveId) {
-    parts.push(
+    return (
       '<a href="https://drive.google.com/file/d/' +
-        encodeURIComponent(driveId) +
-        '/preview" target="_blank" rel="noopener noreferrer">' +
-        esc(driveLab) +
-        "</a>"
+      encodeURIComponent(driveId) +
+      '/preview" target="_blank" rel="noopener noreferrer">' +
+      esc(driveLab) +
+      "</a>"
     );
   }
-  return parts.join(' <span style="color:var(--muted)">·</span> ');
+  return (
+    '<a href="#" class="uhk-blob-dl" data-dl-action="downloadConnectApplicationFile" ' +
+    'data-dl-competition-id="' +
+    escAttr(cid) +
+    '" data-dl-application-id="' +
+    escAttr(appAid) +
+    '" data-dl-field-id="' +
+    escAttr(fid) +
+    '">' +
+    esc(sheetLab) +
+    "</a>"
+  );
 }
 
 /** Dostupné i pro skripty v jiném lexikálním oboru (např. IIFE v connect-postaward-panel.js). */
