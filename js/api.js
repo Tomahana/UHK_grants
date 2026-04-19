@@ -244,17 +244,20 @@ const API = {
   },
 
   /**
-   * Otevře PDF z Web Appu v novém tabu — bez fetch() (u script.google.com často „Failed to fetch“ kvůli CORS).
-   * Preferujeme GET → doGet vrací PDF přímo. Token u účtů s více rolemi je dlouhý; limit musí být vysoký,
-   * jinak se použije POST + HtmlService a u štábu často prázdný náhled. Jinak POST (token v těle).
+   * Otevře GET na Web App v novém tabu (PDF, adminExportConnectProjectDossierPdf, …) — bez fetch(), stejná logika jako u příloh.
+   * @param {string} action
+   * @param {Record<string,string>} params  další query parametry (kromě action/token)
+   * @param {{ requireAuth?: boolean }} opts  výchozí requireAuth: true → doplní token ze session
    */
-  async openConnectBinaryDownload(action, fields) {
-    const session = Auth._getSession();
-    if (!session?.token) {
+  openWebAppGetInNewTab(action, params, opts) {
+    const o = opts || {};
+    const requireAuth = o.requireAuth !== false;
+    const session = typeof Auth !== "undefined" && Auth._getSession ? Auth._getSession() : null;
+    if (requireAuth && !session?.token) {
       const msg =
         typeof I18n !== "undefined" && I18n.t
           ? I18n.t("api.needLoginDownload")
-          : "Pro stažení souboru se přihlaste.";
+          : "Pro tuto akci se přihlaste.";
       throw new Error(msg);
     }
     const baseUrl = String(typeof API_URL !== "undefined" ? API_URL : "").trim();
@@ -270,8 +273,8 @@ const API = {
     try {
       const u = new URL(baseUrl);
       u.searchParams.set("action", action);
-      u.searchParams.set("token", session.token);
-      Object.entries(fields || {}).forEach(([k, v]) => {
+      if (session?.token) u.searchParams.set("token", session.token);
+      Object.entries(params || {}).forEach(([k, v]) => {
         if (v !== undefined && v !== null && String(v) !== "") u.searchParams.set(k, String(v));
       });
       getUrl = u.toString();
@@ -299,7 +302,6 @@ const API = {
       }
     };
 
-    /** Apps Script /exec URL typicky snese řádově 100k+ znaků; 7k zbytečně přepínalo štáb na POST. */
     if (getUrl.length <= 120000) {
       openInNewTab(getUrl);
       return;
@@ -320,8 +322,8 @@ const API = {
       form.appendChild(inp);
     };
     addField("action", action);
-    addField("token", session.token);
-    Object.entries(fields || {}).forEach(([k, v]) => {
+    if (session?.token) addField("token", session.token);
+    Object.entries(params || {}).forEach(([k, v]) => {
       if (v !== undefined && v !== null && String(v) !== "") addField(k, v);
     });
     document.body.appendChild(form);
@@ -333,6 +335,15 @@ const API = {
         /* ignore */
       }
     }, 500);
+  },
+
+  /**
+   * Otevře PDF z Web Appu v novém tabu — bez fetch() (u script.google.com často „Failed to fetch“ kvůli CORS).
+   * Preferujeme GET → doGet vrací PDF přímo. Token u účtů s více rolemi je dlouhý; limit musí být vysoký,
+   * jinak se použije POST + HtmlService a u štábu často prázdný náhled. Jinak POST (token v těle).
+   */
+  async openConnectBinaryDownload(action, fields) {
+    this.openWebAppGetInNewTab(action, fields, { requireAuth: true });
   },
 };
 

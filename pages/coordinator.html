@@ -341,13 +341,19 @@
   const CONNECT_EXPORT_ID = "uhk_connect_2026_v2";
 
   function openConnectAdminDossierPdf(appId) {
-    const session = Auth._getSession();
-    const u = new URL(API_URL);
-    u.searchParams.set("action", "adminExportConnectProjectDossierPdf");
-    u.searchParams.set("competitionId", CONNECT_EXPORT_ID);
-    u.searchParams.set("applicationId", appId);
-    if (session?.token) u.searchParams.set("token", session.token);
-    window.open(u.toString(), "_blank");
+    try {
+      if (typeof API !== "undefined" && API.openWebAppGetInNewTab) {
+        API.openWebAppGetInNewTab(
+          "adminExportConnectProjectDossierPdf",
+          { competitionId: CONNECT_EXPORT_ID, applicationId: appId },
+          { requireAuth: true }
+        );
+      } else {
+        showToast("Chybí api.js (openWebAppGetInNewTab).", "err");
+      }
+    } catch (e) {
+      showToast((e && e.message) || String(e), "err");
+    }
   }
 
   function openConnectAdminDossierPdfFromModal() {
@@ -925,7 +931,9 @@
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = filename;
+    document.body.appendChild(a);
     a.click();
+    a.remove();
     URL.revokeObjectURL(a.href);
   }
 

@@ -38,9 +38,9 @@
         '</button> <span id="pa_repairSharingStatus" style="font-size:12px;color:var(--muted);"></span></p>'
       : "";
     var pdfLine = data.showAdminPdfExport
-      ? '<p style="margin-top:10px;"><a class="btn btn-secondary" id="pa_adminPdfLink" href="#" target="_blank" rel="noopener">' +
+      ? '<p style="margin-top:10px;"><button type="button" class="btn btn-secondary" id="pa_adminPdfLink">' +
         escapeHtml("Stáhnout PDF přehled (text žádosti, část 2, odkazy)") +
-        "</a></p>"
+        "</button></p>"
       : "";
     var cid = String((data && data.competitionId) || "");
     var aid = String((data && data.applicationId) || "");
@@ -602,23 +602,30 @@
     return "<p class=\"postaward-mail\">Neznámý režim panelu.</p>";
   }
 
-  function bindAdminPdfLink(competitionId, applicationId) {
-    var a = document.getElementById("pa_adminPdfLink");
-    if (!a) return;
-    var base = typeof API_URL !== "undefined" ? API_URL : "";
-    if (!base) return;
-    try {
-      var u = new URL(base);
-      u.searchParams.set("action", "adminExportConnectProjectDossierPdf");
-      u.searchParams.set("competitionId", competitionId);
-      u.searchParams.set("applicationId", applicationId);
-      var session =
-        typeof Auth !== "undefined" && Auth._getSession ? Auth._getSession() : null;
-      if (session && session.token) u.searchParams.set("token", session.token);
-      a.href = u.toString();
-    } catch (err) {
-      /* ignore */
-    }
+  function bindAdminPdfLink(competitionId, applicationId, showToast) {
+    var btn = document.getElementById("pa_adminPdfLink");
+    if (!btn) return;
+    var cid = String(competitionId || "").trim();
+    var aid = String(applicationId || "").trim();
+    btn.addEventListener("click", function (ev) {
+      ev.preventDefault();
+      try {
+        var client = api();
+        if (client && typeof client.openWebAppGetInNewTab === "function") {
+          client.openWebAppGetInNewTab(
+            "adminExportConnectProjectDossierPdf",
+            { competitionId: cid, applicationId: aid },
+            { requireAuth: true }
+          );
+        } else {
+          throw new Error(paTx("errNoApi", "Chybí API – načtěte api.js."));
+        }
+      } catch (err) {
+        var msg = (err && err.message) || String(err);
+        if (typeof showToast === "function") showToast(msg, "err");
+        else if (typeof console !== "undefined" && console.warn) console.warn(err);
+      }
+    });
   }
 
   function bindConnectPostAwardAdminDriveTools(competitionId, applicationId, showToast, remount, data) {
@@ -900,7 +907,7 @@
         },
       });
       bindConnectPostAwardAdminDriveTools(competitionId, applicationId, showToast, remount, data);
-      bindAdminPdfLink(competitionId, applicationId);
+      bindAdminPdfLink(competitionId, applicationId, showToast);
     } catch (e) {
       rootEl.innerHTML = '<p style="font-size:13px;color:#991B1B;">' + escapeHtml(e.message) + "</p>";
     }
