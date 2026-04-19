@@ -401,6 +401,7 @@
         submittedAttachmentOpenLink: "Otevřít odkaz",
         submittedAttachmentOpenPdf: "Otevřít PDF",
         submittedAttachmentDrivePreview: "Náhled na Disku",
+        submittedAttachmentSheetDownload: "Stáhnout z aplikace",
         submittedAttachmentDriveStaleShort:
           "Údaj v přihlášce vypadá jako starý odkaz na Google Disk — ten už obvykle nefunguje. Nahrajte PDF znovu v aplikaci (koncept), nebo zkuste původní odkaz níže.",
         submittedAttachmentTryOriginalLink: "Zkusit původní odkaz",
@@ -905,6 +906,7 @@
         submittedAttachmentOpenLink: "Open link",
         submittedAttachmentOpenPdf: "Open PDF",
         submittedAttachmentDrivePreview: "Preview on Drive",
+        submittedAttachmentSheetDownload: "Download from app",
         submittedAttachmentDriveStaleShort:
           "This looks like an old Google Drive link and usually no longer works. Re-upload the PDF in the app (draft), or try the original link below.",
         submittedAttachmentTryOriginalLink: "Try original link",

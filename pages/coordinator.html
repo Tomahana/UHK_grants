@@ -376,27 +376,6 @@
       .replace(/"/g, "&quot;");
   }
 
-  /** Otevření PDF z tabulky/Disku – stejná třída a delegace jako apply-connect.html. */
-  function coordinatorConnectPdfOpenAnchor_(competitionId, applicationId, fieldId, linkText) {
-    const cid = String(competitionId || "").trim();
-    const aid = String(applicationId || "").trim();
-    const fid = String(fieldId || "").trim();
-    if (!cid || !aid || !fid) return "";
-    const lab = linkText != null ? String(linkText) : "Otevřít PDF";
-    return (
-      '<a href="#" class="uhk-blob-dl" data-dl-action="downloadConnectApplicationFile" ' +
-      'data-dl-competition-id="' +
-      escapeHtmlCoord(cid) +
-      '" data-dl-application-id="' +
-      escapeHtmlCoord(aid) +
-      '" data-dl-field-id="' +
-      escapeHtmlCoord(fid) +
-      '">' +
-      escapeHtmlCoord(lab) +
-      "</a>"
-    );
-  }
-
   /** Blok příloh podacího formuláře Connect v modalu správy (žadatel má totéž u odeslané přihlášky). */
   function coordinatorConnectSubmittedAttachmentsHtml_(competitionId, applicationId, form) {
     if (String(competitionId || "").trim() !== CONNECT_EXPORT_ID) return "";
@@ -428,19 +407,14 @@
           typeof connectApplicationAttachmentLinksHtml_ === "function"
             ? connectApplicationAttachmentLinksHtml_(hintRow, CONNECT_EXPORT_ID, {
                 escapeHtml: escapeHtmlCoord,
-                openPdfLabel: typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentOpenPdf") : "Otevřít PDF",
                 drivePreviewLabel:
                   typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentDrivePreview") : "Náhled na Disku",
+                sheetDownloadLabel:
+                  typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentSheetDownload") : "Stáhnout z aplikace",
               })
             : "";
         valueHtml =
-          (linksRow ||
-            coordinatorConnectPdfOpenAnchor_(
-              CONNECT_EXPORT_ID,
-              aid,
-              fieldId,
-              typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentOpenPdf") : "Otevřít PDF"
-            )) +
+          linksRow +
           ' <span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted);word-break:break-all">' +
           escapeHtmlCoord((disp || valTrim).slice(0, 220)) +
           "</span>";
@@ -496,9 +470,10 @@
             typeof connectApplicationAttachmentLinksHtml_ === "function"
               ? connectApplicationAttachmentLinksHtml_(hintH, cid, {
                   escapeHtml: escapeHtmlCoord,
-                  openPdfLabel: typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentOpenPdf") : "Otevřít PDF",
                   drivePreviewLabel:
                     typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentDrivePreview") : "Náhled na Disku",
+                  sheetDownloadLabel:
+                    typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentSheetDownload") : "Stáhnout z aplikace",
                 })
               : "";
           return (
@@ -507,17 +482,7 @@
             '</code> · <span style="font-family:DM Mono,monospace;font-size:11px">' +
             disp +
             '</span> · ' +
-            (linksH ||
-              '<a href="#" class="uhk-blob-dl" data-dl-action="downloadConnectApplicationFile" ' +
-                'data-dl-competition-id="' +
-                escapeHtmlCoord(cid) +
-                '" data-dl-application-id="' +
-                escapeHtmlCoord(aid) +
-                '" data-dl-field-id="' +
-                escapeHtmlCoord(fid) +
-                '">' +
-                (typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentOpenPdf") : "Otevřít PDF") +
-                "</a>") +
+            linksH +
             "</li>"
           );
         }
