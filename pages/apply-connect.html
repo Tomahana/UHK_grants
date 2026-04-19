@@ -712,6 +712,51 @@
     let isDirty     = false;
     let currentSection = 0;
 
+    const UHK_INTERNAL_PHD_NOTE_KEY = "_uhk_internal_phd_junior_eligibility_note";
+    const JUNIOR_APPLICANT_TYPE_PREFIX = "Junior/early-career";
+
+    function connectDeadlineApplyYear_() {
+      const iso = String(CONNECT_VYZVA.DEADLINE_APPLY_ISO || "").trim();
+      const m = /^(\d{4})-\d{2}-\d{2}$/.exec(iso);
+      return m ? parseInt(m[1], 10) : new Date().getFullYear();
+    }
+
+    function isJuniorApplicantType_(t) {
+      return String(t || "").trim().indexOf(JUNIOR_APPLICANT_TYPE_PREFIX) === 0;
+    }
+
+    function connectPhdJuniorEligibilityNote_() {
+      const at = String(formData.applicant_type || "").trim();
+      if (!isJuniorApplicantType_(at)) {
+        return "";
+      }
+      const y = parseInt(String(formData.phd_year || "").trim(), 10);
+      const deadlineY = connectDeadlineApplyYear_();
+      if (!formData.phd_year || String(formData.phd_year).trim() === "") {
+        return I18n.tReplace("applyFlow.phdJuniorNoteMissingYear", { deadlineYear: String(deadlineY) });
+      }
+      if (!isFinite(y) || y < 1950 || y > deadlineY + 1) {
+        return I18n.t("applyFlow.phdJuniorNoteInvalidYear");
+      }
+      const years = deadlineY - y;
+      if (years <= 7) {
+        return I18n.tReplace("applyFlow.phdJuniorNoteWithin", {
+          phdYear: String(y),
+          deadlineYear: String(deadlineY),
+          years: String(years),
+        });
+      }
+      return I18n.tReplace("applyFlow.phdJuniorNoteOver", {
+        phdYear: String(y),
+        deadlineYear: String(deadlineY),
+        years: String(years),
+      });
+    }
+
+    function syncPhdJuniorInternalNote_() {
+      formData[UHK_INTERNAL_PHD_NOTE_KEY] = connectPhdJuniorEligibilityNote_();
+    }
+
     const STEPS = [
       { id: "basic", fields: ["section_basic","project_title","faculty","department","applicant_type","phd_year"] },
       { id: "profileActivity", fields: ["section_profile","research_focus","recent_outputs","section_activity","activity_type","activity_goal","partner_institution","partner_country","partner_contact","cooperation_history","activity_start","activity_end"] },
@@ -872,6 +917,7 @@
       restoreValues(fields);
       bindEvents(fields);
       applyActivityDateConstraints();
+      updatePhdJuniorHintUi_();
       updateChecklist();
     }
 
@@ -984,12 +1030,18 @@
           ${f.field_type==="number"?"min='0'":""}>`;
       }
 
+      const phdJuniorHintHtml =
+        f.field_id === "phd_year"
+          ? '<div id="phdJuniorHint" class="field-help" style="margin-top:6px;padding:9px 12px;background:#FEF9C3;border:1px solid #FDE047;border-radius:8px;font-size:12px;line-height:1.5;color:#713F12;display:none;"></div>'
+          : "";
+
       return `<div class="field">
         <label class="field-label" for="f-${f.field_id}">
           ${f.field_label} ${req?'<span class="field-required">*</span>':""}
         </label>
         ${f.help_text ? `<div class="field-help">${f.help_text}</div>` : ""}
         ${input}
+        ${phdJuniorHintHtml}
         <div class="field-error" id="err-${f.field_id}">${errReq}</div>
       </div>`;
     }
@@ -1148,6 +1200,20 @@
     }
 
     // ── Změna hodnoty ──────────────────────────────────────────
+    function updatePhdJuniorHintUi_() {
+      const el = document.getElementById("phdJuniorHint");
+      if (!el) return;
+      syncPhdJuniorInternalNote_();
+      const msg = connectPhdJuniorEligibilityNote_();
+      if (!msg) {
+        el.style.display = "none";
+        el.textContent = "";
+        return;
+      }
+      el.textContent = msg;
+      el.style.display = "block";
+    }
+
     function onFieldChange(id, val) {
       formData[id] = val;
       isDirty = true;
@@ -1156,6 +1222,7 @@
       updateChecklist();
       clearError(id);
       if (id === "activity_start") applyActivityDateConstraints();
+      if (id === "phd_year" || id === "applicant_type") updatePhdJuniorHintUi_();
     }
 
     function onRadioChange(id, input) {
@@ -1166,6 +1233,7 @@
       isDirty = true;
       scheduleAutoSave();
       clearError(id);
+      if (id === "applicant_type") updatePhdJuniorHintUi_();
     }
 
     function readFileAsDataUrl(file) {
@@ -1482,6 +1550,7 @@
     async function saveDraft(showMessage, fileUploads, returnDiagnostics) {
       try {
         const session = Auth._getSession();
+        syncPhdJuniorInternalNote_();
         const body = {
           action: "saveDraft",
           token:  session?.token || "",
@@ -1576,6 +1645,7 @@
         if (data.draft) {
           formData = data.draft.formData || {};
           draftId  = data.draft.id || data.draft.application_id || null;
+          syncPhdJuniorInternalNote_();
           renderSection(currentSection);
           updateBudget();
           updateChecklist();
@@ -1616,6 +1686,7 @@
 
       try {
         const session = Auth._getSession();
+        syncPhdJuniorInternalNote_();
         const { res, out: subOut } = await connectPostJson({
           action: "submitApplication",
           token: session?.token || "",
