@@ -235,6 +235,8 @@
         detailApplicant: "Žadatel",
         detailFaculty: "Součást / katedra",
         detailApplicantType: "Typ žadatele",
+        detailPhdYear: "Rok získání Ph.D.",
+        detailJuniorPhdCheck: "Kontrola Junior / Ph.D. (interní)",
         detailActivityType: "Typ aktivity",
         detailPartner: "Partner",
         detailTerm: "Termín",
@@ -409,6 +411,13 @@
         fileField_attach_annex1: "Příloha 1",
         fileField_attach_annex2: "Příloha 2",
         fileField_attach_annex3: "Příloha 3",
+        phdJuniorNoteMissingYear:
+          "Typ Junior/early-career: doplňte rok získání Ph.D. Interně se ověří vůči roku uzávěrky přihlášek ({{deadlineYear}}) — max. 7 let po Ph.D.",
+        phdJuniorNoteInvalidYear: "Zadejte platný rok získání Ph.D. (např. 2020).",
+        phdJuniorNoteWithin:
+          "Interní poznámka pro komisi / správce: od roku Ph.D. ({{phdYear}}) do uzávěrky přihlášek ({{deadlineYear}}) uplynulo {{years}} let — v limitu 7 let.",
+        phdJuniorNoteOver:
+          "Interní poznámka pro komisi / správce: od roku Ph.D. ({{phdYear}}) do uzávěrky přihlášek ({{deadlineYear}}) uplynulo {{years}} let (nad 7 let) — ověřte splnění kritéria junior/early-career.",
       },
       applyConnect: {
         loadingForm: "Načítám formulář…",
@@ -740,6 +749,8 @@
         detailApplicant: "Applicant",
         detailFaculty: "Faculty / department",
         detailApplicantType: "Applicant type",
+        detailPhdYear: "Ph.D. award year",
+        detailJuniorPhdCheck: "Junior / Ph.D. check (internal)",
         detailActivityType: "Activity type",
         detailPartner: "Partner",
         detailTerm: "Dates",
@@ -914,6 +925,13 @@
         fileField_attach_annex1: "Annex 1",
         fileField_attach_annex2: "Annex 2",
         fileField_attach_annex3: "Annex 3",
+        phdJuniorNoteMissingYear:
+          "Junior/early-career: enter your Ph.D. award year. For admin/commission review vs. the application deadline year ({{deadlineYear}}) — within 7 years after Ph.D.",
+        phdJuniorNoteInvalidYear: "Enter a valid Ph.D. year (e.g. 2020).",
+        phdJuniorNoteWithin:
+          "Note for panel/admin: from Ph.D. year ({{phdYear}}) to the application deadline year ({{deadlineYear}}) is {{years}} years — within the 7-year limit.",
+        phdJuniorNoteOver:
+          "Note for panel/admin: from Ph.D. year ({{phdYear}}) to the application deadline year ({{deadlineYear}}) is {{years}} years (over 7) — please verify junior/early-career eligibility.",
       },
       applyConnect: {
         loadingForm: "Loading form…",
