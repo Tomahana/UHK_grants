@@ -528,8 +528,20 @@
             (isUrl &&
               !isAppStoredPdf &&
               /^(https?:\/\/)?(drive|docs)\.google\.com\//i.test(valTrim));
+          const hintForLinks = Object.assign({}, h, { application_id: appIdForDl || h.application_id });
+          const attachLinks =
+            isAppStoredPdf && typeof connectApplicationAttachmentLinksHtml_ === "function"
+              ? connectApplicationAttachmentLinksHtml_(hintForLinks, COMPETITION_ID, {
+                  escapeHtml: function (s) {
+                    return escapeHtml(s);
+                  },
+                  openPdfLabel: tf("submittedAttachmentOpenPdf"),
+                  drivePreviewLabel: tf("submittedAttachmentDrivePreview"),
+                })
+              : "";
           const cell = isAppStoredPdf
-            ? connectApplicationPdfDlAnchor_(appIdForDl, h.field_id, escapeHtml(tf("submittedAttachmentOpenPdf"))) +
+            ? (attachLinks ||
+                connectApplicationPdfDlAnchor_(appIdForDl, h.field_id, escapeHtml(tf("submittedAttachmentOpenPdf")))) +
               ' <span style="color:var(--muted);font-size:12px">(' +
               escapeHtml(shortVal) +
               ")</span>"
