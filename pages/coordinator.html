@@ -339,6 +339,13 @@
   let currentApp = null;
 
   const CONNECT_EXPORT_ID = "uhk_connect_2026_v2";
+  /** Stejná pole PDF jako v apply-connect.html – v detailu zobrazíme „Otevřít PDF“ přes api.js (jako u žadatele). */
+  const CONNECT_APPLICATION_FILE_FIELD_IDS_ = [
+    "attach_invitation",
+    "attach_annex1",
+    "attach_annex2",
+    "attach_annex3",
+  ];
 
   function openConnectAdminDossierPdf(appId) {
     try {
@@ -367,6 +374,71 @@
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
+  }
+
+  /** Otevření PDF z tabulky/Disku – stejná třída a delegace jako apply-connect.html. */
+  function coordinatorConnectPdfOpenAnchor_(competitionId, applicationId, fieldId, linkText) {
+    const cid = String(competitionId || "").trim();
+    const aid = String(applicationId || "").trim();
+    const fid = String(fieldId || "").trim();
+    if (!cid || !aid || !fid) return "";
+    const lab = linkText != null ? String(linkText) : "Otevřít PDF";
+    return (
+      '<a href="#" class="uhk-blob-dl" data-dl-action="downloadConnectApplicationFile" ' +
+      'data-dl-competition-id="' +
+      escapeHtmlCoord(cid) +
+      '" data-dl-application-id="' +
+      escapeHtmlCoord(aid) +
+      '" data-dl-field-id="' +
+      escapeHtmlCoord(fid) +
+      '">' +
+      escapeHtmlCoord(lab) +
+      "</a>"
+    );
+  }
+
+  /** Blok příloh podacího formuláře Connect v modalu správy (žadatel má totéž u odeslané přihlášky). */
+  function coordinatorConnectSubmittedAttachmentsHtml_(competitionId, applicationId, form) {
+    if (String(competitionId || "").trim() !== CONNECT_EXPORT_ID) return "";
+    const f = form && typeof form === "object" ? form : {};
+    const aid = String(applicationId || "").trim();
+    if (!aid) return "";
+    const rows = [];
+    CONNECT_APPLICATION_FILE_FIELD_IDS_.forEach(function (fieldId) {
+      const raw = f[fieldId];
+      if (raw == null || String(raw).trim() === "") return;
+      const valTrim = String(raw).trim();
+      const title = fieldId.replace(/_/g, " ");
+      let valueHtml = "";
+      if (/^UHKAFILE\|/i.test(valTrim) || /^UHKDRIVE\|/i.test(valTrim)) {
+        const mDrive = /^UHKDRIVE\|[^|]+\|(.+)$/i.exec(valTrim);
+        const disp = mDrive ? String(mDrive[1] || "").trim() : valTrim.replace(/^UHKAFILE\|/i, "").trim();
+        valueHtml =
+          coordinatorConnectPdfOpenAnchor_(CONNECT_EXPORT_ID, aid, fieldId, "Otevřít PDF") +
+          ' <span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted);word-break:break-all">' +
+          escapeHtmlCoord((disp || valTrim).slice(0, 220)) +
+          "</span>";
+      } else if (/^https?:\/\//i.test(valTrim)) {
+        valueHtml =
+          '<a href="' +
+          escapeHtmlCoord(valTrim) +
+          '" target="_blank" rel="noopener">Otevřít odkaz</a>';
+      } else {
+        valueHtml = escapeHtmlCoord(valTrim.slice(0, 400));
+      }
+      rows.push(
+        '<div class="detail-field"><div class="detail-label">' +
+          escapeHtmlCoord(title) +
+          '</div><div class="detail-value" style="font-size:13px;line-height:1.45">' +
+          valueHtml +
+          "</div></div>"
+      );
+    });
+    if (!rows.length) return "";
+    return (
+      '<div class="detail-divider">Přílohy podacího formuláře (PDF)</div>' +
+      rows.join("")
+    );
   }
 
   /** application_file_hints z getConnectPostAward – PDF v listu tabulky (UHKAFILE). */
@@ -1277,14 +1349,19 @@
         </div>
       </div>` : `<div style="padding:8px 0 16px;font-size:13px;color:var(--muted);">Stav <strong>${STATUS_FLOW[status]?.label || status}</strong> – žádné další akce.</div>`;
 
-    // Formulářová data
+    // Formulářová data (u Connect PDF přílohy zobrazíme níže se stejným odkazem jako u žadatele)
+    const hideAttachInGrid =
+      a.competition_id === CONNECT_EXPORT_ID &&
+      CONNECT_APPLICATION_FILE_FIELD_IDS_.some((id) => Object.prototype.hasOwnProperty.call(form, id));
     const fieldRows = Object.entries(form)
       .filter(([k]) => !k.startsWith("budget_") || k === "budget_total")
+      .filter(([k]) => !(hideAttachInGrid && CONNECT_APPLICATION_FILE_FIELD_IDS_.includes(k)))
       .map(([k, v]) => v ? `
         <div class="detail-field">
           <div class="detail-label">${k.replace(/_/g," ")}</div>
           <div class="detail-value">${String(v).substring(0,200)}</div>
         </div>` : "").join("");
+    const connectAttachBlock = coordinatorConnectSubmittedAttachmentsHtml_(a.competition_id, a.application_id, form);
 
     // Rozpočet
     const budgetFields = ["budget_travel","budget_accommodation","budget_meals","budget_local","budget_fee","budget_publication","budget_personnel"];
@@ -1305,6 +1382,7 @@
         <div class="detail-field"><div class="detail-label">Podáno</div><div class="detail-value">${a.submitted_at || "—"}</div></div>
         <div class="detail-field"><div class="detail-label">Součást</div><div class="detail-value">${form.faculty || "—"}</div></div>
         ${fieldRows}
+        ${connectAttachBlock}
       </div>
       ${budgetRows ? `
         <div style="margin-bottom:16px;">
