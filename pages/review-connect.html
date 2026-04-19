@@ -594,15 +594,27 @@ async function loadReviewConnectAttachments() {
         const appAid = String(h.application_id || (cur && cur.application_id) || "").trim();
         var link;
         if ((h.isSheetBlob || /^UHKAFILE\|/i.test(vTrim) || /^UHKDRIVE\|/i.test(vTrim)) && appAid && h.field_id) {
+          var hintR = Object.assign({}, h, { application_id: appAid });
+          var linksR =
+            typeof connectApplicationAttachmentLinksHtml_ === "function"
+              ? connectApplicationAttachmentLinksHtml_(hintR, CID, {
+                  escapeHtml: esc,
+                  openPdfLabel: typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentOpenPdf") : "Otevřít PDF",
+                  drivePreviewLabel:
+                    typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentDrivePreview") : "Náhled na Disku",
+                })
+              : "";
           link =
-            '<a href="#" class="uhk-blob-dl" data-dl-action="downloadConnectApplicationFile" ' +
-            'data-dl-competition-id="' +
-            escAttr(CID) +
-            '" data-dl-application-id="' +
-            escAttr(appAid) +
-            '" data-dl-field-id="' +
-            escAttr(String(h.field_id)) +
-            '">PDF (úložiště aplikace)</a> · <span style="font-family:DM Mono,monospace;font-size:12px">' +
+            (linksR ||
+              '<a href="#" class="uhk-blob-dl" data-dl-action="downloadConnectApplicationFile" ' +
+                'data-dl-competition-id="' +
+                escAttr(CID) +
+                '" data-dl-application-id="' +
+                escAttr(appAid) +
+                '" data-dl-field-id="' +
+                escAttr(String(h.field_id)) +
+                '">PDF (úložiště aplikace)</a>') +
+            ' · <span style="font-family:DM Mono,monospace;font-size:12px">' +
             esc(v) +
             "</span>";
         } else if (h.isLikelyUrl) {
