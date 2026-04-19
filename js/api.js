@@ -245,8 +245,8 @@ const API = {
 
   /**
    * Otevře PDF z Web Appu v novém tabu — bez fetch() (u script.google.com často „Failed to fetch“ kvůli CORS).
-   * Když vejde do rozumné délky URL: GET → doGet vrací PDF přímo (bez blob:/data: v POST HTML — Chrome méně blokuje).
-   * Jinak POST formulář (token v těle); server vrátí stránku s &lt;embed src="data:application/pdf;base64,…"&gt;.
+   * Preferujeme GET → doGet vrací PDF přímo. Token u účtů s více rolemi je dlouhý; limit musí být vysoký,
+   * jinak se použije POST + HtmlService a u štábu často prázdný náhled. Jinak POST (token v těle).
    */
   async openConnectBinaryDownload(action, fields) {
     const session = Auth._getSession();
@@ -299,7 +299,8 @@ const API = {
       }
     };
 
-    if (getUrl.length <= 7500) {
+    /** Apps Script /exec URL typicky snese řádově 100k+ znaků; 7k zbytečně přepínalo štáb na POST. */
+    if (getUrl.length <= 120000) {
       openInNewTab(getUrl);
       return;
     }

@@ -810,14 +810,44 @@ function requireAuth(token) {
   return v;
 }
 
-/** Porovnání role z tokenu s povoleným seznamem (bez závislosti na velikosti písmen / mezerách). */
+/** Role z listu ROLES / tokenu: diakritika + synonymum „Správce“ → ADMIN (aby stažení PDF fungovalo i při českých popisech). */
+function connectNormalizeAuthRoleKey_(role) {
+  var s = String(role || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "_");
+  var pairs = [
+    ["Á", "A"],
+    ["Č", "C"],
+    ["Ď", "D"],
+    ["É", "E"],
+    ["Ě", "E"],
+    ["Í", "I"],
+    ["Ň", "N"],
+    ["Ó", "O"],
+    ["Ř", "R"],
+    ["Š", "S"],
+    ["Ť", "T"],
+    ["Ú", "U"],
+    ["Ů", "U"],
+    ["Ý", "Y"],
+    ["Ž", "Z"],
+  ];
+  for (var i = 0; i < pairs.length; i++) {
+    s = s.split(pairs[i][0]).join(pairs[i][1]);
+  }
+  if (s === "SPRAVCE" || s === "ADMINISTRATOR" || s === "SUPERADMIN") return "ADMIN";
+  return s;
+}
+
+/** Porovnání role z tokenu s povoleným seznamem (bez závislosti na velikosti písmen / mezerách / diakritice). */
 function authHasAnyRole_(auth, allowedRoles) {
   const want = {};
   (allowedRoles || []).forEach(function (x) {
-    want[String(x).trim().toUpperCase()] = true;
+    want[connectNormalizeAuthRoleKey_(x)] = true;
   });
   return (auth.roles || []).some(function (r) {
-    return want[String(r).trim().toUpperCase()];
+    return want[connectNormalizeAuthRoleKey_(r)];
   });
 }
 
