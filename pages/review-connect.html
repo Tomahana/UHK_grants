@@ -599,21 +599,14 @@ async function loadReviewConnectAttachments() {
             typeof connectApplicationAttachmentLinksHtml_ === "function"
               ? connectApplicationAttachmentLinksHtml_(hintR, CID, {
                   escapeHtml: esc,
-                  openPdfLabel: typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentOpenPdf") : "Otevřít PDF",
                   drivePreviewLabel:
                     typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentDrivePreview") : "Náhled na Disku",
+                  sheetDownloadLabel:
+                    typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentSheetDownload") : "Stáhnout z aplikace",
                 })
               : "";
           link =
-            (linksR ||
-              '<a href="#" class="uhk-blob-dl" data-dl-action="downloadConnectApplicationFile" ' +
-                'data-dl-competition-id="' +
-                escAttr(CID) +
-                '" data-dl-application-id="' +
-                escAttr(appAid) +
-                '" data-dl-field-id="' +
-                escAttr(String(h.field_id)) +
-                '">PDF (úložiště aplikace)</a>') +
+            linksR +
             ' · <span style="font-family:DM Mono,monospace;font-size:12px">' +
             esc(v) +
             "</span>";
