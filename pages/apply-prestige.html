@@ -1062,7 +1062,7 @@
         }
       });
       if (!ok) showToast(trf("validateRequiredAll"), "err");
-      if (ok && IS_NO_COST_ENTRY) {
+      if (ok && IS_NO_COST_ENTRY && step.id === "budget") {
         const fte = Number(String(formData.fte || "").replace(",", "."));
         if (!isFinite(fte) || fte < 0.2 || fte > 0.4) {
           showToast("FTE musí být v rozsahu 0.2–0.4.", "err");
