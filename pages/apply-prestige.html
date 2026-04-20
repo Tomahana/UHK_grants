@@ -477,7 +477,7 @@
     let currentSection = 0;
 
     const STEPS = IS_NO_COST_ENTRY ? [
-      { id: "ident", fields: ["section_ident","project_title","he_project_name","grant_number","engagement_type","fte","faculty","department"] },
+      { id: "ident", fields: ["section_ident","project_title","he_project_name","grant_number","engagement_type","consortium_institutions_count","faculty","department"] },
       { id: "concept", fields: ["section_concept","concept_note"] },
       { id: "budget", fields: ["section_budget","budget_personnel","budget_travel","budget_justification"] },
       { id: "attachments", fields: ["section_attachments","attach_engagement_proof","declaration"] },
@@ -523,7 +523,8 @@
           { field_id:"he_project_name", field_label:"Název HE projektu", field_type:"text", required:"TRUE", placeholder:"Oficiální název projektu / výzvy" },
           { field_id:"grant_number", field_label:"Grant number / reference", field_type:"text", required:"TRUE", placeholder:"např. HORIZON-CL2-2026-..." },
           { field_id:"engagement_type", field_label:"Role UHK v projektu", field_type:"select", required:"TRUE", options:"Koordinátor;Partner;Associated Partner;Jiné" },
-          { field_id:"fte", field_label:"FTE (0.2–0.4)", field_type:"number", required:"TRUE", placeholder:"0.2 až 0.4", help_text:"Povolený rozsah FTE je 0.2–0.4." },
+          { field_id:"consortium_institutions_count", field_label:"Počet institucí v konsorciu", field_type:"number", required:"TRUE", placeholder:"např. 3", help_text:"Pro každou instituci vyplňte jeden IRIS záznam." },
+          { field_id:"iris_case_id", field_label:"IRIS záznamy (1 řádek = 1 instituce)", field_type:"textarea", required:"TRUE", placeholder:"1) UHK – UUID/CaseID …\n2) Instituce B – UUID/CaseID …\n3) Instituce C – UUID/CaseID …", help_text:"Počet IRIS záznamů musí odpovídat počtu institucí v konsorciu." },
           { field_id:"faculty", field_label:"Součást UHK / pracoviště", field_type:"select", required:"TRUE", options:"PřF;PdF;FF;FIM;FVZ;REKTORÁT" },
           { field_id:"department", field_label:"Katedra / ústav", field_type:"text", required:"TRUE" },
           { field_id:"section_concept", field_label:"Stručný popis zapojení", field_type:"section_header" },
@@ -919,9 +920,9 @@
     // ── Změna hodnoty ──────────────────────────────────────────
     function onFieldChange(id, val) {
       formData[id] = val;
-      if (id === "fte") {
+      if (id === "consortium_institutions_count") {
         const f = Number(String(val).replace(",", "."));
-        if (isFinite(f)) formData[id] = String(f);
+        if (isFinite(f)) formData[id] = String(Math.max(1, Math.round(f)));
       }
       isDirty = true;
       scheduleAutoSave();
@@ -979,11 +980,25 @@
       });
       if (!ok) showToast(trf("validateRequiredAll"), "err");
       if (ok && IS_NO_COST_ENTRY) {
-        const f = Number(String(formData.fte || "").replace(",", "."));
-        if (!isFinite(f) || f < 0.2 || f > 0.4) {
-          showToast("FTE musí být v rozsahu 0.2–0.4.", "err");
-          const inpFte = document.getElementById("f-fte");
-          if (inpFte) inpFte.classList.add("error");
+        const cnt = Number(String(formData.consortium_institutions_count || "").replace(",", "."));
+        if (!isFinite(cnt) || cnt < 1) {
+          showToast("Počet institucí v konsorciu musí být alespoň 1.", "err");
+          const inpCnt = document.getElementById("f-consortium_institutions_count");
+          if (inpCnt) inpCnt.classList.add("error");
+          return false;
+        }
+        const irisText = String(formData.iris_case_id || "").trim();
+        const irisRows = irisText ? irisText.split(/\r?\n/).map((x) => x.trim()).filter(Boolean) : [];
+        if (!irisRows.length) {
+          showToast("Vyplňte IRIS záznamy (1 řádek pro každou instituci).", "err");
+          const inpIris = document.getElementById("f-iris_case_id");
+          if (inpIris) inpIris.classList.add("error");
+          return false;
+        }
+        if (irisRows.length !== Math.round(cnt)) {
+          showToast("Počet IRIS záznamů musí odpovídat počtu institucí v konsorciu.", "err");
+          const inpIris2 = document.getElementById("f-iris_case_id");
+          if (inpIris2) inpIris2.classList.add("error");
           return false;
         }
       }
@@ -1054,10 +1069,12 @@
         { label: labels[1], done: !!formData.target_scheme },
         {
           label: tf("irisChecklistItem"),
-          done: !!(String(formData.iris_case_id || "").trim() && String(formData.iris_checklist_result || "").trim()),
+          done: IS_NO_COST_ENTRY
+            ? !!String(formData.iris_case_id || "").trim()
+            : !!(String(formData.iris_case_id || "").trim() && String(formData.iris_checklist_result || "").trim()),
         },
         { label: labels[2], done: !!formData.concept_note },
-        { label: labels[3], done: IS_NO_COST_ENTRY ? !!(String(formData.fte || "").trim()) : !!formData.excellence_top5 },
+        { label: labels[3], done: IS_NO_COST_ENTRY ? !!(String(formData.consortium_institutions_count || "").trim()) : !!formData.excellence_top5 },
         { label: labels[4], done: !!(formData.budget_total && parseFloat(formData.budget_total) > 0) },
         { label: labels[5], done: IS_NO_COST_ENTRY ? !!formData.attach_engagement_proof : !!(formData.attach_annex1 && formData.attach_annex2 && formData.attach_annex3 && formData.attach_checklist6) },
         { label: labels[6], done: formData.declaration === "true" },
