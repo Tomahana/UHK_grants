@@ -180,7 +180,7 @@
         },
         { field_id: "planned_submission_date", field_label: "Planned proposal submission date", field_type: "date", required: "TRUE", help_text: "Realistic deadline of the target call within your project schedule" },
         { field_id: "support_year1_request", field_label: "Requested support – year 1 (CZK)", field_type: "number", required: "TRUE", placeholder: "e.g. 450000", help_text: "Upper limit CZK 1,000,000 per project and year (11 months) per call – you request a specific amount, not automatically the full cap" },
-        { field_id: "faculty", field_label: "UHK faculty / workplace", field_type: "select", required: "TRUE", options: "PřF;PdF;FF;FIM;FVZ;REKTORÁT" },
+        { field_id: "faculty", field_label: "UHK faculty / workplace", field_type: "select", required: "TRUE", options: "PřF;PdF;FF;FIM;REKTORÁT" },
         { field_id: "department", field_label: "Department / institute", field_type: "text", required: "TRUE" },
         { field_id: "section_iris", field_label: "IRIS UHK – formal application data", field_type: "section_header" },
         {
