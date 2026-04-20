@@ -784,6 +784,11 @@
     // ── Inline rozpočtová tabulka ─────────────────────────────────
     function renderBudgetTable() {
       if (IS_NO_COST_ENTRY) {
+        const ncVal = function (primaryKey, legacyKey) {
+          const pv = String(formData[primaryKey] || "").trim();
+          if (pv) return pv;
+          return String(formData[legacyKey] || "");
+        };
         const totalFmtNc = escapeHtml(I18n.fmtMoney(0));
         return `
           <div class="field">
@@ -807,21 +812,21 @@
                   <tr>
                     <td style="padding:10px 14px;font-size:13px;color:var(--navy);border-bottom:1px solid var(--border);">DPP/DPČ – řešitel (práce na HE projektu / přípravě)</td>
                     <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);"><input type="number" id="f-budget_personnel" min="0" step="1" value="${escapeAttr(formData.budget_personnel || "")}" oninput="onBudgetInput()" style="width:100%;border:none;padding:10px 12px;font-family:'DM Mono',monospace;font-size:13px;text-align:right;color:var(--navy);background:transparent;outline:none;"></td>
-                    <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);"><input type="text" id="f-budget_period_personnel" value="${escapeAttr(formData.budget_period_personnel || "")}" placeholder="např. 06/2026–11/2026" onchange="onFieldChange('budget_period_personnel',this.value)" style="width:100%;border:none;padding:10px 12px;font-size:12px;color:var(--navy);background:transparent;outline:none;"></td>
-                    <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);"><input type="text" id="f-budget_just_personnel" value="${escapeAttr(formData.budget_just_personnel || "")}" placeholder="Odůvodnění položky" onchange="onFieldChange('budget_just_personnel',this.value)" style="width:100%;border:none;padding:10px 12px;font-size:12px;color:var(--navy);background:transparent;outline:none;"></td>
+                    <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);"><input type="text" id="f-budget_period_dpp_dpc_resitel" value="${escapeAttr(ncVal("budget_period_dpp_dpc_resitel", "budget_period_personnel"))}" placeholder="např. 06/2026–11/2026" onchange="onFieldChange('budget_period_dpp_dpc_resitel',this.value)" style="width:100%;border:none;padding:10px 12px;font-size:12px;color:var(--navy);background:transparent;outline:none;"></td>
+                    <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);"><input type="text" id="f-budget_just_dpp_dpc_resitel" value="${escapeAttr(ncVal("budget_just_dpp_dpc_resitel", "budget_just_personnel"))}" placeholder="Odůvodnění položky" onchange="onFieldChange('budget_just_dpp_dpc_resitel',this.value)" style="width:100%;border:none;padding:10px 12px;font-size:12px;color:var(--navy);background:transparent;outline:none;"></td>
                   </tr>
                   <tr>
                     <td style="padding:10px 14px;font-size:13px;color:var(--navy);border-bottom:1px solid var(--border);">Zákonné odvody + příděl FKSP</td>
                     <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);"><input type="number" id="f-budget_personnel_levies" min="0" step="1" value="${escapeAttr(formData.budget_personnel_levies || "")}" oninput="onBudgetInput()" style="width:100%;border:none;padding:10px 12px;font-family:'DM Mono',monospace;font-size:13px;text-align:right;color:var(--navy);background:transparent;outline:none;"></td>
-                    <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);"><input type="text" id="f-budget_period_levies" value="${escapeAttr(formData.budget_period_levies || "")}" placeholder="např. 06/2026–11/2026" onchange="onFieldChange('budget_period_levies',this.value)" style="width:100%;border:none;padding:10px 12px;font-size:12px;color:var(--navy);background:transparent;outline:none;"></td>
-                    <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);"><input type="text" id="f-budget_just_levies" value="${escapeAttr(formData.budget_just_levies || "")}" placeholder="Odůvodnění položky" onchange="onFieldChange('budget_just_levies',this.value)" style="width:100%;border:none;padding:10px 12px;font-size:12px;color:var(--navy);background:transparent;outline:none;"></td>
+                    <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);"><input type="text" id="f-budget_period_zakonne_odvody_fksp" value="${escapeAttr(ncVal("budget_period_zakonne_odvody_fksp", "budget_period_levies"))}" placeholder="např. 06/2026–11/2026" onchange="onFieldChange('budget_period_zakonne_odvody_fksp',this.value)" style="width:100%;border:none;padding:10px 12px;font-size:12px;color:var(--navy);background:transparent;outline:none;"></td>
+                    <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);"><input type="text" id="f-budget_just_zakonne_odvody_fksp" value="${escapeAttr(ncVal("budget_just_zakonne_odvody_fksp", "budget_just_levies"))}" placeholder="Odůvodnění položky" onchange="onFieldChange('budget_just_zakonne_odvody_fksp',this.value)" style="width:100%;border:none;padding:10px 12px;font-size:12px;color:var(--navy);background:transparent;outline:none;"></td>
                   </tr>
                   <tr><td colspan="4" style="padding:8px 14px;font-size:12px;font-weight:700;color:var(--navy);background:#F8FAFC;border-bottom:1px solid var(--border);">B. Cestovní náklady</td></tr>
                   <tr>
                     <td style="padding:10px 14px;font-size:13px;color:var(--navy);border-bottom:1px solid var(--border);">Doprava, ubytování, stravné (konzultace s konsorciem / meetingy projektu)</td>
                     <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);"><input type="number" id="f-budget_travel" min="0" step="1" value="${escapeAttr(formData.budget_travel || "")}" oninput="onBudgetInput()" style="width:100%;border:none;padding:10px 12px;font-family:'DM Mono',monospace;font-size:13px;text-align:right;color:var(--navy);background:transparent;outline:none;"></td>
-                    <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);"><input type="text" id="f-budget_period_travel" value="${escapeAttr(formData.budget_period_travel || "")}" placeholder="např. 09/2026–11/2026" onchange="onFieldChange('budget_period_travel',this.value)" style="width:100%;border:none;padding:10px 12px;font-size:12px;color:var(--navy);background:transparent;outline:none;"></td>
-                    <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);"><input type="text" id="f-budget_just_travel" value="${escapeAttr(formData.budget_just_travel || "")}" placeholder="Odůvodnění položky" onchange="onFieldChange('budget_just_travel',this.value)" style="width:100%;border:none;padding:10px 12px;font-size:12px;color:var(--navy);background:transparent;outline:none;"></td>
+                    <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);"><input type="text" id="f-budget_period_cestovni_naklady" value="${escapeAttr(ncVal("budget_period_cestovni_naklady", "budget_period_travel"))}" placeholder="např. 09/2026–11/2026" onchange="onFieldChange('budget_period_cestovni_naklady',this.value)" style="width:100%;border:none;padding:10px 12px;font-size:12px;color:var(--navy);background:transparent;outline:none;"></td>
+                    <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);"><input type="text" id="f-budget_just_cestovni_naklady" value="${escapeAttr(ncVal("budget_just_cestovni_naklady", "budget_just_travel"))}" placeholder="Odůvodnění položky" onchange="onFieldChange('budget_just_cestovni_naklady',this.value)" style="width:100%;border:none;padding:10px 12px;font-size:12px;color:var(--navy);background:transparent;outline:none;"></td>
                   </tr>
                 </tbody>
                 <tfoot>
@@ -1166,15 +1171,38 @@
           return false;
         }
         const lineChecks = [
-          { amount: "budget_personnel", period: "budget_period_personnel", just: "budget_just_personnel", label: "DPP/DPČ – řešitel" },
-          { amount: "budget_personnel_levies", period: "budget_period_levies", just: "budget_just_levies", label: "Zákonné odvody + FKSP" },
-          { amount: "budget_travel", period: "budget_period_travel", just: "budget_just_travel", label: "Cestovní náklady" },
+          {
+            amount: "budget_personnel",
+            period: "budget_period_dpp_dpc_resitel",
+            periodLegacy: "budget_period_personnel",
+            just: "budget_just_dpp_dpc_resitel",
+            justLegacy: "budget_just_personnel",
+            label: "DPP/DPČ – řešitel"
+          },
+          {
+            amount: "budget_personnel_levies",
+            period: "budget_period_zakonne_odvody_fksp",
+            periodLegacy: "budget_period_levies",
+            just: "budget_just_zakonne_odvody_fksp",
+            justLegacy: "budget_just_levies",
+            label: "Zákonné odvody + FKSP"
+          },
+          {
+            amount: "budget_travel",
+            period: "budget_period_cestovni_naklady",
+            periodLegacy: "budget_period_travel",
+            just: "budget_just_cestovni_naklady",
+            justLegacy: "budget_just_travel",
+            label: "Cestovní náklady"
+          },
         ];
         for (const row of lineChecks) {
           const amt = Number(String(formData[row.amount] || "").replace(",", "."));
           if (isFinite(amt) && amt > 0) {
-            const per = String(formData[row.period] || "").trim();
-            const jus = String(formData[row.just] || "").trim();
+            const per = String(formData[row.period] || formData[row.periodLegacy] || "").trim();
+            const jus = String(formData[row.just] || formData[row.justLegacy] || "").trim();
+            if (per && !String(formData[row.period] || "").trim()) formData[row.period] = per;
+            if (jus && !String(formData[row.just] || "").trim()) formData[row.just] = jus;
             if (!per) {
               showToast("Vyplňte období u položky: " + row.label + ".", "err");
               return false;
