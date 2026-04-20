@@ -323,7 +323,7 @@
     const COMPETITION_ID = new URLSearchParams(location.search).get("c") || "uhk_prestige_2026";
     const CALL_MODE = String(COMPETITION_ID).indexOf("no_cost_entry") >= 0 ? "no_cost_entry" : "prestige_large";
     const IS_NO_COST_ENTRY = CALL_MODE === "no_cost_entry";
-    const MAX_BUDGET = IS_NO_COST_ENTRY ? 400000 : 1000000;
+    const MAX_BUDGET = IS_NO_COST_ENTRY ? Number.POSITIVE_INFINITY : 1000000;
     const IRIS_UHK_URL = "https://tomahana.github.io/IRIS_UHK/";
 
     /** Milníky dle výzvy UHK Prestige 1/2026 (příprava ERC / Horizon Europe). */
@@ -470,6 +470,16 @@
       }
       const cName = document.querySelector('[data-i18n="applyPrestige.sidebarCompetitionVal"]');
       if (cName && IS_NO_COST_ENTRY) cName.textContent = "Horizon No-Cost Entry";
+      if (IS_NO_COST_ENTRY) {
+        const maxKey = document.querySelector('[data-i18n="applyPrestige.sidebarMaxY1"]');
+        const maxVal = document.querySelector('[data-i18n="applyPrestige.sidebarMaxVal"]');
+        const budgetLimit = document.querySelector('[data-i18n="applyPrestige.budgetOfMax"]');
+        if (maxKey) maxKey.textContent = "Maximální výše podpory";
+        if (maxVal) maxVal.textContent = "Dle schváleného rozpočtu";
+        if (budgetLimit)
+          budgetLimit.textContent =
+            "horní limit dle schváleného rozpočtu (osobní náklady 0,2–0,4 FTE + cestovní) do 30. 11.";
+      }
     }
 
     // Stav formuláře
@@ -773,6 +783,70 @@
 
     // ── Inline rozpočtová tabulka ─────────────────────────────────
     function renderBudgetTable() {
+      if (IS_NO_COST_ENTRY) {
+        const ncVal = function (primaryKey, legacyKey) {
+          const pv = String(formData[primaryKey] || "").trim();
+          if (pv) return pv;
+          return String(formData[legacyKey] || "");
+        };
+        const totalFmtNc = escapeHtml(I18n.fmtMoney(0));
+        return `
+          <div class="field">
+            <label class="field-label">Příloha č. 2 – Šablona rozpočtu + odůvodnění</label>
+            <div class="field-help">Soutěž UHK Prestige – Výzva č. 2/2026 Horizon No-Cost Entry.</div>
+            <div style="padding:10px 14px;background:#FEF3C7;border:1px solid #FDE68A;border-radius:var(--r);font-size:12px;color:#92400E;margin-top:4px;margin-bottom:8px;">
+              Maximální výše podpory odpovídá schválenému rozpočtu (osobní náklady 0,2–0,4 FTE + cestovní náklady) po dobu od zahájení řešení do 30. 11. Jde o horní limit, nikoliv automatickou výši podpory.
+            </div>
+            <div style="border:1.5px solid var(--border);border-radius:var(--r);overflow:hidden;margin-top:4px;">
+              <table style="width:100%;border-collapse:collapse;">
+                <thead>
+                  <tr style="background:var(--navy-lite);">
+                    <th style="padding:10px 14px;text-align:left;font-size:12px;font-weight:600;color:var(--navy);border-bottom:1px solid var(--border);">Položka</th>
+                    <th style="padding:10px 12px;text-align:right;font-size:12px;font-weight:600;color:var(--navy);border-bottom:1px solid var(--border);border-left:1px solid var(--border);width:140px;">Částka (Kč)</th>
+                    <th style="padding:10px 12px;text-align:left;font-size:12px;font-weight:600;color:var(--navy);border-bottom:1px solid var(--border);border-left:1px solid var(--border);width:170px;">Období</th>
+                    <th style="padding:10px 12px;text-align:left;font-size:12px;font-weight:600;color:var(--navy);border-bottom:1px solid var(--border);border-left:1px solid var(--border);">Odůvodnění</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td colspan="4" style="padding:8px 14px;font-size:12px;font-weight:700;color:var(--navy);background:#F8FAFC;border-bottom:1px solid var(--border);">A. Osobní náklady (0,2–0,4 FTE)</td></tr>
+                  <tr>
+                    <td style="padding:10px 14px;font-size:13px;color:var(--navy);border-bottom:1px solid var(--border);">DPP/DPČ – řešitel (práce na HE projektu / přípravě)</td>
+                    <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);"><input type="number" id="f-budget_personnel" min="0" step="1" value="${escapeAttr(formData.budget_personnel || "")}" oninput="onBudgetInput()" style="width:100%;border:none;padding:10px 12px;font-family:'DM Mono',monospace;font-size:13px;text-align:right;color:var(--navy);background:transparent;outline:none;"></td>
+                    <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);"><input type="text" id="f-budget_period_dpp_dpc_resitel" value="${escapeAttr(ncVal("budget_period_dpp_dpc_resitel", "budget_period_personnel"))}" placeholder="např. 06/2026–11/2026" onchange="onFieldChange('budget_period_dpp_dpc_resitel',this.value)" style="width:100%;border:none;padding:10px 12px;font-size:12px;color:var(--navy);background:transparent;outline:none;"></td>
+                    <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);"><input type="text" id="f-budget_just_dpp_dpc_resitel" value="${escapeAttr(ncVal("budget_just_dpp_dpc_resitel", "budget_just_personnel"))}" placeholder="Odůvodnění položky" onchange="onFieldChange('budget_just_dpp_dpc_resitel',this.value)" style="width:100%;border:none;padding:10px 12px;font-size:12px;color:var(--navy);background:transparent;outline:none;"></td>
+                  </tr>
+                  <tr>
+                    <td style="padding:10px 14px;font-size:13px;color:var(--navy);border-bottom:1px solid var(--border);">Zákonné odvody + příděl FKSP</td>
+                    <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);"><input type="number" id="f-budget_personnel_levies" min="0" step="1" value="${escapeAttr(formData.budget_personnel_levies || "")}" oninput="onBudgetInput()" style="width:100%;border:none;padding:10px 12px;font-family:'DM Mono',monospace;font-size:13px;text-align:right;color:var(--navy);background:transparent;outline:none;"></td>
+                    <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);"><input type="text" id="f-budget_period_zakonne_odvody_fksp" value="${escapeAttr(ncVal("budget_period_zakonne_odvody_fksp", "budget_period_levies"))}" placeholder="např. 06/2026–11/2026" onchange="onFieldChange('budget_period_zakonne_odvody_fksp',this.value)" style="width:100%;border:none;padding:10px 12px;font-size:12px;color:var(--navy);background:transparent;outline:none;"></td>
+                    <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);"><input type="text" id="f-budget_just_zakonne_odvody_fksp" value="${escapeAttr(ncVal("budget_just_zakonne_odvody_fksp", "budget_just_levies"))}" placeholder="Odůvodnění položky" onchange="onFieldChange('budget_just_zakonne_odvody_fksp',this.value)" style="width:100%;border:none;padding:10px 12px;font-size:12px;color:var(--navy);background:transparent;outline:none;"></td>
+                  </tr>
+                  <tr><td colspan="4" style="padding:8px 14px;font-size:12px;font-weight:700;color:var(--navy);background:#F8FAFC;border-bottom:1px solid var(--border);">B. Cestovní náklady</td></tr>
+                  <tr>
+                    <td style="padding:10px 14px;font-size:13px;color:var(--navy);border-bottom:1px solid var(--border);">Doprava, ubytování, stravné (konzultace s konsorciem / meetingy projektu)</td>
+                    <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);"><input type="number" id="f-budget_travel" min="0" step="1" value="${escapeAttr(formData.budget_travel || "")}" oninput="onBudgetInput()" style="width:100%;border:none;padding:10px 12px;font-family:'DM Mono',monospace;font-size:13px;text-align:right;color:var(--navy);background:transparent;outline:none;"></td>
+                    <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);"><input type="text" id="f-budget_period_cestovni_naklady" value="${escapeAttr(ncVal("budget_period_cestovni_naklady", "budget_period_travel"))}" placeholder="např. 09/2026–11/2026" onchange="onFieldChange('budget_period_cestovni_naklady',this.value)" style="width:100%;border:none;padding:10px 12px;font-size:12px;color:var(--navy);background:transparent;outline:none;"></td>
+                    <td style="border-bottom:1px solid var(--border);border-left:1px solid var(--border);"><input type="text" id="f-budget_just_cestovni_naklady" value="${escapeAttr(ncVal("budget_just_cestovni_naklady", "budget_just_travel"))}" placeholder="Odůvodnění položky" onchange="onFieldChange('budget_just_cestovni_naklady',this.value)" style="width:100%;border:none;padding:10px 12px;font-size:12px;color:var(--navy);background:transparent;outline:none;"></td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr style="background:var(--navy-lite);">
+                    <td style="padding:12px 14px;font-size:14px;font-weight:600;color:var(--navy);">CELKEM</td>
+                    <td style="padding:12px 14px;text-align:right;font-family:'DM Mono',monospace;font-size:16px;font-weight:600;color:var(--navy);border-left:1px solid var(--border);" id="budgetTableTotal">${totalFmtNc}</td>
+                    <td style="border-left:1px solid var(--border);"></td>
+                    <td style="border-left:1px solid var(--border);"></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+          <div class="field" style="margin-top:16px;">
+            <label class="field-label">Celkové odůvodnění rozpočtu</label>
+            <div class="field-help">Souhrn návaznosti položek na plánované aktivity (pro přenos do přílohy č. 2).</div>
+            <textarea id="f-budget_justification" placeholder="Souhrnné odůvodnění…" onchange="onFieldChange('budget_justification',this.value)" style="min-height:90px;">${escapeHtml(formData["budget_justification"] || "")}</textarea>
+          </div>`;
+      }
+
       const enBu =
         I18n.getLang() === "en" && typeof UhkApplyFlowEn !== "undefined" && UhkApplyFlowEn.prestige && UhkApplyFlowEn.prestige.budgetUi
           ? UhkApplyFlowEn.prestige.budgetUi
@@ -893,14 +967,14 @@
       const tt = document.getElementById("budgetTableTotal");
       if (tt) tt.textContent = I18n.fmtMoney(total);
       const warn = document.getElementById("budgetWarn");
-      if (warn) warn.style.display = total > MAX_BUDGET ? "block" : "none";
+      if (warn) warn.style.display = isFinite(MAX_BUDGET) && total > MAX_BUDGET ? "block" : "none";
       const bd = document.getElementById("budgetDisplay");
       if (bd) bd.textContent = I18n.fmtMoney(total);
       const bar = document.getElementById("budgetBar");
       if (bar) {
-        const pct = Math.min(100, Math.round(total / MAX_BUDGET * 100));
+        const pct = isFinite(MAX_BUDGET) ? Math.min(100, Math.round(total / MAX_BUDGET * 100)) : 100;
         bar.style.width = pct + "%";
-        bar.classList.toggle("over", total > MAX_BUDGET);
+        bar.classList.toggle("over", isFinite(MAX_BUDGET) && total > MAX_BUDGET);
       }
       if (opts.markDirty) {
         isDirty = true;
@@ -923,9 +997,9 @@
       if (bd) bd.textContent = I18n.fmtMoney(total);
       const bar = document.getElementById("budgetBar");
       if (bar) {
-        const pct = Math.min(100, Math.round(total / MAX_BUDGET * 100));
+        const pct = isFinite(MAX_BUDGET) ? Math.min(100, Math.round(total / MAX_BUDGET * 100)) : 100;
         bar.style.width = pct + "%";
-        bar.classList.toggle("over", total > MAX_BUDGET);
+        bar.classList.toggle("over", isFinite(MAX_BUDGET) && total > MAX_BUDGET);
       }
     }
 
@@ -1096,6 +1170,49 @@
           showToast("Vyplňte datum zahájení řešení.", "err");
           return false;
         }
+        const lineChecks = [
+          {
+            amount: "budget_personnel",
+            period: "budget_period_dpp_dpc_resitel",
+            periodLegacy: "budget_period_personnel",
+            just: "budget_just_dpp_dpc_resitel",
+            justLegacy: "budget_just_personnel",
+            label: "DPP/DPČ – řešitel"
+          },
+          {
+            amount: "budget_personnel_levies",
+            period: "budget_period_zakonne_odvody_fksp",
+            periodLegacy: "budget_period_levies",
+            just: "budget_just_zakonne_odvody_fksp",
+            justLegacy: "budget_just_levies",
+            label: "Zákonné odvody + FKSP"
+          },
+          {
+            amount: "budget_travel",
+            period: "budget_period_cestovni_naklady",
+            periodLegacy: "budget_period_travel",
+            just: "budget_just_cestovni_naklady",
+            justLegacy: "budget_just_travel",
+            label: "Cestovní náklady"
+          },
+        ];
+        for (const row of lineChecks) {
+          const amt = Number(String(formData[row.amount] || "").replace(",", "."));
+          if (isFinite(amt) && amt > 0) {
+            const per = String(formData[row.period] || formData[row.periodLegacy] || "").trim();
+            const jus = String(formData[row.just] || formData[row.justLegacy] || "").trim();
+            if (per && !String(formData[row.period] || "").trim()) formData[row.period] = per;
+            if (jus && !String(formData[row.just] || "").trim()) formData[row.just] = jus;
+            if (!per) {
+              showToast("Vyplňte období u položky: " + row.label + ".", "err");
+              return false;
+            }
+            if (!jus) {
+              showToast("Vyplňte odůvodnění u položky: " + row.label + ".", "err");
+              return false;
+            }
+          }
+        }
       }
       if (ok && step.id === "budget") {
         const t = parseFloat(String(formData.budget_total || "").replace(/\s/g, "").replace(",", ".")) || 0;
@@ -1103,12 +1220,12 @@
           showToast(tf("toastBudgetSumPositive"), "err");
           return false;
         }
-        if (t > MAX_BUDGET) {
+        if (isFinite(MAX_BUDGET) && t > MAX_BUDGET) {
           showToast(I18n.tReplace("applyFlow.toastBudgetSumMax", { amount: I18n.fmtMoney(MAX_BUDGET) }), "err");
           return false;
         }
         const j = (formData.budget_justification || "").trim();
-        if (!j) {
+        if (!IS_NO_COST_ENTRY && !j) {
           const errEl = document.getElementById("err-budget_justification");
           if (errEl) errEl.classList.add("show");
           const inp = document.getElementById("f-budget_justification");
