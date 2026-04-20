@@ -425,6 +425,9 @@
         outcomeBlock = `<p style="font-size:14px;color:var(--muted);line-height:1.5;margin:20px 0;">${escapeHtml(tf("outcomeAfterReview"))}</p>`;
       }
       const icon = st === "REJECTED" ? "📋" : "✅";
+      const noCostCloseoutHref =
+        "no-cost-closeout.html?c=" + encodeURIComponent(COMPETITION_ID) + "&app=" + encodeURIComponent(sub.application_id || "");
+      const showNoCostCloseoutBtn = IS_NO_COST_ENTRY && (st === "APPROVED" || st === "UKONCENO");
       document.getElementById("formPanel").innerHTML = `
         <div style="padding:40px 28px;text-align:center;max-width:860px;margin:0 auto;">
           <div style="font-size:44px;margin-bottom:14px;">${icon}</div>
@@ -435,6 +438,7 @@
           ${draftNote}
           <div id="postawardRoot" style="display:none;"></div>
           <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:20px;">
+            ${showNoCostCloseoutBtn ? `<a href="${noCostCloseoutHref}" class="btn btn-secondary">Závěrečná zpráva</a>` : ""}
             <a href="my-projects.html" class="btn btn-ghost">${escapeHtml(tf("myProjects"))}</a>
             <a href="dashboard.html" class="btn btn-primary">${escapeHtml(tf("hub"))}</a>
           </div>
@@ -954,14 +958,80 @@
       clearError(id);
     }
 
-    function onFileChange(id, input) {
-      if (input.files[0]) {
-        formData[id] = input.files[0].name;
-        document.getElementById("file-info-" + id).style.display = "flex";
-        document.getElementById("file-name-" + id).textContent = input.files[0].name;
+    function readFileAsDataUrl(file) {
+      return new Promise(function (resolve, reject) {
+        const r = new FileReader();
+        r.onload = function () { resolve(String(r.result || "")); };
+        r.onerror = function () { reject(new Error("Soubor se nepodařilo načíst.")); };
+        r.readAsDataURL(file);
+      });
+    }
+
+    async function postFormUrlEncoded(payload) {
+      const p = new URLSearchParams();
+      Object.keys(payload || {}).forEach(function (k) {
+        if (payload[k] !== undefined && payload[k] !== null) p.set(k, String(payload[k]));
+      });
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: p.toString(),
+      });
+      const text = await res.text();
+      let out = {};
+      try { out = text ? JSON.parse(text) : {}; } catch (_) { out = { error: text || "Neplatná odpověď serveru." }; }
+      return { res, out };
+    }
+
+    async function onFileChange(id, input) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const lower = String(file.name || "").toLowerCase();
+      if (!lower.endsWith(".pdf")) {
+        showToast("Povolen je pouze soubor PDF.", "err");
+        input.value = "";
+        return;
+      }
+      if (file.size > 18 * 1024 * 1024) {
+        showToast("Soubor je příliš velký (max. 18 MB).", "err");
+        input.value = "";
+        return;
+      }
+      try {
+        if (!draftId) await saveDraft(false);
+        if (!draftId) {
+          showToast("Nejdřív se musí vytvořit koncept přihlášky.", "err");
+          input.value = "";
+          return;
+        }
+        showToast("Nahrávám přílohu…");
+        const session = Auth._getSession();
+        const dataUrl = await readFileAsDataUrl(file);
+        const { res, out } = await postFormUrlEncoded({
+          action: "uploadConnectApplicationAttachment",
+          token: session?.token || "",
+          competitionId: COMPETITION_ID,
+          applicationId: draftId,
+          fieldId: id,
+          fileName: file.name,
+          mimeType: file.type || "application/pdf",
+          fileBase64: dataUrl,
+        });
+        if (!res.ok) throw new Error((out && out.error) || ("HTTP " + res.status));
+        if (out && out.error) throw new Error(String(out.error));
+        if (!out || !out.url) throw new Error("Nahrání se nezdařilo.");
+        formData[id] = String(out.url);
+        const info = document.getElementById("file-info-" + id);
+        const name = document.getElementById("file-name-" + id);
+        if (info) info.style.display = "flex";
+        if (name) name.textContent = file.name;
         isDirty = true;
         updateChecklist();
         clearError(id);
+        showToast(/^UHKDRIVE\|/i.test(formData[id]) ? "Soubor uložen na Disk." : "Soubor uložen.");
+      } catch (e) {
+        showToast((e && e.message) || "Nahrání přílohy se nepodařilo.", "err");
+        input.value = "";
       }
     }
 
@@ -1221,10 +1291,16 @@
       }
 
       const irisId = String(formData.iris_case_id || "").trim();
-      const irisRes = String(formData.iris_checklist_result || "").trim();
-      if (!irisId || !irisRes) {
+      if (!irisId) {
         showToast(tf("irisRequiredToast"), "err");
         return;
+      }
+      if (!IS_NO_COST_ENTRY) {
+        const irisRes = String(formData.iris_checklist_result || "").trim();
+        if (!irisRes) {
+          showToast(tf("irisRequiredToast"), "err");
+          return;
+        }
       }
 
       const btn = document.getElementById("submitBtn");

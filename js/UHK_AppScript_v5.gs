@@ -159,7 +159,7 @@ function validateNoCostEntryConsortiumIris_(formData) {
   var cnt = Number(cntRaw);
   if (!isFinite(cnt) || cnt < 1 || Math.floor(cnt) !== cnt)
     throw new Error("No-Cost Entry: počet institucí v konsorciu musí být celé číslo >= 1.");
-  var records = String(formData.consortium_iris_records || "").trim();
+  var records = String(formData.iris_case_id || formData.consortium_iris_records || "").trim();
   if (!records) throw new Error("No-Cost Entry: vyplňte IRIS záznamy pro instituce v konsorciu.");
   var lines = records
     .split(/\r?\n/)
@@ -191,19 +191,21 @@ function validateNoCostEntrySpecificRules_(formData) {
     throw new Error("No-Cost Entry: FTE musí být v rozsahu 0.2 až 0.4.");
   }
 
-  if (!String(formData.attach_annex1 || "").trim())
+  if (!String(formData.attach_template1 || formData.attach_annex1 || "").trim())
     throw new Error("No-Cost Entry: je povinná příloha č. 1 (šablona žádosti).");
-  if (!String(formData.attach_annex2 || "").trim())
+  if (!String(formData.attach_template2 || formData.attach_annex2 || "").trim())
     throw new Error("No-Cost Entry: je povinná příloha č. 2 (rozpočet + odůvodnění).");
   if (!String(formData.attach_engagement_proof || "").trim())
     throw new Error("No-Cost Entry: je povinný doklad zapojení dle typu (čl. 6).");
 
   var budgetPersonnel = Number(String(formData.budget_personnel || "").replace(",", "."));
+  var budgetLevies = Number(String(formData.budget_personnel_levies || "").replace(",", "."));
   var budgetTravel = Number(String(formData.budget_travel || "").replace(",", "."));
   var budgetTotal = Number(String(formData.budget_total || "").replace(",", "."));
   var p = isFinite(budgetPersonnel) && budgetPersonnel > 0 ? budgetPersonnel : 0;
+  var l = isFinite(budgetLevies) && budgetLevies > 0 ? budgetLevies : 0;
   var t = isFinite(budgetTravel) && budgetTravel > 0 ? budgetTravel : 0;
-  var sum = p + t;
+  var sum = p + l + t;
   if (sum <= 0)
     throw new Error("No-Cost Entry: rozpočet musí obsahovat alespoň osobní nebo cestovní náklady.");
   if (isFinite(budgetTotal) && budgetTotal > 0 && Math.abs(budgetTotal - sum) > 1) {
@@ -2117,9 +2119,6 @@ function connectProcessApplicationFileUploads_(ss, competitionId, applicationId,
   var patch = {};
   var diagnostics = {};
   if (!fileUploads || !fileUploads.length) return { patch: patch, diagnostics: diagnostics };
-  if (String(competitionId || "").trim() !== CONNECT_COMPETITION_ID) {
-    throw new Error("Přílohy PDF z formuláře jsou jen pro soutěž UHK Connect.");
-  }
   var sheet = ss.getSheetByName(SHEETS.APPLICATIONS);
   if (!sheet) throw new Error("List APPLICATIONS nenalezen.");
   var rows = sheetToObjects(sheet).map(applicationsSheetRowNormalize_);
@@ -2134,13 +2133,23 @@ function connectProcessApplicationFileUploads_(ss, competitionId, applicationId,
     throw new Error("Soubor z podacího formuláře lze nahrávat jen u rozpracovaného konceptu (DRAFT).");
   }
 
-  var allowed = { attach_invitation: 1, attach_annex1: 1, attach_annex2: 1, attach_annex3: 1 };
+  var callType = String(row.call_type || "").toLowerCase().trim();
+  var isNoCost = callType === "no_cost_entry" || String(competitionId || "").indexOf("no_cost_entry") >= 0;
+  var isConnect = String(competitionId || "").trim() === CONNECT_COMPETITION_ID || callType === "connect";
+  if (!isConnect && !isNoCost) {
+    throw new Error("Nahrávání příloh přes aplikaci je dostupné pouze pro Connect a No-Cost Entry.");
+  }
+  var allowed = isNoCost
+    ? { attach_template1: 1, attach_template2: 1, attach_engagement_proof: 1, attach_future_optional: 1 }
+    : { attach_invitation: 1, attach_annex1: 1, attach_annex2: 1, attach_annex3: 1 };
   var maxBytes = 18 * 1024 * 1024;
   var blobSheet = ensureApplicationFileBlobsSheet_(ss);
 
   for (var i = 0; i < fileUploads.length; i++) {
     var item = fileUploads[i] || {};
     var fieldId = String(item.fieldId || item.field_id || "").trim();
+    if (isNoCost && fieldId === "attach_annex1") fieldId = "attach_template1";
+    if (isNoCost && fieldId === "attach_annex2") fieldId = "attach_template2";
     var fileName = String(item.fileName || "dokument.pdf").trim();
     var mimeType = String(item.mimeType || "application/pdf").trim();
     var b64 = item.fileBase64;
@@ -2233,7 +2242,12 @@ function getConnectPostAward(competitionId, applicationId, token) {
   if (!owner && !priv) throw new Error("K této přihlášce nemáte přístup.");
 
   var outcome = findProrektorOutcomeForApp_(ss, aid, row);
+  var isNoCost = String(row.call_type || "").toLowerCase().trim() === "no_cost_entry" || String(competitionId || "").indexOf("no_cost_entry") >= 0;
   var dec = connectOutcomeDecisionCode_(outcome);
+  if (isNoCost && dec !== "SUPPORT" && dec !== "CUT") {
+    var stNoCost = String(row.status || "").toUpperCase().trim();
+    if (stNoCost === "APPROVED" || stNoCost === "UKONCENO") dec = "SUPPORT";
+  }
   var isSupportedOutcome = dec === "SUPPORT" || dec === "CUT";
   var previewRejected = priv && dec === "REJECT";
   var previewBeforeDecision = priv && !isSupportedOutcome && !previewRejected;
@@ -2684,7 +2698,14 @@ function saveConnectPostAward(body) {
 
   var outcome = findProrektorOutcomeForApp_(ss, applicationId, row);
   var dec = connectOutcomeDecisionCode_(outcome);
-  if (dec !== "SUPPORT" && dec !== "CUT") throw new Error("Checklist lze ukládat jen u podpořených nebo krácených projektů.");
+  var callType = String(row.call_type || "").toLowerCase().trim();
+  var isNoCost = callType === "no_cost_entry" || String(competitionId || "").indexOf("no_cost_entry") >= 0;
+  if (dec !== "SUPPORT" && dec !== "CUT") {
+    var stNoCost = String(row.status || "").toUpperCase().trim();
+    if (!(isNoCost && (stNoCost === "APPROVED" || stNoCost === "UKONCENO"))) {
+      throw new Error("Checklist lze ukládat jen u podpořených nebo krácených projektů.");
+    }
+  }
 
   var prev = readConnectPostawardChecklist_(row);
   var c = body.checklist || {};

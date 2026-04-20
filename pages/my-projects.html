@@ -305,6 +305,8 @@ function renderProject(p) {
   const budget  = f.budget_total ? Number(f.budget_total).toLocaleString("cs-CZ")+" Kč" : "—";
   const isRej   = status === "REJECTED";
   const isApp   = status === "APPROVED";
+  const isNoCost = String(p.competition_id || "").indexOf("no_cost_entry") >= 0;
+  const noCostCloseoutHref = "no-cost-closeout.html?c=" + encodeURIComponent(p.competition_id || "") + "&app=" + encodeURIComponent(p.application_id || "");
 
   // Timeline
   const curIdx = WF_ORDER.indexOf(status);
@@ -404,7 +406,8 @@ function renderProject(p) {
 
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">
         ${status==="DRAFT" ? `<a href="${applyPageHref(p.competition_id)}" class="btn btn-n btn-sm">✏ Upravit přihlášku</a>` : ""}
-        ${isApp && !openReportForms[p.application_id] ? `<button class="btn btn-n btn-sm" onclick="openReportForm('${p.application_id}')">📄 Podat závěrečnou zprávu</button>` : ""}
+        ${isNoCost && isApp ? `<a href="${noCostCloseoutHref}" class="btn btn-o btn-sm">📄 Závěrečná zpráva</a>` : ""}
+        ${isApp && !isNoCost && !openReportForms[p.application_id] ? `<button class="btn btn-n btn-sm" onclick="openReportForm('${p.application_id}')">📄 Podat závěrečnou zprávu</button>` : ""}
       </div>
     </div>
   </div>`;

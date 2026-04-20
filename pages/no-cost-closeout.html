@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>No-Cost Entry – závěrečná zpráva</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/connect-postaward.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "DM Sans", sans-serif; background: #f8f7f4; color: #1c2e5a; min-height: 100vh; font-size: 15px; line-height: 1.6; }
+    .topbar { background: #1c2e5a; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 100; }
+    .topbar__logo { display: flex; align-items: center; gap: 10px; }
+    .topbar__logo img { height: 26px; opacity: 0.9; }
+    .topbar__title { font-size: 14px; font-weight: 500; color: rgba(255, 255, 255, 0.8); }
+    .topbar__right { display: flex; align-items: center; gap: 10px; }
+    .topbar__user { font-size: 13px; color: rgba(255, 255, 255, 0.5); }
+    .topbar__user strong { color: rgba(255, 255, 255, 0.85); font-weight: 500; }
+    .btn-back { background: none; border: 1px solid rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.6); font-family: "DM Mono", monospace; font-size: 11px; padding: 5px 12px; border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; transition: all 0.15s; }
+    .btn-back:hover { color: white; border-color: rgba(255, 255, 255, 0.4); }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 28px 24px 80px; }
+    h1 { font-size: 22px; font-weight: 600; margin-bottom: 8px; }
+    .sub { color: #6b6a63; font-size: 14px; margin-bottom: 20px; line-height: 1.5; }
+    .alert { padding: 14px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; }
+    .alert--err { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+    #postawardRoot { display: block; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar__logo">
+      <img src="../img/uhk-abb-w.png" alt="UHK">
+      <span class="topbar__title">Horizon No-Cost Entry – závěrečná zpráva</span>
+    </div>
+    <div class="topbar__right">
+      <div class="topbar__user">Přihlášen: <strong id="topbarName">—</strong></div>
+      <a href="dashboard.html" class="btn-back">← Rozcestník</a>
+    </div>
+  </header>
+
+  <div id="toast" class="toast"></div>
+
+  <div class="wrap">
+    <h1>Závěrečná zpráva (Příloha č. 3)</h1>
+    <p class="sub" id="pageSub">Načítám projekt…</p>
+    <div id="msgErr" class="alert alert--err" style="display:none;"></div>
+    <div id="postawardRoot"></div>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/connect-postaward-panel.js"></script>
+  <script>
+    const user = Auth.requireLogin(["ZADATEL", "RESITEL", "ADMIN", "TESTER"]);
+    document.getElementById("topbarName").textContent = user.name || user.email;
+
+    const params = new URLSearchParams(location.search);
+    const competitionId = params.get("c");
+    const applicationId = (params.get("app") || "").trim();
+
+    let toastTimer = null;
+    function showToast(msg, type) {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.style.background = type === "err" ? "#991B1B" : "#1E6B45";
+      t.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () { t.classList.remove("show"); }, 4000);
+    }
+
+    (async function init() {
+      const sub = document.getElementById("pageSub");
+      const err = document.getElementById("msgErr");
+      if (!competitionId || !applicationId) {
+        sub.textContent = "Chybí parametry stránky.";
+        err.style.display = "block";
+        err.textContent = "Otevřete tuto stránku z Moje projekty nebo z detailu žádosti.";
+        return;
+      }
+      sub.textContent = "ID přihlášky: " + applicationId + ". Struktura odpovídá režimu závěrečné zprávy v aplikaci.";
+      const root = document.getElementById("postawardRoot");
+      await ConnectPostAwardPanel.mount(root, competitionId, applicationId, "closeout", {
+        showToast: showToast,
+        applicantLine: user.name || user.email || "",
+      });
+      if (!root.innerHTML.trim()) {
+        err.style.display = "block";
+        err.textContent = "Pro tuto žádost zatím není závěrečná zpráva k dispozici.";
+      }
+    })();
+  </script>
+</body>
+</html>
