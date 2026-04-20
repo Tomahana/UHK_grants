@@ -172,6 +172,15 @@ function applyFinalizeHref(competitionId) {
   const sep = base.includes("?") ? "&" : "?";
   return base + sep + "finalize=1";
 }
+function applyDraftHref(competitionId, applicationId, finalize) {
+  const base = applyPageHref(competitionId);
+  if (base === "dashboard.html") return base;
+  const params = new URLSearchParams();
+  params.set("c", String(competitionId || ""));
+  if (applicationId) params.set("app", String(applicationId));
+  if (finalize) params.set("finalize", "1");
+  return base + "?" + params.toString();
+}
 
 function escapeHtml(s) {
   return String(s ?? "")
@@ -200,8 +209,8 @@ function renderDraftsPanel(drafts) {
     const f = p._f || {};
     const title = (f.project_title && String(f.project_title).trim()) || "(bez názvu – doplníte ve formuláři)";
     const cname = COMP_NAMES[p.competition_id] || p.competition_id;
-    const hrefEdit = applyPageHref(p.competition_id);
-    const hrefFin = applyFinalizeHref(p.competition_id);
+    const hrefEdit = applyDraftHref(p.competition_id, p.application_id, false);
+    const hrefFin = applyDraftHref(p.competition_id, p.application_id, true);
     const appId = p.application_id || "";
     return `<div class="draft-row">
       <div class="draft-row__main">
