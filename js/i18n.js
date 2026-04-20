@@ -147,6 +147,10 @@
           UHK_REGA: "UHK ReGa",
           OP_JAK_NAVRATY: "OP JAK Návraty",
           UHK_PRESTIGE: "UHK Prestige",
+          PRESTIGE_LARGE: "UHK Prestige – Velký projekt",
+          NO_COST_ENTRY: "Horizon No-Cost Entry",
+          prestige_large: "UHK Prestige – Velký projekt",
+          no_cost_entry: "Horizon No-Cost Entry",
         },
       },
       auth: {
@@ -671,6 +675,10 @@
           UHK_REGA: "UHK ReGa",
           OP_JAK_NAVRATY: "OP JAK Returns",
           UHK_PRESTIGE: "UHK Prestige",
+          PRESTIGE_LARGE: "UHK Prestige – Large Project",
+          NO_COST_ENTRY: "Horizon No-Cost Entry",
+          prestige_large: "UHK Prestige – Large Project",
+          no_cost_entry: "Horizon No-Cost Entry",
         },
         competitionCard: {
           uhk_navraty_2026: {

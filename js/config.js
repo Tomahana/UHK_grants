@@ -140,6 +140,27 @@ const FALLBACK_COMPETITIONS = [
     allocation:  4000000,
     maxBudget:   1000000,
   },
+  {
+    id:          "prestige_large_2026_v1",
+    name:        "UHK Prestige – Výzva č. 1/2026 (Velký projekt Prestige)",
+    type:        "prestige_large",
+    status:      "OPEN",
+    description: "Dvouetapový projekt s rozhodnutím o pokračování do etapy 2.",
+    deadline:    "2026-05-04",
+    allocation:  4000000,
+    maxBudget:   1000000,
+  },
+  {
+    id:          "no_cost_entry_2026_v2",
+    name:        "Horizon No-Cost Entry – Výzva č. 2/2026",
+    type:        "no_cost_entry",
+    status:      "OPEN",
+    description: "Průběžná výzva s měsíčním cut-off k 10. dni.",
+    deadline:    "",
+    allocation:  1000000,
+    maxBudget:   400000,
+    is_continuous: true,
+  },
 ];
 
 // ── Utility funkce ─────────────────────────────────────────────

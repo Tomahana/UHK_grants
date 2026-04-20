@@ -5442,8 +5442,29 @@ function submitApplication(body) {
   if (!applicant || applicant !== auth.email)
     throw new Error("Přihlášku můžete odeslat jen za svůj účet.");
 
+  var formData = body.formData && typeof body.formData === "object" ? body.formData : {};
+  var callTypeRaw = String(formData.call_type || "").toLowerCase().trim();
+  var isNoCostEntry = callTypeRaw === "no_cost_entry";
+
   if (connectCompetitionUsesIrisCaseId_(body.competitionId)) {
-    connectAssertIrisCaseIdOnSubmit_(body.formData || {});
+    connectAssertIrisCaseIdOnSubmit_(formData);
+  }
+
+  if (isNoCostEntry) {
+    var fte = Number(String(formData.fte || "").replace(",", "."));
+    if (!isFinite(fte) || fte < 0.2 || fte > 0.4) {
+      throw new Error("No-Cost Entry: FTE musí být v rozsahu 0.2 až 0.4.");
+    }
+    if (!String(formData.attach_engagement_proof || "").trim()) {
+      throw new Error("No-Cost Entry: je povinný doklad zapojení (attach_engagement_proof).");
+    }
+    // Cut-off cyklus: podání do 10. dne včetně = aktuální cyklus, jinak následující.
+    if (!String(formData.cutoff_cycle || "").trim()) {
+      var nowCut = new Date();
+      var day = nowCut.getDate();
+      var cDate = new Date(nowCut.getFullYear(), nowCut.getMonth() + (day > 10 ? 1 : 0), 10);
+      formData.cutoff_cycle = Utilities.formatDate(cDate, Session.getScriptTimeZone(), "yyyy-MM-dd");
+    }
   }
 
   assertCompetitionOpenForNewSubmission_(body.competitionId, auth);
@@ -5470,7 +5491,7 @@ function submitApplication(body) {
       const appId = idCol >= 0 ? String(data[i][idCol] || "").trim() : String(data[i][0] || "").trim();
       var fdMerged = {};
       try {
-        fdMerged = Object.assign({}, body.formData || {});
+        fdMerged = Object.assign({}, formData);
       } catch (eM) {
         fdMerged = {};
       }
@@ -5515,7 +5536,7 @@ function submitApplication(body) {
   const now = fmtDate(new Date());
   var fd2 = {};
   try {
-    fd2 = Object.assign({}, body.formData || {});
+    fd2 = Object.assign({}, formData);
   } catch (e2) {
     fd2 = {};
   }

@@ -344,17 +344,22 @@
         : `review-connect.html?c=${id}`;
 
       // Odkaz na podání přihlášky dle soutěže
+      const typeUpper = String(type || "").toUpperCase();
       const applyHref =
-        type === "UHK_CONNECT"    ? `apply-connect.html?c=${id}` :
-        type === "UHK_REGA"       ? `apply-rega.html` :
-        type === "UHK_PRESTIGE"   ? `apply-prestige.html` :
+        typeUpper === "UHK_CONNECT"    ? `apply-connect.html?c=${id}` :
+        typeUpper === "UHK_REGA"       ? `apply-rega.html` :
+        (
+          typeUpper === "UHK_PRESTIGE" ||
+          typeUpper === "PRESTIGE_LARGE" ||
+          typeUpper === "NO_COST_ENTRY"
+        ) ? `apply-prestige.html?c=${id}` :
         null; // Návraty nemají přihlášku přes web
 
       // Connect: přehled na my-connect; u uzavřené ReGa/Prestige nevést na formulář, ale na přehled projektů
       const myApplicationsHref =
         type === "UHK_CONNECT"
           ? `my-connect.html?c=${id}`
-          : (type === "UHK_REGA" || type === "UHK_PRESTIGE") && !isOpen
+          : (typeUpper === "UHK_REGA" || typeUpper === "UHK_PRESTIGE" || typeUpper === "PRESTIGE_LARGE" || typeUpper === "NO_COST_ENTRY") && !isOpen
             ? "my-projects.html"
             : applyHref;
       const myListLabel = type === "UHK_CONNECT" ? I18n.t("dashboard.actionMyProjects") : I18n.t("dashboard.actionMyApps");

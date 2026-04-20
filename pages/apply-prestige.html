@@ -321,7 +321,9 @@
     }
 
     const COMPETITION_ID = new URLSearchParams(location.search).get("c") || "uhk_prestige_2026";
-    const MAX_BUDGET = 1000000;
+    const CALL_MODE = String(COMPETITION_ID).indexOf("no_cost_entry") >= 0 ? "no_cost_entry" : "prestige_large";
+    const IS_NO_COST_ENTRY = CALL_MODE === "no_cost_entry";
+    const MAX_BUDGET = IS_NO_COST_ENTRY ? 400000 : 1000000;
     const IRIS_UHK_URL = "https://tomahana.github.io/IRIS_UHK/";
 
     /** Milníky dle výzvy UHK Prestige 1/2026 (příprava ERC / Horizon Europe). */
@@ -336,6 +338,16 @@
         { title: "Ukončení čerpání r. 1 + průběžná zpráva", dateLabel: "30. 11. 2026", note: "rozhodnutí o pokračování do r. 2 do 20. 12. 2026" },
         { title: "Milníky M3–M5 a podání do cílové soutěže", dateLabel: "2027", note: "dle výzvy a termínu ERC/HE" },
         { title: "Závěrečná zpráva", dateLabel: "do 3 měsíců po podání návrhu", note: "dle výzvy" },
+      ],
+    };
+    const NO_COST_ENTRY_VYZVA = {
+      DEADLINE_APPLY_ISO: "",
+      milestones: [
+        { title: "Průběžný příjem žádostí", dateLabel: "kontinuálně", note: "podání kdykoliv během měsíce" },
+        { title: "Měsíční cut-off", dateLabel: "10. den v měsíci", note: "podání do 10. dne spadá do aktuálního cyklu" },
+        { title: "Hodnocení pořadí žádostí", dateLabel: "po uzávěrce cyklu", note: "alokace podle pořadí a dostupné kapacity" },
+        { title: "Rozhodnutí", dateLabel: "následující pracovní dny", note: "bez etap, jednokolové rozhodnutí" },
+        { title: "Závěrečná zpráva", dateLabel: "dle podmínek výzvy", note: "povinná pro podpořené projekty" },
       ],
     };
 
@@ -430,6 +442,7 @@
     }
 
     function getPrestigeMilestones() {
+      if (IS_NO_COST_ENTRY) return NO_COST_ENTRY_VYZVA.milestones;
       if (I18n.getLang() === "en" && typeof UhkApplyFlowEn !== "undefined" && UhkApplyFlowEn.prestige && UhkApplyFlowEn.prestige.milestones)
         return UhkApplyFlowEn.prestige.milestones;
       return PRESTIGE_VYZVA.milestones;
@@ -446,7 +459,13 @@
         </li>
       `).join("");
       const sd = document.getElementById("sidebarDeadlineApply");
-      if (sd) sd.textContent = formatUiDateFromIso(PRESTIGE_VYZVA.DEADLINE_APPLY_ISO);
+      if (sd) {
+        sd.textContent = IS_NO_COST_ENTRY
+          ? "Průběžně (cut-off 10. den)"
+          : formatUiDateFromIso(PRESTIGE_VYZVA.DEADLINE_APPLY_ISO);
+      }
+      const cName = document.querySelector('[data-i18n="applyPrestige.sidebarCompetitionVal"]');
+      if (cName && IS_NO_COST_ENTRY) cName.textContent = "Horizon No-Cost Entry";
     }
 
     // Stav formuláře
@@ -457,7 +476,12 @@
     let isDirty     = false;
     let currentSection = 0;
 
-    const STEPS = [
+    const STEPS = IS_NO_COST_ENTRY ? [
+      { id: "ident", fields: ["section_ident","project_title","he_project_name","grant_number","engagement_type","fte","faculty","department"] },
+      { id: "concept", fields: ["section_concept","concept_note"] },
+      { id: "budget", fields: ["section_budget","budget_personnel","budget_travel","budget_justification"] },
+      { id: "attachments", fields: ["section_attachments","attach_engagement_proof","declaration"] },
+    ] : [
       { id: "ident", fields: ["section_ident","project_title","target_scheme","planned_submission_date","support_year1_request","faculty","department","section_iris","iris_case_id","iris_checklist_result"] },
       { id: "concept", fields: ["section_concept","concept_note","excellence_top5","prev_erc_he"] },
       { id: "strategy", fields: ["section_strategy","strategy_why_call","strategy_work_packages","strategy_external_review","section_milestones","milestones_summary"] },
@@ -492,6 +516,26 @@
     }
 
     function getLocalFieldsCs() {
+      if (IS_NO_COST_ENTRY) {
+        return [
+          { field_id:"section_ident", field_label:"Horizon No-Cost Entry", field_type:"section_header" },
+          { field_id:"project_title", field_label:"Název záměru", field_type:"text", required:"TRUE", placeholder:"Pracovní název záměru" },
+          { field_id:"he_project_name", field_label:"Název HE projektu", field_type:"text", required:"TRUE", placeholder:"Oficiální název projektu / výzvy" },
+          { field_id:"grant_number", field_label:"Grant number / reference", field_type:"text", required:"TRUE", placeholder:"např. HORIZON-CL2-2026-..." },
+          { field_id:"engagement_type", field_label:"Role UHK v projektu", field_type:"select", required:"TRUE", options:"Koordinátor;Partner;Associated Partner;Jiné" },
+          { field_id:"fte", field_label:"FTE (0.2–0.4)", field_type:"number", required:"TRUE", placeholder:"0.2 až 0.4", help_text:"Povolený rozsah FTE je 0.2–0.4." },
+          { field_id:"faculty", field_label:"Součást UHK / pracoviště", field_type:"select", required:"TRUE", options:"PřF;PdF;FF;FIM;FVZ;REKTORÁT" },
+          { field_id:"department", field_label:"Katedra / ústav", field_type:"text", required:"TRUE" },
+          { field_id:"section_concept", field_label:"Stručný popis zapojení", field_type:"section_header" },
+          { field_id:"concept_note", field_label:"Doklad a stručný popis zapojení", field_type:"textarea", required:"TRUE", placeholder:"Uveďte, jak je UHK zapojena a jak bude zapojení doloženo.", help_text:"Důraz na doložení zapojení a zákaz dvojího financování." },
+          { field_id:"section_budget", field_label:"Rozpočet", field_type:"section_header" },
+          { field_id:"budget_personnel", field_label:"Osobní náklady (Kč)", field_type:"number", required:"FALSE" },
+          { field_id:"budget_travel", field_label:"Cestovní náklady (Kč)", field_type:"number", required:"FALSE" },
+          { field_id:"section_attachments", field_label:"Přílohy", field_type:"section_header" },
+          { field_id:"attach_engagement_proof", field_label:"Doklad zapojení", field_type:"file", required:"TRUE", options:"pdf,doc,docx,xlsx,xls", help_text:"Povinné." },
+          { field_id:"declaration", field_label:"Prohlášení", field_type:"checkbox", required:"TRUE", help_text:"Potvrzuji zákaz dvojího financování a správnost údajů." },
+        ];
+      }
       return [
         { field_id:"section_ident", field_label:"Identifikace záměru", field_type:"section_header" },
         { field_id:"project_title", field_label:"Název záměru (CZ / EN)", field_type:"text", required:"TRUE", placeholder:"Pracovní název přípravy návrhu do ERC nebo Horizon Europe" },
@@ -815,7 +859,9 @@
     function syncBudgetTotalsFromDom(options) {
       const opts = options || {};
       if (!document.getElementById("f-budget_personnel")) return;
-      const ids = ["budget_personnel","budget_agency","budget_training","budget_travel","budget_material","budget_other"];
+      const ids = IS_NO_COST_ENTRY
+        ? ["budget_personnel","budget_travel"]
+        : ["budget_personnel","budget_agency","budget_training","budget_travel","budget_material","budget_other"];
       let total = 0;
       ids.forEach(id => {
         const el = document.getElementById("f-" + id);
@@ -847,7 +893,9 @@
 
     /** Postranní panel rozpočtu z formData (když tabulka rozpočtu není v DOM). */
     function updateBudgetSidebarFromFormData() {
-      const ids = ["budget_personnel","budget_agency","budget_training","budget_travel","budget_material","budget_other"];
+      const ids = IS_NO_COST_ENTRY
+        ? ["budget_personnel","budget_travel"]
+        : ["budget_personnel","budget_agency","budget_training","budget_travel","budget_material","budget_other"];
       let total = 0;
       ids.forEach(id => {
         total += parseFloat(String(formData[id] || "").replace(/\s/g, "").replace(",", ".")) || 0;
@@ -871,6 +919,10 @@
     // ── Změna hodnoty ──────────────────────────────────────────
     function onFieldChange(id, val) {
       formData[id] = val;
+      if (id === "fte") {
+        const f = Number(String(val).replace(",", "."));
+        if (isFinite(f)) formData[id] = String(f);
+      }
       isDirty = true;
       scheduleAutoSave();
       if (String(id).indexOf("budget_") === 0) updateBudget();
@@ -926,6 +978,15 @@
         }
       });
       if (!ok) showToast(trf("validateRequiredAll"), "err");
+      if (ok && IS_NO_COST_ENTRY) {
+        const f = Number(String(formData.fte || "").replace(",", "."));
+        if (!isFinite(f) || f < 0.2 || f > 0.4) {
+          showToast("FTE musí být v rozsahu 0.2–0.4.", "err");
+          const inpFte = document.getElementById("f-fte");
+          if (inpFte) inpFte.classList.add("error");
+          return false;
+        }
+      }
       if (ok && step.id === "budget") {
         const t = parseFloat(String(formData.budget_total || "").replace(/\s/g, "").replace(",", ".")) || 0;
         if (t <= 0) {
@@ -996,9 +1057,9 @@
           done: !!(String(formData.iris_case_id || "").trim() && String(formData.iris_checklist_result || "").trim()),
         },
         { label: labels[2], done: !!formData.concept_note },
-        { label: labels[3], done: !!formData.excellence_top5 },
+        { label: labels[3], done: IS_NO_COST_ENTRY ? !!(String(formData.fte || "").trim()) : !!formData.excellence_top5 },
         { label: labels[4], done: !!(formData.budget_total && parseFloat(formData.budget_total) > 0) },
-        { label: labels[5], done: !!(formData.attach_annex1 && formData.attach_annex2 && formData.attach_annex3 && formData.attach_checklist6) },
+        { label: labels[5], done: IS_NO_COST_ENTRY ? !!formData.attach_engagement_proof : !!(formData.attach_annex1 && formData.attach_annex2 && formData.attach_annex3 && formData.attach_checklist6) },
         { label: labels[6], done: formData.declaration === "true" },
       ];
       document.getElementById("checklist").innerHTML = checks.map(c => `
@@ -1030,6 +1091,7 @@
     async function saveDraft(showMessage) {
       try {
         const session = Auth._getSession();
+        formData.call_type = CALL_MODE;
         await fetch(API_URL, {
           method: "POST", mode: "no-cors",
           headers: { "Content-Type": "application/json" },
@@ -1129,6 +1191,13 @@
 
       try {
         const session = Auth._getSession();
+        formData.call_type = CALL_MODE;
+        if (IS_NO_COST_ENTRY) {
+          const now = new Date();
+          const day = now.getDate();
+          const cycleDate = new Date(now.getFullYear(), now.getMonth() + (day > 10 ? 1 : 0), 10);
+          formData.cutoff_cycle = cycleDate.toISOString().slice(0, 10);
+        }
         await fetch(API_URL, {
           method: "POST", mode: "no-cors",
           headers: { "Content-Type": "application/json" },

@@ -163,7 +163,7 @@ function applyPageHref(competitionId) {
   const id = String(competitionId || "");
   if (id.includes("connect")) return "apply-connect.html";
   if (id.includes("rega")) return "apply-rega.html";
-  if (id.includes("prestige")) return "apply-prestige.html";
+  if (id.includes("prestige") || id.includes("no_cost_entry")) return "apply-prestige.html";
   return "dashboard.html";
 }
 function applyFinalizeHref(competitionId) {
