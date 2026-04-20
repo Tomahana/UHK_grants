@@ -201,10 +201,24 @@ function validateNoCostEntrySpecificRules_(formData) {
   var budgetPersonnel = Number(String(formData.budget_personnel || "").replace(",", "."));
   var budgetLevies = Number(String(formData.budget_personnel_levies || "").replace(",", "."));
   var budgetTravel = Number(String(formData.budget_travel || "").replace(",", "."));
+  var budgetAgency = Number(String(formData.budget_agency || "").replace(",", "."));
+  var budgetTraining = Number(String(formData.budget_training || "").replace(",", "."));
+  var budgetMaterial = Number(String(formData.budget_material || "").replace(",", "."));
+  var budgetOther = Number(String(formData.budget_other || "").replace(",", "."));
   var budgetTotal = Number(String(formData.budget_total || "").replace(",", "."));
   var p = isFinite(budgetPersonnel) && budgetPersonnel > 0 ? budgetPersonnel : 0;
   var l = isFinite(budgetLevies) && budgetLevies > 0 ? budgetLevies : 0;
   var t = isFinite(budgetTravel) && budgetTravel > 0 ? budgetTravel : 0;
+  var nonEligible =
+    (isFinite(budgetAgency) && budgetAgency > 0 ? budgetAgency : 0) +
+    (isFinite(budgetTraining) && budgetTraining > 0 ? budgetTraining : 0) +
+    (isFinite(budgetMaterial) && budgetMaterial > 0 ? budgetMaterial : 0) +
+    (isFinite(budgetOther) && budgetOther > 0 ? budgetOther : 0);
+  if (nonEligible > 0) {
+    throw new Error(
+      "No-Cost Entry: nezpůsobilé kategorie (agentura, školení, materiál, ostatní) musí být 0 Kč. Povoleny jsou pouze osobní náklady (vč. odvodů/FKSP) a cestovní náklady."
+    );
+  }
   var sum = p + l + t;
   if (sum <= 0)
     throw new Error("No-Cost Entry: rozpočet musí obsahovat alespoň osobní nebo cestovní náklady.");
