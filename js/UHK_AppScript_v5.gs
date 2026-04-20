@@ -3975,6 +3975,8 @@ function sendStatusEmail(toEmail, appId, status, projectTitle, competitionId) {
     SUBMITTED:    "[" + tag + "] Přihláška přijata – " + appId,
     FORMAL_CHECK: "[" + tag + "] Formální kontrola – " + appId,
     IN_REVIEW:    "[" + tag + "] Předáno hodnoticímu panelu – " + appId,
+    CEKANI_NA_PRUBEZNOU_ZPRAVU: "[" + tag + "] Čeká se na průběžnou zprávu – " + appId,
+    POSOUZENI_POKRACOVANI: "[" + tag + "] Posouzení pokračování projektu – " + appId,
     APPROVED:     "[" + tag + "] 🎉 Přihláška schválena – " + appId,
     REJECTED:     "[" + tag + "] Výsledek hodnocení – " + appId,
     WITHDRAWN:    "[" + tag + "] Přihláška stažena – " + appId,
@@ -3983,6 +3985,8 @@ function sendStatusEmail(toEmail, appId, status, projectTitle, competitionId) {
     SUBMITTED:    "Vaše přihláška byla úspěšně přijata a čeká na formální kontrolu.",
     FORMAL_CHECK: "Probíhá formální kontrola Vaší přihlášky.",
     IN_REVIEW:    "Vaše přihláška byla předána hodnoticímu panelu.",
+    CEKANI_NA_PRUBEZNOU_ZPRAVU: "Projekt je ve stavu čekání na průběžnou zprávu. Pro pokračování do další etapy je potřeba doložit průběžnou zprávu dle podmínek výzvy.",
+    POSOUZENI_POKRACOVANI: "Byla zahájena fáze posouzení pokračování projektu do další etapy. O výsledku rozhodnutí budete informováni.",
     APPROVED:     "Gratulujeme! Vaše přihláška byla schválena k financování. Stanovisko a komentář si můžete po přihlášení přečíst v aplikaci UHK Grant Manager (sekce Moje projekty).",
     REJECTED:     "Vaše přihláška nebyla v tomto kole podpořena. Zdůvodnění a komentář najdete po přihlášení v aplikaci UHK Grant Manager (sekce Moje projekty).",
     WITHDRAWN:    "Vaše přihláška byla stažena ze soutěže.",
@@ -4001,6 +4005,55 @@ function sendStatusEmail(toEmail, appId, status, projectTitle, competitionId) {
   } catch (err) {
     console.error("sendStatusEmail:", err.message);
   }
+}
+
+/** Jednoduché plánované upozornění (run as trigger): no_cost_entry cut-off + reporty. */
+function sendCallDeadlinesDigest() {
+  const now = new Date();
+  const tz = Session.getScriptTimeZone();
+  const day = Number(Utilities.formatDate(now, tz, "d"));
+  const month = Utilities.formatDate(now, tz, "MMMM yyyy");
+
+  Object.entries(SPREADSHEET_IDS).forEach(function (entry) {
+    const competitionId = entry[0];
+    try {
+      const ss = getSpreadsheet(competitionId);
+      const cfg = getConfigMap(ss);
+      const compType = String(inferCompetitionTypeFromConfig_(competitionId, cfg) || "").toLowerCase();
+      const tag = getCompetitionEmailSubjectTag_(competitionId, ss);
+      const recipientsRaw = String(cfg["coordinator_email"] || cfg["admin_email"] || ADMIN_EMAIL || "").trim();
+      if (!recipientsRaw) return;
+
+      // No-Cost Entry: připomínka cut-off 10. den
+      if (compType === "no_cost_entry" && day === 9) {
+        GmailApp.sendEmail(
+          recipientsRaw,
+          "[" + tag + "] Připomínka: měsíční cut-off 10. den",
+          "Připomínka: zítra (10. den v měsíci) probíhá cut-off pro průběžnou výzvu No-Cost Entry.\n" +
+            "Cyklus: " + month + "\n" +
+            "Podání do 10. dne spadají do aktuálního cyklu, pozdější podání do následujícího."
+        );
+      }
+
+      // Prestige large: základní připomínka na průběžné / závěrečné zprávy
+      if (compType === "prestige_large") {
+        const dueProgress = String(cfg["deadline_progress_report"] || "").trim();
+        const dueFinal = String(cfg["deadline_final_report"] || "").trim();
+        const msgs = [];
+        if (dueProgress) msgs.push("Průběžná zpráva: " + dueProgress);
+        if (dueFinal) msgs.push("Závěrečná zpráva: " + dueFinal);
+        if (msgs.length && day === 1) {
+          GmailApp.sendEmail(
+            recipientsRaw,
+            "[" + tag + "] Připomínka termínů reportů",
+            "Souhrn reportovacích termínů pro " + month + ":\n\n" + msgs.join("\n")
+          );
+        }
+      }
+    } catch (e) {
+      console.error("sendCallDeadlinesDigest:" + competitionId + ": " + e.message);
+    }
+  });
 }
 
 /** E-mail koordinátorovi po finálním podání žádosti (stejná tabulka soutěže → CONFIG). */
