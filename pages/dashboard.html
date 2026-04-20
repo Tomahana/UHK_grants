@@ -185,10 +185,21 @@
               ...c,
               _visible: c.dashboardVisible !== false,
             }));
-          // Doplň Návraty pokud API nevrátí (musí mít _visible, jinak zmizí po filtru)
-          if (!live.some(c => c.id === "uhk_navraty_2026")) {
-            live.unshift({ ...NAVRATY_CARD, _visible: true });
-          }
+          // Doplň fallback soutěže, které API aktuálně nevrací (např. nově přidané typy callů).
+          // Tím zachováme zpětnou kompatibilitu i při postupném rolloutu backendu.
+          const fallbackMap = {};
+          (FALLBACK_COMPETITIONS || []).forEach((f) => {
+            if (!f || !f.id) return;
+            fallbackMap[String(f.id)] = f;
+          });
+          Object.keys(fallbackMap).forEach((fid) => {
+            if (live.some((c) => String(c.id) === fid)) return;
+            const f = fallbackMap[fid];
+            live.push({
+              ...f,
+              _visible: vis[fid] !== undefined ? vis[fid] : true,
+            });
+          });
           if (!showHiddenCompetitions) live = live.filter(c => c._visible);
           renderCompetitions(live, showHiddenCompetitions);
           enrichConnectFunding(live);
@@ -344,17 +355,22 @@
         : `review-connect.html?c=${id}`;
 
       // Odkaz na podání přihlášky dle soutěže
+      const typeUpper = String(type || "").toUpperCase();
       const applyHref =
-        type === "UHK_CONNECT"    ? `apply-connect.html?c=${id}` :
-        type === "UHK_REGA"       ? `apply-rega.html` :
-        type === "UHK_PRESTIGE"   ? `apply-prestige.html` :
+        typeUpper === "UHK_CONNECT"    ? `apply-connect.html?c=${id}` :
+        typeUpper === "UHK_REGA"       ? `apply-rega.html` :
+        (
+          typeUpper === "UHK_PRESTIGE" ||
+          typeUpper === "PRESTIGE_LARGE" ||
+          typeUpper === "NO_COST_ENTRY"
+        ) ? `apply-prestige.html?c=${id}` :
         null; // Návraty nemají přihlášku přes web
 
       // Connect: přehled na my-connect; u uzavřené ReGa/Prestige nevést na formulář, ale na přehled projektů
       const myApplicationsHref =
         type === "UHK_CONNECT"
           ? `my-connect.html?c=${id}`
-          : (type === "UHK_REGA" || type === "UHK_PRESTIGE") && !isOpen
+          : (typeUpper === "UHK_REGA" || typeUpper === "UHK_PRESTIGE" || typeUpper === "PRESTIGE_LARGE" || typeUpper === "NO_COST_ENTRY") && !isOpen
             ? "my-projects.html"
             : applyHref;
       const myListLabel = type === "UHK_CONNECT" ? I18n.t("dashboard.actionMyProjects") : I18n.t("dashboard.actionMyApps");
