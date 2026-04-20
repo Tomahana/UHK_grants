@@ -146,6 +146,72 @@ function connectMaybeValidateIrisCaseIdDraft_(competitionId, formData) {
   connectValidateIrisCaseIdFormat_(formData);
 }
 
+/**
+ * No-Cost Entry: IRIS podle počtu institucí v konsorciu.
+ * consortium_institutions_count = N, consortium_iris_records = N řádků (UUID/CASE/zdůvodnění).
+ */
+function validateNoCostEntryConsortiumIris_(formData) {
+  if (!formData || typeof formData !== "object") return;
+  var callType = String(formData.call_type || "").toLowerCase().trim();
+  if (callType !== "no_cost_entry") return;
+  var cntRaw = String(formData.consortium_institutions_count || "").trim();
+  if (!cntRaw) throw new Error("No-Cost Entry: vyplňte počet institucí v konsorciu.");
+  var cnt = Number(cntRaw);
+  if (!isFinite(cnt) || cnt < 1 || Math.floor(cnt) !== cnt)
+    throw new Error("No-Cost Entry: počet institucí v konsorciu musí být celé číslo >= 1.");
+  var records = String(formData.consortium_iris_records || "").trim();
+  if (!records) throw new Error("No-Cost Entry: vyplňte IRIS záznamy pro instituce v konsorciu.");
+  var lines = records
+    .split(/\r?\n/)
+    .map(function (x) { return String(x || "").trim(); })
+    .filter(function (x) { return x.length > 0; });
+  if (lines.length !== cnt) {
+    throw new Error(
+      "No-Cost Entry: počet IRIS záznamů (" + lines.length + ") musí odpovídat počtu institucí v konsorciu (" + cnt + ")."
+    );
+  }
+  for (var i = 0; i < lines.length; i++) {
+    connectValidateIrisCaseIdFormat_({ iris_case_id: lines[i] });
+  }
+}
+
+/** No-Cost Entry: specifická pravidla výzvy 2/2026. */
+function validateNoCostEntrySpecificRules_(formData) {
+  if (!formData || typeof formData !== "object") return;
+  var callType = String(formData.call_type || "").toLowerCase().trim();
+  if (callType !== "no_cost_entry") return;
+
+  var engagementType = String(formData.engagement_type || "").trim();
+  if (engagementType !== "Associated Partner" && engagementType !== "Neformální spolupráce") {
+    throw new Error("No-Cost Entry: typ zapojení musí být „Associated Partner“ nebo „Neformální spolupráce“.");
+  }
+
+  var fte = Number(String(formData.fte || "").replace(",", "."));
+  if (!isFinite(fte) || fte < 0.2 || fte > 0.4) {
+    throw new Error("No-Cost Entry: FTE musí být v rozsahu 0.2 až 0.4.");
+  }
+
+  if (!String(formData.attach_annex1 || "").trim())
+    throw new Error("No-Cost Entry: je povinná příloha č. 1 (šablona žádosti).");
+  if (!String(formData.attach_annex2 || "").trim())
+    throw new Error("No-Cost Entry: je povinná příloha č. 2 (rozpočet + odůvodnění).");
+  if (!String(formData.attach_engagement_proof || "").trim())
+    throw new Error("No-Cost Entry: je povinný doklad zapojení dle typu (čl. 6).");
+
+  var budgetPersonnel = Number(String(formData.budget_personnel || "").replace(",", "."));
+  var budgetTravel = Number(String(formData.budget_travel || "").replace(",", "."));
+  var budgetTotal = Number(String(formData.budget_total || "").replace(",", "."));
+  var p = isFinite(budgetPersonnel) && budgetPersonnel > 0 ? budgetPersonnel : 0;
+  var t = isFinite(budgetTravel) && budgetTravel > 0 ? budgetTravel : 0;
+  var sum = p + t;
+  if (sum <= 0)
+    throw new Error("No-Cost Entry: rozpočet musí obsahovat alespoň osobní nebo cestovní náklady.");
+  if (isFinite(budgetTotal) && budgetTotal > 0 && Math.abs(budgetTotal - sum) > 1) {
+    throw new Error("No-Cost Entry: celkový rozpočet musí odpovídat součtu osobních a cestovních nákladů.");
+  }
+  formData.budget_total = String(sum);
+}
+
 /** Krátký název soutěže do předmětu e-mailu, pokud v CONFIG není competition_name / email_subject_tag */
 const UHK_COMPETITION_EMAIL_SUBJECT_TAGS = {
   "uhk_connect_2026_v2": "UHK Connect",
@@ -4955,6 +5021,7 @@ function saveDraft(body) {
     throw new Error("Draft lze ukládat jen pod vlastním přihlášeným e-mailem.");
 
   connectMaybeValidateIrisCaseIdDraft_(body.competitionId, body.formData);
+  validateNoCostEntryConsortiumIris_(body.formData);
 
   const ss    = getSpreadsheet(body.competitionId);
   let sheet   = ss.getSheetByName("📥 APPLICATIONS");
@@ -5511,6 +5578,7 @@ function submitApplication(body) {
     if (!String(formData.attach_engagement_proof || "").trim()) {
       throw new Error("No-Cost Entry: je povinný doklad zapojení (attach_engagement_proof).");
     }
+    validateNoCostEntryConsortiumIris_(formData);
     // Cut-off cyklus: podání do 10. dne včetně = aktuální cyklus, jinak následující.
     if (!String(formData.cutoff_cycle || "").trim()) {
       var nowCut = new Date();

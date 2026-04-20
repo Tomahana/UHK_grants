@@ -545,6 +545,14 @@
         UKONCENO: { label: "Ukončeno" },
         WITHDRAWN: { label: "Staženo" },
       },
+      noCostEntry: {
+        fteRange: "No-Cost Entry: úvazek řešitele musí být v rozsahu 0,2–0,4 FTE.",
+        consortiumMin: "No-Cost Entry: počet institucí v konsorciu musí být alespoň 1.",
+        irisRowsRequired: "No-Cost Entry: vyplňte IRIS záznamy (1 řádek pro každou instituci).",
+        irisRowsMismatch: "No-Cost Entry: počet IRIS záznamů musí odpovídat počtu institucí v konsorciu.",
+        budgetPersonnelRequired: "No-Cost Entry: vyplňte osobní náklady (min. 1 Kč).",
+        budgetTravelRequired: "No-Cost Entry: vyplňte cestovní náklady (min. 1 Kč).",
+      },
     },
     en: {
       common: { signedIn: "Signed in:" },
@@ -1080,6 +1088,14 @@
         REJECTED: { label: "Rejected" },
         UKONCENO: { label: "Closed" },
         WITHDRAWN: { label: "Withdrawn" },
+      },
+      noCostEntry: {
+        fteRange: "No-Cost Entry: researcher workload must be in range 0.2–0.4 FTE.",
+        consortiumMin: "No-Cost Entry: consortium institutions count must be at least 1.",
+        irisRowsRequired: "No-Cost Entry: fill IRIS records (1 row per institution).",
+        irisRowsMismatch: "No-Cost Entry: number of IRIS rows must match consortium institutions count.",
+        budgetPersonnelRequired: "No-Cost Entry: fill personnel costs (min. CZK 1).",
+        budgetTravelRequired: "No-Cost Entry: fill travel costs (min. CZK 1).",
       },
       postaward: {
         saveConsent: "Save consent",

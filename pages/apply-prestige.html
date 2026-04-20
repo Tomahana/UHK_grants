@@ -477,10 +477,10 @@
     let currentSection = 0;
 
     const STEPS = IS_NO_COST_ENTRY ? [
-      { id: "ident", fields: ["section_ident","project_title","he_project_name","grant_number","engagement_type","fte","faculty","department"] },
-      { id: "concept", fields: ["section_concept","concept_note"] },
-      { id: "budget", fields: ["section_budget","budget_personnel","budget_travel","budget_justification"] },
-      { id: "attachments", fields: ["section_attachments","attach_engagement_proof","declaration"] },
+      { id: "ident", fields: ["section_ident","project_title","he_project_name","grant_number","faculty","department","coordinator_institution","coordinator_contact","engagement_type","engagement_role_detail","consortium_institutions_count"] },
+      { id: "concept", fields: ["section_concept","concept_note","future_financed_perspective"] },
+      { id: "budget", fields: ["section_budget","fte","support_total_request","budget_personnel","budget_personnel_levies","budget_travel","budget_period_from","budget_justification"] },
+      { id: "attachments", fields: ["section_attachments","attach_template1","attach_template2","attach_engagement_proof","attach_future_optional","declaration"] },
     ] : [
       { id: "ident", fields: ["section_ident","project_title","target_scheme","planned_submission_date","support_year1_request","faculty","department","section_iris","iris_case_id","iris_checklist_result"] },
       { id: "concept", fields: ["section_concept","concept_note","excellence_top5","prev_erc_he"] },
@@ -519,21 +519,33 @@
       if (IS_NO_COST_ENTRY) {
         return [
           { field_id:"section_ident", field_label:"Horizon No-Cost Entry", field_type:"section_header" },
-          { field_id:"project_title", field_label:"Název záměru", field_type:"text", required:"TRUE", placeholder:"Pracovní název záměru" },
-          { field_id:"he_project_name", field_label:"Název HE projektu", field_type:"text", required:"TRUE", placeholder:"Oficiální název projektu / výzvy" },
-          { field_id:"grant_number", field_label:"Grant number / reference", field_type:"text", required:"TRUE", placeholder:"např. HORIZON-CL2-2026-..." },
-          { field_id:"engagement_type", field_label:"Role UHK v projektu", field_type:"select", required:"TRUE", options:"Koordinátor;Partner;Associated Partner;Jiné" },
-          { field_id:"fte", field_label:"FTE (0.2–0.4)", field_type:"number", required:"TRUE", placeholder:"0.2 až 0.4", help_text:"Povolený rozsah FTE je 0.2–0.4." },
+          { field_id:"project_title", field_label:"Název žádosti (No-Cost Entry)", field_type:"text", required:"TRUE", placeholder:"např. UHK Prestige – Horizon No-Cost Entry 2026" },
+          { field_id:"he_project_name", field_label:"Název HE projektu", field_type:"text", required:"TRUE", placeholder:"Oficiální název běžícího Horizon Europe projektu" },
+          { field_id:"grant_number", field_label:"Číslo grantu HE", field_type:"text", required:"TRUE", placeholder:"např. 1010XXXXXX" },
+          { field_id:"coordinator_institution", field_label:"Koordinátor HE projektu (instituce)", field_type:"text", required:"TRUE" },
+          { field_id:"coordinator_contact", field_label:"Koordinátor HE projektu (jméno + kontakt)", field_type:"text", required:"TRUE" },
+          { field_id:"engagement_type", field_label:"Typ zapojení UHK", field_type:"select", required:"TRUE", options:"Associated Partner;Neformální spolupráce;Jiné (individuální posouzení)" },
+          { field_id:"engagement_role_detail", field_label:"Konkrétní role UHK v projektu", field_type:"textarea", required:"TRUE", placeholder:"WP, data management, advisory, diseminace, meetingy…" },
+          { field_id:"consortium_institutions_count", field_label:"Počet institucí v konsorciu", field_type:"number", required:"TRUE", placeholder:"např. 3", help_text:"Pro každou instituci vyplňte jeden IRIS záznam." },
+          { field_id:"iris_case_id", field_label:"IRIS záznamy (1 řádek = 1 instituce)", field_type:"textarea", required:"TRUE", placeholder:"1) UHK – UUID/CaseID …\n2) Instituce B – UUID/CaseID …\n3) Instituce C – UUID/CaseID …", help_text:"Počet IRIS záznamů musí odpovídat počtu institucí v konsorciu." },
           { field_id:"faculty", field_label:"Součást UHK / pracoviště", field_type:"select", required:"TRUE", options:"PřF;PdF;FF;FIM;FVZ;REKTORÁT" },
           { field_id:"department", field_label:"Katedra / ústav", field_type:"text", required:"TRUE" },
           { field_id:"section_concept", field_label:"Stručný popis zapojení", field_type:"section_header" },
-          { field_id:"concept_note", field_label:"Doklad a stručný popis zapojení", field_type:"textarea", required:"TRUE", placeholder:"Uveďte, jak je UHK zapojena a jak bude zapojení doloženo.", help_text:"Důraz na doložení zapojení a zákaz dvojího financování." },
+          { field_id:"concept_note", field_label:"Popis zapojení a věcný přínos UHK (max. 1 strana)", field_type:"textarea", required:"TRUE", placeholder:"Co je cílem HE projektu, jak UHK přispívá a v jaké fázi došlo k zapojení." },
+          { field_id:"future_financed_perspective", field_label:"Perspektiva budoucího financovaného zapojení (max. 1/2 strany)", field_type:"textarea", required:"TRUE", placeholder:"Jak zapojení buduje pozici UHK pro financované zapojení." },
           { field_id:"section_budget", field_label:"Rozpočet", field_type:"section_header" },
-          { field_id:"budget_personnel", field_label:"Osobní náklady (Kč)", field_type:"number", required:"FALSE" },
-          { field_id:"budget_travel", field_label:"Cestovní náklady (Kč)", field_type:"number", required:"FALSE" },
+          { field_id:"fte", field_label:"Předpokládaný úvazek řešitele (FTE 0.2–0.4)", field_type:"number", required:"TRUE", placeholder:"0.2 až 0.4" },
+          { field_id:"support_total_request", field_label:"Celková požadovaná podpora (Kč)", field_type:"number", required:"TRUE" },
+          { field_id:"budget_personnel", field_label:"A. Osobní náklady – DPP/DPČ (Kč)", field_type:"number", required:"FALSE" },
+          { field_id:"budget_personnel_levies", field_label:"A. Zákonné odvody + FKSP (Kč)", field_type:"number", required:"FALSE" },
+          { field_id:"budget_travel", field_label:"B. Cestovní náklady (Kč)", field_type:"number", required:"FALSE" },
+          { field_id:"budget_period_from", field_label:"Navržený začátek řešení", field_type:"date", required:"TRUE", help_text:"Nejdříve 1. den měsíce následujícího po schválení; konec řešení je do 30.11." },
           { field_id:"section_attachments", field_label:"Přílohy", field_type:"section_header" },
-          { field_id:"attach_engagement_proof", field_label:"Doklad zapojení", field_type:"file", required:"TRUE", options:"pdf,doc,docx,xlsx,xls", help_text:"Povinné." },
-          { field_id:"declaration", field_label:"Prohlášení", field_type:"checkbox", required:"TRUE", help_text:"Potvrzuji zákaz dvojího financování a správnost údajů." },
+          { field_id:"attach_template1", field_label:"Příloha č. 1 – šablona žádosti Horizon No-Cost Entry", field_type:"file", required:"TRUE", options:"pdf,doc,docx" },
+          { field_id:"attach_template2", field_label:"Příloha č. 2 – šablona rozpočtu + odůvodnění", field_type:"file", required:"TRUE", options:"pdf,xlsx,xls,doc,docx" },
+          { field_id:"attach_engagement_proof", field_label:"Povinný doklad zapojení dle typu", field_type:"file", required:"TRUE", options:"pdf,doc,docx", help_text:"Bez dokladu je žádost formálně nezpůsobilá." },
+          { field_id:"attach_future_optional", field_label:"Dobrovolná příloha – perspektiva budoucího financovaného zapojení", field_type:"file", required:"FALSE", options:"pdf,doc,docx" },
+          { field_id:"declaration", field_label:"Prohlášení", field_type:"checkbox", required:"TRUE", help_text:"Potvrzuji zákaz dvojího financování a beru na vědomí povinnost závěrečné zprávy do 15.12." },
         ];
       }
       return [
@@ -860,7 +872,7 @@
       const opts = options || {};
       if (!document.getElementById("f-budget_personnel")) return;
       const ids = IS_NO_COST_ENTRY
-        ? ["budget_personnel","budget_travel"]
+        ? ["budget_personnel","budget_personnel_levies","budget_travel"]
         : ["budget_personnel","budget_agency","budget_training","budget_travel","budget_material","budget_other"];
       let total = 0;
       ids.forEach(id => {
@@ -872,6 +884,7 @@
         }
       });
       formData["budget_total"] = String(total);
+      if (IS_NO_COST_ENTRY) formData["support_total_request"] = String(total);
 
       const tt = document.getElementById("budgetTableTotal");
       if (tt) tt.textContent = I18n.fmtMoney(total);
@@ -894,13 +907,14 @@
     /** Postranní panel rozpočtu z formData (když tabulka rozpočtu není v DOM). */
     function updateBudgetSidebarFromFormData() {
       const ids = IS_NO_COST_ENTRY
-        ? ["budget_personnel","budget_travel"]
+        ? ["budget_personnel","budget_personnel_levies","budget_travel"]
         : ["budget_personnel","budget_agency","budget_training","budget_travel","budget_material","budget_other"];
       let total = 0;
       ids.forEach(id => {
         total += parseFloat(String(formData[id] || "").replace(/\s/g, "").replace(",", ".")) || 0;
       });
       formData["budget_total"] = String(total);
+      if (IS_NO_COST_ENTRY) formData["support_total_request"] = String(total);
       const bd = document.getElementById("budgetDisplay");
       if (bd) bd.textContent = I18n.fmtMoney(total);
       const bar = document.getElementById("budgetBar");
@@ -919,9 +933,9 @@
     // ── Změna hodnoty ──────────────────────────────────────────
     function onFieldChange(id, val) {
       formData[id] = val;
-      if (id === "fte") {
+      if (id === "consortium_institutions_count") {
         const f = Number(String(val).replace(",", "."));
-        if (isFinite(f)) formData[id] = String(f);
+        if (isFinite(f)) formData[id] = String(Math.max(1, Math.round(f)));
       }
       isDirty = true;
       scheduleAutoSave();
@@ -979,11 +993,37 @@
       });
       if (!ok) showToast(trf("validateRequiredAll"), "err");
       if (ok && IS_NO_COST_ENTRY) {
-        const f = Number(String(formData.fte || "").replace(",", "."));
-        if (!isFinite(f) || f < 0.2 || f > 0.4) {
+        const fte = Number(String(formData.fte || "").replace(",", "."));
+        if (!isFinite(fte) || fte < 0.2 || fte > 0.4) {
           showToast("FTE musí být v rozsahu 0.2–0.4.", "err");
           const inpFte = document.getElementById("f-fte");
           if (inpFte) inpFte.classList.add("error");
+          return false;
+        }
+        const cnt = Number(String(formData.consortium_institutions_count || "").replace(",", "."));
+        if (!isFinite(cnt) || cnt < 1) {
+          showToast("Počet institucí v konsorciu musí být alespoň 1.", "err");
+          const inpCnt = document.getElementById("f-consortium_institutions_count");
+          if (inpCnt) inpCnt.classList.add("error");
+          return false;
+        }
+        const irisText = String(formData.iris_case_id || "").trim();
+        const irisRows = irisText ? irisText.split(/\r?\n/).map((x) => x.trim()).filter(Boolean) : [];
+        if (!irisRows.length) {
+          showToast("Vyplňte IRIS záznamy (1 řádek pro každou instituci).", "err");
+          const inpIris = document.getElementById("f-iris_case_id");
+          if (inpIris) inpIris.classList.add("error");
+          return false;
+        }
+        if (irisRows.length !== Math.round(cnt)) {
+          showToast("Počet IRIS záznamů musí odpovídat počtu institucí v konsorciu.", "err");
+          const inpIris2 = document.getElementById("f-iris_case_id");
+          if (inpIris2) inpIris2.classList.add("error");
+          return false;
+        }
+        const periodFrom = String(formData.budget_period_from || "").trim();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(periodFrom)) {
+          showToast("Vyplňte datum zahájení řešení.", "err");
           return false;
         }
       }
@@ -1054,12 +1094,14 @@
         { label: labels[1], done: !!formData.target_scheme },
         {
           label: tf("irisChecklistItem"),
-          done: !!(String(formData.iris_case_id || "").trim() && String(formData.iris_checklist_result || "").trim()),
+          done: IS_NO_COST_ENTRY
+            ? !!String(formData.iris_case_id || "").trim()
+            : !!(String(formData.iris_case_id || "").trim() && String(formData.iris_checklist_result || "").trim()),
         },
         { label: labels[2], done: !!formData.concept_note },
-        { label: labels[3], done: IS_NO_COST_ENTRY ? !!(String(formData.fte || "").trim()) : !!formData.excellence_top5 },
-        { label: labels[4], done: !!(formData.budget_total && parseFloat(formData.budget_total) > 0) },
-        { label: labels[5], done: IS_NO_COST_ENTRY ? !!formData.attach_engagement_proof : !!(formData.attach_annex1 && formData.attach_annex2 && formData.attach_annex3 && formData.attach_checklist6) },
+        { label: labels[3], done: IS_NO_COST_ENTRY ? !!(String(formData.future_financed_perspective || "").trim()) : !!formData.excellence_top5 },
+        { label: labels[4], done: !!((formData.support_total_request || formData.budget_total) && parseFloat(formData.support_total_request || formData.budget_total) > 0) },
+        { label: labels[5], done: IS_NO_COST_ENTRY ? !!(formData.attach_template1 && formData.attach_template2 && formData.attach_engagement_proof) : !!(formData.attach_annex1 && formData.attach_annex2 && formData.attach_annex3 && formData.attach_checklist6) },
         { label: labels[6], done: formData.declaration === "true" },
       ];
       document.getElementById("checklist").innerHTML = checks.map(c => `
