@@ -345,7 +345,7 @@
         panelAttachSub: "Krok 5 z 5 · Nahrajte všechny povinné dokumenty",
         footerUnsaved: "Neuloženo",
         footerBack: "← Zpět",
-        footerSaveDraft: "💾 Uložit rozdělaný",
+        footerSaveDraft: "💾 Uložit draft",
         footerContinue: "Pokračovat →",
         footerSubmit: "Odeslat přihlášku →",
         footerSavedAt: "Uloženo {{time}}",
