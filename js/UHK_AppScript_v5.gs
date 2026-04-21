@@ -146,88 +146,6 @@ function connectMaybeValidateIrisCaseIdDraft_(competitionId, formData) {
   connectValidateIrisCaseIdFormat_(formData);
 }
 
-/**
- * No-Cost Entry: IRIS podle počtu institucí v konsorciu.
- * consortium_institutions_count = N, consortium_iris_records = N řádků (UUID/CASE/zdůvodnění).
- */
-function validateNoCostEntryConsortiumIris_(formData) {
-  if (!formData || typeof formData !== "object") return;
-  var callType = String(formData.call_type || "").toLowerCase().trim();
-  if (callType !== "no_cost_entry") return;
-  var cntRaw = String(formData.consortium_institutions_count || "").trim();
-  if (!cntRaw) throw new Error("No-Cost Entry: vyplňte počet institucí v konsorciu.");
-  var cnt = Number(cntRaw);
-  if (!isFinite(cnt) || cnt < 1 || Math.floor(cnt) !== cnt)
-    throw new Error("No-Cost Entry: počet institucí v konsorciu musí být celé číslo >= 1.");
-  var records = String(formData.iris_case_id || formData.consortium_iris_records || "").trim();
-  if (!records) throw new Error("No-Cost Entry: vyplňte IRIS záznamy pro instituce v konsorciu.");
-  var lines = records
-    .split(/\r?\n/)
-    .map(function (x) { return String(x || "").trim(); })
-    .filter(function (x) { return x.length > 0; });
-  if (lines.length !== cnt) {
-    throw new Error(
-      "No-Cost Entry: počet IRIS záznamů (" + lines.length + ") musí odpovídat počtu institucí v konsorciu (" + cnt + ")."
-    );
-  }
-  for (var i = 0; i < lines.length; i++) {
-    connectValidateIrisCaseIdFormat_({ iris_case_id: lines[i] });
-  }
-}
-
-/** No-Cost Entry: specifická pravidla výzvy 2/2026. */
-function validateNoCostEntrySpecificRules_(formData) {
-  if (!formData || typeof formData !== "object") return;
-  var callType = String(formData.call_type || "").toLowerCase().trim();
-  if (callType !== "no_cost_entry") return;
-
-  var engagementType = String(formData.engagement_type || "").trim();
-  if (engagementType !== "Associated Partner" && engagementType !== "Neformální spolupráce") {
-    throw new Error("No-Cost Entry: typ zapojení musí být „Associated Partner“ nebo „Neformální spolupráce“.");
-  }
-
-  var fte = Number(String(formData.fte || "").replace(",", "."));
-  if (!isFinite(fte) || fte < 0.2 || fte > 0.4) {
-    throw new Error("No-Cost Entry: FTE musí být v rozsahu 0.2 až 0.4.");
-  }
-
-  if (!String(formData.attach_template1 || formData.attach_annex1 || "").trim())
-    throw new Error("No-Cost Entry: je povinná příloha č. 1 (šablona žádosti).");
-  if (!String(formData.attach_template2 || formData.attach_annex2 || "").trim())
-    throw new Error("No-Cost Entry: je povinná příloha č. 2 (rozpočet + odůvodnění).");
-  if (!String(formData.attach_engagement_proof || "").trim())
-    throw new Error("No-Cost Entry: je povinný doklad zapojení dle typu (čl. 6).");
-
-  var budgetPersonnel = Number(String(formData.budget_personnel || "").replace(",", "."));
-  var budgetLevies = Number(String(formData.budget_personnel_levies || "").replace(",", "."));
-  var budgetTravel = Number(String(formData.budget_travel || "").replace(",", "."));
-  var budgetAgency = Number(String(formData.budget_agency || "").replace(",", "."));
-  var budgetTraining = Number(String(formData.budget_training || "").replace(",", "."));
-  var budgetMaterial = Number(String(formData.budget_material || "").replace(",", "."));
-  var budgetOther = Number(String(formData.budget_other || "").replace(",", "."));
-  var budgetTotal = Number(String(formData.budget_total || "").replace(",", "."));
-  var p = isFinite(budgetPersonnel) && budgetPersonnel > 0 ? budgetPersonnel : 0;
-  var l = isFinite(budgetLevies) && budgetLevies > 0 ? budgetLevies : 0;
-  var t = isFinite(budgetTravel) && budgetTravel > 0 ? budgetTravel : 0;
-  var nonEligible =
-    (isFinite(budgetAgency) && budgetAgency > 0 ? budgetAgency : 0) +
-    (isFinite(budgetTraining) && budgetTraining > 0 ? budgetTraining : 0) +
-    (isFinite(budgetMaterial) && budgetMaterial > 0 ? budgetMaterial : 0) +
-    (isFinite(budgetOther) && budgetOther > 0 ? budgetOther : 0);
-  if (nonEligible > 0) {
-    throw new Error(
-      "No-Cost Entry: nezpůsobilé kategorie (agentura, školení, materiál, ostatní) musí být 0 Kč. Povoleny jsou pouze osobní náklady (vč. odvodů/FKSP) a cestovní náklady."
-    );
-  }
-  var sum = p + l + t;
-  if (sum <= 0)
-    throw new Error("No-Cost Entry: rozpočet musí obsahovat alespoň osobní nebo cestovní náklady.");
-  if (isFinite(budgetTotal) && budgetTotal > 0 && Math.abs(budgetTotal - sum) > 1) {
-    throw new Error("No-Cost Entry: celkový rozpočet musí odpovídat součtu osobních a cestovních nákladů.");
-  }
-  formData.budget_total = String(sum);
-}
-
 /** Krátký název soutěže do předmětu e-mailu, pokud v CONFIG není competition_name / email_subject_tag */
 const UHK_COMPETITION_EMAIL_SUBJECT_TAGS = {
   "uhk_connect_2026_v2": "UHK Connect",
@@ -1828,7 +1746,7 @@ function applicationsSetFormDataJsonForAppId_(sheet, applicationId, fdObj) {
  * Zapíše hodnotu pole přílohy (UHKAFILE|… / UHKDRIVE|…) do form_data_json daného konceptu.
  * Volá se hned po uploadu, aby příloha byla v tabulce i když následný saveDraft z prohlížeče selže.
  */
-function connectMergeAttachmentIntoApplicationForm_(ss, applicationId, applicantLower, fieldId, urlValue) {
+function connectMergeAttachmentIntoApplicationForm_(ss, applicationId, applicantLower, fieldId, urlValue, allowPrivilegedWrite) {
   var aid = String(applicationId || "").trim();
   var fid = String(fieldId || "").trim();
   if (!aid || !fid) return false;
@@ -1839,10 +1757,13 @@ function connectMergeAttachmentIntoApplicationForm_(ss, applicationId, applicant
     return String(r.application_id || "").trim() === aid;
   });
   if (!row) return false;
-  if (String(row.applicant_email || "").toLowerCase().trim() !== String(applicantLower || "").toLowerCase().trim()) {
+  var ownerEmail = String(row.applicant_email || "").toLowerCase().trim();
+  var actorEmail = String(applicantLower || "").toLowerCase().trim();
+  var isPrivileged = !!allowPrivilegedWrite;
+  if (!isPrivileged && ownerEmail !== actorEmail) {
     return false;
   }
-  if (String(row.status || "").toUpperCase() !== "DRAFT") return false;
+  if (!isPrivileged && String(row.status || "").toUpperCase() !== "DRAFT") return false;
   var fd = connectParseFormDataObject_(row);
   fd[fid] = String(urlValue || "").trim();
   return applicationsSetFormDataJsonForAppId_(sheet, aid, fd);
@@ -2129,10 +2050,13 @@ function connectTryCreateApplicationPdfOnDrive_(ss, bytes, driveName) {
  * fileUploads: pole { fieldId, fileName, mimeType, fileBase64 }
  * @returns {{ patch: Object, diagnostics: Object }} diagnostics[fieldId] = { storage: "drive"|"sheet", driveError?: string }
  */
-function connectProcessApplicationFileUploads_(ss, competitionId, applicationId, applicantLower, fileUploads) {
+function connectProcessApplicationFileUploads_(ss, competitionId, applicationId, applicantLower, fileUploads, allowPrivilegedWrite) {
   var patch = {};
   var diagnostics = {};
   if (!fileUploads || !fileUploads.length) return { patch: patch, diagnostics: diagnostics };
+  if (String(competitionId || "").trim() !== CONNECT_COMPETITION_ID) {
+    throw new Error("Přílohy PDF z formuláře jsou jen pro soutěž UHK Connect.");
+  }
   var sheet = ss.getSheetByName(SHEETS.APPLICATIONS);
   if (!sheet) throw new Error("List APPLICATIONS nenalezen.");
   var rows = sheetToObjects(sheet).map(applicationsSheetRowNormalize_);
@@ -2140,30 +2064,23 @@ function connectProcessApplicationFileUploads_(ss, competitionId, applicationId,
     return String(r.application_id || "").trim() === String(applicationId || "").trim();
   });
   if (!row) throw new Error("Koncept / přihláška nenalezena.");
-  if (String(row.applicant_email || "").toLowerCase().trim() !== applicantLower) {
+  var ownerEmail = String(row.applicant_email || "").toLowerCase().trim();
+  var actorEmail = String(applicantLower || "").toLowerCase().trim();
+  var isPrivileged = !!allowPrivilegedWrite;
+  if (!isPrivileged && ownerEmail !== actorEmail) {
     throw new Error("K této přihlášce nemáte oprávnění nahrávat soubory.");
   }
-  if (String(row.status || "").toUpperCase() !== "DRAFT") {
+  if (!isPrivileged && String(row.status || "").toUpperCase() !== "DRAFT") {
     throw new Error("Soubor z podacího formuláře lze nahrávat jen u rozpracovaného konceptu (DRAFT).");
   }
 
-  var callType = String(row.call_type || "").toLowerCase().trim();
-  var isNoCost = callType === "no_cost_entry" || String(competitionId || "").indexOf("no_cost_entry") >= 0;
-  var isConnect = String(competitionId || "").trim() === CONNECT_COMPETITION_ID || callType === "connect";
-  if (!isConnect && !isNoCost) {
-    throw new Error("Nahrávání příloh přes aplikaci je dostupné pouze pro Connect a No-Cost Entry.");
-  }
-  var allowed = isNoCost
-    ? { attach_template1: 1, attach_template2: 1, attach_engagement_proof: 1, attach_future_optional: 1 }
-    : { attach_invitation: 1, attach_annex1: 1, attach_annex2: 1, attach_annex3: 1 };
+  var allowed = { attach_invitation: 1, attach_annex1: 1, attach_annex2: 1, attach_annex3: 1 };
   var maxBytes = 18 * 1024 * 1024;
   var blobSheet = ensureApplicationFileBlobsSheet_(ss);
 
   for (var i = 0; i < fileUploads.length; i++) {
     var item = fileUploads[i] || {};
     var fieldId = String(item.fieldId || item.field_id || "").trim();
-    if (isNoCost && fieldId === "attach_annex1") fieldId = "attach_template1";
-    if (isNoCost && fieldId === "attach_annex2") fieldId = "attach_template2";
     var fileName = String(item.fileName || "dokument.pdf").trim();
     var mimeType = String(item.mimeType || "application/pdf").trim();
     var b64 = item.fileBase64;
@@ -2256,12 +2173,7 @@ function getConnectPostAward(competitionId, applicationId, token) {
   if (!owner && !priv) throw new Error("K této přihlášce nemáte přístup.");
 
   var outcome = findProrektorOutcomeForApp_(ss, aid, row);
-  var isNoCost = String(row.call_type || "").toLowerCase().trim() === "no_cost_entry" || String(competitionId || "").indexOf("no_cost_entry") >= 0;
   var dec = connectOutcomeDecisionCode_(outcome);
-  if (isNoCost && dec !== "SUPPORT" && dec !== "CUT") {
-    var stNoCost = String(row.status || "").toUpperCase().trim();
-    if (stNoCost === "APPROVED" || stNoCost === "UKONCENO") dec = "SUPPORT";
-  }
   var isSupportedOutcome = dec === "SUPPORT" || dec === "CUT";
   var previewRejected = priv && dec === "REJECT";
   var previewBeforeDecision = priv && !isSupportedOutcome && !previewRejected;
@@ -2712,14 +2624,7 @@ function saveConnectPostAward(body) {
 
   var outcome = findProrektorOutcomeForApp_(ss, applicationId, row);
   var dec = connectOutcomeDecisionCode_(outcome);
-  var callType = String(row.call_type || "").toLowerCase().trim();
-  var isNoCost = callType === "no_cost_entry" || String(competitionId || "").indexOf("no_cost_entry") >= 0;
-  if (dec !== "SUPPORT" && dec !== "CUT") {
-    var stNoCost = String(row.status || "").toUpperCase().trim();
-    if (!(isNoCost && (stNoCost === "APPROVED" || stNoCost === "UKONCENO"))) {
-      throw new Error("Checklist lze ukládat jen u podpořených nebo krácených projektů.");
-    }
-  }
+  if (dec !== "SUPPORT" && dec !== "CUT") throw new Error("Checklist lze ukládat jen u podpořených nebo krácených projektů.");
 
   var prev = readConnectPostawardChecklist_(row);
   var c = body.checklist || {};
@@ -3402,6 +3307,7 @@ function uploadConnectApplicationAttachment(body) {
   if (!body.token) throw new Error("Chybí token. Nahrajte přílohu z webové aplikace po přihlášení.");
   var auth = requireAuth(body.token);
   var me = String(auth.email || "").toLowerCase().trim();
+  var canAdminUpload = authHasAnyRole_(auth, ["ADMIN", "TESTER"]);
   var competitionId = String(body.competitionId || "").trim();
   var applicationId = String(body.applicationId || body.draftId || "").trim();
   var fieldId = String(body.fieldId || body.field_id || "").trim();
@@ -3412,13 +3318,13 @@ function uploadConnectApplicationAttachment(body) {
   var ss = getSpreadsheet(competitionId);
   var upRes = connectProcessApplicationFileUploads_(ss, competitionId, applicationId, me, [
     { fieldId: fieldId, fileName: fileName, mimeType: mimeType, fileBase64: b64 },
-  ]);
+  ], canAdminUpload);
   var patch = upRes.patch || {};
   var diag = (upRes.diagnostics && upRes.diagnostics[fieldId]) || {};
   var url = patch[fieldId];
   if (!url) throw new Error("Nahrání se nezdařilo.");
   var sk = /^UHKDRIVE\|/i.test(String(url)) ? "drive" : "sheet";
-  var persisted = connectMergeAttachmentIntoApplicationForm_(ss, applicationId, me, fieldId, url);
+  var persisted = connectMergeAttachmentIntoApplicationForm_(ss, applicationId, me, fieldId, url, canAdminUpload);
   return {
     success: true,
     fieldId: fieldId,
@@ -4076,8 +3982,6 @@ function sendStatusEmail(toEmail, appId, status, projectTitle, competitionId) {
     SUBMITTED:    "[" + tag + "] Přihláška přijata – " + appId,
     FORMAL_CHECK: "[" + tag + "] Formální kontrola – " + appId,
     IN_REVIEW:    "[" + tag + "] Předáno hodnoticímu panelu – " + appId,
-    CEKANI_NA_PRUBEZNOU_ZPRAVU: "[" + tag + "] Čeká se na průběžnou zprávu – " + appId,
-    POSOUZENI_POKRACOVANI: "[" + tag + "] Posouzení pokračování projektu – " + appId,
     APPROVED:     "[" + tag + "] 🎉 Přihláška schválena – " + appId,
     REJECTED:     "[" + tag + "] Výsledek hodnocení – " + appId,
     WITHDRAWN:    "[" + tag + "] Přihláška stažena – " + appId,
@@ -4086,8 +3990,6 @@ function sendStatusEmail(toEmail, appId, status, projectTitle, competitionId) {
     SUBMITTED:    "Vaše přihláška byla úspěšně přijata a čeká na formální kontrolu.",
     FORMAL_CHECK: "Probíhá formální kontrola Vaší přihlášky.",
     IN_REVIEW:    "Vaše přihláška byla předána hodnoticímu panelu.",
-    CEKANI_NA_PRUBEZNOU_ZPRAVU: "Projekt je ve stavu čekání na průběžnou zprávu. Pro pokračování do další etapy je potřeba doložit průběžnou zprávu dle podmínek výzvy.",
-    POSOUZENI_POKRACOVANI: "Byla zahájena fáze posouzení pokračování projektu do další etapy. O výsledku rozhodnutí budete informováni.",
     APPROVED:     "Gratulujeme! Vaše přihláška byla schválena k financování. Stanovisko a komentář si můžete po přihlášení přečíst v aplikaci UHK Grant Manager (sekce Moje projekty).",
     REJECTED:     "Vaše přihláška nebyla v tomto kole podpořena. Zdůvodnění a komentář najdete po přihlášení v aplikaci UHK Grant Manager (sekce Moje projekty).",
     WITHDRAWN:    "Vaše přihláška byla stažena ze soutěže.",
@@ -4106,55 +4008,6 @@ function sendStatusEmail(toEmail, appId, status, projectTitle, competitionId) {
   } catch (err) {
     console.error("sendStatusEmail:", err.message);
   }
-}
-
-/** Jednoduché plánované upozornění (run as trigger): no_cost_entry cut-off + reporty. */
-function sendCallDeadlinesDigest() {
-  const now = new Date();
-  const tz = Session.getScriptTimeZone();
-  const day = Number(Utilities.formatDate(now, tz, "d"));
-  const month = Utilities.formatDate(now, tz, "MMMM yyyy");
-
-  Object.entries(SPREADSHEET_IDS).forEach(function (entry) {
-    const competitionId = entry[0];
-    try {
-      const ss = getSpreadsheet(competitionId);
-      const cfg = getConfigMap(ss);
-      const compType = String(inferCompetitionTypeFromConfig_(competitionId, cfg) || "").toLowerCase();
-      const tag = getCompetitionEmailSubjectTag_(competitionId, ss);
-      const recipientsRaw = String(cfg["coordinator_email"] || cfg["admin_email"] || ADMIN_EMAIL || "").trim();
-      if (!recipientsRaw) return;
-
-      // No-Cost Entry: připomínka cut-off 10. den
-      if (compType === "no_cost_entry" && day === 9) {
-        GmailApp.sendEmail(
-          recipientsRaw,
-          "[" + tag + "] Připomínka: měsíční cut-off 10. den",
-          "Připomínka: zítra (10. den v měsíci) probíhá cut-off pro průběžnou výzvu No-Cost Entry.\n" +
-            "Cyklus: " + month + "\n" +
-            "Podání do 10. dne spadají do aktuálního cyklu, pozdější podání do následujícího."
-        );
-      }
-
-      // Prestige large: základní připomínka na průběžné / závěrečné zprávy
-      if (compType === "prestige_large") {
-        const dueProgress = String(cfg["deadline_progress_report"] || "").trim();
-        const dueFinal = String(cfg["deadline_final_report"] || "").trim();
-        const msgs = [];
-        if (dueProgress) msgs.push("Průběžná zpráva: " + dueProgress);
-        if (dueFinal) msgs.push("Závěrečná zpráva: " + dueFinal);
-        if (msgs.length && day === 1) {
-          GmailApp.sendEmail(
-            recipientsRaw,
-            "[" + tag + "] Připomínka termínů reportů",
-            "Souhrn reportovacích termínů pro " + month + ":\n\n" + msgs.join("\n")
-          );
-        }
-      }
-    } catch (e) {
-      console.error("sendCallDeadlinesDigest:" + competitionId + ": " + e.message);
-    }
-  });
 }
 
 /** E-mail koordinátorovi po finálním podání žádosti (stejná tabulka soutěže → CONFIG). */
@@ -5056,7 +4909,6 @@ function saveDraft(body) {
     throw new Error("Draft lze ukládat jen pod vlastním přihlášeným e-mailem.");
 
   connectMaybeValidateIrisCaseIdDraft_(body.competitionId, body.formData);
-  validateNoCostEntryConsortiumIris_(body.formData);
 
   const ss    = getSpreadsheet(body.competitionId);
   let sheet   = ss.getSheetByName("📥 APPLICATIONS");
@@ -5597,30 +5449,8 @@ function submitApplication(body) {
   if (!applicant || applicant !== auth.email)
     throw new Error("Přihlášku můžete odeslat jen za svůj účet.");
 
-  var formData = body.formData && typeof body.formData === "object" ? body.formData : {};
-  var callTypeRaw = String(formData.call_type || "").toLowerCase().trim();
-  var isNoCostEntry = callTypeRaw === "no_cost_entry";
-
   if (connectCompetitionUsesIrisCaseId_(body.competitionId)) {
-    connectAssertIrisCaseIdOnSubmit_(formData);
-  }
-
-  if (isNoCostEntry) {
-    var fte = Number(String(formData.fte || "").replace(",", "."));
-    if (!isFinite(fte) || fte < 0.2 || fte > 0.4) {
-      throw new Error("No-Cost Entry: FTE musí být v rozsahu 0.2 až 0.4.");
-    }
-    if (!String(formData.attach_engagement_proof || "").trim()) {
-      throw new Error("No-Cost Entry: je povinný doklad zapojení (attach_engagement_proof).");
-    }
-    validateNoCostEntryConsortiumIris_(formData);
-    // Cut-off cyklus: podání do 10. dne včetně = aktuální cyklus, jinak následující.
-    if (!String(formData.cutoff_cycle || "").trim()) {
-      var nowCut = new Date();
-      var day = nowCut.getDate();
-      var cDate = new Date(nowCut.getFullYear(), nowCut.getMonth() + (day > 10 ? 1 : 0), 10);
-      formData.cutoff_cycle = Utilities.formatDate(cDate, Session.getScriptTimeZone(), "yyyy-MM-dd");
-    }
+    connectAssertIrisCaseIdOnSubmit_(body.formData || {});
   }
 
   assertCompetitionOpenForNewSubmission_(body.competitionId, auth);
@@ -5647,7 +5477,7 @@ function submitApplication(body) {
       const appId = idCol >= 0 ? String(data[i][idCol] || "").trim() : String(data[i][0] || "").trim();
       var fdMerged = {};
       try {
-        fdMerged = Object.assign({}, formData);
+        fdMerged = Object.assign({}, body.formData || {});
       } catch (eM) {
         fdMerged = {};
       }
@@ -5692,7 +5522,7 @@ function submitApplication(body) {
   const now = fmtDate(new Date());
   var fd2 = {};
   try {
-    fd2 = Object.assign({}, formData);
+    fd2 = Object.assign({}, body.formData || {});
   } catch (e2) {
     fd2 = {};
   }
