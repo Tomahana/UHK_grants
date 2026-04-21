@@ -2444,6 +2444,11 @@ function connectFormFieldDefinitionsSorted_(ss) {
 /**
  * Přehled projektu Connect jako HTML (Ctrl+P → Uložit jako PDF). Dříve HtmlService.getAs(PDF) často selhalo / prázdná stránka.
  */
+function connectDossierIsApplicationAttachmentField_(fieldId) {
+  var k = String(fieldId || "").trim();
+  return k === "attach_invitation" || k === "attach_annex1" || k === "attach_annex2" || k === "attach_annex3";
+}
+
 function adminBuildConnectDossierHtmlOutput_(competitionId, applicationId, token) {
   if (!token || !String(token).trim()) {
     throw new Error(
@@ -2489,6 +2494,14 @@ function adminBuildConnectDossierHtmlOutput_(competitionId, applicationId, token
       return "";
     }
   }
+  function isConnectApplicationAttachmentValue_(fieldId, raw, hint) {
+    var fid = String(fieldId || "").trim();
+    if (fid === "attach_invitation" || fid === "attach_annex1" || fid === "attach_annex2" || fid === "attach_annex3")
+      return true;
+    var hv = hint && typeof hint === "object" ? hint : {};
+    if (hv.isSheetBlob || String(hv.drive_file_id || "").trim()) return true;
+    return /^UHKAFILE\|/i.test(String(raw || "").trim()) || /^UHKDRIVE\|/i.test(String(raw || "").trim());
+  }
   defs.forEach(function (d) {
     var k = d.field_id;
     used[k] = true;
@@ -2497,30 +2510,27 @@ function adminBuildConnectDossierHtmlOutput_(competitionId, applicationId, token
     if (v == null || String(v).trim() === "") return;
     var raw = String(v).trim();
     var cell = uhkHtmlEscape_(raw);
-    var appLinkHtml = connectDossierAttachmentLinkHtml_(cid, aid, k, raw, token);
-    if (appLinkHtml) {
-      cell = appLinkHtml + ' · <span style="color:#555">' + uhkHtmlEscape_(String(hi.value != null && String(hi.value).trim() ? hi.value : raw).slice(0, 500)) + "</span>";
-    }
     var hi = hintByField[k] || {};
+    var shownVal = String(hi.value != null && String(hi.value).trim() ? hi.value : raw).slice(0, 500);
     var driveId = String(hi.drive_file_id || "").trim();
     if (!driveId) {
       var m = /^UHKDRIVE\|([^|]+)\|/i.exec(raw);
       if (m) driveId = String(m[1] || "").trim();
     }
-    var appDl = buildAppFileDownloadHref_(k);
-    if (appDl) {
+    var appDl = isConnectApplicationAttachmentValue_(k, raw, hi) ? buildAppFileDownloadHref_(k) : "";
+    if (appDl && isConnectApplicationAttachmentValue_(k, raw, hi)) {
       cell =
         '<a href="' +
         uhkHtmlEscape_(appDl) +
         '" target="_blank" rel="noopener">Stáhnout / otevřít z aplikace</a> · <span style="color:#555">' +
-        uhkHtmlEscape_(String(hi.value != null && String(hi.value).trim() ? hi.value : raw).slice(0, 500)) +
+        uhkHtmlEscape_(shownVal) +
         "</span>";
     } else if (driveId) {
       cell =
         '<a href="https://drive.google.com/file/d/' +
         encodeURIComponent(driveId) +
         '/preview" target="_blank" rel="noopener">Náhled na Disku</a> · <span style="color:#555">' +
-        uhkHtmlEscape_(String(hi.value != null && String(hi.value).trim() ? hi.value : raw).slice(0, 500)) +
+        uhkHtmlEscape_(shownVal) +
         "</span>";
     } else if (raw.length > 2000) {
       cell = uhkHtmlEscape_(raw.slice(0, 2000)) + "…";
@@ -2540,8 +2550,11 @@ function adminBuildConnectDossierHtmlOutput_(competitionId, applicationId, token
     var raw = String(v).trim();
     var lab = k.replace(/_/g, " ");
     var cell = raw.length > 2000 ? uhkHtmlEscape_(raw.slice(0, 2000)) + "…" : uhkHtmlEscape_(raw);
-    var appLinkHtml2 = connectDossierAttachmentLinkHtml_(cid, aid, k, raw, token);
-    if (appLinkHtml2) {
+    var hi2 = hintByField[k] || {};
+    var appLinkHtml2 = isConnectApplicationAttachmentValue_(k, raw, hi2)
+      ? connectDossierAttachmentLinkHtml_(cid, aid, k, raw, token)
+      : "";
+    if (appLinkHtml2 && isConnectApplicationAttachmentValue_(k, raw, hi2)) {
       cell = appLinkHtml2 + ' · <span style="color:#555">' + uhkHtmlEscape_(raw.slice(0, 500)) + "</span>";
     }
     formRowsHtml +=
