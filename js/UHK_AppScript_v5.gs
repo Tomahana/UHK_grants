@@ -2550,7 +2550,7 @@ function adminBuildConnectDossierHtmlOutput_(competitionId, applicationId, token
       '<tr><td colspan="2" style="color:#6b7280">Žádná vyplněná pole v JSON formuláře.</td></tr>';
 
   var filesHtml = "";
-  if (!files.length) filesHtml = "<p style=\"color:#6b7280\">(žádný soubor v úložišti tabulky ani v legacy seznamu z Disku)</p>";
+  if (!files.length) filesHtml = "<p style=\"color:#6b7280\">(žádný soubor v úložišti tabulky)</p>";
   else {
     filesHtml = "<ul style=\"margin:6px 0 0 18px\">";
     files.forEach(function (f) {
@@ -2572,12 +2572,10 @@ function adminBuildConnectDossierHtmlOutput_(competitionId, applicationId, token
             ? ' — <a href="' + uhkHtmlEscape_(paHref) + '" target="_blank" rel="noopener">Stáhnout / otevřít z aplikace</a>'
             : " — uloženo v tabulce") +
           "</li>";
-      } else
-        filesHtml +=
-          "<li>" +
-          uhkHtmlEscape_(String(f.name || "")) +
-          (f.url ? ' — <a href="' + uhkHtmlEscape_(String(f.url)) + '" target="_blank" rel="noopener">Disk</a>' : "") +
-          "</li>";
+      } else {
+        // V dossieru nepoužívat odkazy na Disk (u části instalací vrací Google "soubor nelze otevřít").
+        filesHtml += "<li>" + uhkHtmlEscape_(String(f.name || "")) + " — externí odkaz na Disk je v přehledu skryt</li>";
+      }
     });
     filesHtml += "</ul>";
   }
