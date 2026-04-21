@@ -582,6 +582,8 @@ function doPost(e) {
         return corsResponse(uploadConnectPostAwardAttachment(body));
       case "uploadConnectApplicationAttachment":
         return corsResponse(uploadConnectApplicationAttachment(body));
+      case "importRegaDeanScores":
+        return corsResponse(importRegaDeanScores(body));
       case "repairConnectPostAwardAttachmentSharing":
         return corsResponse(repairConnectPostAwardAttachmentSharing(body));
       /** Stažení PDF z tabulky (token v těle POST – spolehlivější než dlouhý GET na /exec). */
@@ -3732,6 +3734,113 @@ function getConnectDeliverablesExport(competitionId, token) {
       ? connectAttachmentsDriveListNoteCs_("")
       : "Přílohy části 2 z tlačítka nahrání jsou v listu " + SHEETS.POSTAWARD_FILE_BLOBS + " (bez Disku).",
   };
+}
+
+/**
+ * Jednorázový import ReGa (rozpočty + hodnocení proděkanů) podle tabulky OVTZ.
+ * Spouštějte ručně v Apps Script editoru po nasazení, případně lze volat z admin menu.
+ */
+function adminImportRegaBudgetsAndDeanScores_2026() {
+  var competitionId = "uhk_rega_2026_v1";
+  var ss = getSpreadsheet(competitionId);
+  var appSheet = ss.getSheetByName(SHEETS.APPLICATIONS);
+  var revSheet = ss.getSheetByName(SHEETS.REVIEWS);
+  if (!appSheet) throw new Error("List APPLICATIONS nenalezen.");
+  if (!revSheet) throw new Error("List REVIEWS nenalezen.");
+
+  var rows = [
+    { id: "UHK_ReGa_00004", budget: 500000, fim: 80, ff: 85, pdf: 20, prf: 80 },
+    { id: "UHK_ReGa_00006", budget: 457194, fim: 73, ff: 70, pdf: 50, prf: 30 },
+    { id: "UHK_ReGa_00007", budget: 282799, fim: 55, ff: 85, pdf: 0, prf: 95 },
+    { id: "UHK_ReGa_00008", budget: 240611, fim: 69, ff: 75, pdf: 0, prf: 10 },
+    { id: "UHK_ReGa_00009", budget: 273192, fim: 60, ff: 65, pdf: 0, prf: 10 },
+    { id: "UHK_ReGa_00010", budget: 191500, fim: 64, ff: 75, pdf: 70, prf: 65 },
+    { id: "UHK_ReGa_00012", budget: 498051, fim: 86, ff: 90, pdf: 10, prf: 95 },
+    { id: "UHK_ReGa_00013", budget: 278836, fim: 48, ff: 55, pdf: 10, prf: 30 },
+  ];
+
+  var deans = [
+    { key: "fim", email: "dekan_fim_bures", name: "proděkan Bureš", faculty: "FIM" },
+    { key: "prf", email: "dekan_prf_lipovsky", name: "proděkan Lipovský", faculty: "PřF" },
+    { key: "pdf", email: "dekan_pdf_kostincova", name: "proděkanka Kostincová", faculty: "PdF" },
+    { key: "ff", email: "dekan_ff_kvetina", name: "proděkan Kvetina", faculty: "FF" },
+  ];
+
+  var updatedBudgets = 0;
+  var insertedReviews = 0;
+  rows.forEach(function (r) {
+    var aid = String(r.id || "").trim();
+    if (!aid) return;
+
+    var allApps = sheetToObjects(appSheet).map(applicationsSheetRowNormalize_);
+    var appRow = allApps.find(function (x) {
+      return String(x.application_id || "").trim() === aid;
+    });
+    if (!appRow) return;
+
+    var fd = connectParseFormDataObject_(appRow);
+    fd.budget_total = Number(r.budget) || 0;
+    if (applicationsSetFormDataJsonForAppId_(appSheet, aid, fd)) updatedBudgets++;
+
+    deans.forEach(function (d) {
+      adminDeleteRegaDeanReviewRow_(revSheet, aid, d.email, "REGA_DEKAN_SCORE");
+      var sc = Number(r[d.key]) || 0;
+      appendReviewsRowFromMap_(revSheet, {
+        review_id: Utilities.getUuid(),
+        application_id: aid,
+        reviewer_email: d.email,
+        reviewer_name: d.name,
+        submitted_at: fmtDate(new Date()),
+        score_clarity: 0,
+        score_quality: 0,
+        score_budget: 0,
+        score_profile: 0,
+        score_outputs: 0,
+        score_total: sc,
+        recommendation: "",
+        comment_public: "",
+        comment_internal: "REGA_DEKAN_SCORE",
+        comment_k1: d.faculty + ": " + sc,
+      });
+      insertedReviews++;
+    });
+  });
+
+  writeAudit(
+    ss,
+    "REGA_IMPORT_DEAN_SCORES",
+    "",
+    "",
+    "budgets=" + updatedBudgets + ", reviews=" + insertedReviews,
+    "script"
+  );
+  return {
+    success: true,
+    updatedBudgets: updatedBudgets,
+    insertedReviews: insertedReviews,
+    rows: rows.length,
+  };
+}
+
+function adminDeleteRegaDeanReviewRow_(sheet, applicationId, reviewerEmail, internalTag) {
+  var data = sheet.getDataRange().getValues();
+  if (data.length <= HEADER_ROW) return;
+  var COL = mapColumns(data[HEADER_ROW - 1]);
+  var aid = findCol(COL, "application_id", "project_id", "app_id");
+  var rem = findCol(COL, "reviewer_email", "reviewer", "email", "hodnotitel");
+  var intn = findCol(COL, "comment_internal", "internal", "interni");
+  if (aid < 0 || rem < 0 || intn < 0) return;
+  var wantId = String(applicationId || "").trim();
+  var wantEmail = String(reviewerEmail || "").toLowerCase().trim();
+  var wantInt = String(internalTag || "").trim();
+  for (var i = data.length - 1; i >= HEADER_ROW; i--) {
+    var rowId = String(data[i][aid] || "").trim();
+    var rowEmail = String(data[i][rem] || "").toLowerCase().trim();
+    var rowInt = String(data[i][intn] || "").trim();
+    if (rowId === wantId && rowEmail === wantEmail && rowInt === wantInt) {
+      sheet.deleteRow(i + 1);
+    }
+  }
 }
 
 function deleteConnectReviewsByReviewer_(sheet, applicationId, reviewerEmail) {
