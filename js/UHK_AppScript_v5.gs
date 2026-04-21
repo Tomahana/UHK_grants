@@ -2497,6 +2497,10 @@ function adminBuildConnectDossierHtmlOutput_(competitionId, applicationId, token
     if (v == null || String(v).trim() === "") return;
     var raw = String(v).trim();
     var cell = uhkHtmlEscape_(raw);
+    var appLinkHtml = connectDossierAttachmentLinkHtml_(cid, aid, k, raw, token);
+    if (appLinkHtml) {
+      cell = appLinkHtml + ' · <span style="color:#555">' + uhkHtmlEscape_(String(hi.value != null && String(hi.value).trim() ? hi.value : raw).slice(0, 500)) + "</span>";
+    }
     var hi = hintByField[k] || {};
     var driveId = String(hi.drive_file_id || "").trim();
     if (!driveId) {
@@ -2536,6 +2540,10 @@ function adminBuildConnectDossierHtmlOutput_(competitionId, applicationId, token
     var raw = String(v).trim();
     var lab = k.replace(/_/g, " ");
     var cell = raw.length > 2000 ? uhkHtmlEscape_(raw.slice(0, 2000)) + "…" : uhkHtmlEscape_(raw);
+    var appLinkHtml2 = connectDossierAttachmentLinkHtml_(cid, aid, k, raw, token);
+    if (appLinkHtml2) {
+      cell = appLinkHtml2 + ' · <span style="color:#555">' + uhkHtmlEscape_(raw.slice(0, 500)) + "</span>";
+    }
     formRowsHtml +=
       "<tr><th style=\"text-align:left;vertical-align:top;padding:8px 12px 8px 0;border-bottom:1px solid #e5e7eb\">" +
       uhkHtmlEscape_(lab) +
