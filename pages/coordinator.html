@@ -1587,12 +1587,17 @@
 
       if (errBits.length) {
         loadErrorNote_ = errBits.join(" · ");
-        showToast(
-          typeof I18n !== "undefined" && I18n.t
-            ? I18n.t("coordinator.loadPartialErr")
-            : "Část přihlášek se nepodařilo načíst z API. Zkuste Obnovit nebo se znovu přihlaste.",
-          "err"
-        );
+        var allFetchFailed = errBits.length >= competitions.length;
+        var noRowsFromApi = !all.length;
+        if (allFetchFailed || noRowsFromApi) {
+          showToast(
+            typeof I18n !== "undefined" && I18n.t
+              ? I18n.t("coordinator.loadPartialErr")
+              : "Část přihlášek se nepodařilo načíst z API. Zkuste Obnovit nebo se znovu přihlaste.",
+            "err"
+          );
+        }
+        /* Při částečném úspěchu (např. Connect + ReGa OK, jen Prestige/No-Cost chybí v nasazeném skriptu) nezobrazovat rušivý červený toast — detaily jsou v podnadpisu. */
       }
 
       connectDeliverablesByAppId_ = {};

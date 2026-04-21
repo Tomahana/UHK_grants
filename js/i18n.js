@@ -179,7 +179,7 @@
         loadPartialErr:
           "Část přihlášek se nepodařilo načíst z API. Zkuste Obnovit nebo se znovu přihlaste.",
         loadDemoHint: " (zobrazena ukázková data – API nevrátilo žádné řádky)",
-        loadPartialNote: " · částečná chyba načtení",
+        loadPartialNote: " · část soutěží z API nedostupná (detaily níže)",
         connectExportTimeout:
           "Přehled Connect (část 2) se nepodařilo včas načíst – seznam přihlášek je zobrazený; zkuste Obnovit pro doplnění semaforu.",
         fetchTimeout: "časový limit odpovědi serveru (22 s)",
@@ -733,7 +733,7 @@
         loadPartialErr:
           "Some applications could not be loaded from the API. Try Refresh or sign in again.",
         loadDemoHint: " (showing sample data — the API returned no rows)",
-        loadPartialNote: " · partial load error",
+        loadPartialNote: " · some competitions unavailable from API (see details below)",
         connectExportTimeout:
           "Connect post-award export timed out — the application list is shown; use Refresh to retry the closeout column.",
         fetchTimeout: "server response timed out (22s)",
