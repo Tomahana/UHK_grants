@@ -481,7 +481,7 @@
         sidebarCompetitionVal: "UHK Prestige",
         sidebarDeadlineApply: "Uzávěrka přihlášek",
         sidebarMaxY1: "Max. podpora (rok 1)",
-        sidebarMaxVal: "1 000 000 Kč",
+        sidebarMaxVal: "500 000 Kč",
         sidebarSaved: "Uloženo",
         autosaveNoteHtml:
           "Koncept se ukládá <strong>automaticky po 30 s</strong> nečinnosti; ručně použijte „Uložit draft“.",
@@ -489,7 +489,7 @@
         termsFootnoteHtml:
           "Elektronické podání dle Vyhlášení výzvy č. 1/2026 UHK Prestige. Podvýzva <strong>Horizon No-Cost Entry</strong> (výzva 2/2026) bude v aplikaci doplněna – zatím viz samostatný dokument výzvy.",
         budgetCardTitle: "Rozpočet",
-        budgetOfMax: "z max. 1 000 000 Kč (rok 1)",
+        budgetOfMax: "z max. 500 000 Kč (1. etapa)",
         checklistTitle: "Kontrolní seznam",
         helpTitle: "Potřebujete pomoc?",
         submitSuccessTitle: "Přihláška odeslána!",
@@ -1024,7 +1024,7 @@
         sidebarCompetitionVal: "UHK Prestige",
         sidebarDeadlineApply: "Application deadline",
         sidebarMaxY1: "Max. support (year 1)",
-        sidebarMaxVal: "CZK 1,000,000",
+        sidebarMaxVal: "CZK 500,000",
         sidebarSaved: "Saved",
         autosaveNoteHtml:
           "Your draft <strong>saves automatically after 30 s</strong> of inactivity; use <strong>Save draft</strong> to save manually.",
@@ -1032,7 +1032,7 @@
         termsFootnoteHtml:
           "Electronic submission per UHK Prestige call announcement 1/2026. The <strong>Horizon No-Cost Entry</strong> sub-call (call 2/2026) will be added to the app – see the separate call document for now.",
         budgetCardTitle: "Budget",
-        budgetOfMax: "of max. CZK 1,000,000 (year 1)",
+        budgetOfMax: "of max. CZK 500,000 (stage 1)",
         checklistTitle: "Checklist",
         helpTitle: "Need help?",
         submitSuccessTitle: "Application submitted!",
