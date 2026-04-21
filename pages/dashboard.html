@@ -200,7 +200,7 @@
     }
 
     async function enrichConnectFunding(list) {
-      const can = Auth.hasAnyRole(["ADMIN", "PROREKTOR"]);
+      const can = Auth.hasAnyRole(["ADMIN", "PROREKTOR", "KOMISAR", "KOMISAŘ"]);
       if (!can || !list || !list.length) return;
       const sess = Auth._getSession();
       if (!sess || !sess.token) return;
@@ -284,7 +284,7 @@
       const statusUp = statusKey.toUpperCase();
       const statusInfo = COMP_STATUSES[statusKey] || COMP_STATUSES[statusUp] || { label: statusKey, icon: "●" };
       const actions    = getActionsForRole(role, comp);
-      const showFundingSlot = ["ADMIN", "PROREKTOR"].includes(role);
+      const showFundingSlot = ["ADMIN", "PROREKTOR", "KOMISAR", "KOMISAŘ"].includes(role);
 
       card.innerHTML = `
         <div class="comp-card__header">
