@@ -27,6 +27,75 @@
       .replace(/"/g, "&quot;");
   }
 
+  /** Pole přílohy 2 / struktura ZZ – shodné klíče jako v UHK_AppScript_v5.gs (saveConnectPostAward). */
+  var PA_ANNEX2_FIELD_SPECS = [
+    {
+      key: "final_report_summary_exec",
+      id: "pa_annex_summary",
+      labKey: "annex2Summary",
+      labCs: "Shrnutí / výsledek aktivity",
+      phKey: "annex2SummaryPh",
+      phCs: "Stručně výsledek vůči cíli…",
+    },
+    {
+      key: "final_report_activity_desc",
+      id: "pa_annex_activity",
+      labKey: "annex2Activity",
+      labCs: "Popis průběhu realizace",
+      phKey: "annex2ActivityPh",
+      phCs: "Průběh, milníky, případná omezení…",
+    },
+    {
+      key: "final_report_outputs_result",
+      id: "pa_annex_outputs",
+      labKey: "annex2Outputs",
+      labCs: "Dosažené výstupy vůči plánu",
+      phKey: "annex2OutputsPh",
+      phCs: "Co bylo dosaženo oproti plánovaným výstupům…",
+    },
+    {
+      key: "final_report_coop_partners",
+      id: "pa_annex_coop",
+      labKey: "annex2Coop",
+      labCs: "Spolupráce a partneři",
+      phKey: "annex2CoopPh",
+      phCs: "Partneři, role, výsledky spolupráce…",
+    },
+    {
+      key: "final_report_budget_notes",
+      id: "pa_annex_budget",
+      labKey: "annex2BudgetText",
+      labCs: "Čerpání podpory a hospodárnost (slovní doplnění)",
+      phKey: "annex2BudgetTextPh",
+      phCs: "Doplňte k tabulce skutečných částek výše…",
+    },
+    {
+      key: "final_report_dissemination",
+      id: "pa_annex_dissem",
+      labKey: "annex2Dissem",
+      labCs: "Diseminace / sdílení výsledků",
+      phKey: "annex2DissemPh",
+      phCs: "Konference, publikace, interní přenos znalostí…",
+    },
+    {
+      key: "final_report_other",
+      id: "pa_annex_other",
+      labKey: "annex2Other",
+      labCs: "Ostatní / doplnění dle výzvy",
+      phKey: "annex2OtherPh",
+      phCs: "Cokoli dalšího požaduje příloha 2 nebo OVTZ…",
+    },
+  ];
+
+  function collectAnnex2FieldsFromDom_() {
+    var o = {};
+    PA_ANNEX2_FIELD_SPECS.forEach(function (s) {
+      var el = document.getElementById(s.id);
+      o[s.key] = el ? el.value : "";
+    });
+    return o;
+  }
+
   /** Přílohy části 2: tabulka (POSTAWARD_FILE_BLOBS); volitelně legacy z Disku. */
   function buildUploadedDriveFilesHtml(data) {
     var files = data.uploaded_drive_files || [];
@@ -38,9 +107,9 @@
         '</button> <span id="pa_repairSharingStatus" style="font-size:12px;color:var(--muted);"></span></p>'
       : "";
     var pdfLine = data.showAdminPdfExport
-      ? '<p style="margin-top:10px;"><a class="btn btn-secondary" id="pa_adminPdfLink" href="#" target="_blank" rel="noopener">' +
-        escapeHtml("Stáhnout PDF přehled (text žádosti, část 2, odkazy)") +
-        "</a></p>"
+      ? '<p style="margin-top:10px;"><button type="button" class="btn btn-secondary" id="pa_adminPdfLink">' +
+        escapeHtml("Přehled Connect (tisk → PDF)") +
+        "</button></p>"
       : "";
     var cid = String((data && data.competitionId) || "");
     var aid = String((data && data.applicationId) || "");
@@ -235,6 +304,71 @@
         : "";
     const zzClosed = String(c.completion_saved_at || "").trim().length > 0;
     const zzDraft = escapeHtml(String(c.final_report_draft || c.final_report_final || ""));
+    var annex2Block = "";
+    if (zzClosed) {
+      var annexReadParts = PA_ANNEX2_FIELD_SPECS.map(function (ak) {
+          var raw = String(c[ak.key] || "").trim();
+          if (!raw) return "";
+          return (
+            '<div style="margin-bottom:14px;">' +
+            '<div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px;">' +
+            escapeHtml(paTx(ak.labKey, ak.labCs)) +
+            "</div>" +
+            '<div style="white-space:pre-wrap;padding:12px;border:1px solid var(--border);border-radius:var(--r);background:rgba(255,255,255,.95);font-size:13px;line-height:1.55;max-height:280px;overflow:auto;">' +
+            escapeHtml(raw) +
+            "</div></div>"
+          );
+        })
+        .join("");
+      annex2Block =
+        '<div class="postaward-annex2" style="margin-bottom:20px;padding:14px;border:1px solid var(--border);border-radius:var(--r);background:rgba(232,237,248,.35);">' +
+        '<h5 style="font-size:13px;font-weight:700;color:var(--navy);margin:0 0 8px;">' +
+        escapeHtml(paTx("annex2Title", "Příloha 2 – závěrečná zpráva")) +
+        "</h5>" +
+        (annexReadParts ||
+          '<p style="font-size:12px;color:var(--muted);margin:0;">' +
+          escapeHtml(
+            paTx(
+              "annex2ReadonlyEmpty",
+              "Strukturovaná pole přílohy 2 nebyla vyplněna odděleně; celý text může být v souvislé závěrečné zprávě níže."
+            )
+          ) +
+          "</p>") +
+        "</div>";
+    } else {
+      annex2Block =
+        '<div class="postaward-annex2" style="margin-bottom:20px;padding:14px;border:1px solid var(--border);border-radius:var(--r);background:rgba(232,237,248,.35);">' +
+        '<h5 style="font-size:13px;font-weight:700;color:var(--navy);margin:0 0 8px;">' +
+        escapeHtml(paTx("annex2Title", "Příloha 2 – závěrečná zpráva")) +
+        "</h5>" +
+        '<p style="font-size:12px;color:var(--muted);margin:0 0 14px;line-height:1.5;">' +
+        paTx(
+          "annex2Help",
+          "Vyplňte podle výzvy / přílohy 2. Text se ukládá spolu s konceptem závěrečné zprávy (auto 30 s nebo Uložit koncept)."
+        ) +
+        "</p>" +
+        PA_ANNEX2_FIELD_SPECS.map(function (ak) {
+            var val = escapeHtml(String(c[ak.key] || ""));
+            return (
+              '<label for="' +
+              ak.id +
+              '" style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin:12px 0 6px;">' +
+              escapeHtml(paTx(ak.labKey, ak.labCs)) +
+              "</label>" +
+              '<textarea class="postaward-notes pa-annex-field" id="' +
+              ak.id +
+              '" rows="4" placeholder="' +
+              escapeHtml(paTx(ak.phKey, ak.phCs)) +
+              '"' +
+              (readOnly ? " disabled" : "") +
+              ">" +
+              val +
+              "</textarea>"
+            );
+          })
+          .join("") +
+        "</div>";
+    }
     const dzf = c.deliverable_zprava_fulfilled ? " checked" : "";
     const dvf = c.deliverable_vystup_fulfilled ? " checked" : "";
     const daf = c.deliverable_aktivita_fulfilled ? " checked" : "";
@@ -281,9 +415,18 @@
     } else {
       zzSection =
         '<div class="postaward-zz">' +
-        '<h5 style="font-size:13px;font-weight:700;color:var(--navy);margin:0 0 8px;">Závěrečná zpráva – koncept</h5>' +
-        '<p style="font-size:12px;color:var(--muted);margin:0 0 12px;line-height:1.45;">Pište průběžně; <strong>koncept se ukládá automaticky</strong> stejně jako u přihlášky (30 s od poslední úpravy). Kdykoli můžete odejít a <strong>vrátit se k rozpracovanému textu</strong>. Tlačítkem <strong>Uložit koncept nyní</strong> uložíte okamžitě. Text závěrečné zprávy se v evidenci soutěže uzavře až při uložení <strong>finálního uzavření projektu</strong> níže (po souhlasu v části 1, text alespoň 80 znaků). Rozsah dle přílohy výzvy (např. cca 3 strany).</p>' +
-        '<label for="pa_zz_draft">Text závěrečné zprávy</label>' +
+        '<h5 style="font-size:13px;font-weight:700;color:var(--navy);margin:0 0 8px;">' +
+        escapeHtml(paTx("zzDraftTitle", "Závěrečná zpráva – koncept")) +
+        "</h5>" +
+        '<p style="font-size:12px;color:var(--muted);margin:0 0 12px;line-height:1.45;">' +
+        paTx(
+          "zzDraftHelp",
+          "Pište průběžně; koncept se ukládá automaticky (30 s) nebo tlačítkem. Při finálním uzavření musí být celkem alespoň 80 znaků (příloha 2 + text níže)."
+        ) +
+        "</p>" +
+        '<label for="pa_zz_draft">' +
+        escapeHtml(paTx("zzLabel", "Text závěrečné zprávy")) +
+        "</label>" +
         '<textarea id="pa_zz_draft" placeholder="Průběžně pište závěrečnou zprávu…"' +
         (readOnly ? " disabled" : "") +
         ">" +
@@ -418,6 +561,7 @@
       '<h5 style="font-size:12px;margin:14px 0 8px;color:var(--navy-mid);">Rozpočet: žádost → schváleno (prorektor)</h5>' +
       budgetTable1 +
       "</div>" +
+      annex2Block +
       zzSection +
       '<p style="font-size:12px;font-weight:600;color:var(--navy);margin:20px 0 8px;">Reálný stav oproti schválenému rozpočtu</p>' +
       '<p style="font-size:11px;color:var(--muted);margin:0 0 10px;line-height:1.45;">U každé položky uveďte skutečně vyčerpanou částku a případně poznámku. Součet by měl odpovídat schválené podpoře <strong>' +
@@ -602,23 +746,30 @@
     return "<p class=\"postaward-mail\">Neznámý režim panelu.</p>";
   }
 
-  function bindAdminPdfLink(competitionId, applicationId) {
-    var a = document.getElementById("pa_adminPdfLink");
-    if (!a) return;
-    var base = typeof API_URL !== "undefined" ? API_URL : "";
-    if (!base) return;
-    try {
-      var u = new URL(base);
-      u.searchParams.set("action", "adminExportConnectProjectDossierPdf");
-      u.searchParams.set("competitionId", competitionId);
-      u.searchParams.set("applicationId", applicationId);
-      var session =
-        typeof Auth !== "undefined" && Auth._getSession ? Auth._getSession() : null;
-      if (session && session.token) u.searchParams.set("token", session.token);
-      a.href = u.toString();
-    } catch (err) {
-      /* ignore */
-    }
+  function bindAdminPdfLink(competitionId, applicationId, showToast) {
+    var btn = document.getElementById("pa_adminPdfLink");
+    if (!btn) return;
+    var cid = String(competitionId || "").trim();
+    var aid = String(applicationId || "").trim();
+    btn.addEventListener("click", function (ev) {
+      ev.preventDefault();
+      try {
+        var client = api();
+        if (client && typeof client.openWebAppGetInNewTab === "function") {
+          client.openWebAppGetInNewTab(
+            "adminExportConnectProjectDossierPdf",
+            { competitionId: cid, applicationId: aid },
+            { requireAuth: true }
+          );
+        } else {
+          throw new Error(paTx("errNoApi", "Chybí API – načtěte api.js."));
+        }
+      } catch (err) {
+        var msg = (err && err.message) || String(err);
+        if (typeof showToast === "function") showToast(msg, "err");
+        else if (typeof console !== "undefined" && console.warn) console.warn(err);
+      }
+    });
   }
 
   function bindConnectPostAwardAdminDriveTools(competitionId, applicationId, showToast, remount, data) {
@@ -743,6 +894,11 @@
       }
       draftEl.addEventListener("input", scheduleZzAutosave);
       draftEl.addEventListener("change", scheduleZzAutosave);
+      var annexEls = document.querySelectorAll(".pa-annex-field");
+      for (var ai = 0; ai < annexEls.length; ai++) {
+        annexEls[ai].addEventListener("input", scheduleZzAutosave);
+        annexEls[ai].addEventListener("change", scheduleZzAutosave);
+      }
 
       async function saveZzDraftSilent() {
         if (!zzDraftDirty || zzSaveSilentInFlight) return;
@@ -753,10 +909,12 @@
         var hint = document.getElementById("pa_zz_serverHint");
         if (st) st.textContent = "Ukládám koncept…";
         try {
+          var annexPayload = collectAnnex2FieldsFromDom_();
+          annexPayload.final_report_draft = el.value;
           var res = await api().saveConnectPostAward(
             competitionId,
             applicationId,
-            { final_report_draft: el.value },
+            annexPayload,
             "report_draft"
           );
           if (res.error) throw new Error(res.error);
@@ -791,7 +949,7 @@
         var collected = collectBudgetActualFromDom();
         saveSection(
           "completion",
-          {
+          Object.assign(collectAnnex2FieldsFromDom_(), {
             final_report_draft: document.getElementById("pa_zz_draft")?.value || "",
             deliverable_zprava_fulfilled: !!document.getElementById("pa_del_zpr")?.checked,
             deliverable_zprava_note: document.getElementById("pa_del_zpr_note")?.value || "",
@@ -807,7 +965,7 @@
             consequences_acknowledged: !!document.getElementById("pa_ack")?.checked,
             attachments_manifest: document.getElementById("pa_attachments")?.value || "",
             notes: document.getElementById("pa_notes")?.value || "",
-          },
+          }),
           document.getElementById("postawardCompletionStatus"),
           btnF
         );
@@ -900,7 +1058,7 @@
         },
       });
       bindConnectPostAwardAdminDriveTools(competitionId, applicationId, showToast, remount, data);
-      bindAdminPdfLink(competitionId, applicationId);
+      bindAdminPdfLink(competitionId, applicationId, showToast);
     } catch (e) {
       rootEl.innerHTML = '<p style="font-size:13px;color:#991B1B;">' + escapeHtml(e.message) + "</p>";
     }

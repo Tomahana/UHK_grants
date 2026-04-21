@@ -67,6 +67,85 @@ const ADMIN_EMAIL = "hana.tomaskova@uhk.cz";
 /** ID soutěže Connect (měsíční workflow + notifikace komise) */
 const CONNECT_COMPETITION_ID = "uhk_connect_2026_v2";
 
+/**
+ * IRIS referenční ID v Connect: server nevolá IRIS API (není v projektu); kontroluje se jen rozumný formát.
+ * Přijatelné: UUID, Case ID (CASE-YYYY-…), nebo delší text s klíčovými slovy výjimky dle výzvy (tuzemská spolupráce / neaplikuje se …).
+ */
+function connectNormalizeIrisCaseIdValue_(raw) {
+  return String(raw != null ? raw : "").trim();
+}
+
+function connectIsUuidIrisCaseId_(s) {
+  var t = connectNormalizeIrisCaseIdValue_(s);
+  return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(t);
+}
+
+function connectIsCaseIdLike_(s) {
+  var t = connectNormalizeIrisCaseIdValue_(s);
+  return /^CASE-\d{4}-\d+/i.test(t);
+}
+
+function connectIsIrisExceptionText_(s) {
+  var t = connectNormalizeIrisCaseIdValue_(s).toLowerCase();
+  if (t.length < 14) return false;
+  var keys = [
+    "neaplikuje",
+    "neaplik",
+    "výjimka",
+    "vyjimka",
+    "neregistrovan",
+    "bez iriso",
+    "bez iris",
+    "tuzemsk",
+    "dle výzv",
+    "dle vyvz",
+    "dle ovtz",
+    "ovtz",
+    "nemám uuid",
+    "nemam uuid",
+    "postup dle",
+    "dle pokyn",
+    "výhradně",
+    "vyhradne",
+  ];
+  for (var i = 0; i < keys.length; i++) {
+    if (t.indexOf(keys[i]) >= 0) return true;
+  }
+  return false;
+}
+
+function connectValidateIrisCaseIdFormat_(formData) {
+  if (!formData || typeof formData !== "object") return;
+  var cid = connectNormalizeIrisCaseIdValue_(formData.iris_case_id);
+  if (!cid) return;
+  if (connectIsUuidIrisCaseId_(cid)) return;
+  if (connectIsCaseIdLike_(cid)) return;
+  if (connectIsIrisExceptionText_(cid)) return;
+  throw new Error(
+    "U pole „Referenční ID IRIS UHK“ zadejte platné UUID (např. z potvrzení IRIS), přesný Case ID ve tvaru CASE-2026-…, nebo stručné zdůvodnění výjimky dle výzvy / OVTZ (např. že IRIS na záznam neaplikujete). Živé ověření proti databázi IRIS zde není — kontrolu existence provádí komise / správce v IRIS."
+  );
+}
+
+function connectAssertIrisCaseIdOnSubmit_(formData) {
+  var cid = connectNormalizeIrisCaseIdValue_(formData && formData.iris_case_id);
+  if (!cid) throw new Error("Vyplňte referenční ID IRIS UHK (UUID), Case ID, nebo zdůvodnění výjimky dle výzvy.");
+  connectValidateIrisCaseIdFormat_(formData);
+}
+
+/** Soutěže s povinným blokem IRIS v aplikaci (Connect, Prestige). */
+function connectCompetitionUsesIrisCaseId_(competitionId) {
+  var c = String(competitionId || "").trim();
+  return c === CONNECT_COMPETITION_ID || c === "uhk_prestige_2026";
+}
+
+/** Uložení draftu: formát IRIS ID, pokud pole není prázdné. */
+function connectMaybeValidateIrisCaseIdDraft_(competitionId, formData) {
+  if (!connectCompetitionUsesIrisCaseId_(competitionId)) return;
+  if (!formData || typeof formData !== "object") return;
+  if (!connectNormalizeIrisCaseIdValue_(formData.iris_case_id)) return;
+  connectValidateIrisCaseIdFormat_(formData);
+}
+
 /** Krátký název soutěže do předmětu e-mailu, pokud v CONFIG není competition_name / email_subject_tag */
 const UHK_COMPETITION_EMAIL_SUBJECT_TAGS = {
   "uhk_connect_2026_v2": "UHK Connect",
@@ -217,6 +296,161 @@ function corsResponse(data) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+/** Bezpečné escapování do HTML atributu (href, meta refresh). */
+function connectEscapeHtmlAttr_(s) {
+  return String(s || "")
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/</g, "&lt;");
+}
+
+/**
+ * Absolutní GET URL na tento Web App (doGet) s tokenem — pro přesměrování z POST HTML
+ * (HtmlService často zahodí data: / embed PDF → prázdná stránka).
+ */
+function connectBuildWebAppGetDownloadUrl_(action, token, paramMap) {
+  var base = "";
+  try {
+    base = String(ScriptApp.getService().getUrl() || "").trim();
+  } catch (eSvc) {
+    throw new Error("Web App URL není k dispozici (nasazení?).");
+  }
+  if (!base) throw new Error("Web App URL je prázdná.");
+  var parts = ["action=" + encodeURIComponent(String(action || "")), "token=" + encodeURIComponent(String(token || ""))];
+  var keys = Object.keys(paramMap || {});
+  for (var i = 0; i < keys.length; i++) {
+    var k = keys[i];
+    var v = paramMap[k];
+    if (v !== undefined && v !== null && String(v) !== "") {
+      parts.push(encodeURIComponent(k) + "=" + encodeURIComponent(String(v)));
+    }
+  }
+  return base + "?" + parts.join("&");
+}
+
+/** Po POST: stránka přesměruje na doGet, který vrátí raw PDF (HtmlService data: PDF nefunguje). */
+function connectRedirectPostToGetDownloadHtml_(action, token, paramMap) {
+  var getUrl = connectBuildWebAppGetDownloadUrl_(action, token, paramMap);
+  var href = connectEscapeHtmlAttr_(getUrl);
+  var html =
+    "<!DOCTYPE html><html><head><meta charset=\"utf-8\">" +
+    '<meta http-equiv="refresh" content="0;url=' +
+    href +
+    '">' +
+    "<title>PDF</title></head><body style=\"font-family:sans-serif;padding:16px;\">" +
+    "<p>Načítám soubor… Pokud se PDF neotevřelo, použijte odkaz:</p>" +
+    '<p><a href="' +
+    href +
+    '" target="_self" rel="noopener">Stáhnout / otevřít PDF</a></p>' +
+    "</body></html>";
+  return HtmlService.createHtmlOutput(html);
+}
+
+/**
+ * Rozhodnutí: příloha z Disku (UHKDRIVE) → náhled v iframe; jinak binární blob (záloha v tabulce).
+ * @returns {{ mode: string, fileId?: string, title?: string, blob?: GoogleAppsScript.Base.Blob }}
+ */
+function connectApplicationFileDownloadResolved_(competitionId, applicationId, fieldId, token) {
+  var auth = requireAuth(token);
+  var cid = String(competitionId || "").trim();
+  var aid = String(applicationId || "").trim();
+  var fid = String(fieldId || "").trim();
+  if (cid !== CONNECT_COMPETITION_ID || !aid || !fid) throw new Error("Neplatné parametry.");
+  var allowed = { attach_invitation: 1, attach_annex1: 1, attach_annex2: 1, attach_annex3: 1 };
+  if (!allowed[fid]) throw new Error("Neplatné pole přílohy.");
+  if (!connectCanDownloadApplicationBlob_(auth, cid, aid)) throw new Error("Soubor nelze stáhnout (oprávnění).");
+  var ss = getSpreadsheet(cid);
+  var sheet = ss.getSheetByName(SHEETS.APPLICATIONS);
+  if (!sheet) throw new Error("List APPLICATIONS nenalezen.");
+  var rows = sheetToObjects(sheet).map(applicationsSheetRowNormalize_);
+  var appRow = rows.find(function (r) {
+    return String(r.application_id || "").trim() === aid;
+  });
+  if (!appRow) throw new Error("Přihláška nenalezena.");
+  var fd = connectParseFormDataObject_(appRow);
+  var cellVal = fd && Object.prototype.hasOwnProperty.call(fd, fid) ? fd[fid] : "";
+  var driveRef = connectParseUhkDriveCell_(cellVal);
+  var blobSh = ss.getSheetByName(SHEETS.APPLICATION_FILE_BLOBS);
+  var meta = blobSh ? connectReadPdfBlobFromSheet_(blobSh, aid, fid) : null;
+  var sheetOk = !!(meta && meta.bytes && meta.bytes.length > 0);
+
+  if (driveRef && driveRef.fileId) {
+    try {
+      var f = DriveApp.getFileById(driveRef.fileId);
+      var b = f.getBlob();
+      if (b && b.getBytes().length > 0) {
+        var nm = String(driveRef.displayName || b.getName() || "soubor.pdf")
+          .replace(/[^a-zA-Z0-9._\-]/g, "_")
+          .replace(/_+/g, "_")
+          .slice(0, 180);
+        if (!/\.pdf$/i.test(nm)) nm = (nm || "soubor") + ".pdf";
+        return { mode: "drive_preview", fileId: String(driveRef.fileId).trim(), title: nm, blob: b.setName(nm) };
+      }
+    } catch (eDrive) {
+      /* prázdný / nedostupný Disk → záloha v tabulce */
+    }
+    if (sheetOk) {
+      var safeName2 = String(meta.fileName || "soubor.pdf")
+        .replace(/[^a-zA-Z0-9._\-]/g, "_")
+        .replace(/_+/g, "_")
+        .slice(0, 180);
+      if (!/\.pdf$/i.test(safeName2)) safeName2 = (safeName2 || "soubor") + ".pdf";
+      return {
+        mode: "blob",
+        blob: Utilities.newBlob(meta.bytes, meta.mimeType || "application/pdf", safeName2).setName(safeName2),
+      };
+    }
+    throw new Error(
+      "Soubor na Google Disku je prázdný nebo nedostupný a v tabulce není záloha. Nahrajte PDF znovu v konceptu (nebo kontaktujte správce)."
+    );
+  }
+  if (!blobSh) throw new Error("Úložiště příloh není k dispozici.");
+  if (!sheetOk) throw new Error("Soubor nenalezen nebo je prázdný.");
+  var safeName = String(meta.fileName || "soubor.pdf")
+    .replace(/[^a-zA-Z0-9._\-]/g, "_")
+    .replace(/_+/g, "_")
+    .slice(0, 180);
+  if (!/\.pdf$/i.test(safeName)) safeName = (safeName || "soubor") + ".pdf";
+  var outBlob = Utilities.newBlob(meta.bytes, meta.mimeType || "application/pdf", safeName);
+  return { mode: "blob", blob: outBlob.setName(safeName) };
+}
+
+/**
+ * Web App doPost: HtmlOutput — Disk → iframe náhled; tabulka → přesměrování na GET (raw PDF z doGet).
+ */
+function connectApplicationFilePostOpenHtml_(competitionId, applicationId, fieldId, token) {
+  var r = connectApplicationFileDownloadResolved_(competitionId, applicationId, fieldId, token);
+  var title = r.title || (r.blob && r.blob.getName && r.blob.getName()) || "PDF";
+  var titleTag = String(title || "PDF")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  if (r.mode === "drive_preview" && r.fileId) {
+    var src = "https://drive.google.com/file/d/" + String(r.fileId).trim() + "/preview";
+    var html =
+      "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>" +
+      titleTag +
+      "</title><style>html,body{margin:0;height:100%;}iframe{border:0;display:block;width:100%;height:100vh;}</style></head><body>" +
+      '<iframe src="' +
+      connectEscapeHtmlAttr_(src) +
+      '" title="' +
+      connectEscapeHtmlAttr_(title) +
+      '"></iframe>' +
+      '<p style="margin:8px;font-size:13px;font-family:sans-serif;"><a href="' +
+      connectEscapeHtmlAttr_(src) +
+      '" target="_blank" rel="noopener">Otevřít na Disku Google</a></p>' +
+      "</body></html>";
+    return HtmlService.createHtmlOutput(html);
+  }
+  return connectRedirectPostToGetDownloadHtml_("downloadConnectApplicationFile", token, {
+    competitionId: competitionId,
+    applicationId: applicationId,
+    fieldId: fieldId,
+  });
+}
+
+
 
 // ============================================================
 // GET ROUTER
@@ -353,7 +587,7 @@ function doPost(e) {
       /** Stažení PDF z tabulky (token v těle POST – spolehlivější než dlouhý GET na /exec). */
       case "downloadConnectApplicationFile":
         try {
-          return downloadConnectApplicationFile_(
+          return connectApplicationFilePostOpenHtml_(
             body.competitionId,
             body.applicationId || body.app,
             body.fieldId || body.field,
@@ -364,12 +598,11 @@ function doPost(e) {
         }
       case "downloadConnectPostAwardFile":
         try {
-          return downloadConnectPostAwardFile_(
-            body.competitionId,
-            body.applicationId || body.app,
-            body.blobKey || body.blob || body.field,
-            body.token
-          );
+          return connectRedirectPostToGetDownloadHtml_("downloadConnectPostAwardFile", body.token, {
+            competitionId: body.competitionId,
+            applicationId: body.applicationId || body.app,
+            blobKey: body.blobKey || body.blob || body.field,
+          });
         } catch (dlPa) {
           return ContentService.createTextOutput(String(dlPa.message || dlPa)).setMimeType(ContentService.MimeType.PLAIN);
         }
@@ -656,14 +889,44 @@ function requireAuth(token) {
   return v;
 }
 
-/** Porovnání role z tokenu s povoleným seznamem (bez závislosti na velikosti písmen / mezerách). */
+/** Role z listu ROLES / tokenu: diakritika + synonymum „Správce“ → ADMIN (aby stažení PDF fungovalo i při českých popisech). */
+function connectNormalizeAuthRoleKey_(role) {
+  var s = String(role || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "_");
+  var pairs = [
+    ["Á", "A"],
+    ["Č", "C"],
+    ["Ď", "D"],
+    ["É", "E"],
+    ["Ě", "E"],
+    ["Í", "I"],
+    ["Ň", "N"],
+    ["Ó", "O"],
+    ["Ř", "R"],
+    ["Š", "S"],
+    ["Ť", "T"],
+    ["Ú", "U"],
+    ["Ů", "U"],
+    ["Ý", "Y"],
+    ["Ž", "Z"],
+  ];
+  for (var i = 0; i < pairs.length; i++) {
+    s = s.split(pairs[i][0]).join(pairs[i][1]);
+  }
+  if (s === "SPRAVCE" || s === "ADMINISTRATOR" || s === "SUPERADMIN") return "ADMIN";
+  return s;
+}
+
+/** Porovnání role z tokenu s povoleným seznamem (bez závislosti na velikosti písmen / mezerách / diakritice). */
 function authHasAnyRole_(auth, allowedRoles) {
   const want = {};
   (allowedRoles || []).forEach(function (x) {
-    want[String(x).trim().toUpperCase()] = true;
+    want[connectNormalizeAuthRoleKey_(x)] = true;
   });
   return (auth.roles || []).some(function (r) {
-    return want[String(r).trim().toUpperCase()];
+    return want[connectNormalizeAuthRoleKey_(r)];
   });
 }
 
@@ -1127,6 +1390,24 @@ function applicationsSheetRowNormalize_(r) {
 
 /** Verze textů pravidel (změna = řešitel může znovu potvrdit seznámení). */
 var CONNECT_POSTAWARD_RULES_VERSION = "2026-04-07";
+
+/**
+ * Buňka connect_postaward_json má limit ~50 000 znaků. Hlavní text ZZ + strukturovaná pole přílohy 2
+ * musí zůstat pod limitem i s duplicitou draft+final při uzavření.
+ */
+var CONNECT_POSTAWARD_FINAL_REPORT_MAX = 13500;
+var CONNECT_POSTAWARD_ANNEX2_FIELD_MAX = 3500;
+
+/** Volitelná strukturovaná pole (příloha 2 / výzva) – ukládají se vedle hlavního textu ZZ. */
+var CONNECT_POSTAWARD_ANNEX2_KEYS = [
+  "final_report_summary_exec",
+  "final_report_activity_desc",
+  "final_report_outputs_result",
+  "final_report_coop_partners",
+  "final_report_budget_notes",
+  "final_report_dissemination",
+  "final_report_other",
+];
 
 /** Položky rozpočtu Connect (shodné s formulářem přihlášky). */
 var CONNECT_BUDGET_LINE_KEYS = [
@@ -1691,65 +1972,9 @@ function connectCanDownloadApplicationBlob_(auth, competitionId, applicationId) 
 }
 
 function downloadConnectApplicationFile_(competitionId, applicationId, fieldId, token) {
-  var auth = requireAuth(token);
-  var cid = String(competitionId || "").trim();
-  var aid = String(applicationId || "").trim();
-  var fid = String(fieldId || "").trim();
-  if (cid !== CONNECT_COMPETITION_ID || !aid || !fid) throw new Error("Neplatné parametry.");
-  var allowed = { attach_invitation: 1, attach_annex1: 1, attach_annex2: 1, attach_annex3: 1 };
-  if (!allowed[fid]) throw new Error("Neplatné pole přílohy.");
-  if (!connectCanDownloadApplicationBlob_(auth, cid, aid)) throw new Error("Soubor nelze stáhnout (oprávnění).");
-  var ss = getSpreadsheet(cid);
-  var sheet = ss.getSheetByName(SHEETS.APPLICATIONS);
-  if (!sheet) throw new Error("List APPLICATIONS nenalezen.");
-  var rows = sheetToObjects(sheet).map(applicationsSheetRowNormalize_);
-  var appRow = rows.find(function (r) {
-    return String(r.application_id || "").trim() === aid;
-  });
-  if (!appRow) throw new Error("Přihláška nenalezena.");
-  var fd = connectParseFormDataObject_(appRow);
-  var cellVal = fd && Object.prototype.hasOwnProperty.call(fd, fid) ? fd[fid] : "";
-  var driveRef = connectParseUhkDriveCell_(cellVal);
-  var blobSh = ss.getSheetByName(SHEETS.APPLICATION_FILE_BLOBS);
-  var meta = blobSh ? connectReadPdfBlobFromSheet_(blobSh, aid, fid) : null;
-  var sheetOk = !!(meta && meta.bytes && meta.bytes.length > 0);
-
-  if (driveRef && driveRef.fileId) {
-    try {
-      var f = DriveApp.getFileById(driveRef.fileId);
-      var b = f.getBlob();
-      if (b && b.getBytes().length > 0) {
-        var nm = String(driveRef.displayName || b.getName() || "soubor.pdf")
-          .replace(/[^a-zA-Z0-9._\-]/g, "_")
-          .replace(/_+/g, "_")
-          .slice(0, 180);
-        if (!/\.pdf$/i.test(nm)) nm = (nm || "soubor") + ".pdf";
-        return b.setName(nm);
-      }
-    } catch (eDrive) {
-      /* prázdný / nedostupný Disk → záloha v tabulce */
-    }
-    if (sheetOk) {
-      var safeName2 = String(meta.fileName || "soubor.pdf")
-        .replace(/[^a-zA-Z0-9._\-]/g, "_")
-        .replace(/_+/g, "_")
-        .slice(0, 180);
-      if (!/\.pdf$/i.test(safeName2)) safeName2 = (safeName2 || "soubor") + ".pdf";
-      return Utilities.newBlob(meta.bytes, meta.mimeType || "application/pdf", safeName2).setName(safeName2);
-    }
-    throw new Error(
-      "Soubor na Google Disku je prázdný nebo nedostupný a v tabulce není záloha. Nahrajte PDF znovu v konceptu (nebo kontaktujte správce)."
-    );
-  }
-  if (!blobSh) throw new Error("Úložiště příloh není k dispozici.");
-  if (!sheetOk) throw new Error("Soubor nenalezen nebo je prázdný.");
-  var safeName = String(meta.fileName || "soubor.pdf")
-    .replace(/[^a-zA-Z0-9._\-]/g, "_")
-    .replace(/_+/g, "_")
-    .slice(0, 180);
-  if (!/\.pdf$/i.test(safeName)) safeName = (safeName || "soubor") + ".pdf";
-  var outBlob = Utilities.newBlob(meta.bytes, meta.mimeType || "application/pdf", safeName);
-  return outBlob.setName(safeName);
+  var r = connectApplicationFileDownloadResolved_(competitionId, applicationId, fieldId, token);
+  if (!r || !r.blob) throw new Error("Soubor nelze načíst.");
+  return r.blob;
 }
 
 /**
@@ -2080,8 +2305,15 @@ function getConnectPostAward(competitionId, applicationId, token) {
       deliverable_aktivita_note: String(checklist.deliverable_aktivita_note || "").slice(0, 3000),
       budget_actual_spent_czk: Number(checklist.budget_actual_spent_czk) || 0,
       budget_variance_explanation: String(checklist.budget_variance_explanation || "").slice(0, 2000),
-      final_report_draft: String(checklist.final_report_draft || "").slice(0, 12000),
-      final_report_final: String(checklist.final_report_final || "").slice(0, 12000),
+      final_report_draft: String(checklist.final_report_draft || "").slice(0, CONNECT_POSTAWARD_FINAL_REPORT_MAX),
+      final_report_final: String(checklist.final_report_final || "").slice(0, CONNECT_POSTAWARD_FINAL_REPORT_MAX),
+      final_report_summary_exec: String(checklist.final_report_summary_exec || "").slice(0, CONNECT_POSTAWARD_ANNEX2_FIELD_MAX),
+      final_report_activity_desc: String(checklist.final_report_activity_desc || "").slice(0, CONNECT_POSTAWARD_ANNEX2_FIELD_MAX),
+      final_report_outputs_result: String(checklist.final_report_outputs_result || "").slice(0, CONNECT_POSTAWARD_ANNEX2_FIELD_MAX),
+      final_report_coop_partners: String(checklist.final_report_coop_partners || "").slice(0, CONNECT_POSTAWARD_ANNEX2_FIELD_MAX),
+      final_report_budget_notes: String(checklist.final_report_budget_notes || "").slice(0, CONNECT_POSTAWARD_ANNEX2_FIELD_MAX),
+      final_report_dissemination: String(checklist.final_report_dissemination || "").slice(0, CONNECT_POSTAWARD_ANNEX2_FIELD_MAX),
+      final_report_other: String(checklist.final_report_other || "").slice(0, CONNECT_POSTAWARD_ANNEX2_FIELD_MAX),
       zz_draft_saved_at: checklist.zz_draft_saved_at || "",
       final_report_final_saved_at: checklist.final_report_final_saved_at || "",
       budget_actual_lines:
@@ -2161,6 +2393,9 @@ function connectApplicationFileFieldHints_(fd, applicationIdOpt, ss) {
     out.push({
       field_id: k,
       value: disp,
+      /** Původní řetězec z form_data_json (UHKDRIVE|… / UHKAFILE|…) – frontend podle něj pozná úložiště i když value je jen název souboru. */
+      raw_cell_value: raw,
+      drive_file_id: driveRef && driveRef.fileId ? String(driveRef.fileId).trim() : "",
       isLikelyUrl: isLikelyUrl,
       isSheetBlob: isSheetBlob,
       application_id: appId,
@@ -2170,17 +2405,39 @@ function connectApplicationFileFieldHints_(fd, applicationIdOpt, ss) {
   return out;
 }
 
+/** Aktivní pole formuláře z listu FORM_FIELDS (pořadí zobrazení). */
+function connectFormFieldDefinitionsSorted_(ss) {
+  var sheet = ss.getSheetByName(SHEETS.FORM_FIELDS);
+  if (!sheet) return [];
+  return sheetToObjects(sheet)
+    .filter(function (r) {
+      return String(r.active).toUpperCase() === "TRUE" && String(r.field_id || "").trim();
+    })
+    .map(function (r) {
+      return {
+        field_id: String(r.field_id || "").trim(),
+        label: String(r.label_cs || r.field_label || r.field_id || "").trim() || String(r.field_id || "").trim(),
+        section_order: Number(r.section_order) || 0,
+        field_order: Number(r.field_order) || 0,
+      };
+    })
+    .sort(function (a, b) {
+      if (a.section_order !== b.section_order) return a.section_order - b.section_order;
+      return a.field_order - b.field_order;
+    });
+}
+
 /**
- * PDF přehled: text žádosti, checklist části 2, odkazy na soubory na Disku (GET adminExportConnectProjectDossierPdf).
+ * Přehled projektu Connect jako HTML (Ctrl+P → Uložit jako PDF). Dříve HtmlService.getAs(PDF) často selhalo / prázdná stránka.
  */
-function adminBuildConnectDossierPdfBlob_(competitionId, applicationId, token) {
+function adminBuildConnectDossierHtmlOutput_(competitionId, applicationId, token) {
   var auth = requireAuth(token);
   if (!authHasAnyRole_(auth, ["ADMIN", "TESTER", "PROREKTOR", "KOMISAR", "KOMISAŘ", "READONLY"]))
-    throw new Error("PDF export: nedostatečná oprávnění.");
+    throw new Error("Přehled: nedostatečná oprávnění.");
   var cid = String(competitionId || "").trim();
   var aid = String(applicationId || "").trim();
   if (!cid || !aid) throw new Error("chybí competitionId nebo applicationId");
-  if (cid !== CONNECT_COMPETITION_ID) throw new Error("PDF export je jen pro soutěž UHK Connect.");
+  if (cid !== CONNECT_COMPETITION_ID) throw new Error("Přehled je jen pro soutěž UHK Connect.");
   var ss = getSpreadsheet(cid);
   var sheet = ss.getSheetByName(SHEETS.APPLICATIONS);
   if (!sheet) throw new Error("List APPLICATIONS nenalezen.");
@@ -2194,72 +2451,141 @@ function adminBuildConnectDossierPdfBlob_(competitionId, applicationId, token) {
   var outcome = findProrektorOutcomeForApp_(ss, aid, row);
   var files = connectMergePostAwardUploadedFiles_(ss, aid);
   var title = applicationRowTitle_(row) || aid;
-  var lines = [];
-  lines.push("UHK Connect – přehled projektu a příloh");
-  lines.push("ID: " + aid);
-  lines.push("Žadatel: " + String(row.applicant_name || ""));
-  lines.push("E-mail: " + String(row.applicant_email || ""));
-  lines.push("Stav přihlášky: " + String(row.status || ""));
-  lines.push("");
-  lines.push("── Rozhodnutí prorektora ──");
-  if (outcome && outcome.decision) {
-    lines.push("Výsledek: " + String(outcome.decision) + " – " + String(outcome.decisionLabel || ""));
-    lines.push("Komentář: " + String(outcome.comment || "—"));
-  } else lines.push("(záznam PROREKTOR_DECISION nenalezen)");
-  lines.push("");
-  lines.push("── Shrnutí žádosti ──");
-  lines.push("Název: " + String(fd.project_title || ""));
-  lines.push("Cíl aktivity: " + String(fd.activity_goal || "").slice(0, 1800));
-  lines.push("Rozpočet celkem (žádost): " + String(fd.budget_total || "") + " Kč");
-  lines.push("");
-  lines.push("── Část 2: checklist ──");
-  lines.push("Souhlas uložen: " + String(checklist.consent_saved_at || "—"));
-  lines.push("Uzavření uloženo: " + String(checklist.completion_saved_at || "—"));
-  lines.push("Manifest příloh:");
-  lines.push(String(checklist.attachments_manifest || "—").slice(0, 6000));
-  lines.push("");
-  lines.push("── Závěrečná zpráva (zkráceno) ──");
-  lines.push(String(checklist.final_report_final || checklist.final_report_draft || "").slice(0, 6500) || "—");
-  lines.push("");
-  lines.push("── Přílohy části 2 (aplikace / volitelně Disk) ──");
-  if (!files.length)
-    lines.push(
-      "(žádný soubor v úložišti tabulky ani v legacy seznamu z Disku — viz manifest)"
-    );
-  else
+  var fileHints = connectApplicationFileFieldHints_(fd, aid, ss);
+  var hintByField = {};
+  fileHints.forEach(function (h) {
+    if (h && h.field_id) hintByField[String(h.field_id).trim()] = h;
+  });
+  var defs = connectFormFieldDefinitionsSorted_(ss);
+  var used = {};
+  var formRowsHtml = "";
+  defs.forEach(function (d) {
+    var k = d.field_id;
+    used[k] = true;
+    if (!Object.prototype.hasOwnProperty.call(fd, k)) return;
+    var v = fd[k];
+    if (v == null || String(v).trim() === "") return;
+    var raw = String(v).trim();
+    var cell = uhkHtmlEscape_(raw);
+    var hi = hintByField[k] || {};
+    var driveId = String(hi.drive_file_id || "").trim();
+    if (!driveId) {
+      var m = /^UHKDRIVE\|([^|]+)\|/i.exec(raw);
+      if (m) driveId = String(m[1] || "").trim();
+    }
+    if (driveId) {
+      cell =
+        '<a href="https://drive.google.com/file/d/' +
+        encodeURIComponent(driveId) +
+        '/preview" target="_blank" rel="noopener">Náhled na Disku</a> · <span style="color:#555">' +
+        uhkHtmlEscape_(String(hi.value != null && String(hi.value).trim() ? hi.value : raw).slice(0, 500)) +
+        "</span>";
+    } else if (raw.length > 2000) {
+      cell = uhkHtmlEscape_(raw.slice(0, 2000)) + "…";
+    }
+    formRowsHtml +=
+      "<tr><th style=\"text-align:left;vertical-align:top;padding:8px 12px 8px 0;border-bottom:1px solid #e5e7eb;width:32%\">" +
+      uhkHtmlEscape_(d.label) +
+      '</th><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;word-break:break-word">' +
+      cell +
+      "</td></tr>";
+  });
+  Object.keys(fd).forEach(function (k) {
+    if (String(k).indexOf("_uhk_internal_") === 0) return;
+    if (used[k]) return;
+    var v = fd[k];
+    if (v == null || String(v).trim() === "") return;
+    var raw = String(v).trim();
+    var lab = k.replace(/_/g, " ");
+    var cell = raw.length > 2000 ? uhkHtmlEscape_(raw.slice(0, 2000)) + "…" : uhkHtmlEscape_(raw);
+    formRowsHtml +=
+      "<tr><th style=\"text-align:left;vertical-align:top;padding:8px 12px 8px 0;border-bottom:1px solid #e5e7eb\">" +
+      uhkHtmlEscape_(lab) +
+      ' <span style="color:#9ca3af;font-size:11px">(' +
+      uhkHtmlEscape_(k) +
+      ')</span></th><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;word-break:break-word">' +
+      cell +
+      "</td></tr>";
+  });
+  if (!formRowsHtml)
+    formRowsHtml =
+      '<tr><td colspan="2" style="color:#6b7280">Žádná vyplněná pole v JSON formuláře.</td></tr>';
+
+  var filesHtml = "";
+  if (!files.length) filesHtml = "<p style=\"color:#6b7280\">(žádný soubor v úložišti tabulky ani v legacy seznamu z Disku)</p>";
+  else {
+    filesHtml = "<ul style=\"margin:6px 0 0 18px\">";
     files.forEach(function (f) {
-      if (f.isSheetBlob) lines.push(String(f.name) + " → uloženo v tabulce (stažení z aplikace)");
-      else lines.push(String(f.name) + " → " + String(f.url || ""));
+      if (f.isSheetBlob)
+        filesHtml += "<li>" + uhkHtmlEscape_(String(f.name || "")) + " — uloženo v tabulce</li>";
+      else
+        filesHtml +=
+          "<li>" +
+          uhkHtmlEscape_(String(f.name || "")) +
+          (f.url ? ' — <a href="' + uhkHtmlEscape_(String(f.url)) + '" target="_blank" rel="noopener">Disk</a>' : "") +
+          "</li>";
     });
-  lines.push("");
-  lines.push("── Pole souborů z podacího formuláře ──");
-  var hints = connectApplicationFileFieldHints_(fd, aid, ss);
-  if (!hints.length) lines.push("(v JSON často jen název souboru, ne binární obsah)");
-  else
-    hints.forEach(function (h) {
-      lines.push(h.field_id + ": " + h.value);
-    });
-  var bodyHtml =
+    filesHtml += "</ul>";
+  }
+
+  var prBlock =
+    outcome && outcome.decision
+      ? "<p><b>Výsledek:</b> " +
+        uhkHtmlEscape_(String(outcome.decision)) +
+        " — " +
+        uhkHtmlEscape_(String(outcome.decisionLabel || "")) +
+        "</p><p><b>Komentář:</b> " +
+        uhkHtmlEscape_(String(outcome.comment || "—")) +
+        "</p>"
+      : "<p style=\"color:#6b7280\">(záznam PROREKTOR_DECISION nenalezen)</p>";
+
+  var html =
+    "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"/><title>" +
+    uhkHtmlEscape_("Connect – " + aid) +
+    "</title><style>body{font-family:Arial,Helvetica,sans-serif;font-size:11pt;color:#111;padding:16px 20px 40px;max-width:900px;margin:0 auto} h1{font-size:1.25rem} h2{font-size:1rem;margin-top:1.4rem;border-bottom:1px solid #1C2E5A;padding-bottom:4px;color:#1C2E5A} .hint{color:#92400e;font-size:12px;margin-top:12px}</style></head><body>" +
     "<h1>" +
     uhkHtmlEscape_(title) +
-    "</h1><p><b>ID:</b> " +
+    "</h1>" +
+    "<p><b>ID přihlášky:</b> " +
     uhkHtmlEscape_(aid) +
-    "</p><pre style=\"white-space:pre-wrap;font-family:Arial,sans-serif;font-size:9pt\">" +
-    uhkHtmlEscape_(lines.join("\n")) +
-    "</pre>";
-  var html =
-    "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"/><style>body{font-family:Arial,sans-serif;font-size:11pt;color:#111;padding:14px}</style></head><body>" +
-    bodyHtml +
+    "</p>" +
+    "<p><b>Žadatel:</b> " +
+    uhkHtmlEscape_(String(row.applicant_name || "")) +
+    " &lt;" +
+    uhkHtmlEscape_(String(row.applicant_email || "")) +
+    "&gt;</p>" +
+    "<p><b>Stav:</b> " +
+    uhkHtmlEscape_(String(row.status || "")) +
+    "</p>" +
+    "<h2>Rozhodnutí prorektora</h2>" +
+    prBlock +
+    "<h2>Odpovědi z podacího formuláře</h2>" +
+    '<table style="width:100%;border-collapse:collapse;font-size:10.5pt">' +
+    formRowsHtml +
+    "</table>" +
+    "<h2>Část 2 – checklist</h2>" +
+    "<p><b>Souhlas uložen:</b> " +
+    uhkHtmlEscape_(String(checklist.consent_saved_at || "—")) +
+    "</p>" +
+    "<p><b>Uzavření uloženo:</b> " +
+    uhkHtmlEscape_(String(checklist.completion_saved_at || "—")) +
+    "</p>" +
+    "<p><b>Manifest příloh</b></p><pre style=\"white-space:pre-wrap;background:#f3f4f6;padding:10px;border-radius:6px;font-size:9.5pt;max-height:320px;overflow:auto\">" +
+    uhkHtmlEscape_(String(checklist.attachments_manifest || "—").slice(0, 8000)) +
+    "</pre>" +
+    connectPostAwardAnnex2DossierHtml_(checklist) +
+    "<p><b>Závěrečná zpráva</b> (zkráceno; po uzavření může být sloučena z přílohy 2 + souvislého textu)</p><pre style=\"white-space:pre-wrap;background:#f3f4f6;padding:10px;border-radius:6px;font-size:9.5pt;max-height:280px;overflow:auto\">" +
+    uhkHtmlEscape_(String(checklist.final_report_final || checklist.final_report_draft || "").slice(0, 8000) || "—") +
+    "</pre>" +
+    "<h2>Přílohy části 2</h2>" +
+    filesHtml +
+    '<p class="hint"><strong>PDF:</strong> v prohlížeči použijte <strong>Ctrl+P</strong> (Mac: Cmd+P) a zvolte <strong>Uložit jako PDF</strong>.</p>' +
     "</body></html>";
-  return HtmlService.createHtmlOutput(html).getAs(MimeType.PDF);
+  return HtmlService.createHtmlOutput(html).setTitle("Connect – " + aid);
 }
 
 function adminExportConnectProjectDossierPdf(competitionId, applicationId, token) {
-  var blob = adminBuildConnectDossierPdfBlob_(competitionId, applicationId, token);
-  var safe = String(applicationId || "prehled")
-    .replace(/[^a-zA-Z0-9._-]/g, "_")
-    .slice(0, 96);
-  return blob.setName("UHK_Connect_" + safe + ".pdf");
+  return adminBuildConnectDossierHtmlOutput_(competitionId, applicationId, token);
 }
 
 /**
@@ -2366,8 +2692,15 @@ function saveConnectPostAward(body) {
     budget_variance_explanation: pickStr_(c, prev, "budget_variance_explanation", 2000),
     budget_actual_lines: pickBudgetActualLines_(c, prev),
     budget_line_notes: pickLineNotes_(c, prev),
-    final_report_draft: pickStr_(c, prev, "final_report_draft", 12000),
-    final_report_final: pickStr_(c, prev, "final_report_final", 12000),
+    final_report_draft: pickStr_(c, prev, "final_report_draft", CONNECT_POSTAWARD_FINAL_REPORT_MAX),
+    final_report_final: pickStr_(c, prev, "final_report_final", CONNECT_POSTAWARD_FINAL_REPORT_MAX),
+    final_report_summary_exec: pickStr_(c, prev, "final_report_summary_exec", CONNECT_POSTAWARD_ANNEX2_FIELD_MAX),
+    final_report_activity_desc: pickStr_(c, prev, "final_report_activity_desc", CONNECT_POSTAWARD_ANNEX2_FIELD_MAX),
+    final_report_outputs_result: pickStr_(c, prev, "final_report_outputs_result", CONNECT_POSTAWARD_ANNEX2_FIELD_MAX),
+    final_report_coop_partners: pickStr_(c, prev, "final_report_coop_partners", CONNECT_POSTAWARD_ANNEX2_FIELD_MAX),
+    final_report_budget_notes: pickStr_(c, prev, "final_report_budget_notes", CONNECT_POSTAWARD_ANNEX2_FIELD_MAX),
+    final_report_dissemination: pickStr_(c, prev, "final_report_dissemination", CONNECT_POSTAWARD_ANNEX2_FIELD_MAX),
+    final_report_other: pickStr_(c, prev, "final_report_other", CONNECT_POSTAWARD_ANNEX2_FIELD_MAX),
     zz_draft_saved_at: String(prev.zz_draft_saved_at || ""),
     final_report_final_saved_at: String(prev.final_report_final_saved_at || ""),
   };
@@ -2378,16 +2711,22 @@ function saveConnectPostAward(body) {
       );
     next.consent_saved_at = fmtDate(new Date());
   } else if (section === "report_draft") {
-    next.final_report_draft = pickStr_(c, prev, "final_report_draft", 12000);
+    next.final_report_draft = pickStr_(c, prev, "final_report_draft", CONNECT_POSTAWARD_FINAL_REPORT_MAX);
     next.zz_draft_saved_at = fmtDate(new Date());
   } else if (section === "report_final") {
     if (!String(prev.consent_saved_at || "").trim())
       throw new Error("Nejdřív uložte souhlas v části 1.");
-    next.final_report_final = pickStr_(c, prev, "final_report_final", 12000);
-    if (String(next.final_report_final || "").trim().length < 80)
-      throw new Error("Finální závěrečná zpráva v aplikaci: doplňte text (alespoň 80 znaků).");
-    next.final_report_final_saved_at = fmtDate(new Date());
+    var mergedRf = connectMergeFinalReportBodyForStorage_(next);
+    if (String(mergedRf || "").trim().length < 80)
+      throw new Error(
+        "Finální závěrečná zpráva: vyplňte strukturovaná pole přílohy 2 a/nebo souvislý text (celkem alespoň 80 znaků)."
+      );
+    next.final_report_final = String(mergedRf || "").slice(0, CONNECT_POSTAWARD_FINAL_REPORT_MAX);
     next.final_report_draft = next.final_report_final;
+    next.final_report_final_saved_at = fmtDate(new Date());
+    CONNECT_POSTAWARD_ANNEX2_KEYS.forEach(function (k2) {
+      next[k2] = "";
+    });
   } else if (section === "completion") {
     if (!String(prev.consent_saved_at || "").trim())
       throw new Error("Nejdřív uložte souhlas v části 1 (stanovisko prorektora a schválená podpora).");
@@ -2427,11 +2766,17 @@ function saveConnectPostAward(body) {
       throw new Error(
         "Zaškrtněte potvrzení diseminační aktivity, odeslání podkladů administrátorce a seznámení s následky."
       );
-    next.final_report_final = String(next.final_report_draft || "").slice(0, 12000);
+    var mergedEnd = connectMergeFinalReportBodyForStorage_(next);
+    if (String(mergedEnd || "").trim().length < 80)
+      throw new Error(
+        "Závěrečná zpráva: vyplňte pole přílohy 2 a/nebo souvislý text níže (celkem alespoň 80 znaků)."
+      );
+    next.final_report_final = String(mergedEnd || "").slice(0, CONNECT_POSTAWARD_FINAL_REPORT_MAX);
     next.final_report_draft = next.final_report_final;
-    if (String(next.final_report_final || "").trim().length < 80)
-      throw new Error("Závěrečná zpráva v aplikaci: doplňte text (alespoň 80 znaků).");
     next.final_report_final_saved_at = fmtDate(new Date());
+    CONNECT_POSTAWARD_ANNEX2_KEYS.forEach(function (k3) {
+      next[k3] = "";
+    });
     next.completion_saved_at = fmtDate(new Date());
   }
 
@@ -4556,6 +4901,8 @@ function saveDraft(body) {
   if (!applicant || applicant !== auth.email)
     throw new Error("Draft lze ukládat jen pod vlastním přihlášeným e-mailem.");
 
+  connectMaybeValidateIrisCaseIdDraft_(body.competitionId, body.formData);
+
   const ss    = getSpreadsheet(body.competitionId);
   let sheet   = ss.getSheetByName("📥 APPLICATIONS");
   if (!sheet) {
@@ -4726,6 +5073,65 @@ function validateConnectDeliverableDecl_(fulfilled, note, label) {
   if (fulfilled) return;
   if (String(note || "").trim().length < 15)
     throw new Error('U „' + label + '“ potvrďte splnění, nebo vysvětlete, proč výstup splněn nebyl (min. 15 znaků).');
+}
+
+/** Sloučí strukturovaná pole (příloha 2 / výzva) s hlavním textem do jedné evidence pro archiv a tisk. */
+function connectMergeFinalReportBodyForStorage_(checklistObj) {
+  var c = checklistObj || {};
+  var parts = [];
+  function add(title, key) {
+    var t = String(c[key] != null ? c[key] : "").trim();
+    if (!t) return;
+    parts.push("── " + title + " ──\n" + t);
+  }
+  add("Shrnutí / výsledek aktivity (příloha 2)", "final_report_summary_exec");
+  add("Popis průběhu realizace", "final_report_activity_desc");
+  add("Dosažené výstupy vůči plánu", "final_report_outputs_result");
+  add("Spolupráce a partneři", "final_report_coop_partners");
+  add("Čerpání podpory a hospodárnost (slovní doplnění)", "final_report_budget_notes");
+  add("Diseminace / sdílení výsledků", "final_report_dissemination");
+  add("Ostatní / doplnění dle výzvy", "final_report_other");
+  var structured = parts.join("\n\n");
+  var main = String(c.final_report_draft != null ? c.final_report_draft : "").trim();
+  if (structured && main) return structured + "\n\n── Souvislý text závěrečné zprávy ──\n\n" + main;
+  if (structured) return structured;
+  return main;
+}
+
+function connectTotalFinalReportEvidenceChars_(checklist) {
+  var c = checklist || {};
+  var n = String(c.final_report_draft || "").trim().length;
+  CONNECT_POSTAWARD_ANNEX2_KEYS.forEach(function (k) {
+    n += String(c[k] || "").trim().length;
+  });
+  return n;
+}
+
+/** HTML bloku strukturovaných polí přílohy 2 pro tiskový přehled (dossier). */
+function connectPostAwardAnnex2DossierHtml_(checklist) {
+  var titles = {
+    final_report_summary_exec: "Shrnutí / výsledek aktivity",
+    final_report_activity_desc: "Průběh realizace",
+    final_report_outputs_result: "Dosažené výstupy vůči plánu",
+    final_report_coop_partners: "Spolupráce a partneři",
+    final_report_budget_notes: "Čerpání podpory a hospodárnost (slovně)",
+    final_report_dissemination: "Diseminace / sdílení výsledků",
+    final_report_other: "Ostatní dle výzvy",
+  };
+  var parts = [];
+  CONNECT_POSTAWARD_ANNEX2_KEYS.forEach(function (k) {
+    var t = String((checklist && checklist[k]) || "").trim();
+    if (!t) return;
+    parts.push(
+      "<p><b>" +
+        uhkHtmlEscape_(titles[k] || k) +
+        "</b></p><pre style=\"white-space:pre-wrap;background:#f9fafb;padding:10px;border-radius:6px;font-size:9.5pt;max-height:220px;overflow:auto\">" +
+        uhkHtmlEscape_(t.slice(0, 6000)) +
+        "</pre>"
+    );
+  });
+  if (!parts.length) return "";
+  return "<h2>Příloha 2 – strukturované odpovědi (pokud jsou vyplněny před uzavřením)</h2>" + parts.join("");
 }
 
 /** ASCII verze řetězce pro porovnání kódů rozhodnutí (Sheets často ukládá „Podpořit“ s diakritikou). */
@@ -5035,6 +5441,10 @@ function submitApplication(body) {
   const applicant = String(body.applicantEmail || "").toLowerCase().trim();
   if (!applicant || applicant !== auth.email)
     throw new Error("Přihlášku můžete odeslat jen za svůj účet.");
+
+  if (connectCompetitionUsesIrisCaseId_(body.competitionId)) {
+    connectAssertIrisCaseIdOnSubmit_(body.formData || {});
+  }
 
   assertCompetitionOpenForNewSubmission_(body.competitionId, auth);
 

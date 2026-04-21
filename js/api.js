@@ -244,28 +244,41 @@ const API = {
   },
 
   /**
-   * Otevře PDF z Web Appu v novém tabu — bez fetch() (u script.google.com často „Failed to fetch“ kvůli CORS).
-   * Primárně GET s parametry (doGet vrací PDF). Při příliš dlouhé URL: POST formulář s target=_blank.
+   * Otevře GET na Web App v novém tabu (PDF, adminExportConnectProjectDossierPdf, …) — bez fetch(), stejná logika jako u příloh.
+   * @param {string} action
+   * @param {Record<string,string>} params  další query parametry (kromě action/token)
+   * @param {{ requireAuth?: boolean }} opts  výchozí requireAuth: true → doplní token ze session
    */
-  async openConnectBinaryDownload(action, fields) {
-    const session = Auth._getSession();
-    if (!session?.token) {
+  openWebAppGetInNewTab(action, params, opts) {
+    const o = opts || {};
+    const requireAuth = o.requireAuth !== false;
+    const session = typeof Auth !== "undefined" && Auth._getSession ? Auth._getSession() : null;
+    if (requireAuth && !session?.token) {
       const msg =
         typeof I18n !== "undefined" && I18n.t
           ? I18n.t("api.needLoginDownload")
-          : "Pro stažení souboru se přihlaste.";
+          : "Pro tuto akci se přihlaste.";
       throw new Error(msg);
     }
+    const baseUrl = String(typeof API_URL !== "undefined" ? API_URL : "").trim();
+    try {
+      new URL(baseUrl);
+    } catch (eUrl) {
+      throw new Error(
+        typeof I18n !== "undefined" && I18n.t ? I18n.t("api.downloadNetworkError") : "Neplatná adresa API."
+      );
+    }
+
     let getUrl = "";
     try {
-      const u = new URL(API_URL);
+      const u = new URL(baseUrl);
       u.searchParams.set("action", action);
-      u.searchParams.set("token", session.token);
-      Object.entries(fields || {}).forEach(([k, v]) => {
+      if (session?.token) u.searchParams.set("token", session.token);
+      Object.entries(params || {}).forEach(([k, v]) => {
         if (v !== undefined && v !== null && String(v) !== "") u.searchParams.set(k, String(v));
       });
       getUrl = u.toString();
-    } catch (eUrl) {
+    } catch (eBuild) {
       throw new Error(
         typeof I18n !== "undefined" && I18n.t ? I18n.t("api.downloadNetworkError") : "Neplatná adresa API."
       );
@@ -289,14 +302,15 @@ const API = {
       }
     };
 
-    if (getUrl.length <= 7500) {
+    if (getUrl.length <= 120000) {
       openInNewTab(getUrl);
       return;
     }
 
     const form = document.createElement("form");
     form.method = "POST";
-    form.action = API_URL;
+    form.action = baseUrl;
+    form.enctype = "application/x-www-form-urlencoded";
     form.target = "_blank";
     form.acceptCharset = "UTF-8";
     form.style.display = "none";
@@ -308,8 +322,8 @@ const API = {
       form.appendChild(inp);
     };
     addField("action", action);
-    addField("token", session.token);
-    Object.entries(fields || {}).forEach(([k, v]) => {
+    if (session?.token) addField("token", session.token);
+    Object.entries(params || {}).forEach(([k, v]) => {
       if (v !== undefined && v !== null && String(v) !== "") addField(k, v);
     });
     document.body.appendChild(form);
@@ -322,11 +336,82 @@ const API = {
       }
     }, 500);
   },
+
+  /**
+   * Otevře PDF z Web Appu v novém tabu — bez fetch() (u script.google.com často „Failed to fetch“ kvůli CORS).
+   * Preferujeme GET → doGet vrací PDF přímo. Token u účtů s více rolemi je dlouhý; limit musí být vysoký,
+   * jinak se použije POST + HtmlService a u štábu často prázdný náhled. Jinak POST (token v těle).
+   */
+  async openConnectBinaryDownload(action, fields) {
+    this.openWebAppGetInNewTab(action, fields, { requireAuth: true });
+  },
 };
+
+/**
+ * HTML akcí u přílohy Connect z API (`file_fields` / `application_file_hints`):
+ * jen „Náhled na Disku“ u UHKDRIVE; u zálohy v tabulce (UHKAFILE / jen tabulka) odkaz stažení přes Web App.
+ * Spoléhá na `raw_cell_value` + `drive_file_id` ze skriptu; zpětně parsuje UHKDRIVE z `value`, pokud chybí.
+ */
+function connectApplicationAttachmentLinksHtml_(hint, competitionId, opts) {
+  const o = opts || {};
+  const esc =
+    typeof o.escapeHtml === "function"
+      ? o.escapeHtml
+      : function (s) {
+          return String(s == null ? "" : s)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+        };
+  const escAttr = function (s) {
+    return esc(String(s == null ? "" : s)).replace(/"/g, "&quot;");
+  };
+  const driveLab = o.drivePreviewLabel != null ? String(o.drivePreviewLabel) : "Náhled na Disku";
+  const sheetLab = o.sheetDownloadLabel != null ? String(o.sheetDownloadLabel) : "Stáhnout z aplikace";
+  const h = hint || {};
+  const raw = String(h.raw_cell_value != null ? h.raw_cell_value : "").trim() || String(h.value || "").trim();
+  const vTrim = raw;
+  const mDrive = /^UHKDRIVE\|([^|]+)\|/i.exec(vTrim);
+  const driveId = String(h.drive_file_id || "").trim() || (mDrive ? String(mDrive[1] || "").trim() : "");
+  const appAid = String(h.application_id || "").trim();
+  const fid = String(h.field_id || "").trim();
+  const cid = String(competitionId || "").trim();
+  const isStored =
+    !!(
+      appAid &&
+      fid &&
+      cid &&
+      (h.isSheetBlob || /^UHKAFILE\|/i.test(vTrim) || /^UHKDRIVE\|/i.test(vTrim))
+    );
+  if (!isStored) return "";
+  if (driveId) {
+    return (
+      '<a href="https://drive.google.com/file/d/' +
+      encodeURIComponent(driveId) +
+      '/preview" target="_blank" rel="noopener noreferrer">' +
+      esc(driveLab) +
+      "</a>"
+    );
+  }
+  return (
+    '<a href="#" class="uhk-blob-dl" data-dl-action="downloadConnectApplicationFile" ' +
+    'data-dl-competition-id="' +
+    escAttr(cid) +
+    '" data-dl-application-id="' +
+    escAttr(appAid) +
+    '" data-dl-field-id="' +
+    escAttr(fid) +
+    '">' +
+    esc(sheetLab) +
+    "</a>"
+  );
+}
 
 /** Dostupné i pro skripty v jiném lexikálním oboru (např. IIFE v connect-postaward-panel.js). */
 if (typeof globalThis !== "undefined") {
   globalThis.API = API;
+  globalThis.connectApplicationAttachmentLinksHtml_ = connectApplicationAttachmentLinksHtml_;
 }
 
 /** Delegace kliku na <a class="uhk-blob-dl" data-dl-action="…" …> (Connect PDF z tabulky). */

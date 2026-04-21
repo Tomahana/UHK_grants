@@ -594,15 +594,20 @@ async function loadReviewConnectAttachments() {
         const appAid = String(h.application_id || (cur && cur.application_id) || "").trim();
         var link;
         if ((h.isSheetBlob || /^UHKAFILE\|/i.test(vTrim) || /^UHKDRIVE\|/i.test(vTrim)) && appAid && h.field_id) {
+          var hintR = Object.assign({}, h, { application_id: appAid });
+          var linksR =
+            typeof connectApplicationAttachmentLinksHtml_ === "function"
+              ? connectApplicationAttachmentLinksHtml_(hintR, CID, {
+                  escapeHtml: esc,
+                  drivePreviewLabel:
+                    typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentDrivePreview") : "Náhled na Disku",
+                  sheetDownloadLabel:
+                    typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentSheetDownload") : "Stáhnout z aplikace",
+                })
+              : "";
           link =
-            '<a href="#" class="uhk-blob-dl" data-dl-action="downloadConnectApplicationFile" ' +
-            'data-dl-competition-id="' +
-            escAttr(CID) +
-            '" data-dl-application-id="' +
-            escAttr(appAid) +
-            '" data-dl-field-id="' +
-            escAttr(String(h.field_id)) +
-            '">PDF (úložiště aplikace)</a> · <span style="font-family:DM Mono,monospace;font-size:12px">' +
+            linksR +
+            ' · <span style="font-family:DM Mono,monospace;font-size:12px">' +
             esc(v) +
             "</span>";
         } else if (h.isLikelyUrl) {
@@ -696,16 +701,8 @@ async function loadReviewConnectAttachments() {
       }
     }
     if (data.showAdminPdfExport) {
-      const u = new URL(API_URL);
-      u.searchParams.set("action", "adminExportConnectProjectDossierPdf");
-      u.searchParams.set("competitionId", CID);
-      u.searchParams.set("applicationId", cur.application_id);
-      const s = Auth._getSession();
-      if (s?.token) u.searchParams.set("token", s.token);
       parts.push(
-        '<p style="margin-top:12px"><a class="btn btn-o" href="' +
-          escAttr(u.toString()) +
-          '" target="_blank" rel="noopener">Stáhnout PDF přehled (text + odkazy)</a></p>'
+        '<p style="margin-top:12px"><button type="button" class="btn btn-o" id="rcAdminDossierPdfBtn">Přehled Connect (tisk → PDF)</button></p>'
       );
     }
     if (!hints.length && !man && !files.length) {
@@ -715,6 +712,20 @@ async function loadReviewConnectAttachments() {
     }
     body.innerHTML = parts.join("");
     wrap.style.display = "block";
+    const dossBtn = document.getElementById("rcAdminDossierPdfBtn");
+    if (dossBtn && data.showAdminPdfExport && cur && typeof API !== "undefined" && API.openWebAppGetInNewTab) {
+      dossBtn.addEventListener("click", function () {
+        try {
+          API.openWebAppGetInNewTab(
+            "adminExportConnectProjectDossierPdf",
+            { competitionId: CID, applicationId: String(cur.application_id || "").trim() },
+            { requireAuth: true }
+          );
+        } catch (err) {
+          showToast((err && err.message) || String(err), "err");
+        }
+      });
+    }
   } catch (e) {
     body.innerHTML = '<span style="color:#991B1B">' + esc(e.message || "Chyba") + "</span>";
     wrap.style.display = "block";
@@ -727,6 +738,12 @@ function renderDetail(){
     [tx("detailApplicant"),cur.applicant_name||"—"],
     [tx("detailFaculty"),(f.faculty||"—")+(f.department?" · "+f.department:"")],
     [tx("detailApplicantType"),f.applicant_type||"—"],
+    ...(String(f.applicant_type||"").indexOf("Junior/early-career")===0 && (f.phd_year!=null && String(f.phd_year).trim()!=="")
+      ? [[tx("detailPhdYear"),String(f.phd_year).trim()]]
+      : []),
+    ...(f._uhk_internal_phd_junior_eligibility_note && String(f._uhk_internal_phd_junior_eligibility_note).trim()
+      ? [[tx("detailJuniorPhdCheck"),String(f._uhk_internal_phd_junior_eligibility_note).trim()]]
+      : []),
     [tx("detailActivityType"),f.activity_type||"—"],
     [tx("detailPartner"),(f.partner_institution||"—")+(f.partner_country?", "+f.partner_country:"")],
     [tx("detailTerm"),(f.activity_start||"?")+" – "+(f.activity_end||"?")],

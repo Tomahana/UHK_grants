@@ -235,6 +235,8 @@
         detailApplicant: "Žadatel",
         detailFaculty: "Součást / katedra",
         detailApplicantType: "Typ žadatele",
+        detailPhdYear: "Rok získání Ph.D.",
+        detailJuniorPhdCheck: "Kontrola Junior / Ph.D. (interní)",
         detailActivityType: "Typ aktivity",
         detailPartner: "Partner",
         detailTerm: "Termín",
@@ -400,6 +402,8 @@
           "U příloh není v evidenci uložen název souboru ani odkaz (pole zůstalo prázdné nebo se data nepodařilo načíst).",
         submittedAttachmentOpenLink: "Otevřít odkaz",
         submittedAttachmentOpenPdf: "Otevřít PDF",
+        submittedAttachmentDrivePreview: "Náhled na Disku",
+        submittedAttachmentSheetDownload: "Stáhnout z aplikace",
         submittedAttachmentDriveStaleShort:
           "Údaj v přihlášce vypadá jako starý odkaz na Google Disk — ten už obvykle nefunguje. Nahrajte PDF znovu v aplikaci (koncept), nebo zkuste původní odkaz níže.",
         submittedAttachmentTryOriginalLink: "Zkusit původní odkaz",
@@ -407,6 +411,13 @@
         fileField_attach_annex1: "Příloha 1",
         fileField_attach_annex2: "Příloha 2",
         fileField_attach_annex3: "Příloha 3",
+        phdJuniorNoteMissingYear:
+          "Typ Junior/early-career: doplňte rok získání Ph.D. Interně se ověří vůči roku uzávěrky přihlášek ({{deadlineYear}}) — max. 7 let po Ph.D.",
+        phdJuniorNoteInvalidYear: "Zadejte platný rok získání Ph.D. (např. 2020).",
+        phdJuniorNoteWithin:
+          "Interní poznámka pro komisi / správce: od roku Ph.D. ({{phdYear}}) do uzávěrky přihlášek ({{deadlineYear}}) uplynulo {{years}} let — v limitu 7 let.",
+        phdJuniorNoteOver:
+          "Interní poznámka pro komisi / správce: od roku Ph.D. ({{phdYear}}) do uzávěrky přihlášek ({{deadlineYear}}) uplynulo {{years}} let (nad 7 let) — ověřte splnění kritéria junior/early-career.",
       },
       applyConnect: {
         loadingForm: "Načítám formulář…",
@@ -489,6 +500,34 @@
         stepStrategy: "Strategie & milníky",
         stepBudget: "Rozpočet",
         stepAttachments: "Přílohy",
+      },
+      postaward: {
+        saveConsent: "Uložit souhlas",
+        saveCompletion: "Uložit finální uzavření projektu",
+        saveZzDraft: "Uložit koncept nyní",
+        annex2Title: "Příloha 2 – závěrečná zpráva (struktura dle výzvy)",
+        annex2Help:
+          "Vyplňte podle znění výzvy / přílohy 2. Můžete použít jen tato pole, jen souvislý text níže, nebo obojí. Při <strong>finálním uzavření</strong> se text sloučí do jedné evidence (tabulka má omezenou velikost buňky). Soubory (Magion, výstupy) nahrávejte v sekci příloh níže.",
+        annex2Summary: "Shrnutí / výsledek aktivity",
+        annex2SummaryPh: "Stručně výsledek vůči cíli…",
+        annex2Activity: "Popis průběhu realizace",
+        annex2ActivityPh: "Průběh, milníky, případná omezení…",
+        annex2Outputs: "Dosažené výstupy vůči plánu",
+        annex2OutputsPh: "Co bylo dosaženo oproti plánovaným výstupům…",
+        annex2Coop: "Spolupráce a partneři",
+        annex2CoopPh: "Partneři, role, výsledky spolupráce…",
+        annex2BudgetText: "Čerpání podpory a hospodárnost (slovní doplnění)",
+        annex2BudgetTextPh: "Doplňte k tabulce skutečných částek výše…",
+        annex2Dissem: "Diseminace / sdílení výsledků",
+        annex2DissemPh: "Konference, publikace, interní přenos znalostí…",
+        annex2Other: "Ostatní / doplnění dle výzvy",
+        annex2OtherPh: "Cokoli dalšího požaduje příloha 2 nebo OVTZ…",
+        annex2ReadonlyEmpty:
+          "Strukturovaná pole přílohy 2 nebyla vyplněna odděleně; celý text může být v souvislé závěrečné zprávě níže.",
+        zzDraftTitle: "Závěrečná zpráva – koncept",
+        zzLabel: "Souvislý text závěrečné zprávy (doplnění k příloze 2)",
+        zzDraftHelp:
+          "Strukturovaná pole výše odpovídají příloze 2; níže můžete doplnit souvislý text. Koncept se ukládá automaticky (30 s) nebo tlačítkem. Při finálním uzavření musí být vyplněno <strong>celkem alespoň 80 znaků</strong> (součet polí + souvislý text).",
       },
       appStatuses: {
         DRAFT: { label: "Koncept" },
@@ -738,6 +777,8 @@
         detailApplicant: "Applicant",
         detailFaculty: "Faculty / department",
         detailApplicantType: "Applicant type",
+        detailPhdYear: "Ph.D. award year",
+        detailJuniorPhdCheck: "Junior / Ph.D. check (internal)",
         detailActivityType: "Activity type",
         detailPartner: "Partner",
         detailTerm: "Dates",
@@ -903,6 +944,8 @@
           "No file name or link is stored for attachments (the field was empty or data could not be loaded).",
         submittedAttachmentOpenLink: "Open link",
         submittedAttachmentOpenPdf: "Open PDF",
+        submittedAttachmentDrivePreview: "Preview on Drive",
+        submittedAttachmentSheetDownload: "Download from app",
         submittedAttachmentDriveStaleShort:
           "This looks like an old Google Drive link and usually no longer works. Re-upload the PDF in the app (draft), or try the original link below.",
         submittedAttachmentTryOriginalLink: "Try original link",
@@ -910,6 +953,13 @@
         fileField_attach_annex1: "Annex 1",
         fileField_attach_annex2: "Annex 2",
         fileField_attach_annex3: "Annex 3",
+        phdJuniorNoteMissingYear:
+          "Junior/early-career: enter your Ph.D. award year. For admin/commission review vs. the application deadline year ({{deadlineYear}}) — within 7 years after Ph.D.",
+        phdJuniorNoteInvalidYear: "Enter a valid Ph.D. year (e.g. 2020).",
+        phdJuniorNoteWithin:
+          "Note for panel/admin: from Ph.D. year ({{phdYear}}) to the application deadline year ({{deadlineYear}}) is {{years}} years — within the 7-year limit.",
+        phdJuniorNoteOver:
+          "Note for panel/admin: from Ph.D. year ({{phdYear}}) to the application deadline year ({{deadlineYear}}) is {{years}} years (over 7) — please verify junior/early-career eligibility.",
       },
       applyConnect: {
         loadingForm: "Loading form…",
@@ -1021,6 +1071,29 @@
         saveConsent: "Save consent",
         saveCompletion: "Save final project closeout",
         saveZzDraft: "Save draft now",
+        annex2Title: "Annex 2 – final report (structure per call)",
+        annex2Help:
+          "Fill in per the call text / annex 2. You may use only these fields, only the continuous text below, or both. On <strong>final closeout</strong> the text is merged into one stored record (spreadsheet cell size is limited). Upload files (Magion, outputs) in the attachments section below.",
+        annex2Summary: "Summary / activity outcome",
+        annex2SummaryPh: "Brief outcome vs. objective…",
+        annex2Activity: "Implementation narrative",
+        annex2ActivityPh: "Progress, milestones, constraints…",
+        annex2Outputs: "Achieved outputs vs. plan",
+        annex2OutputsPh: "What was delivered compared to planned outputs…",
+        annex2Coop: "Cooperation and partners",
+        annex2CoopPh: "Partners, roles, collaboration results…",
+        annex2BudgetText: "Use of support and economy (narrative)",
+        annex2BudgetTextPh: "Add narrative to the actual-spend table above…",
+        annex2Dissem: "Dissemination / sharing results",
+        annex2DissemPh: "Conference, publications, internal knowledge transfer…",
+        annex2Other: "Other / per-call additions",
+        annex2OtherPh: "Anything else required by annex 2 or the R&D office…",
+        annex2ReadonlyEmpty:
+          "Annex 2 structured fields were not filled separately; the full text may be in the continuous final report below.",
+        zzDraftTitle: "Final report – draft",
+        zzLabel: "Continuous final report text (addition to annex 2)",
+        zzDraftHelp:
+          "Structured fields above follow annex 2; add continuous narrative below. Draft auto-saves (30 s) or via the button. Final closeout requires <strong>at least 80 characters in total</strong> (structured fields + continuous text).",
         part1Cut: "Part 1 – Consent to budget reduction",
         part1Alloc: "Part 1 – Consent to project allocation",
         agreeCut:
