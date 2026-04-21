@@ -160,11 +160,11 @@
       },
       checklist: [
         "Project title",
-        "Target scheme",
+        "Target call",
         "Concept note (text)",
         "TOP results",
-        "Budget (total)",
-        "Annexes 1–3 and no. 6",
+        "Budget (stages 1–2 + line-item total)",
+        "Annexes 1 and 2 + annex 5 (eligibility checklist)",
         "Declaration",
       ],
       fields: [

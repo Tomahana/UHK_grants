@@ -500,8 +500,19 @@
       { id: "attachments", fields: ["section_attachments","attach_template1","attach_template2","attach_engagement_proof","attach_future_optional","declaration"] },
     ] : [
       { id: "ident", fields: ["section_ident","project_title","target_scheme","planned_submission_date","support_year1_request","support_year2_request","faculty","department"] },
-      { id: "concept", fields: ["section_concept","concept_note","excellence_top5","prev_erc_he"] },
-      { id: "strategy", fields: ["section_strategy","strategy_why_call","strategy_work_packages","strategy_external_review"] },
+      {
+        id: "concept",
+        fields: [
+          "section_concept",
+          "concept_note",
+          "excellence_top5",
+          "prev_erc_he",
+          "section_strategy",
+          "strategy_why_call",
+          "strategy_work_packages",
+          "strategy_external_review",
+        ],
+      },
       { id: "budget", fields: ["section_budget","budget_personnel","budget_agency","budget_training","budget_travel","budget_material","budget_other","budget_justification"] },
       { id: "attachments", fields: ["section_attachments","attach_annex1","attach_annex2","attach_checklist6","declaration"] },
     ];
@@ -1256,34 +1267,79 @@
     }
 
     // ── Checklist ────────────────────────────────────────────────
+    function prestigeBudgetChecklistDone_() {
+      const y1 = parseFloat(String(formData.support_year1_request || "").replace(/\s/g, "").replace(",", ".")) || 0;
+      const y2 = parseFloat(String(formData.support_year2_request || "").replace(/\s/g, "").replace(",", ".")) || 0;
+      const lines = parseFloat(String(formData.budget_total || "").replace(/\s/g, "").replace(",", ".")) || 0;
+      return y1 > 0 || y2 > 0 || lines > 0;
+    }
+
     function updateChecklist() {
-      const labelsCs = [
-        "Název záměru",
-        "Cílová soutěž",
-        "Concept note (text)",
-        "TOP výsledky",
-        "Rozpočet (součet)",
-        "Přílohy 1–3 a č. 6",
-        "Prohlášení",
+      const labelsCs = IS_NO_COST_ENTRY
+        ? [
+            "Název žádosti",
+            "Popis zapojení a věcný přínos",
+            "IRIS záznamy (konsorcium)",
+            "Perspektiva budoucího financovaného zapojení",
+            "Rozpočet (součet)",
+            "Přílohy (šablony + doklad zapojení)",
+            "Prohlášení",
+          ]
+        : [
+            "Název záměru",
+            "Cílová soutěž",
+            "Concept note (text)",
+            "TOP výsledky",
+            "Rozpočet (etapy 1–2 + součet položek)",
+            "Přílohy č. 1 a 2 + příloha č. 5 (checklist)",
+            "Prohlášení",
+          ];
+      const labelsNoCostEn = [
+        "Application title",
+        "Engagement description and UHK added value",
+        "IRIS records (consortium)",
+        "Perspective of future funded engagement",
+        "Budget (total)",
+        "Attachments (templates + proof of engagement)",
+        "Declaration",
       ];
-      const labelsEn =
+      const labelsEnPrestige =
         typeof UhkApplyFlowEn !== "undefined" && UhkApplyFlowEn.prestige && UhkApplyFlowEn.prestige.checklist
           ? UhkApplyFlowEn.prestige.checklist
           : labelsCs;
-      const labels = I18n.getLang() === "en" ? labelsEn : labelsCs;
-      const checks = [
-        { label: labels[0], done: !!formData.project_title },
-        { label: labels[1], done: IS_NO_COST_ENTRY ? true : !!formData.target_scheme },
-        {
-          label: tf("irisChecklistItem"),
-          done: IS_NO_COST_ENTRY ? !!String(formData.iris_case_id || "").trim() : true,
-        },
-        { label: labels[2], done: !!formData.concept_note },
-        { label: labels[3], done: IS_NO_COST_ENTRY ? !!(String(formData.future_financed_perspective || "").trim()) : !!formData.excellence_top5 },
-        { label: labels[4], done: !!((formData.support_total_request || formData.budget_total) && parseFloat(formData.support_total_request || formData.budget_total) > 0) },
-        { label: labels[5], done: IS_NO_COST_ENTRY ? !!(formData.attach_template1 && formData.attach_template2 && formData.attach_engagement_proof) : !!(formData.attach_annex1 && formData.attach_annex2 && formData.attach_checklist6) },
-        { label: labels[6], done: String(formData.declaration || "") === "true" },
-      ];
+      const labels =
+        I18n.getLang() === "en" ? (IS_NO_COST_ENTRY ? labelsNoCostEn : labelsEnPrestige) : labelsCs;
+      const checks = IS_NO_COST_ENTRY
+        ? [
+            { label: labels[0], done: !!formData.project_title },
+            { label: labels[1], done: !!String(formData.concept_note || "").trim() },
+            { label: labels[2], done: !!String(formData.iris_case_id || "").trim() },
+            { label: labels[3], done: !!String(formData.future_financed_perspective || "").trim() },
+            {
+              label: labels[4],
+              done: !!(
+                (formData.support_total_request || formData.budget_total) &&
+                parseFloat(String(formData.support_total_request || formData.budget_total).replace(/\s/g, "").replace(",", ".")) > 0
+              ),
+            },
+            {
+              label: labels[5],
+              done: !!(formData.attach_template1 && formData.attach_template2 && formData.attach_engagement_proof),
+            },
+            { label: labels[6], done: String(formData.declaration || "") === "true" },
+          ]
+        : [
+            { label: labels[0], done: !!formData.project_title },
+            { label: labels[1], done: !!formData.target_scheme },
+            { label: labels[2], done: !!String(formData.concept_note || "").trim() },
+            { label: labels[3], done: !!String(formData.excellence_top5 || "").trim() },
+            { label: labels[4], done: prestigeBudgetChecklistDone_() },
+            {
+              label: labels[5],
+              done: !!(formData.attach_annex1 && formData.attach_annex2 && formData.attach_checklist6),
+            },
+            { label: labels[6], done: String(formData.declaration || "") === "true" },
+          ];
       document.getElementById("checklist").innerHTML = checks.map(c => `
         <div class="checklist-item ${c.done?"done":""}">
           <div class="checklist-dot">${c.done?"✓":""}</div>
