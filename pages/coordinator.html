@@ -425,7 +425,8 @@
 
   function coordinatorConnectAttachmentUploadHtml_(competitionId) {
     if (String(competitionId || "").trim() !== CONNECT_EXPORT_ID) return "";
-    if (!Auth.hasAnyRole(["ADMIN", "TESTER"])) return "";
+    // Stránka coordinator.html je už chráněná přes Auth.requireLogin(["ADMIN","TESTER"]).
+    // Neprovádíme zde další role filtr, aby se sekce zobrazila i při aliasech role správce.
     const rows = CONNECT_APPLICATION_FILE_FIELD_IDS_.map(
       (fid) => `
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0;">
