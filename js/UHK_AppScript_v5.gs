@@ -1,3 +1,4 @@
+
 /**
  * ============================================================
  *  UHK Grant Manager – KOMPLETNÍ Apps Script
@@ -2649,10 +2650,18 @@ function connectDossierAttachmentLinkHtml_(competitionId, applicationId, fieldId
       var f = DriveApp.getFileById(String(dr.fileId).trim());
       var b = f.getBlob();
       if (b && b.getBytes().length > 0) {
+        var dlUrl2 = connectBuildWebAppGetDownloadUrl_("downloadConnectApplicationFile", token, {
+          competitionId: competitionId,
+          applicationId: applicationId,
+          fieldId: fid,
+        });
         return (
           '<a href="https://drive.google.com/file/d/' +
           encodeURIComponent(String(dr.fileId).trim()) +
-          '/preview" target="_blank" rel="noopener">Náhled na Disku</a>'
+          '/preview" target="_blank" rel="noopener">Náhled na Disku</a> · ' +
+          '<a href="' +
+          connectEscapeHtmlAttr_(dlUrl2) +
+          '" target="_blank" rel="noopener">Stáhnout z aplikace</a>'
         );
       }
     } catch (e) {
