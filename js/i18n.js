@@ -118,6 +118,7 @@
         budgetAssigned: "Přiděleno (prorektor)",
         budgetUsed: "Využito (žadatel)",
         budgetRemaining: "Zbývá z alokace",
+        budgetSupportedProjects: "Podpořené projekty",
         budgetFootConnect:
           "Přiděleno = schválené částky od prorektora. Využito (žadatel) = po uložení souhlasu s přidělením (část 1) u přihlášky – započítá se schválená podpora.",
         budgetFootOther:
@@ -642,6 +643,7 @@
         budgetAssigned: "Assigned (Vice-Rector)",
         budgetUsed: "Used (applicant)",
         budgetRemaining: "Remaining from allocation",
+        budgetSupportedProjects: "Supported projects",
         budgetFootConnect:
           "Assigned = amounts approved by the Vice-Rector. Used (applicant) = after saving consent to assignment (Part 1) on the application — counts approved support.",
         budgetFootOther:

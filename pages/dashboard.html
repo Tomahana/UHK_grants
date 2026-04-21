@@ -225,6 +225,8 @@
             data.detailLevel === "connect"
               ? I18n.t("dashboard.budgetFootConnect")
               : I18n.t("dashboard.budgetFootOther");
+          const submittedCount = Number(data.submittedCount) || Number(comp.applicationsCount) || 0;
+          const supportedCount = Number(data.supportedCount) || 0;
           slot.innerHTML = `
             <div style="font-weight:600;color:#1C2E5A;margin-bottom:6px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;">${I18n.t("dashboard.budgetTitle")}</div>
             <div style="display:grid;gap:4px;">
@@ -232,6 +234,8 @@
               <div>${I18n.t("dashboard.budgetAssigned")} <strong>${formatCZK(assignedShow)}</strong></div>
               <div>${I18n.t("dashboard.budgetUsed")} <strong>${formatCZK(acceptedShow)}</strong></div>
               <div>${I18n.t("dashboard.budgetRemaining")} <strong>${formatCZK(remainingShow)}</strong></div>
+              <div>${I18n.t("dashboard.metaApplications")} <strong>${submittedCount}</strong></div>
+              <div>${I18n.t("dashboard.budgetSupportedProjects")} <strong>${supportedCount}</strong></div>
             </div>
             <div style="font-size:10px;opacity:.75;margin-top:6px;line-height:1.4;">${foot}</div>`;
         } catch (e) {
