@@ -520,6 +520,44 @@
       .replace(/"/g, "&quot;");
   }
 
+  /** Hodnoty do onclick="...'…'" — jinak apostrof v ID/jménu rozbije HTML a tabulka se nevykreslí. */
+  function escapeJsSingleQuotedCoord(s) {
+    return String(s == null ? "" : s)
+      .replace(/\\/g, "\\\\")
+      .replace(/'/g, "\\'")
+      .replace(/\r?\n/g, " ");
+  }
+
+  /**
+   * Sloupec „stav uzavření“ před semaforem části 2 (Connect). Dříve chyběla definice → ReferenceError a věčné „Načítám…“.
+   */
+  function connectCloseoutSemaforForApp_(a) {
+    if (!a || String(a.competition_id || "").trim() !== CONNECT_EXPORT_ID) {
+      return { cls: "sem-na", label: "—", warnings: [] };
+    }
+    const t = connectComputeCloseoutTraffic_(a);
+    const hint = String(t.hint || "").trim();
+    const warnings = hint && hint !== "—" ? [hint] : [];
+    return { cls: String(t.cls || "sem-na"), label: String(t.text || "—"), warnings: warnings };
+  }
+
+  function connectSemaforSortRank_(a) {
+    const t = connectComputeCloseoutTraffic_(a);
+    const tx = String(t.text || "").toUpperCase();
+    if (tx.indexOf("ZELEN") >= 0) return 0;
+    if (tx.indexOf("ORANŽ") >= 0 || tx.indexOf("ORANZ") >= 0) return 1;
+    if (tx.indexOf("ČERVEN") >= 0 || tx.indexOf("CERVEN") >= 0) return 2;
+    return 9;
+  }
+
+  function coordinatorBadgeClassForStatus_(status) {
+    var s = String(status || "DRAFT")
+      .toLowerCase()
+      .replace(/[^a-z0-9_]/g, "");
+    if (!s) s = "draft";
+    return s;
+  }
+
   /** Blok příloh podacího formuláře Connect v modalu správy (žadatel má totéž u odeslané přihlášky). */
   function coordinatorConnectSubmittedAttachmentsHtml_(competitionId, applicationId, form) {
     if (String(competitionId || "").trim() !== CONNECT_EXPORT_ID) return "";
@@ -1660,6 +1698,11 @@
 
     // Řazení
     filtered.sort((a, b) => {
+      if (sortCol === "connect_semafor_rank") {
+        const ra = connectSemaforSortRank_(a);
+        const rb = connectSemaforSortRank_(b);
+        return (ra - rb) * sortDir;
+      }
       const va = String(a[sortCol] || "");
       const vb = String(b[sortCol] || "");
       return va.localeCompare(vb, "cs") * sortDir;
@@ -1687,46 +1730,114 @@
       return;
     }
 
-    body.innerHTML = filtered.map(a => {
-      const comp   = COMP_NAMES[a.competition_id] || a.competition_id;
-      const date   = a.submitted_at ? a.submitted_at.substring(0,10) : (a.created_at||"").substring(0,10);
-      const status = a.status || "DRAFT";
+    try {
+      const aidEsc = function (x) {
+        return escapeJsSingleQuotedCoord(x);
+      };
+      body.innerHTML = filtered
+        .map(function (a) {
+          const comp = escapeHtmlCoord(COMP_NAMES[a.competition_id] || a.competition_id);
+          const dateRaw = a.submitted_at ? String(a.submitted_at) : String(a.created_at || "");
+          const date = escapeHtmlCoord(dateRaw ? dateRaw.substring(0, 10) : "");
+          const status = a.status || "DRAFT";
+          const appIdJs = aidEsc(a.application_id);
+          const compIdJs = aidEsc(a.competition_id);
 
-      // Rychlé akce dle stavu
-      let quickBtns = "";
-      if (status === "SUBMITTED") {
-        quickBtns = `
-          <button class="btn-sm btn-sm-green" onclick="quickAction(event,'${a.application_id}','${a.competition_id}','TO_REVIEW')">→ Review</button>
-          <button class="btn-sm btn-sm-amber" onclick="quickAction(event,'${a.application_id}','${a.competition_id}','DRAFT')">← Vrátit</button>`;
-      } else if (status === "TO_REVIEW") {
-        quickBtns = `<button class="btn-sm btn-sm-primary" onclick="quickAction(event,'${a.application_id}','${a.competition_id}','IN_REVIEW')">Spustit review</button>`;
-      }
+          // Rychlé akce dle stavu
+          let quickBtns = "";
+          if (status === "SUBMITTED") {
+            quickBtns =
+              '<button class="btn-sm btn-sm-green" onclick="quickAction(event,\'' +
+              appIdJs +
+              "','" +
+              compIdJs +
+              "','TO_REVIEW')\">→ Review</button>" +
+              '<button class="btn-sm btn-sm-amber" onclick="quickAction(event,\'' +
+              appIdJs +
+              "','" +
+              compIdJs +
+              "','DRAFT')\">← Vrátit</button>";
+          } else if (status === "TO_REVIEW") {
+            quickBtns =
+              '<button class="btn-sm btn-sm-primary" onclick="quickAction(event,\'' +
+              appIdJs +
+              "','" +
+              compIdJs +
+              "','IN_REVIEW')\">Spustit review</button>";
+          }
 
-      const sem = connectCloseoutSemaforForApp_(a);
-      const semTitle = sem.warnings && sem.warnings.length ? sem.warnings.join(" | ") : "—";
-      const selTd = `<td onclick="event.stopPropagation()" style="text-align:center;vertical-align:middle"><input class="appSel" type="checkbox" data-app="${escapeHtmlCoord(
-        a.application_id
-      )}" data-comp="${escapeHtmlCoord(a.competition_id)}" aria-label="Vybrat přihlášku (export / e-maily)"></td>`;
+          const sem = connectCloseoutSemaforForApp_(a);
+          const semTitle =
+            sem.warnings && sem.warnings.length ? sem.warnings.join(" | ") : "—";
+          const selTd =
+            '<td onclick="event.stopPropagation()" style="text-align:center;vertical-align:middle"><input class="appSel" type="checkbox" data-app="' +
+            escapeHtmlCoord(a.application_id) +
+            '" data-comp="' +
+            escapeHtmlCoord(a.competition_id) +
+            '" aria-label="Vybrat přihlášku (export / e-maily)"></td>';
 
-      return `<tr onclick="openDetail('${a.application_id}')">
-        ${selTd}
-        <td class="td-id">${a.application_id}</td>
-        <td><span style="font-size:11px;background:var(--navy-lite);color:var(--navy);padding:2px 7px;border-radius:4px;font-weight:600;">${comp}</span></td>
-        <td class="td-name">${a.applicant_name || "—"}</td>
-        <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;">${a.project_title}</td>
-        <td style="font-size:12px;">${a.faculty}</td>
-        <td>
-          <span class="closeout-light closeout-light--${sem.cls}" title="${escapeHtmlCoord(semTitle)}">${sem.label}</span>
-          ${sem.warnings && sem.warnings.length ? `<div class="closeout-note">${escapeHtmlCoord(sem.warnings[0])}</div>` : ""}
-        </td>
-        <td><span class="badge badge-${status.toLowerCase()}">${STATUS_FLOW[status]?.label || status}</span></td>
-        <td>${connectCloseoutSemaforHtml_(a)}</td>
-        <td class="td-date">${date}</td>
-        <td class="td-actions" onclick="event.stopPropagation()">${quickBtns}
-          <button class="btn-sm" onclick="openDetail('${a.application_id}')">Detail</button>
-        </td>
-      </tr>`;
-    }).join("");
+          const badgeClass = coordinatorBadgeClassForStatus_(status);
+          const statusLabel = escapeHtmlCoord(STATUS_FLOW[status] ? STATUS_FLOW[status].label : status);
+
+          return (
+            "<tr onclick=\"openDetail('" +
+            appIdJs +
+            "')\">" +
+            selTd +
+            '<td class="td-id">' +
+            escapeHtmlCoord(a.application_id) +
+            "</td>" +
+            '<td><span style="font-size:11px;background:var(--navy-lite);color:var(--navy);padding:2px 7px;border-radius:4px;font-weight:600;">' +
+            comp +
+            "</span></td>" +
+            '<td class="td-name">' +
+            escapeHtmlCoord(a.applicant_name || "—") +
+            "</td>" +
+            '<td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;">' +
+            escapeHtmlCoord(a.project_title) +
+            "</td>" +
+            '<td style="font-size:12px;">' +
+            escapeHtmlCoord(a.faculty) +
+            "</td>" +
+            "<td>" +
+            '<span class="closeout-light closeout-light--' +
+            escapeHtmlCoord(sem.cls) +
+            '" title="' +
+            escapeHtmlCoord(semTitle) +
+            '">' +
+            escapeHtmlCoord(sem.label) +
+            "</span>" +
+            (sem.warnings && sem.warnings.length
+              ? '<div class="closeout-note">' + escapeHtmlCoord(sem.warnings[0]) + "</div>"
+              : "") +
+            "</td>" +
+            '<td><span class="badge badge-' +
+            badgeClass +
+            '">' +
+            statusLabel +
+            "</span></td>" +
+            "<td>" +
+            connectCloseoutSemaforHtml_(a) +
+            "</td>" +
+            '<td class="td-date">' +
+            date +
+            "</td>" +
+            '<td class="td-actions" onclick="event.stopPropagation()">' +
+            quickBtns +
+            "<button class=\"btn-sm\" onclick=\"openDetail('" +
+            appIdJs +
+            "')\">Detail</button></td></tr>"
+          );
+        })
+        .join("");
+    } catch (e) {
+      var msg = (e && e.message) || String(e);
+      showToast(msg, "err");
+      body.innerHTML =
+        '<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">⚠</div><div>' +
+        escapeHtmlCoord(msg) +
+        '</div><p style="margin-top:12px;font-size:13px;color:var(--muted)">Obnovte stránku. Pokud problém přetrvává, nahlaste text chyby správci.</p></div></td></tr>';
+    }
     const master = document.getElementById("selectAllApps");
     if (master) master.checked = false;
   }
