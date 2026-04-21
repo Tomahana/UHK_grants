@@ -84,6 +84,8 @@
         errPwdRules: "Min. 8 znaků, velké písmeno a číslo.",
         errPwdMatch: "Hesla se neshodují.",
         errConnection: "Chyba připojení. Zkuste to znovu.",
+        errBadResponse:
+          "Server vrátil neočekávanou odpověď (není JSON). Zkuste obnovit stránku nebo kontaktujte správce.",
         errTimeout: "Server na odpověď příliš dlouho neodpověděl. Zkuste to znovu za chvíli.",
         errNoRoles:
           "Přihlášení proběhlo, ale server nevrátil žádnou roli. Obnovte stránku nebo kontaktujte správce.",
@@ -623,6 +625,8 @@
         errPwdRules: "Min. 8 characters, one uppercase letter and one digit.",
         errPwdMatch: "Passwords do not match.",
         errConnection: "Connection error. Please try again.",
+        errBadResponse:
+          "The server returned an unexpected response (not JSON). Refresh the page or contact an administrator.",
         errTimeout: "The server took too long to respond. Please try again in a moment.",
         errNoRoles:
           "Sign-in succeeded but the server returned no roles. Refresh the page or contact an administrator.",
