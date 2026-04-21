@@ -1789,9 +1789,9 @@ function ensureApplicationFileBlobsSheet_(ss) {
   var sh = ss.getSheetByName(name);
   if (sh) return sh;
   sh = ss.insertSheet(name);
-  sh.appendRow([]);
-  sh.appendRow([]);
-  sh.appendRow([]);
+  sh.appendRow([""]);
+  sh.appendRow([""]);
+  sh.appendRow([""]);
   sh.getRange(HEADER_ROW, 1, HEADER_ROW, 7).setValues([
     ["application_id", "field_id", "chunk_index", "base64_data", "mime_type", "file_name", "created_at"],
   ]);
@@ -1803,9 +1803,9 @@ function ensurePostAwardFileBlobsSheet_(ss) {
   var sh = ss.getSheetByName(name);
   if (sh) return sh;
   sh = ss.insertSheet(name);
-  sh.appendRow([]);
-  sh.appendRow([]);
-  sh.appendRow([]);
+  sh.appendRow([""]);
+  sh.appendRow([""]);
+  sh.appendRow([""]);
   sh.getRange(HEADER_ROW, 1, HEADER_ROW, 7).setValues([
     ["application_id", "field_id", "chunk_index", "base64_data", "mime_type", "file_name", "created_at"],
   ]);
