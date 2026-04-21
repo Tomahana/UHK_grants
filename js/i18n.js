@@ -84,8 +84,6 @@
         errPwdRules: "Min. 8 znaků, velké písmeno a číslo.",
         errPwdMatch: "Hesla se neshodují.",
         errConnection: "Chyba připojení. Zkuste to znovu.",
-        errBadResponse:
-          "Server vrátil neočekávanou odpověď (není JSON). Zkuste obnovit stránku nebo kontaktujte správce.",
         errTimeout: "Server na odpověď příliš dlouho neodpověděl. Zkuste to znovu za chvíli.",
         errNoRoles:
           "Přihlášení proběhlo, ale server nevrátil žádnou roli. Obnovte stránku nebo kontaktujte správce.",
@@ -120,6 +118,7 @@
         budgetAssigned: "Přiděleno (prorektor)",
         budgetUsed: "Využito (žadatel)",
         budgetRemaining: "Zbývá z alokace",
+        budgetSupportedProjects: "Podpořené projekty",
         budgetFootConnect:
           "Přiděleno = schválené částky od prorektora. Využito (žadatel) = po uložení souhlasu s přidělením (část 1) u přihlášky – započítá se schválená podpora.",
         budgetFootOther:
@@ -149,10 +148,6 @@
           UHK_REGA: "UHK ReGa",
           OP_JAK_NAVRATY: "OP JAK Návraty",
           UHK_PRESTIGE: "UHK Prestige",
-          PRESTIGE_LARGE: "UHK Prestige – Velký projekt",
-          NO_COST_ENTRY: "Horizon No-Cost Entry",
-          prestige_large: "UHK Prestige – Velký projekt",
-          no_cost_entry: "Horizon No-Cost Entry",
         },
       },
       auth: {
@@ -492,7 +487,7 @@
           "Koncept se ukládá <strong>automaticky po 30 s</strong> nečinnosti; ručně použijte „Uložit draft“.",
         termsTitle: "Termíny výzvy (1/2026)",
         termsFootnoteHtml:
-          "Elektronické podání dle Vyhlášení výzvy UHK Prestige. Pro <strong>Horizon No-Cost Entry</strong> (výzva 2/2026) je příjem průběžný s měsíčním cut-off 10. den; po schválení je povinná závěrečná zpráva.",
+          "Elektronické podání dle Vyhlášení výzvy č. 1/2026 UHK Prestige. Podvýzva <strong>Horizon No-Cost Entry</strong> (výzva 2/2026) bude v aplikaci doplněna – zatím viz samostatný dokument výzvy.",
         budgetCardTitle: "Rozpočet",
         budgetOfMax: "z max. 1 000 000 Kč (rok 1)",
         checklistTitle: "Kontrolní seznam",
@@ -540,20 +535,9 @@
         SUBMITTED: { label: "Odesláno" },
         FORMAL_CHECK: { label: "Formální kontrola" },
         IN_REVIEW: { label: "V hodnocení" },
-        CEKANI_NA_PRUBEZNOU_ZPRAVU: { label: "Čekání na průběžnou zprávu" },
-        POSOUZENI_POKRACOVANI: { label: "Posouzení pokračování" },
         APPROVED: { label: "Schváleno" },
         REJECTED: { label: "Zamítnuto" },
-        UKONCENO: { label: "Ukončeno" },
         WITHDRAWN: { label: "Staženo" },
-      },
-      noCostEntry: {
-        fteRange: "No-Cost Entry: úvazek řešitele musí být v rozsahu 0,2–0,4 FTE.",
-        consortiumMin: "No-Cost Entry: počet institucí v konsorciu musí být alespoň 1.",
-        irisRowsRequired: "No-Cost Entry: vyplňte IRIS záznamy (1 řádek pro každou instituci).",
-        irisRowsMismatch: "No-Cost Entry: počet IRIS záznamů musí odpovídat počtu institucí v konsorciu.",
-        budgetPersonnelRequired: "No-Cost Entry: vyplňte osobní náklady (min. 1 Kč).",
-        budgetTravelRequired: "No-Cost Entry: vyplňte cestovní náklady (min. 1 Kč).",
       },
     },
     en: {
@@ -625,8 +609,6 @@
         errPwdRules: "Min. 8 characters, one uppercase letter and one digit.",
         errPwdMatch: "Passwords do not match.",
         errConnection: "Connection error. Please try again.",
-        errBadResponse:
-          "The server returned an unexpected response (not JSON). Refresh the page or contact an administrator.",
         errTimeout: "The server took too long to respond. Please try again in a moment.",
         errNoRoles:
           "Sign-in succeeded but the server returned no roles. Refresh the page or contact an administrator.",
@@ -661,6 +643,7 @@
         budgetAssigned: "Assigned (Vice-Rector)",
         budgetUsed: "Used (applicant)",
         budgetRemaining: "Remaining from allocation",
+        budgetSupportedProjects: "Supported projects",
         budgetFootConnect:
           "Assigned = amounts approved by the Vice-Rector. Used (applicant) = after saving consent to assignment (Part 1) on the application — counts approved support.",
         budgetFootOther:
@@ -690,10 +673,6 @@
           UHK_REGA: "UHK ReGa",
           OP_JAK_NAVRATY: "OP JAK Returns",
           UHK_PRESTIGE: "UHK Prestige",
-          PRESTIGE_LARGE: "UHK Prestige – Large Project",
-          NO_COST_ENTRY: "Horizon No-Cost Entry",
-          prestige_large: "UHK Prestige – Large Project",
-          no_cost_entry: "Horizon No-Cost Entry",
         },
         competitionCard: {
           uhk_navraty_2026: {
@@ -1051,7 +1030,7 @@
           "Your draft <strong>saves automatically after 30 s</strong> of inactivity; use <strong>Save draft</strong> to save manually.",
         termsTitle: "Call timeline (1/2026)",
         termsFootnoteHtml:
-          "Electronic submission follows the UHK Prestige call rules. For <strong>Horizon No-Cost Entry</strong> (call 2/2026), intake is continuous with a monthly cut-off on day 10; a final report is mandatory after approval.",
+          "Electronic submission per UHK Prestige call announcement 1/2026. The <strong>Horizon No-Cost Entry</strong> sub-call (call 2/2026) will be added to the app – see the separate call document for now.",
         budgetCardTitle: "Budget",
         budgetOfMax: "of max. CZK 1,000,000 (year 1)",
         checklistTitle: "Checklist",
@@ -1086,20 +1065,9 @@
         SUBMITTED: { label: "Submitted" },
         FORMAL_CHECK: { label: "Formal check" },
         IN_REVIEW: { label: "Under review" },
-        CEKANI_NA_PRUBEZNOU_ZPRAVU: { label: "Waiting for interim report" },
-        POSOUZENI_POKRACOVANI: { label: "Continuation assessment" },
         APPROVED: { label: "Approved" },
         REJECTED: { label: "Rejected" },
-        UKONCENO: { label: "Closed" },
         WITHDRAWN: { label: "Withdrawn" },
-      },
-      noCostEntry: {
-        fteRange: "No-Cost Entry: researcher workload must be in range 0.2–0.4 FTE.",
-        consortiumMin: "No-Cost Entry: consortium institutions count must be at least 1.",
-        irisRowsRequired: "No-Cost Entry: fill IRIS records (1 row per institution).",
-        irisRowsMismatch: "No-Cost Entry: number of IRIS rows must match consortium institutions count.",
-        budgetPersonnelRequired: "No-Cost Entry: fill personnel costs (min. CZK 1).",
-        budgetTravelRequired: "No-Cost Entry: fill travel costs (min. CZK 1).",
       },
       postaward: {
         saveConsent: "Save consent",
