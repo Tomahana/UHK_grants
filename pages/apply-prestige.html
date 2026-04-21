@@ -499,11 +499,11 @@
       { id: "budget", fields: ["section_budget","fte","support_total_request","budget_personnel","budget_personnel_levies","budget_travel","budget_period_from","budget_justification"] },
       { id: "attachments", fields: ["section_attachments","attach_template1","attach_template2","attach_engagement_proof","attach_future_optional","declaration"] },
     ] : [
-      { id: "ident", fields: ["section_ident","project_title","target_scheme","planned_submission_date","support_year1_request","faculty","department","section_iris","iris_case_id","iris_checklist_result"] },
+      { id: "ident", fields: ["section_ident","project_title","target_scheme","planned_submission_date","support_year1_request","support_year2_request","faculty","department"] },
       { id: "concept", fields: ["section_concept","concept_note","excellence_top5","prev_erc_he"] },
-      { id: "strategy", fields: ["section_strategy","strategy_why_call","strategy_work_packages","strategy_external_review","section_milestones","milestones_summary"] },
+      { id: "strategy", fields: ["section_strategy","strategy_why_call","strategy_work_packages","strategy_external_review"] },
       { id: "budget", fields: ["section_budget","budget_personnel","budget_agency","budget_training","budget_travel","budget_material","budget_other","budget_justification"] },
-      { id: "attachments", fields: ["section_attachments","attach_annex1","attach_annex2","attach_annex3","attach_checklist6","declaration"] },
+      { id: "attachments", fields: ["section_attachments","attach_annex1","attach_annex2","attach_checklist6","declaration"] },
     ];
 
     function getLocalFields() {
@@ -575,23 +575,6 @@
         { field_id:"support_year2_request", field_label:"Požadovaná podpora – 2. etapa (Kč)", field_type:"number", required:"TRUE", placeholder:"např. 900000", help_text:"Horní limit 1 000 000 Kč pro 2. etapu (po rozhodnutí o pokračování)." },
         { field_id:"faculty", field_label:"Součást UHK / pracoviště", field_type:"select", required:"TRUE", options:"PřF;PdF;FF;FIM;REKTORÁT" },
         { field_id:"department", field_label:"Katedra / ústav", field_type:"text", required:"TRUE" },
-        { field_id:"section_iris", field_label:"IRIS UHK – formální údaje přihlášky", field_type:"section_header" },
-        {
-          field_id:"iris_case_id",
-          field_label:"Referenční ID IRIS UHK (UUID)",
-          field_type:"text",
-          required:"TRUE",
-          placeholder:"např. 5d6b05d2-7562-4f63-83ac-c2980be87afd",
-          help_text:'Pro ověření záznamu v IRIS uveďte <strong>jednoznačné referenční ID</strong> z potvrzení podání (UUID). V IRIS → <strong>Moje podání</strong> → pole <strong>Hledat</strong> musí vyjít jeden záznam. <a href="' + IRIS_UHK_URL + '" target="_blank" rel="noopener noreferrer">IRIS UHK</a>. Bez UUID ve starším potvrzení stačí <strong>Case ID</strong>. U výjimky dle výzvy / OVTZ (např. výhradně tuzemská spolupráce) postupujte dle pokynů.',
-        },
-        {
-          field_id:"iris_checklist_result",
-          field_label:"Souhrn z IRIS (výsledek, Case / Intake ID, skóre)",
-          field_type:"textarea",
-          required:"TRUE",
-          placeholder:"např. Case ID: … / Intake ID: … / Předběžný výsledek: … / Skóre: …",
-          help_text:"Z potvrzení nebo detailu zkopírujte alespoň předběžný výsledek; doporučené je uvést Case ID, Intake ID a skóre (nebo celý export). U výjimky dle výzvy krátké zdůvodnění.",
-        },
         { field_id:"section_concept", field_label:"Concept note a excelence", field_type:"section_header" },
         { field_id:"concept_note", field_label:"Shrnutí záměru a concept note (max. 2 strany – text)", field_type:"textarea", required:"TRUE", placeholder:"Cíl, vhodnost cílové soutěže, co bude dopracováno, plán externího review / agentury…", help_text:"Odpovídá oddílům 1 a 2 šablony žádosti (příloha č. 1 výzvy)" },
         { field_id:"excellence_top5", field_label:"TOP výsledky relevantní pro cílovou soutěž (max. 5)", field_type:"textarea", required:"TRUE", placeholder:"Název, časopis/výstup, rok, DOI/odkaz, vazba na cílový projekt…", help_text:"Mezinárodní zkušenost / leadership můžete doplnit do textu" },
@@ -600,8 +583,6 @@
         { field_id:"strategy_why_call", field_label:"Proč je zvolená cílová soutěž vhodná", field_type:"textarea", required:"TRUE" },
         { field_id:"strategy_work_packages", field_label:"Jaké části návrhu budou připravovány v projektu Prestige", field_type:"textarea", required:"TRUE" },
         { field_id:"strategy_external_review", field_label:"Plán externího review / agentury (pokud plánujete)", field_type:"textarea", required:"FALSE" },
-        { field_id:"section_milestones", field_label:"Milníky", field_type:"section_header" },
-        { field_id:"milestones_summary", field_label:"Stručný přehled klíčových milníků (M1–M5)", field_type:"textarea", required:"TRUE", placeholder:"Viz příloha č. 3 – zde stručný souhrn vazby na harmonogram", help_text:"Detailní tabulku doplňte v příloze č. 3 (soubor)" },
         { field_id:"section_budget", field_label:"Rozpočet roku 1", field_type:"section_header" },
         { field_id:"budget_personnel", field_label:"A. Osobní náklady (max. 40 %, max. 0,3 FTE řešitele)", field_type:"number", required:"FALSE", help_text:"DPP/DPČ, odměna – dle přílohy č. 2" },
         { field_id:"budget_agency", field_label:"B. Agenturní / mentoringová podpora", field_type:"number", required:"FALSE" },
@@ -612,7 +593,6 @@
         { field_id:"section_attachments", field_label:"Povinné přílohy (sken / PDF)", field_type:"section_header" },
         { field_id:"attach_annex1", field_label:"Příloha č. 1 – šablona žádosti vč. concept note", field_type:"file", required:"TRUE", options:"pdf,doc,docx", help_text:"Vyplněná šablona dle výzvy" },
         { field_id:"attach_annex2", field_label:"Příloha č. 2 – rozpočet roku 1 + věcné odůvodnění", field_type:"file", required:"TRUE", options:"pdf,xlsx,xls", help_text:"Tabulka dle výzvy" },
-        { field_id:"attach_annex3", field_label:"Příloha č. 3 – milníky", field_type:"file", required:"TRUE", options:"pdf,xlsx,xls,doc,docx", help_text:"Tabulka milníků" },
         { field_id:"attach_checklist6", field_label:"Příloha č. 5 – checklist způsobilosti", field_type:"file", required:"TRUE", options:"pdf,doc,docx", help_text:"ERC / Horizon Europe dle výzvy" },
         { field_id:"declaration", field_label:"Prohlášení", field_type:"checkbox", required:"TRUE", help_text:"Beru na vědomí povinnost podání návrhu do cílové prestižní soutěže a dokladování, průběžnou zprávu k 30. 11. 2026 a podmínky výzvy UHK Prestige 1/2026. Potvrzuji správnost údajů." },
       ];
@@ -1296,14 +1276,12 @@
         { label: labels[1], done: IS_NO_COST_ENTRY ? true : !!formData.target_scheme },
         {
           label: tf("irisChecklistItem"),
-          done: IS_NO_COST_ENTRY
-            ? !!String(formData.iris_case_id || "").trim()
-            : !!(String(formData.iris_case_id || "").trim() && String(formData.iris_checklist_result || "").trim()),
+          done: IS_NO_COST_ENTRY ? !!String(formData.iris_case_id || "").trim() : true,
         },
         { label: labels[2], done: !!formData.concept_note },
         { label: labels[3], done: IS_NO_COST_ENTRY ? !!(String(formData.future_financed_perspective || "").trim()) : !!formData.excellence_top5 },
         { label: labels[4], done: !!((formData.support_total_request || formData.budget_total) && parseFloat(formData.support_total_request || formData.budget_total) > 0) },
-        { label: labels[5], done: IS_NO_COST_ENTRY ? !!(formData.attach_template1 && formData.attach_template2 && formData.attach_engagement_proof) : !!(formData.attach_annex1 && formData.attach_annex2 && formData.attach_annex3 && formData.attach_checklist6) },
+        { label: labels[5], done: IS_NO_COST_ENTRY ? !!(formData.attach_template1 && formData.attach_template2 && formData.attach_engagement_proof) : !!(formData.attach_annex1 && formData.attach_annex2 && formData.attach_checklist6) },
         { label: labels[6], done: formData.declaration === "true" },
       ];
       document.getElementById("checklist").innerHTML = checks.map(c => `
@@ -1422,14 +1400,9 @@
         showToast(trf("toastConfirmDeclaration"), "err"); return;
       }
 
-      const irisId = String(formData.iris_case_id || "").trim();
-      if (!irisId) {
-        showToast(tf("irisRequiredToast"), "err");
-        return;
-      }
-      if (!IS_NO_COST_ENTRY) {
-        const irisRes = String(formData.iris_checklist_result || "").trim();
-        if (!irisRes) {
+      if (IS_NO_COST_ENTRY) {
+        const irisId = String(formData.iris_case_id || "").trim();
+        if (!irisId) {
           showToast(tf("irisRequiredToast"), "err");
           return;
         }
