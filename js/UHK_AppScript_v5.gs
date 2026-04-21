@@ -362,7 +362,9 @@ function connectApplicationFileDownloadResolved_(competitionId, applicationId, f
   var aid = String(applicationId || "").trim();
   var fid = String(fieldId || "").trim();
   if (cid !== CONNECT_COMPETITION_ID || !aid || !fid) throw new Error("Neplatné parametry.");
-  var allowed = { attach_invitation: 1, attach_annex1: 1, attach_annex2: 1, attach_annex3: 1 };
+  var allowed = isNoCost
+    ? { attach_template1: 1, attach_template2: 1, attach_engagement_proof: 1, attach_future_optional: 1, attach_annex1: 1, attach_annex2: 1 }
+    : { attach_invitation: 1, attach_annex1: 1, attach_annex2: 1, attach_annex3: 1, attach_checklist6: 1 };
   if (!allowed[fid]) throw new Error("Neplatné pole přílohy.");
   if (!connectCanDownloadApplicationBlob_(auth, cid, aid)) throw new Error("Soubor nelze stáhnout (oprávnění).");
   var ss = getSpreadsheet(cid);
@@ -2067,8 +2069,12 @@ function connectProcessApplicationFileUploads_(ss, competitionId, applicationId,
   var patch = {};
   var diagnostics = {};
   if (!fileUploads || !fileUploads.length) return { patch: patch, diagnostics: diagnostics };
-  if (String(competitionId || "").trim() !== CONNECT_COMPETITION_ID) {
-    throw new Error("Přílohy PDF z formuláře jsou jen pro soutěž UHK Connect.");
+  var cid = String(competitionId || "").trim();
+  var isConnect = cid === CONNECT_COMPETITION_ID;
+  var isPrestige = cid === "uhk_prestige_2026";
+  var isNoCost = String(cid).toUpperCase() === "NO_COST_ENTRY";
+  if (!isConnect && !isPrestige && !isNoCost) {
+    throw new Error("Přílohy PDF z formuláře jsou jen pro soutěže UHK Connect / UHK Prestige / Horizon No-Cost Entry.");
   }
   var sheet = ss.getSheetByName(SHEETS.APPLICATIONS);
   if (!sheet) throw new Error("List APPLICATIONS nenalezen.");
@@ -2087,7 +2093,9 @@ function connectProcessApplicationFileUploads_(ss, competitionId, applicationId,
     throw new Error("Soubor z podacího formuláře lze nahrávat jen u rozpracovaného konceptu (DRAFT).");
   }
 
-  var allowed = { attach_invitation: 1, attach_annex1: 1, attach_annex2: 1, attach_annex3: 1 };
+  var allowed = isNoCost
+    ? { attach_template1: 1, attach_template2: 1, attach_engagement_proof: 1, attach_future_optional: 1, attach_annex1: 1, attach_annex2: 1 }
+    : { attach_invitation: 1, attach_annex1: 1, attach_annex2: 1, attach_annex3: 1, attach_checklist6: 1 };
   var maxBytes = 18 * 1024 * 1024;
   var blobSheet = ensureApplicationFileBlobsSheet_(ss);
 
