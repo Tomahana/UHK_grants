@@ -370,7 +370,7 @@
           { label: I18n.t("dashboard.actionManageUsers"), href: "admin-users.html",       style: "ghost",     icon: "👥" },
           { label: I18n.t("dashboard.actionSettings"),        href: "admin-competitions.html", style: "ghost",     icon: "⚙️" },
         ] : [
-          ...(isOpen && applyHref
+          ...(applyHref
             ? [{ label: I18n.t("dashboard.actionSubmit"), href: applyHref, style: "primary", icon: "📝" }]
             : []),
           { label: I18n.t("dashboard.actionManageApps"),href: "coordinator.html",         style: "secondary", icon: "📋" },
@@ -390,7 +390,7 @@
         ],
 
         TESTER: [
-          ...(isOpen && applyHref
+          ...(applyHref
             ? [{ label: I18n.t("dashboard.actionSubmit"), href: applyHref, style: "primary", icon: "📝" }]
             : []),
           { label: I18n.t("dashboard.actionManageApps"),href: "coordinator.html",         style: "secondary", icon: "📋" },
