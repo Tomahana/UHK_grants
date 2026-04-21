@@ -346,7 +346,9 @@
     "KOMISAŘ",
     "READONLY",
   ]);
-  document.getElementById("topbarName").textContent = user.name || user.email;
+  if (user) {
+    document.getElementById("topbarName").textContent = user.name || user.email;
+  }
 
   const COMP_NAMES = {
     "uhk_connect_2026_v2": "Connect",
@@ -1966,13 +1968,37 @@
     });
   }
 
-  // Zavření modalu kliknutím mimo
-  document.getElementById("detailModal").addEventListener("click", e => {
-    if (e.target === document.getElementById("detailModal")) closeModal();
-  });
-
   // ── INIT ─────────────────────────────────────────────────
-  loadAll();
+  if (user) {
+    document.getElementById("detailModal").addEventListener("click", e => {
+      if (e.target === document.getElementById("detailModal")) closeModal();
+    });
+    loadAll().catch(function (e) {
+      var msg =
+        (e && e.message) ||
+        (typeof I18n !== "undefined" && I18n.t
+          ? I18n.t("coordinator.loadFatalErr")
+          : "Načtení seznamu selhalo.");
+      showToast(msg, "err");
+      var tb = document.getElementById("tableBody");
+      if (tb) {
+        tb.innerHTML =
+          '<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">⚠</div><div>' +
+          String(msg).replace(/</g, "&lt;") +
+          '</div><p style="margin-top:12px;font-size:13px;color:var(--muted)">Zkuste Obnovit stránku nebo se znovu přihlásit.</p></div></td></tr>';
+      }
+      var ps = document.getElementById("pageSub");
+      if (ps) ps.textContent = "Chyba načtení";
+    });
+  } else {
+    var tb0 = document.getElementById("tableBody");
+    if (tb0) {
+      tb0.innerHTML =
+        '<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">🔐</div><div>Nejste přihlášeni nebo nemáte oprávnění k této stránce.</div><p style="margin-top:14px"><a href="../login.html" style="color:var(--navy-mid);font-weight:600;">Přihlásit se</a> · <a href="dashboard.html" style="color:var(--navy-mid);font-weight:600;">Rozcestník</a></p></div></td></tr>';
+    }
+    var ps0 = document.getElementById("pageSub");
+    if (ps0) ps0.textContent = "Vyžaduje roli správce, komisaře, prorektora nebo readonly.";
+  }
 </script>
 </body>
 </html>
