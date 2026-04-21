@@ -38,12 +38,34 @@ const Auth = {
       } finally {
         clearTimeout(tid);
       }
-      const data = await res.json();
-      if (data.success) return data;
+      const raw = await res.text();
+      let data;
+      try {
+        data = raw ? JSON.parse(raw) : null;
+      } catch {
+        return {
+          success: false,
+          message:
+            typeof I18n !== "undefined" && I18n.t
+              ? I18n.t("login.errBadResponse")
+              : "Server vrátil neplatnou odpověď. Zkuste to znovu.",
+        };
+      }
+      if (!res.ok) {
+        return {
+          success: false,
+          message:
+            (data && data.message) ||
+            (typeof I18n !== "undefined" && I18n.t
+              ? I18n.t("login.errConnection")
+              : "Server odpověděl chybou. Zkuste to znovu."),
+        };
+      }
+      if (data && data.success) return data;
       return {
         success: false,
         message:
-          data.message ||
+          (data && data.message) ||
           (typeof I18n !== "undefined" && I18n.t
             ? I18n.t("auth.wrongCreds")
             : "Nesprávné přihlašovací údaje."),

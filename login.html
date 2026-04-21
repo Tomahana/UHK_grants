@@ -307,14 +307,22 @@
     document.getElementById(textId).textContent = msg;
   }
 
-  /** Odpověď Web Appu může mít roles[], výjimečně jednu hodnotu v role (string). */
+  /** Odpověď Web Appu: roles[], případně role (string) nebo rolesByCompetition[]. */
   function normalizeLoginRoles_(result) {
     if (!result) return [];
     if (Array.isArray(result.roles) && result.roles.length) {
-      return result.roles.map((r) => String(r).trim()).filter(Boolean);
+      return result.roles.map((r) => String(r).trim().toUpperCase()).filter(Boolean);
     }
     if (result.role != null && String(result.role).trim()) {
-      return [String(result.role).trim()];
+      return [String(result.role).trim().toUpperCase()];
+    }
+    if (Array.isArray(result.rolesByCompetition) && result.rolesByCompetition.length) {
+      const set = new Set();
+      for (const row of result.rolesByCompetition) {
+        const r = row && row.role != null ? String(row.role).trim().toUpperCase() : "";
+        if (r) set.add(r);
+      }
+      return Array.from(set);
     }
     return [];
   }

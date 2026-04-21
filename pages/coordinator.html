@@ -83,6 +83,30 @@
     .badge-in_review    { background: #FFF7ED; color: #C2410C; border: 1px solid #FED7AA; }
     .badge-approved     { background: var(--green-lite); color: var(--green); border: 1px solid #A7F3D0; }
     .badge-rejected     { background: var(--red-lite); color: var(--red); border: 1px solid #FECACA; }
+    .closeout-traffic {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .closeout-traffic--green { background: #E6F4EE; color: #1E6B45; border-color: #A7F3D0; }
+    .closeout-traffic--amber { background: #FEF3C7; color: #B45309; border-color: #FDE68A; }
+    .closeout-traffic--red { background: #FEF2F2; color: #991B1B; border-color: #FECACA; }
+    .closeout-traffic--muted { background: #F3F4F6; color: #6B7280; border-color: #D1D5DB; }
+    .semafor-pill { display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:999px; font-size:11px; font-weight:600; border:1px solid transparent; white-space:nowrap; }
+    .semafor-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+    .semafor-red { background:#FEF2F2; color:#991B1B; border-color:#FECACA; }
+    .semafor-red .semafor-dot { background:#DC2626; }
+    .semafor-amber { background:#FFFBEB; color:#92400E; border-color:#FDE68A; }
+    .semafor-amber .semafor-dot { background:#D97706; }
+    .semafor-green { background:#ECFDF5; color:#065F46; border-color:#A7F3D0; }
+    .semafor-green .semafor-dot { background:#059669; }
+    .semafor-muted { color:var(--muted); font-size:11px; }
 
     /* TLAČÍTKA V TABULCE */
     .btn-sm { padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: white; color: var(--navy); font-family: 'DM Sans', sans-serif; transition: all .15s; white-space: nowrap; }
@@ -246,12 +270,13 @@
           <th onclick="sortBy('faculty')">Součást ↕</th>
           <th onclick="sortBy('status')">Stav ↕</th>
           <th onclick="sortBy('submitted_at')">Podáno ↕</th>
+          <th onclick="sortBy('connect_semafor_rank')">Semafor ↕</th>
           <th>Akce</th>
         </tr>
       </thead>
       <tbody id="tableBody">
         <tr class="loading-row">
-          <td colspan="9"><span class="spinner"></span>Načítám přihlášky…</td>
+          <td colspan="10"><span class="spinner"></span>Načítám přihlášky…</td>
         </tr>
       </tbody>
     </table>
@@ -332,6 +357,7 @@
   };
 
   let allApps    = [];
+  let connectDeliverablesByAppId_ = {};
   let filtered   = [];
   let activeStatus = "all";
   let sortCol    = "submitted_at";
@@ -369,6 +395,108 @@
   function openConnectAdminDossierPdfFromModal() {
     if (!currentApp || currentApp.competition_id !== CONNECT_EXPORT_ID) return;
     openConnectAdminDossierPdf(currentApp.application_id);
+  }
+
+  function connectAttachmentFieldLabel_(fieldId) {
+    const map = {
+      attach_invitation: "Invitation letter",
+      attach_annex1: "Annex 1",
+      attach_annex2: "Annex 2",
+      attach_annex3: "Annex 3",
+    };
+    return map[String(fieldId || "").trim()] || String(fieldId || "").replace(/_/g, " ");
+  }
+
+  async function coordinatorPostFormUrlEncoded_(body) {
+    const params = new URLSearchParams();
+    Object.keys(body || {}).forEach(function (k) {
+      var v = body[k];
+      if (v === undefined || v === null) return;
+      params.set(k, String(v));
+    });
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: params.toString(),
+    });
+    const raw = await res.text().catch(function () {
+      return "";
+    });
+    let out = {};
+    try {
+      out = raw ? JSON.parse(raw) : {};
+    } catch (e) {
+      out = {};
+    }
+    return { res, out };
+  }
+
+  async function adminUploadConnectAttachmentFromModal(fieldId, inputEl) {
+    const f = inputEl && inputEl.files && inputEl.files[0] ? inputEl.files[0] : null;
+    if (!currentApp || !f) return;
+    try {
+      const max = 18 * 1024 * 1024;
+      if (f.size > max) throw new Error("Soubor je větší než 18 MB.");
+      if (!/\.pdf$/i.test(String(f.name || ""))) throw new Error("Povolen je pouze PDF soubor.");
+      const st = document.getElementById("connectAttachUploadStatus");
+      if (st) st.textContent = "Nahrávám…";
+      const b64 = await fileToBase64_(f);
+      const session = Auth._getSession();
+      const req = await coordinatorPostFormUrlEncoded_({
+        action: "uploadConnectApplicationAttachment",
+        token: session?.token || "",
+        competitionId: currentApp.competition_id,
+        applicationId: currentApp.application_id,
+        fieldId: String(fieldId || "").trim(),
+        fileName: f.name,
+        mimeType: f.type || "application/pdf",
+        fileBase64: b64,
+      });
+      if (!req.res.ok) throw new Error("HTTP " + req.res.status);
+      const res = req.out || {};
+      if (res && res.error) throw new Error(res.error);
+      const nowApp = allApps.find((x) => x.application_id === currentApp.application_id);
+      if (nowApp) {
+        nowApp._form = nowApp._form || {};
+        nowApp._form[fieldId] = String((res && res.url) || "");
+      }
+      if (st)
+        st.textContent =
+          "Nahráno: " +
+          connectAttachmentFieldLabel_(fieldId) +
+          " (" +
+          (res && res.storageKind === "drive" ? "Disk" : "aplikace") +
+          ")";
+      showToast("Příloha byla nahrána.");
+      openDetail(currentApp.application_id);
+    } catch (e) {
+      const st = document.getElementById("connectAttachUploadStatus");
+      if (st) st.textContent = "";
+      showToast((e && e.message) || "Nahrání přílohy selhalo.", "err");
+    } finally {
+      if (inputEl) inputEl.value = "";
+    }
+  }
+
+  function coordinatorConnectAttachmentUploadHtml_(competitionId) {
+    if (String(competitionId || "").trim() !== CONNECT_EXPORT_ID) return "";
+    // Stránka coordinator.html je už chráněná přes Auth.requireLogin(["ADMIN","TESTER"]).
+    // Neprovádíme zde další role filtr, aby se sekce zobrazila i při aliasech role správce.
+    const rows = CONNECT_APPLICATION_FILE_FIELD_IDS_.map(
+      (fid) => `
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0;">
+          <div style="min-width:120px;font-size:12px;color:var(--navy-mid)">${escapeHtmlCoord(connectAttachmentFieldLabel_(fid))}</div>
+          <input type="file" accept="application/pdf,.pdf" onchange="adminUploadConnectAttachmentFromModal('${fid}', this)">
+        </div>`
+    ).join("");
+    return `
+      <div class="detail-field" style="grid-column:1 / -1;">
+        <div class="detail-label">Přílohy podacího formuláře – nahrání (správce)</div>
+        <div class="detail-value" style="font-size:12px;line-height:1.45">
+          ${rows}
+          <div id="connectAttachUploadStatus" style="margin-top:6px;color:var(--muted);"></div>
+        </div>
+      </div>`;
   }
 
   function escapeHtmlCoord(s) {
@@ -1242,7 +1370,25 @@
       }
     }
 
-    allApps = all.length ? all : getDemoApps();
+    const byId = {};
+    try {
+      const exp = await API.getConnectDeliverablesExport(CONNECT_EXPORT_ID);
+      const rows = exp && exp.rows ? exp.rows : [];
+      rows.forEach((r) => {
+        const id = String((r && r.application_id) || "").trim();
+        if (!id) return;
+        byId[id] = r;
+      });
+    } catch {
+      /* ignore semafor enrichment failures */
+    }
+    connectDeliverablesByAppId_ = byId;
+    allApps = (all.length ? all : getDemoApps()).map((a) => {
+      if (String(a.competition_id || "").trim() !== CONNECT_EXPORT_ID) return a;
+      const id = String(a.application_id || "").trim();
+      a._connectDeliverables = byId[id] || null;
+      return a;
+    });
     updateStats();
     applyFilters();
     void loadConnectFormFieldLabelsForExport_();
@@ -1259,6 +1405,56 @@
     document.getElementById("statInReview").textContent  = count("IN_REVIEW");
     document.getElementById("statApproved").textContent  = count("APPROVED");
     document.getElementById("statDraft").textContent     = count("DRAFT");
+  }
+
+  function connectComputeCloseoutTraffic_(a) {
+    if (!a || String(a.competition_id || "").trim() !== CONNECT_EXPORT_ID) {
+      return { cls: "sem-na", text: "—", hint: "Semafor se používá pro Connect." };
+    }
+    const d = a._connectDeliverables || connectDeliverablesByAppId_[String(a.application_id || "").trim()] || null;
+    const status = String(a.status || "").toUpperCase().trim();
+    if (status !== "APPROVED") {
+      return { cls: "sem-na", text: "N/A", hint: "Projekt zatím není ve stavu schváleno." };
+    }
+    if (!d) {
+      return { cls: "sem-na", text: "N/A", hint: "Část 2: data zatím nenačtena." };
+    }
+    const dec = String(d.prorektor_decision || "").toUpperCase().trim();
+    if (dec !== "SUPPORT" && dec !== "CUT") {
+      return { cls: "sem-na", text: "N/A", hint: "Část 2 se používá jen pro Podpořeno/Kráceno." };
+    }
+    const completion = String(d.completion_saved_at || "").trim();
+    if (completion) return { cls: "sem-green", text: "ZELENÁ", hint: "Projekt finálně uzavřen v aplikaci." };
+
+    const consent = String(d.consent_saved_at || "").trim();
+    const req = !!d.deliverable_zprava_fulfilled && !!d.deliverable_vystup_fulfilled && !!d.deliverable_aktivita_fulfilled;
+    const confirms = !!d.dissemination_fulfilled && !!d.package_emailed_declared && !!d.consequences_acknowledged;
+    const almost = consent && req && confirms;
+
+    const dateRaw = String(a.submitted_at || a.created_at || "").slice(0, 10);
+    let dueWarn = "";
+    if (dateRaw) {
+      const dt = new Date(dateRaw + "T00:00:00");
+      if (!isNaN(dt.getTime())) {
+        const hard = new Date("2026-11-30T23:59:59");
+        const plus30 = new Date(dt.getTime());
+        plus30.setDate(plus30.getDate() + 30);
+        const due = plus30 < hard ? plus30 : hard;
+        const now = new Date();
+        const days = Math.ceil((due.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+        if (days <= 0) dueWarn = "Po termínu uzavření.";
+        else if (days <= 14) dueWarn = "Blíží se termín (" + days + " dní).";
+      }
+    }
+
+    if (dueWarn) return { cls: "sem-red", text: "ČERVENÁ", hint: dueWarn + " Chybí finální uzavření." };
+    if (almost) return { cls: "sem-amber", text: "ORANŽOVÁ", hint: "Téměř hotovo – chybí finální uzavření projektu." };
+    return { cls: "sem-red", text: "ČERVENÁ", hint: "Nedokončené povinné výstupy / potvrzení části 2." };
+  }
+
+  function connectCloseoutSemaforHtml_(a) {
+    const s = connectComputeCloseoutTraffic_(a);
+    return '<span class="closeout-traffic ' + s.cls + '" title="' + escapeHtmlCoord(String(s.hint || "")) + '">' + escapeHtmlCoord(String(s.text || "—")) + '</span>';
   }
 
   function filterByStatus(status) {
@@ -1328,6 +1524,8 @@
         quickBtns = `<button class="btn-sm btn-sm-primary" onclick="quickAction(event,'${a.application_id}','${a.competition_id}','IN_REVIEW')">Spustit review</button>`;
       }
 
+      const sem = connectCloseoutSemaforForApp_(a);
+      const semTitle = sem.warnings && sem.warnings.length ? sem.warnings.join(" | ") : "—";
       const selTd = `<td onclick="event.stopPropagation()" style="text-align:center;vertical-align:middle"><input class="appSel" type="checkbox" data-app="${escapeHtmlCoord(
         a.application_id
       )}" data-comp="${escapeHtmlCoord(a.competition_id)}" aria-label="Vybrat přihlášku (export / e-maily)"></td>`;
@@ -1339,7 +1537,12 @@
         <td class="td-name">${a.applicant_name || "—"}</td>
         <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;">${a.project_title}</td>
         <td style="font-size:12px;">${a.faculty}</td>
+        <td>
+          <span class="closeout-light closeout-light--${sem.cls}" title="${escapeHtmlCoord(semTitle)}">${sem.label}</span>
+          ${sem.warnings && sem.warnings.length ? `<div class="closeout-note">${escapeHtmlCoord(sem.warnings[0])}</div>` : ""}
+        </td>
         <td><span class="badge badge-${status.toLowerCase()}">${STATUS_FLOW[status]?.label || status}</span></td>
+        <td>${connectCloseoutSemaforHtml_(a)}</td>
         <td class="td-date">${date}</td>
         <td class="td-actions" onclick="event.stopPropagation()">${quickBtns}
           <button class="btn-sm" onclick="openDetail('${a.application_id}')">Detail</button>
@@ -1417,6 +1620,7 @@
           <div class="detail-value">${String(v).substring(0,200)}</div>
         </div>` : "").join("");
     const connectAttachBlock = coordinatorConnectSubmittedAttachmentsHtml_(a.competition_id, a.application_id, form);
+    const connectUploadBlock = coordinatorConnectAttachmentUploadHtml_(a.competition_id);
 
     // Rozpočet
     const budgetFields = ["budget_travel","budget_accommodation","budget_meals","budget_local","budget_fee","budget_publication","budget_personnel"];
@@ -1438,6 +1642,7 @@
         <div class="detail-field"><div class="detail-label">Součást</div><div class="detail-value">${form.faculty || "—"}</div></div>
         ${fieldRows}
         ${connectAttachBlock}
+        ${connectUploadBlock}
       </div>
       ${budgetRows ? `
         <div style="margin-bottom:16px;">
