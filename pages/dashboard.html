@@ -74,17 +74,17 @@
           <span data-i18n="dashboard.adminSection">Administrace systému</span>
         </div>
         <div class="admin-tiles">
-          <a href="admin-users.html" class="admin-tile">
+          <a href="admin-users.html" class="admin-tile admin-tile--admin-only">
             <div class="admin-tile__icon">👥</div>
             <div class="admin-tile__label" data-i18n="dashboard.adminUsers">Správa uživatelů</div>
             <div class="admin-tile__sub" data-i18n="dashboard.adminUsersSub">USERS · role · hesla</div>
           </a>
-          <a href="admin-competitions.html" class="admin-tile">
+          <a href="admin-competitions.html" class="admin-tile admin-tile--admin-only">
             <div class="admin-tile__icon">⚙️</div>
             <div class="admin-tile__label" data-i18n="dashboard.adminComp">Nastavení soutěží</div>
             <div class="admin-tile__sub" data-i18n="dashboard.adminCompSub">CONFIG · termíny · alokace</div>
           </a>
-          <a href="coordinator.html" class="admin-tile">
+          <a href="coordinator.html" class="admin-tile admin-tile--coordinator">
             <div class="admin-tile__icon">📋</div>
             <div class="admin-tile__label" data-i18n="dashboard.adminApps">Správa přihlášek</div>
             <div class="admin-tile__sub" data-i18n="dashboard.adminAppsSub">Přehled · stavy · mazání řádků</div>
@@ -145,10 +145,22 @@
       h < 12 ? I18n.t("dashboard.greetMorning") : h < 18 ? I18n.t("dashboard.greetAfternoon") : I18n.t("dashboard.greetEvening");
     document.getElementById("greeting").textContent = displayName ? baseGreet + "," : baseGreet;
 
-    // Admin sekce (stačí mít roli ADMIN/TESTER na účtu, i když je zvolená jiná maska)
-    if (Auth.hasAnyRole(["ADMIN", "TESTER"])) {
+    // Admin sekce: správce vidí vše; komisař / prorektor / readonly jen přehled přihlášek
+    if (
+      Auth.hasAnyRole([
+        "ADMIN",
+        "TESTER",
+        "PROREKTOR",
+        "KOMISAR",
+        "KOMISAŘ",
+        "READONLY",
+      ])
+    ) {
       document.getElementById("adminSection").style.display = "block";
     }
+    document.querySelectorAll(".admin-tile--admin-only").forEach(function (el) {
+      el.style.display = Auth.hasAnyRole(["ADMIN", "TESTER"]) ? "" : "none";
+    });
 
     // ── Načti soutěže ──────────────────────────────────────────
     function getDashboardVisibility() {
@@ -387,14 +399,16 @@
         ],
 
         PROREKTOR: [
-          { label: I18n.t("dashboard.actionApprove"),  href: reviewHref,                    style: "primary",   icon: "✅" },
+          { label: I18n.t("dashboard.actionApprove"), href: reviewHref, style: "primary", icon: "✅" },
+          { label: I18n.t("dashboard.actionManageApps"), href: "coordinator.html", style: "secondary", icon: "📋" },
         ],
 
         KOMISAR: type === "OP_JAK_NAVRATY" ? [
           { label: I18n.t("dashboard.actionRate"),     href: reviewHref,                    style: "primary",   icon: "⭐" },
           { label: I18n.t("dashboard.actionOverview"),      href: reviewHref,                    style: "ghost",     icon: "📊" },
         ] : [
-          { label: I18n.t("dashboard.actionRate"),     href: reviewHref,                    style: "primary",   icon: "⭐" },
+          { label: I18n.t("dashboard.actionRate"), href: reviewHref, style: "primary", icon: "⭐" },
+          { label: I18n.t("dashboard.actionManageApps"), href: "coordinator.html", style: "secondary", icon: "📋" },
         ],
 
         TESTER: [
@@ -423,7 +437,8 @@
         ],
 
         READONLY: [
-          { label: I18n.t("dashboard.actionOverview"),      href: reviewHref,                    style: "ghost",     icon: "👁" },
+          { label: I18n.t("dashboard.actionOverview"), href: reviewHref, style: "ghost", icon: "👁" },
+          { label: I18n.t("dashboard.actionManageApps"), href: "coordinator.html", style: "secondary", icon: "📋" },
         ],
       };
 
