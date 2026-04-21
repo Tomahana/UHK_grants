@@ -385,7 +385,13 @@ function connectApplicationFileDownloadResolved_(competitionId, applicationId, f
           .replace(/_+/g, "_")
           .slice(0, 180);
         if (!/\.pdf$/i.test(nm)) nm = (nm || "soubor") + ".pdf";
-        return { mode: "drive_preview", fileId: String(driveRef.fileId).trim(), title: nm, blob: b.setName(nm) };
+        var shouldUsePreview = String(auth.email || "").toLowerCase().trim() === String(appRow.applicant_email || "").toLowerCase().trim();
+        return {
+          mode: shouldUsePreview ? "drive_preview" : "blob",
+          fileId: String(driveRef.fileId).trim(),
+          title: nm,
+          blob: b.setName(nm),
+        };
       }
     } catch (eDrive) {
       /* prázdný / nedostupný Disk → záloha v tabulce */
@@ -2467,6 +2473,17 @@ function adminBuildConnectDossierHtmlOutput_(competitionId, applicationId, token
   var defs = connectFormFieldDefinitionsSorted_(ss);
   var used = {};
   var formRowsHtml = "";
+  function buildAppFileDownloadHref_(fieldId) {
+    try {
+      return connectBuildWebAppGetDownloadUrl_("downloadConnectApplicationFile", token, {
+        competitionId: cid,
+        applicationId: aid,
+        fieldId: String(fieldId || "").trim(),
+      });
+    } catch (eHref) {
+      return "";
+    }
+  }
   defs.forEach(function (d) {
     var k = d.field_id;
     used[k] = true;
@@ -2481,7 +2498,15 @@ function adminBuildConnectDossierHtmlOutput_(competitionId, applicationId, token
       var m = /^UHKDRIVE\|([^|]+)\|/i.exec(raw);
       if (m) driveId = String(m[1] || "").trim();
     }
-    if (driveId) {
+    var appDl = buildAppFileDownloadHref_(k);
+    if (appDl) {
+      cell =
+        '<a href="' +
+        uhkHtmlEscape_(appDl) +
+        '" target="_blank" rel="noopener">Stáhnout / otevřít z aplikace</a> · <span style="color:#555">' +
+        uhkHtmlEscape_(String(hi.value != null && String(hi.value).trim() ? hi.value : raw).slice(0, 500)) +
+        "</span>";
+    } else if (driveId) {
       cell =
         '<a href="https://drive.google.com/file/d/' +
         encodeURIComponent(driveId) +
@@ -2524,9 +2549,25 @@ function adminBuildConnectDossierHtmlOutput_(competitionId, applicationId, token
   else {
     filesHtml = "<ul style=\"margin:6px 0 0 18px\">";
     files.forEach(function (f) {
-      if (f.isSheetBlob)
-        filesHtml += "<li>" + uhkHtmlEscape_(String(f.name || "")) + " — uloženo v tabulce</li>";
-      else
+      if (f.isSheetBlob) {
+        var paHref = "";
+        try {
+          paHref = connectBuildWebAppGetDownloadUrl_("downloadConnectPostAwardFile", token, {
+            competitionId: cid,
+            applicationId: aid,
+            blobKey: String(f.id || "").trim(),
+          });
+        } catch (ePa) {
+          paHref = "";
+        }
+        filesHtml +=
+          "<li>" +
+          uhkHtmlEscape_(String(f.name || "")) +
+          (paHref
+            ? ' — <a href="' + uhkHtmlEscape_(paHref) + '" target="_blank" rel="noopener">Stáhnout / otevřít z aplikace</a>'
+            : " — uloženo v tabulce") +
+          "</li>";
+      } else
         filesHtml +=
           "<li>" +
           uhkHtmlEscape_(String(f.name || "")) +
@@ -2594,6 +2635,40 @@ function adminBuildConnectDossierHtmlOutput_(competitionId, applicationId, token
 
 function adminExportConnectProjectDossierPdf(competitionId, applicationId, token) {
   return adminBuildConnectDossierHtmlOutput_(competitionId, applicationId, token);
+}
+
+/** Pro dossier: odkaz pro přílohu podacího formuláře (Drive preview nebo fallback stažení z aplikace). */
+function connectDossierAttachmentLinkHtml_(competitionId, applicationId, fieldId, rawCell, token) {
+  var fid = String(fieldId || "").trim();
+  var raw = String(rawCell || "").trim();
+  if (!fid || !raw) return "";
+  var dr = connectParseUhkDriveCell_(raw);
+  if (dr && dr.fileId) {
+    try {
+      // Ověření existence přes účet webové aplikace; při selhání nabídneme fallback z tabulky.
+      var f = DriveApp.getFileById(String(dr.fileId).trim());
+      var b = f.getBlob();
+      if (b && b.getBytes().length > 0) {
+        return (
+          '<a href="https://drive.google.com/file/d/' +
+          encodeURIComponent(String(dr.fileId).trim()) +
+          '/preview" target="_blank" rel="noopener">Náhled na Disku</a>'
+        );
+      }
+    } catch (e) {
+      /* fallback níže */
+    }
+  }
+  var dlUrl = connectBuildWebAppGetDownloadUrl_("downloadConnectApplicationFile", token, {
+    competitionId: competitionId,
+    applicationId: applicationId,
+    fieldId: fid,
+  });
+  return (
+    '<a href="' +
+    connectEscapeHtmlAttr_(dlUrl) +
+    '" target="_blank" rel="noopener">Stáhnout z aplikace</a>'
+  );
 }
 
 /**
