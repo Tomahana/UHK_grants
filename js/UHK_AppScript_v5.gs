@@ -3573,9 +3573,10 @@ function getConnectReviews(competitionId, token) {
 }
 
 /**
- * Rozpočet výzvy pro rozcestník: alokace z CONFIG u všech soutěží v SPREADSHEET_IDS.
- * Plný výpočet přiděleno / využito (žadatel) jen u UHK Connect (prorektor + souhlas v části 1).
- * Ostatní výzvy: alokace + zbývá = alokace (řádky přiděleno/využito 0, dokud nebude obdobná logika).
+ * Rozpočet výzvy pro rozcestník.
+ * - UHK Connect: přiděleno dle rozhodnutí prorektora, využito dle souhlasu žadatele (část 1).
+ * - Ostatní výzvy (ReGa/Prestige): přiděleno se odvozuje z podpořených/APPROVED žádostí
+ *   (primárně budget_total z formuláře; pokud existuje rozhodnutí SUPPORT/CUT, použije se schválená částka).
  */
 function getConnectFundingSummary(competitionId, token) {
   const auth = requireAuth(token);
@@ -3589,32 +3590,20 @@ function getConnectFundingSummary(competitionId, token) {
   var cfgTypeFund = inferCompetitionTypeFromConfig_(comp, cfg);
   const allocation = readTotalAllocationCzkFromCfg_(cfg, cfgTypeFund);
 
-  if (comp !== CONNECT_COMPETITION_ID) {
-    return {
-      success: true,
-      supported: true,
-      detailLevel: "allocation_only",
-      allocationCzk: allocation,
-      assignedCzk: 0,
-      acceptedCzk: 0,
-      remainingCzk: Math.max(0, allocation),
-      assignedCount: 0,
-      acceptedCount: 0,
-    };
-  }
-
   const sheet = ss.getSheetByName(SHEETS.APPLICATIONS);
   if (!sheet) {
     return {
       success: true,
       supported: true,
-      detailLevel: "connect",
+      detailLevel: comp === CONNECT_COMPETITION_ID ? "connect" : "generic",
       allocationCzk: allocation,
       assignedCzk: 0,
       acceptedCzk: 0,
       remainingCzk: Math.max(0, allocation),
       assignedCount: 0,
       acceptedCount: 0,
+      submittedCount: 0,
+      supportedCount: 0,
     };
   }
 
@@ -3623,38 +3612,55 @@ function getConnectFundingSummary(competitionId, token) {
   let accepted = 0;
   let assignedCount = 0;
   let acceptedCount = 0;
+  let submittedCount = 0;
+  let supportedCount = 0;
 
   rows.forEach(function (row) {
     const st = String(row.status || "").toUpperCase().trim();
+    if (st && st !== "DRAFT") submittedCount++;
     if (st !== "APPROVED") return;
     const id = String(row.application_id || "").trim();
     if (!id) return;
+    const fd = connectParseFormDataObject_(row);
+    const requested = Math.max(0, Number(fd.budget_total) || 0);
+    let eff = requested;
+
     const outcome = findProrektorOutcomeForApp_(ss, id, row);
     const dec = connectOutcomeDecisionCode_(outcome);
-    if (dec !== "SUPPORT" && dec !== "CUT") return;
-    const fd = connectParseFormDataObject_(row);
-    const requested = Number(fd.budget_total) || 0;
-    const eff = connectEffectiveSupportedCzk_(outcome, requested);
+
+    if (comp === CONNECT_COMPETITION_ID) {
+      if (dec !== "SUPPORT" && dec !== "CUT") return;
+      eff = connectEffectiveSupportedCzk_(outcome, requested);
+    } else if (dec === "SUPPORT" || dec === "CUT") {
+      eff = connectEffectiveSupportedCzk_(outcome, requested);
+    }
+
     if (eff <= 0) return;
     assigned += eff;
     assignedCount++;
-    const pa = readConnectPostawardChecklist_(row);
-    if (String(pa.consent_saved_at || "").trim()) {
-      accepted += eff;
-      acceptedCount++;
+    supportedCount++;
+
+    if (comp === CONNECT_COMPETITION_ID) {
+      const pa = readConnectPostawardChecklist_(row);
+      if (String(pa.consent_saved_at || "").trim()) {
+        accepted += eff;
+        acceptedCount++;
+      }
     }
   });
 
   return {
     success: true,
     supported: true,
-    detailLevel: "connect",
+    detailLevel: comp === CONNECT_COMPETITION_ID ? "connect" : "generic",
     allocationCzk: allocation,
     assignedCzk: assigned,
     acceptedCzk: accepted,
     remainingCzk: Math.max(0, allocation - assigned),
     assignedCount: assignedCount,
     acceptedCount: acceptedCount,
+    submittedCount: submittedCount,
+    supportedCount: supportedCount,
   };
 }
 
