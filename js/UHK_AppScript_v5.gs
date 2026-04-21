@@ -2445,6 +2445,11 @@ function connectFormFieldDefinitionsSorted_(ss) {
  * Přehled projektu Connect jako HTML (Ctrl+P → Uložit jako PDF). Dříve HtmlService.getAs(PDF) často selhalo / prázdná stránka.
  */
 function adminBuildConnectDossierHtmlOutput_(competitionId, applicationId, token) {
+  if (!token || !String(token).trim()) {
+    throw new Error(
+      "Nepřihlášen: chybí token. Otevřete přehled tlačítkem v aplikaci (ne ručně z URL) a po přihlášení obnovte stránku."
+    );
+  }
   var auth = requireAuth(token);
   if (!authHasAnyRole_(auth, ["ADMIN", "TESTER", "PROREKTOR", "KOMISAR", "KOMISAŘ", "READONLY"]))
     throw new Error("Přehled: nedostatečná oprávnění.");
