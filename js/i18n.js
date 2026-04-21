@@ -184,6 +184,7 @@
           "Přehled Connect (část 2) se nepodařilo včas načíst – seznam přihlášek je zobrazený; zkuste Obnovit pro doplnění semaforu.",
         fetchTimeout: "časový limit odpovědi serveru (22 s)",
         loadFatalErr: "Načtení seznamu přihlášek selhalo.",
+        loadErrorDetailPrefix: " Detaily: ",
       },
       reviewConnect: {
         cnames: {
@@ -737,6 +738,7 @@
           "Connect post-award export timed out — the application list is shown; use Refresh to retry the closeout column.",
         fetchTimeout: "server response timed out (22s)",
         loadFatalErr: "Could not load the application list.",
+        loadErrorDetailPrefix: " Details: ",
       },
       reviewConnect: {
         cnames: {

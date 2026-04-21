@@ -1500,8 +1500,16 @@
         ? I18n.t("coordinator.loadPartialNote")
         : " · částečná chyba načtení"
       : "";
+    var detail = "";
+    if (loadErrorNote_) {
+      var d = String(loadErrorNote_).replace(/\s+/g, " ").trim();
+      if (d.length > 220) d = d.slice(0, 217) + "…";
+      detail =
+        (typeof I18n !== "undefined" && I18n.t ? I18n.t("coordinator.loadErrorDetailPrefix") : " Detaily: ") +
+        d;
+    }
     document.getElementById("pageSub").textContent =
-      `${allApps.length} přihlášek celkem${demoHint}${errHint} · aktualizováno ${timeStr}`;
+      `${allApps.length} přihlášek celkem${demoHint}${errHint} · aktualizováno ${timeStr}` + detail;
   }
 
   /**
