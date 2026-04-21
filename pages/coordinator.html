@@ -373,6 +373,7 @@
   let sortDir    = -1;
   let currentApp = null;
   let loadErrorNote_ = "";
+  let coordinatorLastApiFetchCount_ = 0;
 
   const CONNECT_EXPORT_ID = "uhk_connect_2026_v2";
   /** Popisky polí z getFormFields (Connect) – hlavičky exportu místo kódů form.* */
@@ -1347,6 +1348,71 @@
     }
   }
 
+  function coordinatorApplyConnectDeliverablesToRows_() {
+    const byId = connectDeliverablesByAppId_ || {};
+    allApps.forEach(function (a) {
+      if (String(a.competition_id || "").trim() !== CONNECT_EXPORT_ID) return;
+      const id = String(a.application_id || "").trim();
+      a._connectDeliverables = byId[id] || null;
+    });
+  }
+
+  function coordinatorSetPageSubAfterLoad_() {
+    const timeStr = new Date().toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" });
+    const demoHint = !coordinatorLastApiFetchCount_
+      ? typeof I18n !== "undefined" && I18n.t
+        ? I18n.t("coordinator.loadDemoHint")
+        : " (zobrazena ukázková data – API nevrátilo žádné řádky)"
+      : "";
+    const errHint = loadErrorNote_
+      ? typeof I18n !== "undefined" && I18n.t
+        ? I18n.t("coordinator.loadPartialNote")
+        : " · částečná chyba načtení"
+      : "";
+    document.getElementById("pageSub").textContent =
+      `${allApps.length} přihlášek celkem${demoHint}${errHint} · aktualizováno ${timeStr}`;
+  }
+
+  /**
+   * Export části 2 Connect může na GAS trvat dlouho nebo viset — nesmí blokovat hlavní seznam přihlášek.
+   */
+  async function coordinatorEnrichConnectDeliverablesAsync_() {
+    const ms = 18000;
+    var timeoutErr = new Error("CONNECT_EXPORT_TIMEOUT");
+    try {
+      const exp = await Promise.race([
+        API.getConnectDeliverablesExport(CONNECT_EXPORT_ID),
+        new Promise(function (_, rej) {
+          setTimeout(function () {
+            rej(timeoutErr);
+          }, ms);
+        }),
+      ]);
+      const byId = {};
+      const rows = exp && exp.rows ? exp.rows : [];
+      rows.forEach(function (r) {
+        const id = String((r && r.application_id) || "").trim();
+        if (!id) return;
+        byId[id] = r;
+      });
+      connectDeliverablesByAppId_ = byId;
+      coordinatorApplyConnectDeliverablesToRows_();
+      updateStats();
+      applyFilters();
+      coordinatorSetPageSubAfterLoad_();
+    } catch (e) {
+      if (e === timeoutErr || (e && e.message === "CONNECT_EXPORT_TIMEOUT")) {
+        showToast(
+          typeof I18n !== "undefined" && I18n.t
+            ? I18n.t("coordinator.connectExportTimeout")
+            : "Přehled Connect (část 2) se nepodařilo včas načíst – tabulka je zobrazená, semafor se doplní po Obnovit.",
+          "err"
+        );
+      }
+      /* ostatní chyby: tabulka už běží bez semaforu části 2 */
+    }
+  }
+
   // ── Načtení přihlášek ─────────────────────────────────────
   async function loadAll() {
     document.getElementById("tableBody").innerHTML =
@@ -1362,98 +1428,90 @@
     const all = [];
     const errBits = [];
 
-    for (const compId of competitions) {
-      try {
-        const session = Auth._getSession();
-        const url = new URL(API_URL);
-        url.searchParams.set("action", "getApplications");
-        url.searchParams.set("competitionId", compId);
-        url.searchParams.set("token", session?.token || "");
-        const res  = await fetch(url.toString());
-        const raw = await res.text().catch(function () { return ""; });
-        let data = {};
+    try {
+      for (const compId of competitions) {
         try {
-          data = raw ? JSON.parse(raw) : {};
-        } catch {
-          data = {};
-        }
-        if (!res.ok) {
-          errBits.push(
-            COMP_NAMES[compId] || compId + ": HTTP " + res.status + (raw ? " – " + String(raw).slice(0, 120) : "")
-          );
-          continue;
-        }
-        if (data && (data.error || data.message)) {
-          errBits.push(
-            (COMP_NAMES[compId] || compId) +
-              ": " +
-              String(data.error || data.message || "chyba API").slice(0, 200)
-          );
-          continue;
-        }
-        const appsList = Array.isArray(data) ? data : (data.applications || []);
-        if (appsList.length) {
-          appsList.forEach(a => {
-            // Parsuj form_data_json
-            try { a._form = JSON.parse(a.form_data_json || "{}"); } catch { a._form = {}; }
-            a.competition_id = compId;
-            a.faculty = a._form.faculty || "—";
-            a.project_title = a._form.project_title || "—";
-            all.push(a);
+          const session = Auth._getSession();
+          const url = new URL(API_URL);
+          url.searchParams.set("action", "getApplications");
+          url.searchParams.set("competitionId", compId);
+          url.searchParams.set("token", session?.token || "");
+          const res = await fetch(url.toString());
+          const raw = await res.text().catch(function () {
+            return "";
           });
+          let data = {};
+          try {
+            data = raw ? JSON.parse(raw) : {};
+          } catch {
+            data = {};
+          }
+          if (!res.ok) {
+            errBits.push(
+              COMP_NAMES[compId] || compId + ": HTTP " + res.status + (raw ? " – " + String(raw).slice(0, 120) : "")
+            );
+            continue;
+          }
+          if (data && (data.error || data.message)) {
+            errBits.push(
+              (COMP_NAMES[compId] || compId) +
+                ": " +
+                String(data.error || data.message || "chyba API").slice(0, 200)
+            );
+            continue;
+          }
+          const appsList = Array.isArray(data) ? data : data.applications || [];
+          if (appsList.length) {
+            appsList.forEach(function (a) {
+              try {
+                a._form = JSON.parse(a.form_data_json || "{}");
+              } catch {
+                a._form = {};
+              }
+              a.competition_id = compId;
+              a.faculty = a._form.faculty || "—";
+              a.project_title = a._form.project_title || "—";
+              all.push(a);
+            });
+          }
+        } catch (e) {
+          errBits.push((COMP_NAMES[compId] || compId) + ": " + String((e && e.message) || e).slice(0, 200));
         }
-      } catch (e) {
-        errBits.push(
-          (COMP_NAMES[compId] || compId) + ": " + String((e && e.message) || e).slice(0, 200)
+      }
+
+      if (errBits.length) {
+        loadErrorNote_ = errBits.join(" · ");
+        showToast(
+          typeof I18n !== "undefined" && I18n.t
+            ? I18n.t("coordinator.loadPartialErr")
+            : "Část přihlášek se nepodařilo načíst z API. Zkuste Obnovit nebo se znovu přihlaste.",
+          "err"
         );
       }
-    }
 
-    if (errBits.length) {
-      loadErrorNote_ = errBits.join(" · ");
-      showToast(
-        typeof I18n !== "undefined" && I18n.t
-          ? I18n.t("coordinator.loadPartialErr")
-          : "Část přihlášek se nepodařilo načíst z API. Zkuste Obnovit nebo se znovu přihlaste.",
-        "err"
-      );
-    }
-
-    const byId = {};
-    try {
-      const exp = await API.getConnectDeliverablesExport(CONNECT_EXPORT_ID);
-      const rows = exp && exp.rows ? exp.rows : [];
-      rows.forEach((r) => {
-        const id = String((r && r.application_id) || "").trim();
-        if (!id) return;
-        byId[id] = r;
+      connectDeliverablesByAppId_ = {};
+      coordinatorLastApiFetchCount_ = all.length;
+      allApps = (all.length ? all : getDemoApps()).map(function (a) {
+        if (String(a.competition_id || "").trim() !== CONNECT_EXPORT_ID) return a;
+        const id = String(a.application_id || "").trim();
+        a._connectDeliverables = null;
+        return a;
       });
-    } catch {
-      /* ignore semafor enrichment failures */
+      updateStats();
+      applyFilters();
+      coordinatorSetPageSubAfterLoad_();
+      void coordinatorEnrichConnectDeliverablesAsync_();
+      void loadConnectFormFieldLabelsForExport_();
+    } catch (e) {
+      showToast((e && e.message) || String(e), "err");
+      allApps = getDemoApps();
+      connectDeliverablesByAppId_ = {};
+      coordinatorLastApiFetchCount_ = 0;
+      coordinatorApplyConnectDeliverablesToRows_();
+      updateStats();
+      applyFilters();
+      coordinatorSetPageSubAfterLoad_();
     }
-    connectDeliverablesByAppId_ = byId;
-    allApps = (all.length ? all : getDemoApps()).map((a) => {
-      if (String(a.competition_id || "").trim() !== CONNECT_EXPORT_ID) return a;
-      const id = String(a.application_id || "").trim();
-      a._connectDeliverables = byId[id] || null;
-      return a;
-    });
-    updateStats();
-    applyFilters();
-    void loadConnectFormFieldLabelsForExport_();
-    const timeStr = new Date().toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" });
-    const demoHint = !all.length
-      ? typeof I18n !== "undefined" && I18n.t
-        ? I18n.t("coordinator.loadDemoHint")
-        : " (zobrazena ukázková data – API nevrátilo žádné řádky)"
-      : "";
-    const errHint = loadErrorNote_
-      ? typeof I18n !== "undefined" && I18n.t
-        ? I18n.t("coordinator.loadPartialNote")
-        : " · částečná chyba načtení"
-      : "";
-    document.getElementById("pageSub").textContent =
-      `${allApps.length} přihlášek celkem${demoHint}${errHint} · aktualizováno ${timeStr}`;
   }
 
   // ── Statistiky ────────────────────────────────────────────
