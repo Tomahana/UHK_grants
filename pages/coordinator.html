@@ -1348,6 +1348,97 @@
     }
   }
 
+  /**
+   * fetch bez timeoutu může na GAS viset donekonečna → tabulka zůstane jen na „Načítám…“.
+   */
+  async function coordinatorFetchWithTimeout_(urlStr, ms) {
+    var ctrl = new AbortController();
+    var tid = setTimeout(function () {
+      try {
+        ctrl.abort();
+      } catch (e0) {
+        /* ignore */
+      }
+    }, ms);
+    try {
+      var res = await fetch(urlStr, { signal: ctrl.signal });
+      var raw = await res.text().catch(function () {
+        return "";
+      });
+      return { ok: true, res: res, raw: raw, aborted: false };
+    } catch (e) {
+      if (e && e.name === "AbortError") {
+        return { ok: false, res: null, raw: "", aborted: true, error: e };
+      }
+      return { ok: false, res: null, raw: "", aborted: false, error: e };
+    } finally {
+      clearTimeout(tid);
+    }
+  }
+
+  async function coordinatorFetchApplicationsForComp_(compId, token, timeoutMs) {
+    var url = new URL(API_URL);
+    url.searchParams.set("action", "getApplications");
+    url.searchParams.set("competitionId", compId);
+    url.searchParams.set("token", token || "");
+    var ft = await coordinatorFetchWithTimeout_(url.toString(), timeoutMs || 22000);
+    if (ft.aborted) {
+      return {
+        err: (COMP_NAMES[compId] || compId) + ": " + (typeof I18n !== "undefined" && I18n.t ? I18n.t("coordinator.fetchTimeout") : "časový limit odpovědi"),
+        rows: [],
+      };
+    }
+    if (!ft.ok || !ft.res) {
+      return {
+        err:
+          (COMP_NAMES[compId] || compId) +
+          ": " +
+          String((ft.error && ft.error.message) || "síťová chyba").slice(0, 160),
+        rows: [],
+      };
+    }
+    var raw = ft.raw || "";
+    var data = {};
+    try {
+      data = raw ? JSON.parse(raw) : {};
+    } catch {
+      data = {};
+    }
+    if (!ft.res.ok) {
+      return {
+        err:
+          (COMP_NAMES[compId] || compId) +
+          ": HTTP " +
+          ft.res.status +
+          (raw ? " – " + String(raw).slice(0, 120) : ""),
+        rows: [],
+      };
+    }
+    if (data && (data.error || data.message)) {
+      return {
+        err:
+          (COMP_NAMES[compId] || compId) +
+          ": " +
+          String(data.error || data.message || "chyba API").slice(0, 200),
+        rows: [],
+      };
+    }
+    var appsList = Array.isArray(data) ? data : data.applications || [];
+    var out = [];
+    appsList.forEach(function (a) {
+      try {
+        a._form = JSON.parse(a.form_data_json || "{}");
+      } catch {
+        a._form = {};
+      }
+      a.competition_id = compId;
+      a.faculty = a._form.faculty || "—";
+      a.project_title = a._form.project_title || "—";
+      out.push(a);
+    });
+    return { err: "", rows: out };
+  }
+
   function coordinatorApplyConnectDeliverablesToRows_() {
     const byId = connectDeliverablesByAppId_ || {};
     allApps.forEach(function (a) {
@@ -1416,7 +1507,7 @@
   // ── Načtení přihlášek ─────────────────────────────────────
   async function loadAll() {
     document.getElementById("tableBody").innerHTML =
-      '<tr class="loading-row"><td colspan="9"><span class="spinner"></span>Načítám…</td></tr>';
+      '<tr class="loading-row"><td colspan="10"><span class="spinner"></span>Načítám…</td></tr>';
 
     loadErrorNote_ = "";
     const competitions = [
@@ -1427,57 +1518,24 @@
     ];
     const all = [];
     const errBits = [];
+    var session = Auth._getSession();
+    var token = session && session.token ? session.token : "";
 
     try {
-      for (const compId of competitions) {
-        try {
-          const session = Auth._getSession();
-          const url = new URL(API_URL);
-          url.searchParams.set("action", "getApplications");
-          url.searchParams.set("competitionId", compId);
-          url.searchParams.set("token", session?.token || "");
-          const res = await fetch(url.toString());
-          const raw = await res.text().catch(function () {
-            return "";
+      var perCompTimeout = 22000;
+      var results = await Promise.all(
+        competitions.map(function (compId) {
+          return coordinatorFetchApplicationsForComp_(compId, token, perCompTimeout);
+        })
+      );
+      results.forEach(function (r) {
+        if (r.err) errBits.push(r.err);
+        if (r.rows && r.rows.length) {
+          r.rows.forEach(function (row) {
+            all.push(row);
           });
-          let data = {};
-          try {
-            data = raw ? JSON.parse(raw) : {};
-          } catch {
-            data = {};
-          }
-          if (!res.ok) {
-            errBits.push(
-              COMP_NAMES[compId] || compId + ": HTTP " + res.status + (raw ? " – " + String(raw).slice(0, 120) : "")
-            );
-            continue;
-          }
-          if (data && (data.error || data.message)) {
-            errBits.push(
-              (COMP_NAMES[compId] || compId) +
-                ": " +
-                String(data.error || data.message || "chyba API").slice(0, 200)
-            );
-            continue;
-          }
-          const appsList = Array.isArray(data) ? data : data.applications || [];
-          if (appsList.length) {
-            appsList.forEach(function (a) {
-              try {
-                a._form = JSON.parse(a.form_data_json || "{}");
-              } catch {
-                a._form = {};
-              }
-              a.competition_id = compId;
-              a.faculty = a._form.faculty || "—";
-              a.project_title = a._form.project_title || "—";
-              all.push(a);
-            });
-          }
-        } catch (e) {
-          errBits.push((COMP_NAMES[compId] || compId) + ": " + String((e && e.message) || e).slice(0, 200));
         }
-      }
+      });
 
       if (errBits.length) {
         loadErrorNote_ = errBits.join(" · ");
@@ -1619,7 +1677,7 @@
   function renderTable() {
     const body = document.getElementById("tableBody");
     if (!filtered.length) {
-      body.innerHTML = `<tr><td colspan="9">
+      body.innerHTML = `<tr><td colspan="10">
         <div class="empty-state">
           <div class="empty-icon">📭</div>
           <div>Žádné přihlášky neodpovídají filtru</div>

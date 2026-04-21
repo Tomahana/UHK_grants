@@ -182,6 +182,7 @@
         loadPartialNote: " · částečná chyba načtení",
         connectExportTimeout:
           "Přehled Connect (část 2) se nepodařilo včas načíst – seznam přihlášek je zobrazený; zkuste Obnovit pro doplnění semaforu.",
+        fetchTimeout: "časový limit odpovědi serveru (22 s)",
       },
       reviewConnect: {
         cnames: {
@@ -733,6 +734,7 @@
         loadPartialNote: " · partial load error",
         connectExportTimeout:
           "Connect post-award export timed out — the application list is shown; use Refresh to retry the closeout column.",
+        fetchTimeout: "server response timed out (22s)",
       },
       reviewConnect: {
         cnames: {
