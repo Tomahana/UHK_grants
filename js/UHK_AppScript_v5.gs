@@ -1746,7 +1746,7 @@ function applicationsSetFormDataJsonForAppId_(sheet, applicationId, fdObj) {
  * Zapíše hodnotu pole přílohy (UHKAFILE|… / UHKDRIVE|…) do form_data_json daného konceptu.
  * Volá se hned po uploadu, aby příloha byla v tabulce i když následný saveDraft z prohlížeče selže.
  */
-function connectMergeAttachmentIntoApplicationForm_(ss, applicationId, applicantLower, fieldId, urlValue) {
+function connectMergeAttachmentIntoApplicationForm_(ss, applicationId, applicantLower, fieldId, urlValue, allowPrivilegedWrite) {
   var aid = String(applicationId || "").trim();
   var fid = String(fieldId || "").trim();
   if (!aid || !fid) return false;
@@ -1757,10 +1757,13 @@ function connectMergeAttachmentIntoApplicationForm_(ss, applicationId, applicant
     return String(r.application_id || "").trim() === aid;
   });
   if (!row) return false;
-  if (String(row.applicant_email || "").toLowerCase().trim() !== String(applicantLower || "").toLowerCase().trim()) {
+  var ownerEmail = String(row.applicant_email || "").toLowerCase().trim();
+  var actorEmail = String(applicantLower || "").toLowerCase().trim();
+  var isPrivileged = !!allowPrivilegedWrite;
+  if (!isPrivileged && ownerEmail !== actorEmail) {
     return false;
   }
-  if (String(row.status || "").toUpperCase() !== "DRAFT") return false;
+  if (!isPrivileged && String(row.status || "").toUpperCase() !== "DRAFT") return false;
   var fd = connectParseFormDataObject_(row);
   fd[fid] = String(urlValue || "").trim();
   return applicationsSetFormDataJsonForAppId_(sheet, aid, fd);
@@ -2047,7 +2050,7 @@ function connectTryCreateApplicationPdfOnDrive_(ss, bytes, driveName) {
  * fileUploads: pole { fieldId, fileName, mimeType, fileBase64 }
  * @returns {{ patch: Object, diagnostics: Object }} diagnostics[fieldId] = { storage: "drive"|"sheet", driveError?: string }
  */
-function connectProcessApplicationFileUploads_(ss, competitionId, applicationId, applicantLower, fileUploads) {
+function connectProcessApplicationFileUploads_(ss, competitionId, applicationId, applicantLower, fileUploads, allowPrivilegedWrite) {
   var patch = {};
   var diagnostics = {};
   if (!fileUploads || !fileUploads.length) return { patch: patch, diagnostics: diagnostics };
@@ -2061,10 +2064,13 @@ function connectProcessApplicationFileUploads_(ss, competitionId, applicationId,
     return String(r.application_id || "").trim() === String(applicationId || "").trim();
   });
   if (!row) throw new Error("Koncept / přihláška nenalezena.");
-  if (String(row.applicant_email || "").toLowerCase().trim() !== applicantLower) {
+  var ownerEmail = String(row.applicant_email || "").toLowerCase().trim();
+  var actorEmail = String(applicantLower || "").toLowerCase().trim();
+  var isPrivileged = !!allowPrivilegedWrite;
+  if (!isPrivileged && ownerEmail !== actorEmail) {
     throw new Error("K této přihlášce nemáte oprávnění nahrávat soubory.");
   }
-  if (String(row.status || "").toUpperCase() !== "DRAFT") {
+  if (!isPrivileged && String(row.status || "").toUpperCase() !== "DRAFT") {
     throw new Error("Soubor z podacího formuláře lze nahrávat jen u rozpracovaného konceptu (DRAFT).");
   }
 
@@ -3301,6 +3307,7 @@ function uploadConnectApplicationAttachment(body) {
   if (!body.token) throw new Error("Chybí token. Nahrajte přílohu z webové aplikace po přihlášení.");
   var auth = requireAuth(body.token);
   var me = String(auth.email || "").toLowerCase().trim();
+  var canAdminUpload = authHasAnyRole_(auth, ["ADMIN", "TESTER"]);
   var competitionId = String(body.competitionId || "").trim();
   var applicationId = String(body.applicationId || body.draftId || "").trim();
   var fieldId = String(body.fieldId || body.field_id || "").trim();
@@ -3311,13 +3318,13 @@ function uploadConnectApplicationAttachment(body) {
   var ss = getSpreadsheet(competitionId);
   var upRes = connectProcessApplicationFileUploads_(ss, competitionId, applicationId, me, [
     { fieldId: fieldId, fileName: fileName, mimeType: mimeType, fileBase64: b64 },
-  ]);
+  ], canAdminUpload);
   var patch = upRes.patch || {};
   var diag = (upRes.diagnostics && upRes.diagnostics[fieldId]) || {};
   var url = patch[fieldId];
   if (!url) throw new Error("Nahrání se nezdařilo.");
   var sk = /^UHKDRIVE\|/i.test(String(url)) ? "drive" : "sheet";
-  var persisted = connectMergeAttachmentIntoApplicationForm_(ss, applicationId, me, fieldId, url);
+  var persisted = connectMergeAttachmentIntoApplicationForm_(ss, applicationId, me, fieldId, url, canAdminUpload);
   return {
     success: true,
     fieldId: fieldId,

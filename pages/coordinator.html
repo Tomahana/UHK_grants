@@ -371,6 +371,78 @@
     openConnectAdminDossierPdf(currentApp.application_id);
   }
 
+  function connectAttachmentFieldLabel_(fieldId) {
+    const map = {
+      attach_invitation: "Invitation letter",
+      attach_annex1: "Annex 1",
+      attach_annex2: "Annex 2",
+      attach_annex3: "Annex 3",
+    };
+    return map[String(fieldId || "").trim()] || String(fieldId || "").replace(/_/g, " ");
+  }
+
+  async function adminUploadConnectAttachmentFromModal(fieldId, inputEl) {
+    const f = inputEl && inputEl.files && inputEl.files[0] ? inputEl.files[0] : null;
+    if (!currentApp || !f) return;
+    try {
+      const max = 18 * 1024 * 1024;
+      if (f.size > max) throw new Error("Soubor je větší než 18 MB.");
+      if (!/\.pdf$/i.test(String(f.name || ""))) throw new Error("Povolen je pouze PDF soubor.");
+      const st = document.getElementById("connectAttachUploadStatus");
+      if (st) st.textContent = "Nahrávám…";
+      const b64 = await fileToBase64_(f);
+      const res = await API.post("uploadConnectApplicationAttachment", {
+        competitionId: currentApp.competition_id,
+        applicationId: currentApp.application_id,
+        fieldId: String(fieldId || "").trim(),
+        fileName: f.name,
+        mimeType: f.type || "application/pdf",
+        fileBase64: b64,
+      });
+      if (res && res.error) throw new Error(res.error);
+      const nowApp = allApps.find((x) => x.application_id === currentApp.application_id);
+      if (nowApp) {
+        nowApp._form = nowApp._form || {};
+        nowApp._form[fieldId] = String((res && res.url) || "");
+      }
+      if (st)
+        st.textContent =
+          "Nahráno: " +
+          connectAttachmentFieldLabel_(fieldId) +
+          " (" +
+          (res && res.storageKind === "drive" ? "Disk" : "aplikace") +
+          ")";
+      showToast("Příloha byla nahrána.");
+      openDetail(currentApp.application_id);
+    } catch (e) {
+      const st = document.getElementById("connectAttachUploadStatus");
+      if (st) st.textContent = "";
+      showToast((e && e.message) || "Nahrání přílohy selhalo.", "err");
+    } finally {
+      if (inputEl) inputEl.value = "";
+    }
+  }
+
+  function coordinatorConnectAttachmentUploadHtml_(competitionId) {
+    if (String(competitionId || "").trim() !== CONNECT_EXPORT_ID) return "";
+    if (!Auth.hasAnyRole(["ADMIN", "TESTER"])) return "";
+    const rows = CONNECT_APPLICATION_FILE_FIELD_IDS_.map(
+      (fid) => `
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0;">
+          <div style="min-width:120px;font-size:12px;color:var(--navy-mid)">${escapeHtmlCoord(connectAttachmentFieldLabel_(fid))}</div>
+          <input type="file" accept="application/pdf,.pdf" onchange="adminUploadConnectAttachmentFromModal('${fid}', this)">
+        </div>`
+    ).join("");
+    return `
+      <div class="detail-field" style="grid-column:1 / -1;">
+        <div class="detail-label">Přílohy podacího formuláře – nahrání (správce)</div>
+        <div class="detail-value" style="font-size:12px;line-height:1.45">
+          ${rows}
+          <div id="connectAttachUploadStatus" style="margin-top:6px;color:var(--muted);"></div>
+        </div>
+      </div>`;
+  }
+
   function escapeHtmlCoord(s) {
     return String(s == null ? "" : s)
       .replace(/&/g, "&amp;")
@@ -1417,6 +1489,7 @@
           <div class="detail-value">${String(v).substring(0,200)}</div>
         </div>` : "").join("");
     const connectAttachBlock = coordinatorConnectSubmittedAttachmentsHtml_(a.competition_id, a.application_id, form);
+    const connectUploadBlock = coordinatorConnectAttachmentUploadHtml_(a.competition_id);
 
     // Rozpočet
     const budgetFields = ["budget_travel","budget_accommodation","budget_meals","budget_local","budget_fee","budget_publication","budget_personnel"];
@@ -1438,6 +1511,7 @@
         <div class="detail-field"><div class="detail-label">Součást</div><div class="detail-value">${form.faculty || "—"}</div></div>
         ${fieldRows}
         ${connectAttachBlock}
+        ${connectUploadBlock}
       </div>
       ${budgetRows ? `
         <div style="margin-bottom:16px;">
