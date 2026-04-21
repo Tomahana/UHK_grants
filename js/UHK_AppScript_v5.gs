@@ -156,6 +156,7 @@ const UHK_COMPETITION_EMAIL_SUBJECT_TAGS = {
 
 /** Výchozí složka Google Disk pro přílohy Connect (část 2). Přepište v listu CONFIG klíčem connect_postaward_attachments_folder_id (ID z URL složky). */
 const CONNECT_POSTAWARD_ATTACHMENTS_FOLDER_ID = "1oJ7qujZhIBygFYgiN5Im7fmpKbeADDDi";
+const PRESTIGE_APPLICATION_ATTACHMENTS_FOLDER_ID = "1QJWvhIx1WulKS5oniPonPS4WfuUjY7Al";
 
 /**
  * Z buňky CONFIG nebo z vložené URL Disku vytáhne jen ID složky (bez ?usp=sharing, #…, mezer).
@@ -219,10 +220,14 @@ function connectGetPostAwardDriveFolderId_(ss) {
  * CONFIG: connect_application_attachments_folder_id — pokud chybí, použije se stejná složka jako u části 2
  * (connect_postaward_attachments_folder_id / archive / konstanta).
  */
-function connectGetApplicationAttachmentsDriveFolderId_(ss) {
+function connectGetApplicationAttachmentsDriveFolderId_(ss, competitionId) {
   var cfg = getConfigMap(ss);
   var raw = String(cfg["connect_application_attachments_folder_id"] || "").trim();
   if (raw) return connectSanitizeDriveFolderId_(raw);
+  var cid = String(competitionId || "").trim();
+  if (cid === "uhk_prestige_2026") {
+    return connectSanitizeDriveFolderId_(PRESTIGE_APPLICATION_ATTACHMENTS_FOLDER_ID || "");
+  }
   return connectGetPostAwardDriveFolderId_(ss);
 }
 
@@ -255,8 +260,8 @@ function connectGetPostAwardDriveFolderThrowing_(ss) {
 /**
  * Složka pro podací PDF Connect; stejné oprávnění jako u části 2 (účet webové aplikace = Editor).
  */
-function connectGetApplicationAttachmentsDriveFolderThrowing_(ss) {
-  var folderId = connectGetApplicationAttachmentsDriveFolderId_(ss);
+function connectGetApplicationAttachmentsDriveFolderThrowing_(ss, competitionId) {
+  var folderId = connectGetApplicationAttachmentsDriveFolderId_(ss, competitionId);
   if (!folderId) {
     throw new Error(
       "Není nastavena složka na Disku pro přílohy podacího formuláře Connect. Doplňte v CONFIG klíč connect_application_attachments_folder_id nebo connect_postaward_attachments_folder_id (ID složky z URL Disku)."
@@ -2009,7 +2014,7 @@ function connectDriveUploadActorHint_() {
   return " Přidejte účet Web App (Execute as: Me) ke složce jako Editor.";
 }
 
-function connectTryCreateApplicationPdfOnDrive_(ss, bytes, driveName) {
+function connectTryCreateApplicationPdfOnDrive_(ss, competitionId, bytes, driveName) {
   var folders = [];
   function addFolder(f) {
     if (!f) return;
@@ -2029,7 +2034,7 @@ function connectTryCreateApplicationPdfOnDrive_(ss, bytes, driveName) {
     folders.push(f);
   }
   try {
-    addFolder(connectGetApplicationAttachmentsDriveFolderThrowing_(ss));
+    addFolder(connectGetApplicationAttachmentsDriveFolderThrowing_(ss, competitionId));
   } catch (eCfg) {
     /* CONFIG složka chybí nebo není dostupná */
   }
@@ -2120,7 +2125,7 @@ function connectProcessApplicationFileUploads_(ss, competitionId, applicationId,
 
     var stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd_HHmmss");
     var driveName = applicationId + "_apply_" + fieldId + "_" + stamp + "_" + safe;
-    var driveTry = connectTryCreateApplicationPdfOnDrive_(ss, bytes, driveName);
+    var driveTry = connectTryCreateApplicationPdfOnDrive_(ss, competitionId, bytes, driveName);
     var driveOk = !!(driveTry && driveTry.ok && driveTry.file);
     if (driveOk) {
       var fidDrive = driveTry.file.getId();
