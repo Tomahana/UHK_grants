@@ -381,6 +381,30 @@
     return map[String(fieldId || "").trim()] || String(fieldId || "").replace(/_/g, " ");
   }
 
+  async function coordinatorPostFormUrlEncoded_(body) {
+    const params = new URLSearchParams();
+    Object.keys(body || {}).forEach(function (k) {
+      var v = body[k];
+      if (v === undefined || v === null) return;
+      params.set(k, String(v));
+    });
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: params.toString(),
+    });
+    const raw = await res.text().catch(function () {
+      return "";
+    });
+    let out = {};
+    try {
+      out = raw ? JSON.parse(raw) : {};
+    } catch (e) {
+      out = {};
+    }
+    return { res, out };
+  }
+
   async function adminUploadConnectAttachmentFromModal(fieldId, inputEl) {
     const f = inputEl && inputEl.files && inputEl.files[0] ? inputEl.files[0] : null;
     if (!currentApp || !f) return;
@@ -391,7 +415,10 @@
       const st = document.getElementById("connectAttachUploadStatus");
       if (st) st.textContent = "Nahrávám…";
       const b64 = await fileToBase64_(f);
-      const res = await API.post("uploadConnectApplicationAttachment", {
+      const session = Auth._getSession();
+      const req = await coordinatorPostFormUrlEncoded_({
+        action: "uploadConnectApplicationAttachment",
+        token: session?.token || "",
         competitionId: currentApp.competition_id,
         applicationId: currentApp.application_id,
         fieldId: String(fieldId || "").trim(),
@@ -399,6 +426,8 @@
         mimeType: f.type || "application/pdf",
         fileBase64: b64,
       });
+      if (!req.res.ok) throw new Error("HTTP " + req.res.status);
+      const res = req.out || {};
       if (res && res.error) throw new Error(res.error);
       const nowApp = allApps.find((x) => x.application_id === currentApp.application_id);
       if (nowApp) {
