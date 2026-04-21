@@ -174,7 +174,13 @@
         back: "← Zpět",
         logout: "Odhlásit",
       },
-      coordinator: { signedInLabel: "Přihlášena:" },
+      coordinator: {
+        signedInLabel: "Přihlášena:",
+        loadPartialErr:
+          "Část přihlášek se nepodařilo načíst z API. Zkuste Obnovit nebo se znovu přihlaste.",
+        loadDemoHint: " (zobrazena ukázková data – API nevrátilo žádné řádky)",
+        loadPartialNote: " · částečná chyba načtení",
+      },
       reviewConnect: {
         cnames: {
           uhk_connect_2026_v2: "UHK Connect – výzva č. 2",
@@ -717,7 +723,13 @@
         back: "← Back",
         logout: "Log out",
       },
-      coordinator: { signedInLabel: "Signed in:" },
+      coordinator: {
+        signedInLabel: "Signed in:",
+        loadPartialErr:
+          "Some applications could not be loaded from the API. Try Refresh or sign in again.",
+        loadDemoHint: " (showing sample data — the API returned no rows)",
+        loadPartialNote: " · partial load error",
+      },
       reviewConnect: {
         cnames: {
           uhk_connect_2026_v2: "UHK Connect – call no. 2",

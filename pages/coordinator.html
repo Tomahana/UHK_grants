@@ -246,6 +246,7 @@
       <option value="uhk_rega_2026_v1">UHK ReGa</option>
       <option value="uhk_navraty_2026">OP JAK Návraty</option>
       <option value="uhk_prestige_2026">UHK Prestige</option>
+      <option value="no_cost_entry_2026_v2">Horizon No-Cost Entry</option>
     </select>
     <select class="filter-select" id="facultyFilter" onchange="applyFilters()">
       <option value="">Všechny součásti</option>
@@ -337,14 +338,22 @@
     if (el) I18n.mountLangSwitch(el, "first");
   })();
 
-  const user = Auth.requireLogin(["ADMIN","TESTER"]);
+  const user = Auth.requireLogin([
+    "ADMIN",
+    "TESTER",
+    "PROREKTOR",
+    "KOMISAR",
+    "KOMISAŘ",
+    "READONLY",
+  ]);
   document.getElementById("topbarName").textContent = user.name || user.email;
 
   const COMP_NAMES = {
     "uhk_connect_2026_v2": "Connect",
-    "uhk_rega_2026_v1":    "ReGa",
-    "uhk_navraty_2026":    "Návraty",
-    "uhk_prestige_2026":   "Prestige",
+    "uhk_rega_2026_v1": "ReGa",
+    "uhk_navraty_2026": "Návraty",
+    "uhk_prestige_2026": "Prestige",
+    "no_cost_entry_2026_v2": "No-Cost Entry",
   };
 
   const STATUS_FLOW = {
@@ -363,6 +372,7 @@
   let sortCol    = "submitted_at";
   let sortDir    = -1;
   let currentApp = null;
+  let loadErrorNote_ = "";
 
   const CONNECT_EXPORT_ID = "uhk_connect_2026_v2";
   /** Popisky polí z getFormFields (Connect) – hlavičky exportu místo kódů form.* */
@@ -1342,8 +1352,15 @@
     document.getElementById("tableBody").innerHTML =
       '<tr class="loading-row"><td colspan="9"><span class="spinner"></span>Načítám…</td></tr>';
 
-    const competitions = ["uhk_connect_2026_v2","uhk_rega_2026_v1","uhk_prestige_2026"];
+    loadErrorNote_ = "";
+    const competitions = [
+      "uhk_connect_2026_v2",
+      "uhk_rega_2026_v1",
+      "uhk_prestige_2026",
+      "no_cost_entry_2026_v2",
+    ];
     const all = [];
+    const errBits = [];
 
     for (const compId of competitions) {
       try {
@@ -1353,7 +1370,27 @@
         url.searchParams.set("competitionId", compId);
         url.searchParams.set("token", session?.token || "");
         const res  = await fetch(url.toString());
-        const data = await res.json();
+        const raw = await res.text().catch(function () { return ""; });
+        let data = {};
+        try {
+          data = raw ? JSON.parse(raw) : {};
+        } catch {
+          data = {};
+        }
+        if (!res.ok) {
+          errBits.push(
+            COMP_NAMES[compId] || compId + ": HTTP " + res.status + (raw ? " – " + String(raw).slice(0, 120) : "")
+          );
+          continue;
+        }
+        if (data && (data.error || data.message)) {
+          errBits.push(
+            (COMP_NAMES[compId] || compId) +
+              ": " +
+              String(data.error || data.message || "chyba API").slice(0, 200)
+          );
+          continue;
+        }
         const appsList = Array.isArray(data) ? data : (data.applications || []);
         if (appsList.length) {
           appsList.forEach(a => {
@@ -1365,9 +1402,21 @@
             all.push(a);
           });
         }
-      } catch {
-        // Pokud API selže, pokračuj s dalšími
+      } catch (e) {
+        errBits.push(
+          (COMP_NAMES[compId] || compId) + ": " + String((e && e.message) || e).slice(0, 200)
+        );
       }
+    }
+
+    if (errBits.length) {
+      loadErrorNote_ = errBits.join(" · ");
+      showToast(
+        typeof I18n !== "undefined" && I18n.t
+          ? I18n.t("coordinator.loadPartialErr")
+          : "Část přihlášek se nepodařilo načíst z API. Zkuste Obnovit nebo se znovu přihlaste.",
+        "err"
+      );
     }
 
     const byId = {};
@@ -1392,8 +1441,19 @@
     updateStats();
     applyFilters();
     void loadConnectFormFieldLabelsForExport_();
+    const timeStr = new Date().toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" });
+    const demoHint = !all.length
+      ? typeof I18n !== "undefined" && I18n.t
+        ? I18n.t("coordinator.loadDemoHint")
+        : " (zobrazena ukázková data – API nevrátilo žádné řádky)"
+      : "";
+    const errHint = loadErrorNote_
+      ? typeof I18n !== "undefined" && I18n.t
+        ? I18n.t("coordinator.loadPartialNote")
+        : " · částečná chyba načtení"
+      : "";
     document.getElementById("pageSub").textContent =
-      `${allApps.length} přihlášek celkem · aktualizováno ${new Date().toLocaleTimeString("cs-CZ", {hour:"2-digit",minute:"2-digit"})}`;
+      `${allApps.length} přihlášek celkem${demoHint}${errHint} · aktualizováno ${timeStr}`;
   }
 
   // ── Statistiky ────────────────────────────────────────────
