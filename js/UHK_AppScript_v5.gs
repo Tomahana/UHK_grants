@@ -38,6 +38,8 @@ const SPREADSHEET_IDS = {
   "uhk_navraty_2026":    "1E8hRFVkVt3WuhGcSrhz9E0P9Pvz7udoT1IGMnNH8ADc",
   "uhk_rega_2026_v1":    "1VU3c_gwxjbuZuNQ5_B1iqlbGzOgLwtUXUAI-E2dt6EA",
   "uhk_prestige_2026":   "1qmx2gFETaYJVdZmhkGUvdGdukARlQZXnepVPYJSuemk",
+  /** Stejný sešit jako Prestige (formulář apply-prestige); list 📥 APPLICATIONS filtruje podle competition_id. */
+  "no_cost_entry_2026_v2": "1qmx2gFETaYJVdZmhkGUvdGdukARlQZXnepVPYJSuemk",
 };
 
 // Tajný klíč pro tokeny – změň na vlastní řetězec
