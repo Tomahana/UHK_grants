@@ -135,7 +135,7 @@ const FALLBACK_COMPETITIONS = [
   },
   {
     id:          "uhk_prestige_2026",
-    name:        "UHK Prestige – Výzva č. 1/2026 (Velký projekt Prestige)",
+    name:        "UHK Prestige",
     type:        "prestige_large",
     status:      "OPEN",
     description: "Dvouetapový projekt s rozhodnutím o pokračování do etapy 2; povinné podání do externí soutěže.",

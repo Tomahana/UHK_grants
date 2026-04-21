@@ -349,6 +349,7 @@
       const id     = comp.id;
       const isOpen = competitionAllowsApplications(comp);
       const type   = comp.type;
+      const compIdNorm = String(id || "").toLowerCase();
 
       // Odkaz na hodnoticí formulář
       const reviewHref = type === "OP_JAK_NAVRATY"
@@ -357,21 +358,23 @@
 
       // Odkaz na podání přihlášky dle soutěže
       const typeUpper = String(type || "").toUpperCase();
+      const isPrestigeLike =
+        typeUpper === "UHK_PRESTIGE" ||
+        typeUpper === "PRESTIGE_LARGE" ||
+        typeUpper === "NO_COST_ENTRY" ||
+        compIdNorm.indexOf("prestige") >= 0 ||
+        compIdNorm.indexOf("no_cost_entry") >= 0;
       const applyHref =
         typeUpper === "UHK_CONNECT"    ? `apply-connect.html?c=${id}` :
         typeUpper === "UHK_REGA"       ? `apply-rega.html` :
-        (
-          typeUpper === "UHK_PRESTIGE" ||
-          typeUpper === "PRESTIGE_LARGE" ||
-          typeUpper === "NO_COST_ENTRY"
-        ) ? `apply-prestige.html?c=${id}` :
+        isPrestigeLike ? `apply-prestige.html?c=${id}` :
         null; // Návraty nemají přihlášku přes web
 
       // Connect: přehled na my-connect; u uzavřené ReGa/Prestige nevést na formulář, ale na přehled projektů
       const myApplicationsHref =
         type === "UHK_CONNECT"
           ? `my-connect.html?c=${id}`
-          : (typeUpper === "UHK_REGA" || typeUpper === "UHK_PRESTIGE" || typeUpper === "PRESTIGE_LARGE" || typeUpper === "NO_COST_ENTRY") && !isOpen
+          : (typeUpper === "UHK_REGA" || isPrestigeLike) && !isOpen
             ? "my-projects.html"
             : applyHref;
       const myListLabel = type === "UHK_CONNECT" ? I18n.t("dashboard.actionMyProjects") : I18n.t("dashboard.actionMyApps");
