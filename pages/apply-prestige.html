@@ -1293,7 +1293,7 @@
       const labels = I18n.getLang() === "en" ? labelsEn : labelsCs;
       const checks = [
         { label: labels[0], done: !!formData.project_title },
-        { label: labels[1], done: !!formData.target_scheme },
+        { label: labels[1], done: IS_NO_COST_ENTRY ? true : !!formData.target_scheme },
         {
           label: tf("irisChecklistItem"),
           done: IS_NO_COST_ENTRY
