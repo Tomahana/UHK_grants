@@ -1,4 +1,3 @@
-
 /**
  * ============================================================
  *  UHK Grant Manager – KOMPLETNÍ Apps Script
@@ -2638,46 +2637,28 @@ function adminExportConnectProjectDossierPdf(competitionId, applicationId, token
   return adminBuildConnectDossierHtmlOutput_(competitionId, applicationId, token);
 }
 
-/** Pro dossier: odkaz pro přílohu podacího formuláře (Drive preview nebo fallback stažení z aplikace). */
+/** Pro dossier: odkaz pro přílohu podacího formuláře (stabilně přes aplikaci; Drive je volitelný sekundární). */
 function connectDossierAttachmentLinkHtml_(competitionId, applicationId, fieldId, rawCell, token) {
   var fid = String(fieldId || "").trim();
   var raw = String(rawCell || "").trim();
   if (!fid || !raw) return "";
-  var dr = connectParseUhkDriveCell_(raw);
-  if (dr && dr.fileId) {
-    try {
-      // Ověření existence přes účet webové aplikace; při selhání nabídneme fallback z tabulky.
-      var f = DriveApp.getFileById(String(dr.fileId).trim());
-      var b = f.getBlob();
-      if (b && b.getBytes().length > 0) {
-        var dlUrl2 = connectBuildWebAppGetDownloadUrl_("downloadConnectApplicationFile", token, {
-          competitionId: competitionId,
-          applicationId: applicationId,
-          fieldId: fid,
-        });
-        return (
-          '<a href="https://drive.google.com/file/d/' +
-          encodeURIComponent(String(dr.fileId).trim()) +
-          '/preview" target="_blank" rel="noopener">Náhled na Disku</a> · ' +
-          '<a href="' +
-          connectEscapeHtmlAttr_(dlUrl2) +
-          '" target="_blank" rel="noopener">Stáhnout z aplikace</a>'
-        );
-      }
-    } catch (e) {
-      /* fallback níže */
-    }
-  }
   var dlUrl = connectBuildWebAppGetDownloadUrl_("downloadConnectApplicationFile", token, {
     competitionId: competitionId,
     applicationId: applicationId,
     fieldId: fid,
   });
-  return (
+  var out =
     '<a href="' +
     connectEscapeHtmlAttr_(dlUrl) +
-    '" target="_blank" rel="noopener">Stáhnout z aplikace</a>'
-  );
+    '" target="_blank" rel="noopener">Stáhnout z aplikace</a>';
+  var dr = connectParseUhkDriveCell_(raw);
+  if (dr && dr.fileId) {
+    out +=
+      ' <span style="color:#9ca3af">|</span> <a href="https://drive.google.com/file/d/' +
+      encodeURIComponent(String(dr.fileId).trim()) +
+      '/preview" target="_blank" rel="noopener">Náhled na Disku</a>';
+  }
+  return out;
 }
 
 /**
