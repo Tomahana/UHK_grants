@@ -139,9 +139,9 @@ const FALLBACK_COMPETITIONS = [
     type:        "prestige_large",
     status:      "OPEN",
     description: "Dvouetapový projekt s rozhodnutím o pokračování do etapy 2; povinné podání do externí soutěže.",
-    deadline:    "2026-05-04",
-    allocation:  4000000,
-    maxBudget:   1000000,
+    deadline:    "2026-05-11",
+    allocation:  3000000,
+    maxBudget:   500000,
   },
   {
     id:          "no_cost_entry_2026_v2",

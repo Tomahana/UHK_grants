@@ -323,21 +323,24 @@
     const COMPETITION_ID = new URLSearchParams(location.search).get("c") || "uhk_prestige_2026";
     const CALL_MODE = String(COMPETITION_ID).indexOf("no_cost_entry") >= 0 ? "no_cost_entry" : "prestige_large";
     const IS_NO_COST_ENTRY = CALL_MODE === "no_cost_entry";
-    const MAX_BUDGET = IS_NO_COST_ENTRY ? Number.POSITIVE_INFINITY : 1000000;
+    const MAX_BUDGET = IS_NO_COST_ENTRY ? Number.POSITIVE_INFINITY : 500000;
     const IRIS_UHK_URL = "https://tomahana.github.io/IRIS_UHK/";
 
     /** Milníky dle výzvy UHK Prestige 1/2026 (příprava ERC / Horizon Europe). */
     const PRESTIGE_VYZVA = {
-      DEADLINE_APPLY_ISO: "2026-05-04",
+      DEADLINE_APPLY_ISO: "2026-05-11",
       milestones: [
-        { title: "Příjem žádostí", dateLabel: "do 4. 5. 2026 (8:00)", note: "elektronicky přes tuto aplikaci" },
+        { title: "Vyhlášení výzvy", dateLabel: "22. 4. 2026", note: "" },
+        { title: "Příjem žádostí", dateLabel: "do 11. 5. 2026 (8:00)", note: "elektronicky přes tuto aplikaci" },
         { title: "Formální kontrola", dateLabel: "2 pracovní dny", note: "možnost doplnění" },
-        { title: "Hodnocení panelem", dateLabel: "10 pracovních dnů", note: "dle výzvy" },
+        { title: "Hodnocení panelem", dateLabel: "5 pracovních dnů", note: "dle výzvy" },
+        { title: "Zveřejnění výsledků", dateLabel: "21. 5. 2026", note: "" },
         { title: "Zahájení řešení – rok 1", dateLabel: "1. 6. 2026", note: "" },
-        { title: "Milník M1 – rozpracovaný draft", dateLabel: "30. 9. 2026", note: "" },
-        { title: "Ukončení čerpání r. 1 + průběžná zpráva", dateLabel: "30. 11. 2026", note: "rozhodnutí o pokračování do r. 2 do 20. 12. 2026" },
-        { title: "Milníky M3–M5 a podání do cílové soutěže", dateLabel: "2027", note: "dle výzvy a termínu ERC/HE" },
-        { title: "Závěrečná zpráva", dateLabel: "do 3 měsíců po podání návrhu", note: "dle výzvy" },
+        { title: "Ukončení čerpání 1. etapy + zpráva o pokračování", dateLabel: "30. 11. 2026", note: "včetně plánu a návrhu rozpočtu 2. etapy" },
+        { title: "Rozhodnutí o pokračování do 2. etapy", dateLabel: "do 20. 12. 2026", note: "" },
+        { title: "Zahájení 2. etapy", dateLabel: "1. 1. 2027", note: "" },
+        { title: "Podání návrhu do cílové soutěže", dateLabel: "dle termínu ERC/HE", note: "nejpozději do 30. 11. 2027" },
+        { title: "Závěrečná zpráva", dateLabel: "nejpozději do 2 měsíců po podání", note: "včetně doložení podání" },
       ],
     };
     const NO_COST_ENTRY_VYZVA = {
@@ -568,7 +571,8 @@
         { field_id:"target_scheme", field_label:"Cílová soutěž a schéma", field_type:"select", required:"TRUE",
           options:"ERC Starting Grant;ERC Consolidator Grant;ERC Advanced Grant;ERC Synergy Grant;Horizon Europe – RIA;Horizon Europe – IA;Horizon Europe – IMDA;Jiná prestižní výzva (dle výzvy UHK Prestige)" },
         { field_id:"planned_submission_date", field_label:"Předpokládaný termín podání návrhu", field_type:"date", required:"TRUE", help_text:"Reálný termín cílové výzvy v rámci harmonogramu projektu" },
-        { field_id:"support_year1_request", field_label:"Požadovaná podpora – rok 1 (Kč)", field_type:"number", required:"TRUE", placeholder:"např. 450000", help_text:"Horní limit 1 000 000 Kč na projekt a rok (11 měsíců) dle výzvy – žádáte o částku v této výši, nikoli automaticky plný limit" },
+        { field_id:"support_year1_request", field_label:"Požadovaná podpora – 1. etapa (Kč)", field_type:"number", required:"TRUE", placeholder:"např. 450000", help_text:"Horní limit 500 000 Kč pro 1. etapu (1. 6. 2026–30. 11. 2026). Jde o limit, nikoli automatickou výši podpory." },
+        { field_id:"support_year2_request", field_label:"Požadovaná podpora – 2. etapa (Kč)", field_type:"number", required:"TRUE", placeholder:"např. 900000", help_text:"Horní limit 1 000 000 Kč pro 2. etapu (po rozhodnutí o pokračování)." },
         { field_id:"faculty", field_label:"Součást UHK / pracoviště", field_type:"select", required:"TRUE", options:"PřF;PdF;FF;FIM;REKTORÁT" },
         { field_id:"department", field_label:"Katedra / ústav", field_type:"text", required:"TRUE" },
         { field_id:"section_iris", field_label:"IRIS UHK – formální údaje přihlášky", field_type:"section_header" },
@@ -609,7 +613,7 @@
         { field_id:"attach_annex1", field_label:"Příloha č. 1 – šablona žádosti vč. concept note", field_type:"file", required:"TRUE", options:"pdf,doc,docx", help_text:"Vyplněná šablona dle výzvy" },
         { field_id:"attach_annex2", field_label:"Příloha č. 2 – rozpočet roku 1 + věcné odůvodnění", field_type:"file", required:"TRUE", options:"pdf,xlsx,xls", help_text:"Tabulka dle výzvy" },
         { field_id:"attach_annex3", field_label:"Příloha č. 3 – milníky", field_type:"file", required:"TRUE", options:"pdf,xlsx,xls,doc,docx", help_text:"Tabulka milníků" },
-        { field_id:"attach_checklist6", field_label:"Příloha č. 6 – checklist způsobilosti", field_type:"file", required:"TRUE", options:"pdf,doc,docx", help_text:"ERC / Horizon Europe dle výzvy" },
+        { field_id:"attach_checklist6", field_label:"Příloha č. 5 – checklist způsobilosti", field_type:"file", required:"TRUE", options:"pdf,doc,docx", help_text:"ERC / Horizon Europe dle výzvy" },
         { field_id:"declaration", field_label:"Prohlášení", field_type:"checkbox", required:"TRUE", help_text:"Beru na vědomí povinnost podání návrhu do cílové prestižní soutěže a dokladování, průběžnou zprávu k 30. 11. 2026 a podmínky výzvy UHK Prestige 1/2026. Potvrzuji správnost údajů." },
       ];
     }
@@ -878,11 +882,11 @@
       const tableHelp = enBu ? enBu.tableHelp : "Vyplňte pouze položky které budete čerpat. Součet se počítá automaticky.";
       const yellowWarnHtml = enBu
         ? enBu.yellowWarn
-        : "⚠ Součet položek nesmí překročit <strong>1 000 000 Kč</strong> (rok 1). Osobní náklady max. <strong>40 %</strong> schválené podpory a max. <strong>0,3 FTE</strong> řešitele dle výzvy.";
+        : "⚠ Součet položek 1. etapy nesmí překročit <strong>500 000 Kč</strong>. Osobní náklady max. <strong>40 %</strong> schválené podpory pro danou etapu dle výzvy.";
       const thLine = enBu ? enBu.thLine : "Položka";
       const thAmount = enBu ? enBu.thAmount : "Požadovaná částka";
       const totalLabel = enBu ? enBu.totalLabel : "Celkem";
-      const warnRed = enBu ? enBu.warnRed : "⚠ Celková podpora překračuje maximum 1 000 000 Kč (rok 1)";
+      const warnRed = enBu ? enBu.warnRed : "⚠ Celková podpora překračuje maximum 500 000 Kč (1. etapa)";
       const justLabel = enBu ? enBu.justLabel : "Odůvodnění rozpočtu";
       const justHelp = enBu ? enBu.justHelp : "Vazba jednotlivých položek na plánovanou aktivitu";
       const justPh = enBu ? enBu.justPh : "Jízdné: letenka Praha–Londýn zpátečně dle ceníku ČSA přibližně 8 000 Kč…";
