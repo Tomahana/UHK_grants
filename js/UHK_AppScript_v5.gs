@@ -137,6 +137,8 @@ function connectAssertIrisCaseIdOnSubmit_(formData) {
 /** Soutěže s povinným blokem IRIS v aplikaci (Connect, Prestige). */
 function connectCompetitionUsesIrisCaseId_(competitionId) {
   var c = String(competitionId || "").trim();
+  // No-Cost Entry (výzva 2/2026) IRIS jako podmínku nepoužívá.
+  if (String(c).toUpperCase() === "NO_COST_ENTRY" || c === "no_cost_entry_2026_v2") return false;
   return c === CONNECT_COMPETITION_ID || c === "uhk_prestige_2026";
 }
 

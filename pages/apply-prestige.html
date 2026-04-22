@@ -577,8 +577,8 @@
           { field_id:"coordinator_contact", field_label:"Koordinátor HE projektu (jméno + kontakt)", field_type:"text", required:"TRUE" },
           { field_id:"engagement_type", field_label:"Typ zapojení UHK", field_type:"select", required:"TRUE", options:"Associated Partner;Neformální spolupráce;Jiné (individuální posouzení)" },
           { field_id:"engagement_role_detail", field_label:"Konkrétní role UHK v projektu", field_type:"textarea", required:"TRUE", placeholder:"WP, data management, advisory, diseminace, meetingy…" },
-          { field_id:"consortium_institutions_count", field_label:"Počet institucí v konsorciu", field_type:"number", required:"TRUE", placeholder:"např. 3", help_text:"Pro každou instituci vyplňte jeden IRIS záznam." },
-          { field_id:"iris_case_id", field_label:"IRIS záznamy (1 řádek = 1 instituce)", field_type:"textarea", required:"TRUE", placeholder:"1) UHK – UUID/CaseID …\n2) Instituce B – UUID/CaseID …\n3) Instituce C – UUID/CaseID …", help_text:"Počet IRIS záznamů musí odpovídat počtu institucí v konsorciu.<br>Každá zahraniční spolupráce musí být realizována v souladu se zásadami bezpečnosti výzkumu. V případě jakýchkoli pochybností o vhodnosti či bezpečnosti partnera doporučujeme využít kontrolní check-list dostupný v aplikaci IRIS (<a href=\"https://tomahana.github.io/IRIS_UHK/\" target=\"_blank\" rel=\"noopener noreferrer\">https://tomahana.github.io/IRIS_UHK/</a>)." },
+          { field_id:"consortium_institutions_count", field_label:"Počet institucí v konsorciu", field_type:"number", required:"FALSE", placeholder:"např. 3", help_text:"Volitelně: orientační počet institucí v konsorciu." },
+          { field_id:"iris_case_id", field_label:"IRIS záznamy (volitelné)", field_type:"textarea", required:"FALSE", placeholder:"Volitelné doplnění: UUID/CaseID nebo poznámka k IRIS.", help_text:"IRIS údaje jsou u této výzvy volitelné.<br>Každá zahraniční spolupráce musí být realizována v souladu se zásadami bezpečnosti výzkumu. V případě jakýchkoli pochybností o vhodnosti či bezpečnosti partnera doporučujeme využít kontrolní check-list dostupný v aplikaci IRIS (<a href=\"https://tomahana.github.io/IRIS_UHK/\" target=\"_blank\" rel=\"noopener noreferrer\">https://tomahana.github.io/IRIS_UHK/</a>)." },
           { field_id:"faculty", field_label:"Součást UHK / pracoviště", field_type:"select", required:"TRUE", options:"PřF;PdF;FF;FIM;REKTORÁT" },
           { field_id:"department", field_label:"Katedra / ústav", field_type:"text", required:"TRUE" },
           { field_id:"section_concept", field_label:"Stručný popis zapojení", field_type:"section_header" },
@@ -1187,27 +1187,6 @@
           if (inpFte) inpFte.classList.add("error");
           return false;
         }
-        const cnt = Number(String(formData.consortium_institutions_count || "").replace(",", "."));
-        if (!isFinite(cnt) || cnt < 1) {
-          showToast("Počet institucí v konsorciu musí být alespoň 1.", "err");
-          const inpCnt = document.getElementById("f-consortium_institutions_count");
-          if (inpCnt) inpCnt.classList.add("error");
-          return false;
-        }
-        const irisText = String(formData.iris_case_id || "").trim();
-        const irisRows = irisText ? irisText.split(/\r?\n/).map((x) => x.trim()).filter(Boolean) : [];
-        if (!irisRows.length) {
-          showToast("Vyplňte IRIS záznamy (1 řádek pro každou instituci).", "err");
-          const inpIris = document.getElementById("f-iris_case_id");
-          if (inpIris) inpIris.classList.add("error");
-          return false;
-        }
-        if (irisRows.length !== Math.round(cnt)) {
-          showToast("Počet IRIS záznamů musí odpovídat počtu institucí v konsorciu.", "err");
-          const inpIris2 = document.getElementById("f-iris_case_id");
-          if (inpIris2) inpIris2.classList.add("error");
-          return false;
-        }
         const periodFrom = String(formData.budget_period_from || "").trim();
         if (!/^\d{4}-\d{2}-\d{2}$/.test(periodFrom)) {
           showToast("Vyplňte datum zahájení řešení.", "err");
@@ -1337,7 +1316,7 @@
         { label: labels[1], done: IS_NO_COST_ENTRY ? true : !!formData.target_scheme },
         {
           label: tf("irisChecklistItem"),
-          done: IS_NO_COST_ENTRY ? !!String(formData.iris_case_id || "").trim() : true,
+          done: true,
         },
         { label: labels[2], done: !!formData.concept_note },
         { label: labels[3], done: IS_NO_COST_ENTRY ? !!(String(formData.future_financed_perspective || "").trim()) : !!formData.excellence_top5 },
@@ -1480,14 +1459,6 @@
 
       if (formData.declaration !== "true") {
         showToast(trf("toastConfirmDeclaration"), "err"); return;
-      }
-
-      if (IS_NO_COST_ENTRY) {
-        const irisId = String(formData.iris_case_id || "").trim();
-        if (!irisId) {
-          showToast(tf("irisRequiredToast"), "err");
-          return;
-        }
       }
 
       const btn = document.getElementById("submitBtn");
