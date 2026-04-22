@@ -1360,6 +1360,9 @@
           body: p.toString(),
         });
         const txt = await res.text();
+        if (!res.ok) {
+          throw new Error(("HTTP " + res.status + (txt ? " – " + txt.slice(0, 180) : "")).trim());
+        }
         let out = {};
         try { out = txt ? JSON.parse(txt) : {}; } catch (_) { out = {}; }
         if (out && out.error) throw new Error(String(out.error));
@@ -1373,8 +1376,8 @@
         const st = document.getElementById("saveStatusText");
         if (st) st.textContent = I18n.tReplace("applyRega.footerSavedAt", { time: now });
         if (showMessage) showToast(trf("toastDraftSaved"));
-      } catch {
-        if (showMessage) showToast(trf("toastSaveFailed"), "err");
+      } catch (e) {
+        if (showMessage) showToast((e && e.message) || trf("toastSaveFailed"), "err");
       }
     }
 
