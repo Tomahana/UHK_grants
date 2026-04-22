@@ -6,7 +6,7 @@
 // ── Apps Script Web App URL ────────────────────────────────────
 // Po nasazení Web App v Apps Script sem vlož URL:
 // Apps Script Web App – Gmail účet uhk.granty@gmail.com
-const API_URL = "https://script.google.com/macros/s/AKfycbyqwthk3rMxMSDQkaKCnwef5GsPBu4C40810zOhZUHEARhVbYb-vqbUMzlY5LfsQkNU/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxR6KGcrbi6pIkbtCaNOeFIXoS2fG1-QSnexYGSawciopu_FE6qrP4ZwognL3LpGjOE/exec";
 
 /**
  * OP JAK Návraty: sdílená složka Google Disk s oponentními posudky externích hodnotitelů.
