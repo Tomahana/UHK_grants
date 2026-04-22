@@ -578,12 +578,12 @@
           { field_id:"engagement_type", field_label:"Typ zapojení UHK", field_type:"select", required:"TRUE", options:"Associated Partner;Neformální spolupráce;Jiné (individuální posouzení)" },
           { field_id:"engagement_role_detail", field_label:"Konkrétní role UHK v projektu", field_type:"textarea", required:"TRUE", placeholder:"WP, data management, advisory, diseminace, meetingy…" },
           { field_id:"consortium_institutions_count", field_label:"Počet institucí v konsorciu", field_type:"number", required:"TRUE", placeholder:"např. 3", help_text:"Pro každou instituci vyplňte jeden IRIS záznam." },
-          { field_id:"iris_case_id", field_label:"IRIS záznamy (1 řádek = 1 instituce)", field_type:"textarea", required:"TRUE", placeholder:"1) UHK – UUID/CaseID …\n2) Instituce B – UUID/CaseID …\n3) Instituce C – UUID/CaseID …", help_text:"Počet IRIS záznamů musí odpovídat počtu institucí v konsorciu." },
+          { field_id:"iris_case_id", field_label:"IRIS záznamy (1 řádek = 1 instituce)", field_type:"textarea", required:"TRUE", placeholder:"1) UHK – UUID/CaseID …\n2) Instituce B – UUID/CaseID …\n3) Instituce C – UUID/CaseID …", help_text:"Počet IRIS záznamů musí odpovídat počtu institucí v konsorciu.<br>Každá zahraniční spolupráce musí být realizována v souladu se zásadami bezpečnosti výzkumu. V případě jakýchkoli pochybností o vhodnosti či bezpečnosti partnera doporučujeme využít kontrolní check-list dostupný v aplikaci IRIS (<a href=\"https://tomahana.github.io/IRIS_UHK/\" target=\"_blank\" rel=\"noopener noreferrer\">https://tomahana.github.io/IRIS_UHK/</a>)." },
           { field_id:"faculty", field_label:"Součást UHK / pracoviště", field_type:"select", required:"TRUE", options:"PřF;PdF;FF;FIM;REKTORÁT" },
           { field_id:"department", field_label:"Katedra / ústav", field_type:"text", required:"TRUE" },
           { field_id:"section_concept", field_label:"Stručný popis zapojení", field_type:"section_header" },
           { field_id:"concept_note", field_label:"Popis zapojení a věcný přínos UHK (max. 1 strana)", field_type:"textarea", required:"TRUE", placeholder:"Co je cílem HE projektu, jak UHK přispívá a v jaké fázi došlo k zapojení." },
-          { field_id:"future_financed_perspective", field_label:"Perspektiva budoucího financovaného zapojení (max. 1/2 strany)", field_type:"textarea", required:"TRUE", placeholder:"Jak zapojení buduje pozici UHK pro financované zapojení." },
+          { field_id:"future_financed_perspective", field_label:"Perspektiva budoucího financovaného zapojení (max. 1/2 strany)", field_type:"textarea", required:"FALSE", placeholder:"Jak zapojení buduje pozici UHK pro financované zapojení." },
           { field_id:"section_budget", field_label:"Rozpočet", field_type:"section_header" },
           { field_id:"fte", field_label:"Předpokládaný úvazek řešitele (FTE 0.2–0.4)", field_type:"number", required:"TRUE", placeholder:"0.2 až 0.4" },
           { field_id:"support_total_request", field_label:"Celková požadovaná podpora (Kč)", field_type:"number", required:"TRUE" },
@@ -592,9 +592,9 @@
           { field_id:"budget_travel", field_label:"B. Cestovní náklady (Kč)", field_type:"number", required:"FALSE" },
           { field_id:"budget_period_from", field_label:"Navržený začátek řešení", field_type:"date", required:"TRUE", help_text:"Nejdříve 1. den měsíce následujícího po schválení; konec řešení je do 30.11." },
           { field_id:"section_attachments", field_label:"Přílohy", field_type:"section_header" },
-          { field_id:"attach_template1", field_label:"Příloha č. 1 – šablona žádosti Horizon No-Cost Entry", field_type:"file", required:"TRUE", options:"pdf,doc,docx" },
-          { field_id:"attach_template2", field_label:"Příloha č. 2 – šablona rozpočtu + odůvodnění", field_type:"file", required:"TRUE", options:"pdf,xlsx,xls,doc,docx" },
-          { field_id:"attach_engagement_proof", field_label:"Povinný doklad zapojení dle typu", field_type:"file", required:"TRUE", options:"pdf,doc,docx", help_text:"Bez dokladu je žádost formálně nezpůsobilá." },
+          { field_id:"attach_template1", field_label:"Příloha č. 1 – šablona žádosti Horizon No-Cost Entry", field_type:"file", required:"TRUE", options:"pdf" },
+          { field_id:"attach_template2", field_label:"Příloha č. 2 – šablona rozpočtu + odůvodnění", field_type:"file", required:"TRUE", options:"pdf" },
+          { field_id:"attach_engagement_proof", field_label:"Povinný doklad zapojení dle typu", field_type:"file", required:"TRUE", options:"pdf", help_text:"Bez dokladu je žádost formálně nezpůsobilá." },
           { field_id:"attach_future_optional", field_label:"Dobrovolná příloha – perspektiva budoucího financovaného zapojení", field_type:"file", required:"FALSE", options:"pdf,doc,docx" },
           { field_id:"declaration", field_label:"Prohlášení", field_type:"checkbox", required:"TRUE", help_text:"Potvrzuji zákaz dvojího financování a beru na vědomí povinnost závěrečné zprávy do 15.12." },
         ];
@@ -609,6 +609,7 @@
         { field_id:"support_year2_request", field_label:"Požadovaná podpora – 2. etapa (Kč)", field_type:"number", required:"TRUE", placeholder:"např. 900000", help_text:"Horní limit 1 000 000 Kč pro 2. etapu (po rozhodnutí o pokračování)." },
         { field_id:"faculty", field_label:"Součást UHK / pracoviště", field_type:"select", required:"TRUE", options:"PřF;PdF;FF;FIM;REKTORÁT" },
         { field_id:"department", field_label:"Katedra / ústav", field_type:"text", required:"TRUE" },
+        { field_id:"iris_notice", field_label:"Bezpečnost výzkumu – doporučení", field_type:"section_header", help_text:"Každá zahraniční spolupráce musí být realizována v souladu se zásadami bezpečnosti výzkumu. V případě jakýchkoli pochybností o vhodnosti či bezpečnosti partnera doporučujeme využít kontrolní check-list dostupný v aplikaci IRIS (https://tomahana.github.io/IRIS_UHK/)." },
         { field_id:"section_concept", field_label:"Concept note a excelence", field_type:"section_header" },
         { field_id:"concept_note", field_label:"Shrnutí záměru a concept note (max. 2 strany – text)", field_type:"textarea", required:"TRUE", placeholder:"Cíl, vhodnost cílové soutěže, co bude dopracováno, plán externího review / agentury…", help_text:"Odpovídá oddílům 1 a 2 šablony žádosti (příloha č. 1 výzvy)" },
         { field_id:"excellence_top5", field_label:"TOP výsledky relevantní pro cílovou soutěž (max. 5)", field_type:"textarea", required:"TRUE", placeholder:"Název, časopis/výstup, rok, DOI/odkaz, vazba na cílový projekt…", help_text:"Mezinárodní zkušenost / leadership můžete doplnit do textu" },
@@ -1263,6 +1264,19 @@
           if (inp) inp.classList.add("error");
           showToast(tf("toastBudgetJust"), "err");
           return false;
+        }
+        if (!IS_NO_COST_ENTRY) {
+          const personnel = parseFloat(String(formData.budget_personnel || "").replace(/\s/g, "").replace(",", ".")) || 0;
+          const personnelLimit = t * 0.4;
+          if (personnel > personnelLimit) {
+            const inpPers = document.getElementById("f-budget_personnel");
+            if (inpPers) inpPers.classList.add("error");
+            showToast(
+              "Osobní náklady (A) nesmí překročit 40 % rozpočtu 1. etapy (" + I18n.fmtMoney(Math.floor(personnelLimit)) + ").",
+              "err"
+            );
+            return false;
+          }
         }
       }
       return ok;
