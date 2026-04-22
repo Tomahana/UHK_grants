@@ -164,7 +164,7 @@
         "Concept note (text)",
         "TOP results",
         "Budget (stages 1–2 + line-item total)",
-        "Annexes 1 and 2 + annex 5 (eligibility checklist)",
+        "Optional attachments (PDF)",
         "Declaration",
       ],
       fields: [

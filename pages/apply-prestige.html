@@ -602,9 +602,9 @@
         { field_id:"budget_material", field_label:"E. Materiál / data / analytické služby", field_type:"number", required:"FALSE" },
         { field_id:"budget_other", field_label:"F. Ostatní způsobilé náklady", field_type:"number", required:"FALSE", help_text:"Např. publikační poplatky, jazyková korektura" },
         { field_id:"section_attachments", field_label:"Povinné přílohy (sken / PDF)", field_type:"section_header" },
-        { field_id:"attach_annex1", field_label:"Příloha č. 1 – šablona žádosti vč. concept note", field_type:"file", required:"TRUE", options:"pdf,doc,docx", help_text:"Vyplněná šablona dle výzvy" },
-        { field_id:"attach_annex2", field_label:"Příloha č. 2 – rozpočet roku 1 + věcné odůvodnění", field_type:"file", required:"TRUE", options:"pdf,xlsx,xls", help_text:"Tabulka dle výzvy" },
-        { field_id:"attach_checklist6", field_label:"Příloha č. 5 – checklist způsobilosti", field_type:"file", required:"TRUE", options:"pdf,doc,docx", help_text:"ERC / Horizon Europe dle výzvy" },
+        { field_id:"attach_annex1", field_label:"Volitelná příloha č. 1 – doplňující PDF", field_type:"file", required:"FALSE", options:"pdf", help_text:"Volitelné. Pokud přikládáte, pouze PDF." },
+        { field_id:"attach_annex2", field_label:"Volitelná příloha č. 2 – doplňující PDF", field_type:"file", required:"FALSE", options:"pdf", help_text:"Volitelné. Pokud přikládáte, pouze PDF." },
+        { field_id:"attach_checklist6", field_label:"Volitelná příloha č. 3 – doplňující PDF", field_type:"file", required:"FALSE", options:"pdf", help_text:"Volitelné. Pokud přikládáte, pouze PDF." },
         { field_id:"declaration", field_label:"Prohlášení", field_type:"checkbox", required:"TRUE", help_text:"Beru na vědomí povinnost podání návrhu do cílové prestižní soutěže a dokladování, průběžnou zprávu k 30. 11. 2026 a podmínky výzvy UHK Prestige 1/2026. Potvrzuji správnost údajů." },
       ];
     }
@@ -1291,7 +1291,7 @@
             "Concept note (text)",
             "TOP výsledky",
             "Rozpočet (etapy 1–2 + součet položek)",
-            "Přílohy č. 1 a 2 + příloha č. 5 (checklist)",
+            "Volitelné přílohy (PDF)",
             "Prohlášení",
           ];
       const labelsNoCostEn = [
@@ -1336,7 +1336,7 @@
             { label: labels[4], done: prestigeBudgetChecklistDone_() },
             {
               label: labels[5],
-              done: !!(formData.attach_annex1 && formData.attach_annex2 && formData.attach_checklist6),
+              done: true,
             },
             { label: labels[6], done: String(formData.declaration || "") === "true" },
           ];
