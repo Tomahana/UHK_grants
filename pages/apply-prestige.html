@@ -528,12 +528,12 @@
     let currentSection = 0;
 
     const STEPS = IS_NO_COST_ENTRY ? [
-      { id: "ident", fields: ["section_ident","project_title","he_project_name","grant_number","faculty","department","coordinator_institution","coordinator_contact","engagement_type","engagement_role_detail","consortium_institutions_count"] },
+      { id: "ident", fields: ["section_ident","project_title","he_project_name","grant_number","faculty","department","coordinator_institution","coordinator_contact","engagement_type","engagement_role_detail","consortium_institutions_count","iris_notice","iris_case_id"] },
       { id: "concept", fields: ["section_concept","concept_note","future_financed_perspective"] },
-      { id: "budget", fields: ["section_budget","fte","support_total_request","budget_personnel","budget_personnel_levies","budget_travel","budget_period_from","budget_justification"] },
+      { id: "budget", fields: ["section_budget","fte","support_total_request","budget_personnel","budget_personnel_levies","budget_travel","budget_period_from"] },
       { id: "attachments", fields: ["section_attachments","attach_template1","attach_template2","attach_engagement_proof","attach_future_optional","declaration"] },
     ] : [
-      { id: "ident", fields: ["section_ident","project_title","target_scheme","planned_submission_date","support_year1_request","support_year2_request","faculty","department"] },
+      { id: "ident", fields: ["section_ident","project_title","target_scheme","planned_submission_date","support_year1_request","support_year2_request","faculty","department","iris_notice"] },
       { id: "concept", fields: ["section_concept","concept_note","excellence_top5","prev_erc_he"] },
       { id: "strategy", fields: ["section_strategy","strategy_why_call","strategy_work_packages","strategy_external_review"] },
       { id: "budget", fields: ["section_budget","budget_personnel","budget_agency","budget_training","budget_travel","budget_material","budget_other","budget_justification"] },
@@ -578,7 +578,8 @@
           { field_id:"engagement_type", field_label:"Typ zapojení UHK", field_type:"select", required:"TRUE", options:"Associated Partner;Neformální spolupráce;Jiné (individuální posouzení)" },
           { field_id:"engagement_role_detail", field_label:"Konkrétní role UHK v projektu", field_type:"textarea", required:"TRUE", placeholder:"WP, data management, advisory, diseminace, meetingy…" },
           { field_id:"consortium_institutions_count", field_label:"Počet institucí v konsorciu", field_type:"number", required:"FALSE", placeholder:"např. 3", help_text:"Volitelně: orientační počet institucí v konsorciu." },
-          { field_id:"iris_case_id", field_label:"IRIS záznamy (volitelné)", field_type:"textarea", required:"FALSE", placeholder:"Volitelné doplnění: UUID/CaseID nebo poznámka k IRIS.", help_text:"IRIS údaje jsou u této výzvy volitelné.<br>Každá zahraniční spolupráce musí být realizována v souladu se zásadami bezpečnosti výzkumu. V případě jakýchkoli pochybností o vhodnosti či bezpečnosti partnera doporučujeme využít kontrolní check-list dostupný v aplikaci IRIS (<a href=\"https://tomahana.github.io/IRIS_UHK/\" target=\"_blank\" rel=\"noopener noreferrer\">https://tomahana.github.io/IRIS_UHK/</a>)." },
+          { field_id:"iris_notice", field_label:"Bezpečnost výzkumu – doporučení", field_type:"section_header", help_text:"Každá zahraniční spolupráce musí být realizována v souladu se zásadami bezpečnosti výzkumu. V případě jakýchkoli pochybností o vhodnosti či bezpečnosti partnera doporučujeme využít kontrolní check-list dostupný v aplikaci IRIS (https://tomahana.github.io/IRIS_UHK/)." },
+          { field_id:"iris_case_id", field_label:"IRIS záznamy (volitelné)", field_type:"textarea", required:"FALSE", placeholder:"Volitelné doplnění: UUID/CaseID nebo poznámka k IRIS.", help_text:"IRIS údaje jsou u této výzvy volitelné." },
           { field_id:"faculty", field_label:"Součást UHK / pracoviště", field_type:"select", required:"TRUE", options:"PřF;PdF;FF;FIM;REKTORÁT" },
           { field_id:"department", field_label:"Katedra / ústav", field_type:"text", required:"TRUE" },
           { field_id:"section_concept", field_label:"Stručný popis zapojení", field_type:"section_header" },
@@ -591,6 +592,7 @@
           { field_id:"budget_personnel_levies", field_label:"A. Zákonné odvody + FKSP (Kč)", field_type:"number", required:"FALSE" },
           { field_id:"budget_travel", field_label:"B. Cestovní náklady (Kč)", field_type:"number", required:"FALSE" },
           { field_id:"budget_period_from", field_label:"Navržený začátek řešení", field_type:"date", required:"TRUE", help_text:"Nejdříve 1. den měsíce následujícího po schválení; konec řešení je do 30.11." },
+          { field_id:"budget_justification", field_label:"Celkové odůvodnění rozpočtu", field_type:"textarea", required:"FALSE", placeholder:"Souhrn návaznosti položek na plánované aktivity (pro přenos do přílohy č. 2).", help_text:"Toto pole není ve výzvě vyžadováno jako samostatná povinná položka – vyplňte jej podle potřeby; pokud je text již v příloze č. 2, můžete pole nechat prázdné." },
           { field_id:"section_attachments", field_label:"Přílohy", field_type:"section_header" },
           { field_id:"attach_template1", field_label:"Příloha č. 1 – šablona žádosti Horizon No-Cost Entry", field_type:"file", required:"TRUE", options:"pdf" },
           { field_id:"attach_template2", field_label:"Příloha č. 2 – šablona rozpočtu + odůvodnění", field_type:"file", required:"TRUE", options:"pdf" },
@@ -675,12 +677,6 @@
       if (step.id === "budget") {
         html += renderBudgetTable();
       } else {
-        const hasIrisField = fields.some((f) => f && f.field_id === "iris_case_id");
-        if (hasIrisField) {
-          html += `<div style="padding:10px 14px;background:#FEF3C7;border:1px solid #FDE68A;border-radius:var(--r);font-size:12px;color:#92400E;line-height:1.45;">
-            ${IRIS_SAFETY_NOTICE_HTML}
-          </div>`;
-        }
         fields.forEach(f => {
           html += renderField(f);
         });
@@ -710,6 +706,11 @@
 
     function renderField(f) {
       if (f.field_type === "section_header") {
+        if (f.field_id === "iris_notice") {
+          return `<div style="padding:10px 14px;background:#FEF3C7;border:1px solid #FDE68A;border-radius:var(--r);font-size:12px;color:#92400E;line-height:1.45;margin-bottom:12px;">
+            ${IRIS_SAFETY_NOTICE_HTML}
+          </div>`;
+        }
         return `<div class="section-divider">
           <div class="section-divider-line"></div>
           <div class="section-divider-label">${escapeHtml(f.field_label)}</div>
@@ -1297,33 +1298,66 @@
 
     // ── Checklist ────────────────────────────────────────────────
     function updateChecklist() {
-      const labelsCs = [
-        "Název záměru",
-        "Cílová soutěž",
-        "Concept note (text)",
-        "TOP výsledky",
-        "Rozpočet (součet)",
-        "Volitelné přílohy (nepovinné)",
-        "Prohlášení",
-      ];
+      const labelsCs = IS_NO_COST_ENTRY
+        ? [
+            "Název žádosti",
+            "Identifikace HE projektu",
+            "Popis zapojení",
+            "Rozpočet (součet)",
+            "Povinné přílohy (PDF)",
+            "Prohlášení",
+          ]
+        : [
+            "Název záměru",
+            "Cílová soutěž",
+            "Concept note (text)",
+            "TOP výsledky",
+            "Rozpočet (součet)",
+            "Volitelné přílohy (nepovinné)",
+            "Prohlášení",
+          ];
       const labelsEn =
-        typeof UhkApplyFlowEn !== "undefined" && UhkApplyFlowEn.prestige && UhkApplyFlowEn.prestige.checklist
-          ? UhkApplyFlowEn.prestige.checklist
-          : labelsCs;
+        IS_NO_COST_ENTRY &&
+        typeof UhkApplyFlowEn !== "undefined" &&
+        UhkApplyFlowEn.prestige &&
+        UhkApplyFlowEn.prestige.noCostChecklist
+          ? UhkApplyFlowEn.prestige.noCostChecklist
+          : typeof UhkApplyFlowEn !== "undefined" && UhkApplyFlowEn.prestige && UhkApplyFlowEn.prestige.checklist
+            ? UhkApplyFlowEn.prestige.checklist
+            : labelsCs;
       const labels = I18n.getLang() === "en" ? labelsEn : labelsCs;
-      const checks = [
-        { label: labels[0], done: !!formData.project_title },
-        { label: labels[1], done: IS_NO_COST_ENTRY ? true : !!formData.target_scheme },
-        {
-          label: tf("irisChecklistItem"),
-          done: true,
-        },
-        { label: labels[2], done: !!formData.concept_note },
-        { label: labels[3], done: IS_NO_COST_ENTRY ? !!(String(formData.future_financed_perspective || "").trim()) : !!formData.excellence_top5 },
-        { label: labels[4], done: !!((formData.support_total_request || formData.budget_total) && parseFloat(formData.support_total_request || formData.budget_total) > 0) },
-        { label: labels[5], done: IS_NO_COST_ENTRY ? !!(formData.attach_template1 && formData.attach_template2 && formData.attach_engagement_proof) : true },
-        { label: labels[6], done: String(formData.declaration || "") === "true" },
-      ];
+      const checks = IS_NO_COST_ENTRY
+        ? [
+            { label: labels[0], done: !!formData.project_title },
+            {
+              label: labels[1],
+              done: !!(
+                formData.he_project_name &&
+                formData.grant_number &&
+                formData.coordinator_institution &&
+                formData.coordinator_contact &&
+                formData.engagement_type &&
+                formData.engagement_role_detail
+              ),
+            },
+            { label: labels[2], done: !!formData.concept_note },
+            { label: labels[3], done: !!((formData.support_total_request || formData.budget_total) && parseFloat(formData.support_total_request || formData.budget_total) > 0) },
+            { label: labels[4], done: !!(formData.attach_template1 && formData.attach_template2 && formData.attach_engagement_proof) },
+            { label: labels[5], done: String(formData.declaration || "") === "true" },
+          ]
+        : [
+            { label: labels[0], done: !!formData.project_title },
+            { label: labels[1], done: !!formData.target_scheme },
+            {
+              label: tf("irisChecklistItem"),
+              done: true,
+            },
+            { label: labels[2], done: !!formData.concept_note },
+            { label: labels[3], done: !!formData.excellence_top5 },
+            { label: labels[4], done: !!((formData.support_total_request || formData.budget_total) && parseFloat(formData.support_total_request || formData.budget_total) > 0) },
+            { label: labels[5], done: true },
+            { label: labels[6], done: String(formData.declaration || "") === "true" },
+          ];
       document.getElementById("checklist").innerHTML = checks.map(c => `
         <div class="checklist-item ${c.done?"done":""}">
           <div class="checklist-dot">${c.done?"✓":""}</div>

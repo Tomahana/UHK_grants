@@ -138,8 +138,17 @@ function connectAssertIrisCaseIdOnSubmit_(formData) {
 function connectCompetitionUsesIrisCaseId_(competitionId) {
   var c = String(competitionId || "").trim();
   // No-Cost Entry (výzva 2/2026) IRIS jako podmínku nepoužívá.
-  if (String(c).toUpperCase() === "NO_COST_ENTRY" || c === "no_cost_entry_2026_v2") return false;
+  if (connectIsNoCostEntryCompetition_(c)) return false;
   return c === CONNECT_COMPETITION_ID || c === "uhk_prestige_2026";
+}
+
+/** Horizon No-Cost Entry – ID v aplikaci může být alias (no_cost_entry_2026_v2) i kanonické NO_COST_ENTRY. */
+function connectIsNoCostEntryCompetition_(competitionId) {
+  var c = String(competitionId || "").trim();
+  if (!c) return false;
+  if (String(c).toUpperCase() === "NO_COST_ENTRY") return true;
+  if (c === "no_cost_entry_2026_v2") return true;
+  return String(c).toLowerCase().indexOf("no_cost_entry") >= 0;
 }
 
 /** Uložení draftu: formát IRIS ID, pokud pole není prázdné. */
@@ -2114,7 +2123,7 @@ function connectProcessApplicationFileUploads_(ss, competitionId, applicationId,
   var cid = String(competitionId || "").trim();
   var isConnect = cid === CONNECT_COMPETITION_ID;
   var isPrestige = cid === "uhk_prestige_2026";
-  var isNoCost = String(cid).toUpperCase() === "NO_COST_ENTRY";
+  var isNoCost = connectIsNoCostEntryCompetition_(cid);
   if (!isConnect && !isPrestige && !isNoCost) {
     throw new Error("Přílohy PDF z formuláře jsou jen pro soutěže UHK Connect / UHK Prestige / Horizon No-Cost Entry.");
   }
@@ -2496,7 +2505,7 @@ function connectAllowedApplicationFileFieldsByCompetition_(competitionId) {
       attach_checklist6: 1,
     };
   }
-  if (cid.toUpperCase() === "NO_COST_ENTRY") {
+  if (connectIsNoCostEntryCompetition_(cid)) {
     return {
       attach_template1: 1,
       attach_template2: 1,
