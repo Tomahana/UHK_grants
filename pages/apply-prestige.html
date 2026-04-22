@@ -359,6 +359,15 @@
         .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
 
+    function normalizeNetworkErrorMessage(err, fallback) {
+      const raw = String((err && err.message) || "").trim();
+      if (!raw) return fallback;
+      if (/failed to fetch|networkerror|load failed/i.test(raw)) {
+        return "Nepodařilo se spojit s API (Failed to fetch). Zkontrolujte nasazení Web Appu, správnou API_URL v config.js a že stránka i API běží přes HTTPS.";
+      }
+      return raw;
+    }
+
     function formatOutcomeDate(s) {
       if (!s) return "";
       const t = String(s).trim();
@@ -1377,7 +1386,7 @@
         if (st) st.textContent = I18n.tReplace("applyRega.footerSavedAt", { time: now });
         if (showMessage) showToast(trf("toastDraftSaved"));
       } catch (e) {
-        if (showMessage) showToast((e && e.message) || trf("toastSaveFailed"), "err");
+        if (showMessage) showToast(normalizeNetworkErrorMessage(e, trf("toastSaveFailed")), "err");
       }
     }
 
@@ -1420,7 +1429,8 @@
           showToast(trf("draftLoadedToast"));
         }
         return false;
-      } catch {
+      } catch (e) {
+        showToast(normalizeNetworkErrorMessage(e, trf("toastSaveFailed")), "err");
         return false;
       }
     }
