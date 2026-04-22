@@ -530,7 +530,7 @@
     const STEPS = IS_NO_COST_ENTRY ? [
       { id: "ident", fields: ["section_ident","project_title","he_project_name","grant_number","faculty","department","coordinator_institution","coordinator_contact","engagement_type","engagement_role_detail","consortium_institutions_count","iris_notice","iris_case_id"] },
       { id: "concept", fields: ["section_concept","concept_note","future_financed_perspective"] },
-      { id: "budget", fields: ["section_budget","fte","support_total_request","budget_personnel","budget_personnel_levies","budget_travel","budget_period_from"] },
+      { id: "budget", fields: ["section_budget","fte","budget_personnel","budget_personnel_levies","budget_travel","budget_period_from"] },
       { id: "attachments", fields: ["section_attachments","attach_template1","attach_template2","attach_engagement_proof","attach_future_optional","declaration"] },
     ] : [
       { id: "ident", fields: ["section_ident","project_title","target_scheme","planned_submission_date","support_year1_request","support_year2_request","faculty","department","iris_notice"] },
@@ -541,6 +541,8 @@
     ];
 
     function getLocalFields() {
+      // No-Cost má vlastní pole jen v CS definici; EN balíček Prestige je pro hlavní výzvu — jinak by validace kroku Rozpočet selhávala.
+      if (IS_NO_COST_ENTRY) return getLocalFieldsCs();
       if (I18n.getLang() === "en" && typeof UhkApplyFlowEn !== "undefined" && UhkApplyFlowEn.prestige && UhkApplyFlowEn.prestige.fields)
         return UhkApplyFlowEn.prestige.fields;
       return getLocalFieldsCs();
@@ -587,16 +589,16 @@
           { field_id:"future_financed_perspective", field_label:"Perspektiva budoucího financovaného zapojení (max. 1/2 strany)", field_type:"textarea", required:"FALSE", placeholder:"Jak zapojení buduje pozici UHK pro financované zapojení." },
           { field_id:"section_budget", field_label:"Rozpočet", field_type:"section_header" },
           { field_id:"fte", field_label:"Předpokládaný úvazek řešitele (FTE 0.2–0.4)", field_type:"number", required:"TRUE", placeholder:"0.2 až 0.4" },
-          { field_id:"support_total_request", field_label:"Celková požadovaná podpora (Kč)", field_type:"number", required:"TRUE" },
+          { field_id:"support_total_request", field_label:"Celková požadovaná podpora (Kč)", field_type:"number", required:"FALSE", help_text:"Součet řádků tabulky níže; dopočítá se automaticky při úpravě částek." },
           { field_id:"budget_personnel", field_label:"A. Osobní náklady – DPP/DPČ (Kč)", field_type:"number", required:"FALSE" },
           { field_id:"budget_personnel_levies", field_label:"A. Zákonné odvody + FKSP (Kč)", field_type:"number", required:"FALSE" },
           { field_id:"budget_travel", field_label:"B. Cestovní náklady (Kč)", field_type:"number", required:"FALSE" },
           { field_id:"budget_period_from", field_label:"Navržený začátek řešení", field_type:"date", required:"TRUE", help_text:"Nejdříve 1. den měsíce následujícího po schválení; konec řešení je do 30.11." },
           { field_id:"budget_justification", field_label:"Celkové odůvodnění rozpočtu", field_type:"textarea", required:"FALSE", placeholder:"Souhrn návaznosti položek na plánované aktivity (pro přenos do přílohy č. 2).", help_text:"Toto pole není ve výzvě vyžadováno jako samostatná povinná položka – vyplňte jej podle potřeby; pokud je text již v příloze č. 2, můžete pole nechat prázdné." },
-          { field_id:"section_attachments", field_label:"Přílohy", field_type:"section_header" },
-          { field_id:"attach_template1", field_label:"Příloha č. 1 – šablona žádosti Horizon No-Cost Entry", field_type:"file", required:"TRUE", options:"pdf" },
-          { field_id:"attach_template2", field_label:"Příloha č. 2 – šablona rozpočtu + odůvodnění", field_type:"file", required:"TRUE", options:"pdf" },
-          { field_id:"attach_engagement_proof", field_label:"Povinný doklad zapojení dle typu", field_type:"file", required:"TRUE", options:"pdf", help_text:"Bez dokladu je žádost formálně nezpůsobilá." },
+          { field_id:"section_attachments", field_label:"Přílohy", field_type:"section_header", help_text:"Přílohy č. 1 a 2 jsou obsaženy ve formuláři; PDF jsou volitelná. Doklad zapojení dle výzvy je povinný." },
+          { field_id:"attach_template1", field_label:"Volitelná příloha – šablona žádosti (č. 1)", field_type:"file", required:"FALSE", options:"pdf", help_text:"Obsah odpovídá předchozím krokům formuláře; PDF šablony č. 1 nahrávejte jen pokud chcete přiložit oficiální dokument." },
+          { field_id:"attach_template2", field_label:"Volitelná příloha – rozpočet + odůvodnění (č. 2)", field_type:"file", required:"FALSE", options:"pdf", help_text:"Rozpočet vyplňte v kroku Rozpočet; PDF přílohy č. 2 je volitelné." },
+          { field_id:"attach_engagement_proof", field_label:"Povinný doklad zapojení dle typu", field_type:"file", required:"TRUE", options:"pdf", help_text:"Dle výzvy č. 2/2026 – bez tohoto dokladu je žádost formálně nezpůsobilá (grantová dohoda / potvrzení koordinátora apod.)." },
           { field_id:"attach_future_optional", field_label:"Dobrovolná příloha – perspektiva budoucího financovaného zapojení", field_type:"file", required:"FALSE", options:"pdf,doc,docx" },
           { field_id:"declaration", field_label:"Prohlášení", field_type:"checkbox", required:"TRUE", help_text:"Potvrzuji zákaz dvojího financování a beru na vědomí povinnost závěrečné zprávy do 15.12." },
         ];
@@ -711,10 +713,15 @@
             ${IRIS_SAFETY_NOTICE_HTML}
           </div>`;
         }
-        return `<div class="section-divider">
-          <div class="section-divider-line"></div>
-          <div class="section-divider-label">${escapeHtml(f.field_label)}</div>
-          <div class="section-divider-line"></div>
+        const secHelp = f.help_text
+          ? `<div class="field-help" style="margin:10px 0 16px;">${escapeHtml(f.help_text)}</div>`
+          : "";
+        return `<div>
+          <div class="section-divider">
+            <div class="section-divider-line"></div>
+            <div class="section-divider-label">${escapeHtml(f.field_label)}</div>
+            <div class="section-divider-line"></div>
+          </div>${secHelp}
         </div>`;
       }
 
@@ -821,7 +828,28 @@
           return String(formData[legacyKey] || "");
         };
         const totalFmtNc = escapeHtml(I18n.fmtMoney(0));
+        const errReqNc = escapeHtml(tf("fieldErrRequired"));
+        const fteVal = escapeAttr(String(formData.fte || "").replace(",", "."));
+        const periodFromVal = escapeAttr(String(formData.budget_period_from || "").trim());
         return `
+          <div class="field">
+            <label class="field-label" for="f-fte">Předpokládaný úvazek řešitele (FTE 0,2–0,4) <span class="field-required">*</span></label>
+            <div class="field-help">Zadejte desetinnou čárku nebo tečku (např. 0,3).</div>
+            <input type="number" id="f-fte" min="0.2" max="0.4" step="0.05" placeholder="0,2 až 0,4"
+              value="${fteVal}"
+              onchange="onFieldChange('fte', this.value)"
+              oninput="onFieldChange('fte', this.value)"
+              style="width:100%;max-width:220px;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--r);font-family:'DM Mono',monospace;">
+            <div class="field-error" id="err-fte">${errReqNc}</div>
+          </div>
+          <div class="field" style="margin-top:8px;">
+            <label class="field-label" for="f-budget_period_from">Navržený začátek řešení <span class="field-required">*</span></label>
+            <div class="field-help">Nejdříve 1. den měsíce následujícího po schválení; konec řešení je do 30. 11.</div>
+            <input type="date" id="f-budget_period_from" value="${periodFromVal}"
+              onchange="onFieldChange('budget_period_from', this.value)"
+              style="width:100%;max-width:280px;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--r);">
+            <div class="field-error" id="err-budget_period_from">${errReqNc}</div>
+          </div>
           <div class="field">
             <label class="field-label">Příloha č. 2 – Šablona rozpočtu + odůvodnění</label>
             <div class="field-help">Soutěž UHK Prestige – Výzva č. 2/2026 Horizon No-Cost Entry.</div>
@@ -1163,6 +1191,9 @@
     // ── Validace ────────────────────────────────────────────────
     function validateSection() {
       const step   = STEPS[currentSection];
+      if (IS_NO_COST_ENTRY && step && step.id === "budget") {
+        syncBudgetTotalsFromDom({ markDirty: false });
+      }
       const fields = formFields.filter(f =>
         step.fields.includes(f.field_id) &&
         (f.required === "TRUE" || f.required === true) &&
@@ -1304,7 +1335,7 @@
             "Identifikace HE projektu",
             "Popis zapojení",
             "Rozpočet (součet)",
-            "Povinné přílohy (PDF)",
+            "Doklad zapojení (PDF)",
             "Prohlášení",
           ]
         : [
@@ -1342,7 +1373,7 @@
             },
             { label: labels[2], done: !!formData.concept_note },
             { label: labels[3], done: !!((formData.support_total_request || formData.budget_total) && parseFloat(formData.support_total_request || formData.budget_total) > 0) },
-            { label: labels[4], done: !!(formData.attach_template1 && formData.attach_template2 && formData.attach_engagement_proof) },
+            { label: labels[4], done: !!formData.attach_engagement_proof },
             { label: labels[5], done: String(formData.declaration || "") === "true" },
           ]
         : [
