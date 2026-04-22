@@ -426,6 +426,9 @@
 
   function coordinatorIsNoCostApplication_(competitionId, form) {
     const cid = String(competitionId || "").trim();
+    // Hlavní výzva Prestige – řádek v APPLICATIONS má vždy tento competition_id; JSON může obsahovat
+    // zastaralé call_type z dřívějšího testu / jiného odkazu → nesmí přepnout detail do režimu No-Cost.
+    if (cid === "uhk_prestige_2026") return false;
     if (cid.toLowerCase().indexOf("no_cost_entry") >= 0) return true;
     if (String(cid).toUpperCase() === "NO_COST_ENTRY") return true;
     const f = form && typeof form === "object" ? form : {};
