@@ -167,6 +167,14 @@
         "Optional attachments (not required)",
         "Declaration",
       ],
+      noCostChecklist: [
+        "Application title",
+        "HE project identification",
+        "Engagement description",
+        "Budget (total)",
+        "Required attachments (PDF)",
+        "Declaration",
+      ],
       fields: [
         { field_id: "section_ident", field_label: "Project identification", field_type: "section_header" },
         { field_id: "project_title", field_label: "Working title (CZ / EN)", field_type: "text", required: "TRUE", placeholder: "Working title for ERC or Horizon Europe preparation" },
