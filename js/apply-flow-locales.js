@@ -172,7 +172,7 @@
         "HE project identification",
         "Engagement description",
         "Budget (total)",
-        "Required attachments (PDF)",
+        "Engagement proof (PDF, required)",
         "Declaration",
       ],
       fields: [

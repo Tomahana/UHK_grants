@@ -593,10 +593,10 @@
           { field_id:"budget_travel", field_label:"B. Cestovní náklady (Kč)", field_type:"number", required:"FALSE" },
           { field_id:"budget_period_from", field_label:"Navržený začátek řešení", field_type:"date", required:"TRUE", help_text:"Nejdříve 1. den měsíce následujícího po schválení; konec řešení je do 30.11." },
           { field_id:"budget_justification", field_label:"Celkové odůvodnění rozpočtu", field_type:"textarea", required:"FALSE", placeholder:"Souhrn návaznosti položek na plánované aktivity (pro přenos do přílohy č. 2).", help_text:"Toto pole není ve výzvě vyžadováno jako samostatná povinná položka – vyplňte jej podle potřeby; pokud je text již v příloze č. 2, můžete pole nechat prázdné." },
-          { field_id:"section_attachments", field_label:"Přílohy", field_type:"section_header" },
-          { field_id:"attach_template1", field_label:"Příloha č. 1 – šablona žádosti Horizon No-Cost Entry", field_type:"file", required:"TRUE", options:"pdf" },
-          { field_id:"attach_template2", field_label:"Příloha č. 2 – šablona rozpočtu + odůvodnění", field_type:"file", required:"TRUE", options:"pdf" },
-          { field_id:"attach_engagement_proof", field_label:"Povinný doklad zapojení dle typu", field_type:"file", required:"TRUE", options:"pdf", help_text:"Bez dokladu je žádost formálně nezpůsobilá." },
+          { field_id:"section_attachments", field_label:"Přílohy", field_type:"section_header", help_text:"Přílohy č. 1 a 2 jsou obsaženy ve formuláři; PDF jsou volitelná. Doklad zapojení dle výzvy je povinný." },
+          { field_id:"attach_template1", field_label:"Volitelná příloha – šablona žádosti (č. 1)", field_type:"file", required:"FALSE", options:"pdf", help_text:"Obsah odpovídá předchozím krokům formuláře; PDF šablony č. 1 nahrávejte jen pokud chcete přiložit oficiální dokument." },
+          { field_id:"attach_template2", field_label:"Volitelná příloha – rozpočet + odůvodnění (č. 2)", field_type:"file", required:"FALSE", options:"pdf", help_text:"Rozpočet vyplňte v kroku Rozpočet; PDF přílohy č. 2 je volitelné." },
+          { field_id:"attach_engagement_proof", field_label:"Povinný doklad zapojení dle typu", field_type:"file", required:"TRUE", options:"pdf", help_text:"Dle výzvy č. 2/2026 – bez tohoto dokladu je žádost formálně nezpůsobilá (grantová dohoda / potvrzení koordinátora apod.)." },
           { field_id:"attach_future_optional", field_label:"Dobrovolná příloha – perspektiva budoucího financovaného zapojení", field_type:"file", required:"FALSE", options:"pdf,doc,docx" },
           { field_id:"declaration", field_label:"Prohlášení", field_type:"checkbox", required:"TRUE", help_text:"Potvrzuji zákaz dvojího financování a beru na vědomí povinnost závěrečné zprávy do 15.12." },
         ];
@@ -711,10 +711,15 @@
             ${IRIS_SAFETY_NOTICE_HTML}
           </div>`;
         }
-        return `<div class="section-divider">
-          <div class="section-divider-line"></div>
-          <div class="section-divider-label">${escapeHtml(f.field_label)}</div>
-          <div class="section-divider-line"></div>
+        const secHelp = f.help_text
+          ? `<div class="field-help" style="margin:10px 0 16px;">${escapeHtml(f.help_text)}</div>`
+          : "";
+        return `<div>
+          <div class="section-divider">
+            <div class="section-divider-line"></div>
+            <div class="section-divider-label">${escapeHtml(f.field_label)}</div>
+            <div class="section-divider-line"></div>
+          </div>${secHelp}
         </div>`;
       }
 
@@ -1304,7 +1309,7 @@
             "Identifikace HE projektu",
             "Popis zapojení",
             "Rozpočet (součet)",
-            "Povinné přílohy (PDF)",
+            "Doklad zapojení (PDF)",
             "Prohlášení",
           ]
         : [
@@ -1342,7 +1347,7 @@
             },
             { label: labels[2], done: !!formData.concept_note },
             { label: labels[3], done: !!((formData.support_total_request || formData.budget_total) && parseFloat(formData.support_total_request || formData.budget_total) > 0) },
-            { label: labels[4], done: !!(formData.attach_template1 && formData.attach_template2 && formData.attach_engagement_proof) },
+            { label: labels[4], done: !!formData.attach_engagement_proof },
             { label: labels[5], done: String(formData.declaration || "") === "true" },
           ]
         : [
