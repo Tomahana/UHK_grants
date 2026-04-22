@@ -542,6 +542,21 @@ function doGet(e) {
 // POST ROUTER
 // ============================================================
 /** Rozparsuje tělo POST: JSON nebo application/x-www-form-urlencoded (bez CORS preflightu v prohlížeči). */
+function tryParseJsonLikeField_(obj, key) {
+  if (!obj || !Object.prototype.hasOwnProperty.call(obj, key)) return;
+  var v = obj[key];
+  if (v == null || typeof v !== "string") return;
+  var s = String(v).trim();
+  if (!s) return;
+  var first = s.charAt(0);
+  if (first !== "{" && first !== "[") return;
+  try {
+    obj[key] = JSON.parse(s);
+  } catch (e) {
+    /* keep original string when parse fails */
+  }
+}
+
 function parseDoPostBody_(e) {
   const raw = e.postData && e.postData.contents != null ? String(e.postData.contents) : "";
   const ct = e.postData && e.postData.type ? String(e.postData.type).toLowerCase() : "";
@@ -557,6 +572,19 @@ function parseDoPostBody_(e) {
         if (k) o[k] = v;
       });
     }
+    // Některá UI (draft formuláře) posílají JSON pole v URL-encoded stringu.
+    // Bez převodu by se formData ukládala jako string a následně se „rozpadla“ na znaky.
+    [
+      "formData",
+      "fields",
+      "scores",
+      "comments",
+      "fileUploads",
+      "checklist",
+      "budgetLines",
+    ].forEach(function (k) {
+      tryParseJsonLikeField_(o, k);
+    });
     return o;
   }
   try {
