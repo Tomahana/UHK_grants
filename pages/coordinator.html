@@ -378,6 +378,232 @@
   let coordinatorLastApiFetchCount_ = 0;
 
   const CONNECT_EXPORT_ID = "uhk_connect_2026_v2";
+  const PRESTIGE_COMPETITION_IDS_ = new Set(["uhk_prestige_2026", "no_cost_entry_2026_v2"]);
+
+  /** PDF přílohy hlavní výzvy Prestige – v modalu zvlášť, ne v mřížce všech klíčů. */
+  const PRESTIGE_PDF_FIELD_IDS_ = ["attach_annex1", "attach_annex2", "attach_checklist6"];
+  /** PDF přílohy Horizon No-Cost Entry */
+  const NO_COST_PDF_FIELD_IDS_ = [
+    "attach_template1",
+    "attach_template2",
+    "attach_engagement_proof",
+    "attach_future_optional",
+  ];
+
+  /** Klíče jen pro hlavní Prestige – u No-Cost žádosti se v detailu nezobrazí (jinak se „míchají“ s No-Cost). */
+  const PRESTIGE_MAIN_ONLY_KEYS_ = new Set([
+    "target_scheme",
+    "planned_submission_date",
+    "support_year1_request",
+    "support_year2_request",
+    "excellence_top5",
+    "prev_erc_he",
+    "strategy_why_call",
+    "strategy_work_packages",
+    "strategy_external_review",
+    "milestones_summary",
+  ]);
+
+  /** Klíče typické pro No-Cost – u hlavní Prestige se v detailu nezobrazí. */
+  const NO_COST_ONLY_KEYS_ = new Set([
+    "he_project_name",
+    "grant_number",
+    "coordinator_institution",
+    "coordinator_contact",
+    "engagement_type",
+    "engagement_role_detail",
+    "consortium_institutions_count",
+    "future_financed_perspective",
+    "support_total_request",
+    "fte",
+    "attach_template1",
+    "attach_template2",
+    "attach_engagement_proof",
+    "attach_future_optional",
+  ]);
+
+  const COORD_INTERNAL_FORM_KEYS_ = new Set(["call_type", "cutoff_cycle"]);
+
+  function coordinatorIsNoCostApplication_(competitionId, form) {
+    const cid = String(competitionId || "").trim();
+    if (cid.toLowerCase().indexOf("no_cost_entry") >= 0) return true;
+    if (String(cid).toUpperCase() === "NO_COST_ENTRY") return true;
+    const f = form && typeof form === "object" ? form : {};
+    return String(f.call_type || "").trim().toLowerCase() === "no_cost_entry";
+  }
+
+  function coordinatorDetailKeyOrder_(isNoCost) {
+    if (isNoCost) {
+      return [
+        "project_title",
+        "he_project_name",
+        "grant_number",
+        "coordinator_institution",
+        "coordinator_contact",
+        "engagement_type",
+        "engagement_role_detail",
+        "consortium_institutions_count",
+        "faculty",
+        "department",
+        "concept_note",
+        "future_financed_perspective",
+        "fte",
+        "support_total_request",
+        "budget_period_from",
+        "iris_case_id",
+        "budget_justification",
+        "budget_total",
+        "declaration",
+      ];
+    }
+    return [
+      "project_title",
+      "target_scheme",
+      "planned_submission_date",
+      "support_year1_request",
+      "support_year2_request",
+      "faculty",
+      "department",
+      "concept_note",
+      "excellence_top5",
+      "prev_erc_he",
+      "strategy_why_call",
+      "strategy_work_packages",
+      "strategy_external_review",
+      "milestones_summary",
+      "budget_total",
+      "declaration",
+    ];
+  }
+
+  function coordinatorHumanFieldLabelCs_(fieldId) {
+    const m = {
+      project_title: "Název žádosti / záměru",
+      he_project_name: "Název HE projektu",
+      grant_number: "Číslo grantu HE",
+      coordinator_institution: "Koordinátor HE (instituce)",
+      coordinator_contact: "Koordinátor HE (kontakt)",
+      engagement_type: "Typ zapojení UHK",
+      engagement_role_detail: "Role UHK v projektu",
+      consortium_institutions_count: "Počet institucí v konsorciu",
+      faculty: "Součást UHK",
+      department: "Katedra / ústav",
+      concept_note: "Popis zapojení / concept note",
+      future_financed_perspective: "Perspektiva budoucího financovaného zapojení",
+      fte: "Úvazek řešitele (FTE)",
+      support_total_request: "Celková požadovaná podpora (Kč)",
+      budget_period_from: "Navržený začátek řešení",
+      iris_case_id: "IRIS (volitelné)",
+      budget_justification: "Odůvodnění rozpočtu (souhrn)",
+      budget_total: "Rozpočet celkem (Kč)",
+      declaration: "Prohlášení",
+      target_scheme: "Cílová soutěž a schéma",
+      planned_submission_date: "Předpokládaný termín podání návrhu",
+      support_year1_request: "Požadovaná podpora – 1. etapa (Kč)",
+      support_year2_request: "Požadovaná podpora – 2. etapa (Kč)",
+      excellence_top5: "TOP výsledky",
+      prev_erc_he: "Předchozí podání ERC/HE",
+      strategy_why_call: "Proč je cílová soutěž vhodná",
+      strategy_work_packages: "Části návrhu v Prestige",
+      strategy_external_review: "Externí review / agentura",
+      milestones_summary: "Milníky (souhrn)",
+    };
+    const k = String(fieldId || "").trim();
+    return m[k] || k.replace(/_/g, " ");
+  }
+
+  function coordinatorSortDetailEntries_(entries, isNoCost) {
+    const order = coordinatorDetailKeyOrder_(isNoCost);
+    const idx = new Map(order.map((key, i) => [key, i]));
+    return entries.slice().sort(function (a, b) {
+      const ka = String(a[0] || "");
+      const kb = String(b[0] || "");
+      const ia = idx.has(ka) ? idx.get(ka) : 10000;
+      const ib = idx.has(kb) ? idx.get(kb) : 10000;
+      if (ia !== ib) return ia - ib;
+      return ka.localeCompare(kb, "cs");
+    });
+  }
+
+  /** Přílohy Prestige / No-Cost v modalu (stejné odkazy jako u žadatele). */
+  function coordinatorPrestigeFamilySubmittedAttachmentsHtml_(competitionId, applicationId, form) {
+    const cid = String(competitionId || "").trim();
+    if (!PRESTIGE_COMPETITION_IDS_.has(cid)) return "";
+    const f = form && typeof form === "object" ? form : {};
+    const aid = String(applicationId || "").trim();
+    if (!aid) return "";
+    const isNc = coordinatorIsNoCostApplication_(cid, f);
+    const fieldIds = isNc ? NO_COST_PDF_FIELD_IDS_ : PRESTIGE_PDF_FIELD_IDS_;
+    const titleFor = function (fieldId) {
+      const t = {
+        attach_annex1: "Příloha – šablona žádosti",
+        attach_annex2: "Příloha – rozpočet",
+        attach_checklist6: "Příloha – checklist",
+        attach_template1: "Příloha č. 1 (šablona No-Cost)",
+        attach_template2: "Příloha č. 2 (rozpočet No-Cost)",
+        attach_engagement_proof: "Doklad zapojení",
+        attach_future_optional: "Dobrovolná příloha (perspektiva)",
+      };
+      return t[String(fieldId || "").trim()] || String(fieldId || "").replace(/_/g, " ");
+    };
+    const rows = [];
+    fieldIds.forEach(function (fieldId) {
+      const raw = f[fieldId];
+      if (raw == null || String(raw).trim() === "") return;
+      const valTrim = String(raw).trim();
+      let valueHtml = "";
+      if (/^UHKAFILE\|/i.test(valTrim) || /^UHKDRIVE\|/i.test(valTrim)) {
+        const mDrive = /^UHKDRIVE\|[^|]+\|(.+)$/i.exec(valTrim);
+        const disp = mDrive ? String(mDrive[1] || "").trim() : valTrim.replace(/^UHKAFILE\|/i, "").trim();
+        const hintRow = {
+          field_id: fieldId,
+          raw_cell_value: valTrim,
+          value: disp,
+          isSheetBlob: true,
+          application_id: aid,
+          drive_file_id: (function () {
+            const m = /^UHKDRIVE\|([^|]+)\|/i.exec(valTrim);
+            return m ? String(m[1] || "").trim() : "";
+          })(),
+        };
+        const linksRow =
+          typeof connectApplicationAttachmentLinksHtml_ === "function"
+            ? connectApplicationAttachmentLinksHtml_(hintRow, cid, {
+                escapeHtml: escapeHtmlCoord,
+                drivePreviewLabel:
+                  typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentDrivePreview") : "Náhled na Disku",
+                sheetDownloadLabel:
+                  typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentSheetDownload") : "Stáhnout z aplikace",
+              })
+            : "";
+        valueHtml =
+          linksRow +
+          ' <span style="font-family:DM Mono,monospace;font-size:11px;color:var(--muted);word-break:break-all">' +
+          escapeHtmlCoord((disp || valTrim).slice(0, 220)) +
+          "</span>";
+      } else if (/^https?:\/\//i.test(valTrim)) {
+        valueHtml =
+          '<a href="' +
+          escapeHtmlCoord(valTrim) +
+          '" target="_blank" rel="noopener">Otevřít odkaz</a>';
+      } else {
+        valueHtml = escapeHtmlCoord(valTrim.slice(0, 400));
+      }
+      rows.push(
+        '<div class="detail-field"><div class="detail-label">' +
+          escapeHtmlCoord(titleFor(fieldId)) +
+          '</div><div class="detail-value" style="font-size:13px;line-height:1.45">' +
+          valueHtml +
+          "</div></div>"
+      );
+    });
+    if (!rows.length) return "";
+    return (
+      '<div class="detail-divider">Přílohy podacího formuláře (PDF)</div>' +
+      rows.join("")
+    );
+  }
+
   function apiUrlForCompetition(competitionId) {
     if (typeof getApiUrlForCompetition === "function") return getApiUrlForCompetition(competitionId);
     return API_URL;
@@ -1942,7 +2168,11 @@
 
     const a    = currentApp;
     const form = parseCoordinatorFormData_(a._form, a);
-    const comp = COMP_NAMES[a.competition_id] || a.competition_id;
+    const isNoCost = coordinatorIsNoCostApplication_(a.competition_id, form);
+    let comp = COMP_NAMES[a.competition_id] || a.competition_id;
+    if (isNoCost && String(a.competition_id || "").trim() === "uhk_prestige_2026") {
+      comp = "Prestige – Horizon No-Cost Entry";
+    }
     const status = a.status || "DRAFT";
 
     document.getElementById("modalTitle").textContent =
@@ -1984,28 +2214,79 @@
       </div>` : `<div style="padding:8px 0 16px;font-size:13px;color:var(--muted);">Stav <strong>${STATUS_FLOW[status]?.label || status}</strong> – žádné další akce.</div>`;
 
     // Formulářová data (u Connect PDF přílohy zobrazíme níže se stejným odkazem jako u žadatele)
+    const cid = String(a.competition_id || "").trim();
+    const isPrestigeFam = PRESTIGE_COMPETITION_IDS_.has(cid);
     const hideAttachInGrid =
       a.competition_id === CONNECT_EXPORT_ID &&
       CONNECT_APPLICATION_FILE_FIELD_IDS_.some((id) => Object.prototype.hasOwnProperty.call(form, id));
-    const fieldRows = Object.entries(form)
-      .filter(([k]) => !/^\d+$/.test(String(k)))
-      .filter(([k]) => !k.startsWith("budget_") || k === "budget_total")
+    const gridEntries = Object.entries(form).filter(function ([k]) {
+      const key = String(k);
+      if (/^\d+$/.test(key)) return false;
+      if (COORD_INTERNAL_FORM_KEYS_.has(key)) return false;
+      if (key.indexOf("attach_") === 0) return false;
+      if (key.startsWith("budget_")) {
+        if (isPrestigeFam && isNoCost) return false;
+        if (isPrestigeFam && !isNoCost) return key === "budget_total";
+        return key === "budget_total";
+      }
+      if (isPrestigeFam && isNoCost && PRESTIGE_MAIN_ONLY_KEYS_.has(key)) return false;
+      if (isPrestigeFam && !isNoCost && NO_COST_ONLY_KEYS_.has(key)) return false;
+      return true;
+    });
+    const sortedGrid = coordinatorSortDetailEntries_(gridEntries, isNoCost);
+    const fieldRows = sortedGrid
+      .filter(([k, v]) => v != null && String(v).trim() !== "")
       .filter(([k]) => !(hideAttachInGrid && CONNECT_APPLICATION_FILE_FIELD_IDS_.includes(k)))
-      .map(([k, v]) => v ? `
+      .map(([k, v]) => `
         <div class="detail-field">
-          <div class="detail-label">${k.replace(/_/g," ")}</div>
-          <div class="detail-value">${String(v).substring(0,200)}</div>
-        </div>` : "").join("");
+          <div class="detail-label">${escapeHtmlCoord(coordinatorHumanFieldLabelCs_(k))}</div>
+          <div class="detail-value">${escapeHtmlCoord(String(v).substring(0, 2000))}</div>
+        </div>`)
+      .join("");
     const connectAttachBlock = coordinatorConnectSubmittedAttachmentsHtml_(a.competition_id, a.application_id, form);
+    const prestigeAttachBlock = coordinatorPrestigeFamilySubmittedAttachmentsHtml_(a.competition_id, a.application_id, form);
     const connectUploadBlock = coordinatorConnectAttachmentUploadHtml_(a.competition_id);
 
-    // Rozpočet
-    const budgetFields = ["budget_travel","budget_accommodation","budget_meals","budget_local","budget_fee","budget_publication","budget_personnel"];
-    const budgetRows = budgetFields.map(k => form[k] ? `
+    // Rozpočet (Connect + hlavní Prestige + No-Cost)
+    const budgetFieldsConnect = [
+      "budget_travel",
+      "budget_accommodation",
+      "budget_meals",
+      "budget_local",
+      "budget_fee",
+      "budget_publication",
+      "budget_personnel",
+    ];
+    const budgetFieldsPrestigeMain = [
+      "budget_personnel",
+      "budget_agency",
+      "budget_training",
+      "budget_travel",
+      "budget_material",
+      "budget_other",
+    ];
+    const budgetFieldsNoCost = ["budget_personnel", "budget_personnel_levies", "budget_travel"];
+    const budgetKeyList =
+      isPrestigeFam && isNoCost
+        ? budgetFieldsNoCost
+        : isPrestigeFam && !isNoCost
+          ? budgetFieldsPrestigeMain
+          : budgetFieldsConnect;
+    const budgetRows = budgetKeyList
+      .map(function (k) {
+        const v = form[k];
+        if (v == null || String(v).trim() === "" || !Number(v)) return "";
+        const lab =
+          k === "budget_personnel_levies"
+            ? "Zákonné odvody + FKSP"
+            : k.replace("budget_", "").replace(/_/g, " ");
+        return `
       <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;">
-        <span style="color:var(--muted);">${k.replace("budget_","").replace(/_/g," ")}</span>
+        <span style="color:var(--muted);">${escapeHtmlCoord(lab)}</span>
         <span style="font-family:'DM Mono',monospace;">${Number(form[k]).toLocaleString("cs-CZ")} Kč</span>
-      </div>` : "").join("");
+      </div>`;
+      })
+      .join("");
 
     document.getElementById("modalBody").innerHTML = `
       ${wfHtml}
@@ -2019,6 +2300,7 @@
         <div class="detail-field"><div class="detail-label">Součást</div><div class="detail-value">${form.faculty || "—"}</div></div>
         ${fieldRows}
         ${connectAttachBlock}
+        ${prestigeAttachBlock}
         ${connectUploadBlock}
       </div>
       ${budgetRows ? `
