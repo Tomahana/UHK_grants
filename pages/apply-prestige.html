@@ -590,10 +590,10 @@
         { field_id:"budget_travel", field_label:"D. Cestovné", field_type:"number", required:"FALSE" },
         { field_id:"budget_material", field_label:"E. Materiál / data / analytické služby", field_type:"number", required:"FALSE" },
         { field_id:"budget_other", field_label:"F. Ostatní způsobilé náklady", field_type:"number", required:"FALSE", help_text:"Např. publikační poplatky, jazyková korektura" },
-        { field_id:"section_attachments", field_label:"Povinné přílohy (sken / PDF)", field_type:"section_header" },
-        { field_id:"attach_annex1", field_label:"Příloha č. 1 – šablona žádosti vč. concept note", field_type:"file", required:"TRUE", options:"pdf,doc,docx", help_text:"Vyplněná šablona dle výzvy" },
-        { field_id:"attach_annex2", field_label:"Příloha č. 2 – rozpočet roku 1 + věcné odůvodnění", field_type:"file", required:"TRUE", options:"pdf,xlsx,xls", help_text:"Tabulka dle výzvy" },
-        { field_id:"attach_checklist6", field_label:"Příloha č. 5 – checklist způsobilosti", field_type:"file", required:"TRUE", options:"pdf,doc,docx", help_text:"ERC / Horizon Europe dle výzvy" },
+        { field_id:"section_attachments", field_label:"Volitelné přílohy (pouze PDF)", field_type:"section_header" },
+        { field_id:"attach_annex1", field_label:"Volitelná příloha – šablona žádosti", field_type:"file", required:"FALSE", options:"pdf", help_text:"Nahrání je volitelné – informace lze vyplnit přímo ve formuláři." },
+        { field_id:"attach_annex2", field_label:"Volitelná příloha – rozpočet + odůvodnění", field_type:"file", required:"FALSE", options:"pdf", help_text:"Nahrání je volitelné – rozpočet se vyplňuje v rozpočtové části formuláře." },
+        { field_id:"attach_checklist6", field_label:"Volitelná příloha – checklist způsobilosti", field_type:"file", required:"FALSE", options:"pdf", help_text:"Nahrání je volitelné – způsobilost je popsána v textových polích formuláře." },
         { field_id:"declaration", field_label:"Prohlášení", field_type:"checkbox", required:"TRUE", help_text:"Beru na vědomí povinnost podání návrhu do cílové prestižní soutěže a dokladování, průběžnou zprávu k 30. 11. 2026 a podmínky výzvy UHK Prestige 1/2026. Potvrzuji správnost údajů." },
       ];
     }
@@ -1263,7 +1263,7 @@
         "Concept note (text)",
         "TOP výsledky",
         "Rozpočet (součet)",
-        "Přílohy 1–3 a č. 6",
+        "Volitelné přílohy (nepovinné)",
         "Prohlášení",
       ];
       const labelsEn =
@@ -1281,7 +1281,7 @@
         { label: labels[2], done: !!formData.concept_note },
         { label: labels[3], done: IS_NO_COST_ENTRY ? !!(String(formData.future_financed_perspective || "").trim()) : !!formData.excellence_top5 },
         { label: labels[4], done: !!((formData.support_total_request || formData.budget_total) && parseFloat(formData.support_total_request || formData.budget_total) > 0) },
-        { label: labels[5], done: IS_NO_COST_ENTRY ? !!(formData.attach_template1 && formData.attach_template2 && formData.attach_engagement_proof) : !!(formData.attach_annex1 && formData.attach_annex2 && formData.attach_checklist6) },
+        { label: labels[5], done: IS_NO_COST_ENTRY ? !!(formData.attach_template1 && formData.attach_template2 && formData.attach_engagement_proof) : true },
         { label: labels[6], done: String(formData.declaration || "") === "true" },
       ];
       document.getElementById("checklist").innerHTML = checks.map(c => `

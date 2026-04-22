@@ -154,11 +154,11 @@ function importPrestigeFormFields() {
     ["budget_material","E. Materiál / data / analytické služby","number","FALSE","23","","",""],
     ["budget_other","F. Ostatní způsobilé náklady","number","FALSE","24","","","Např. publikační poplatky, jazyková korektura"],
     ["budget_justification","Odůvodnění rozpočtu","textarea","TRUE","25","","","Vazba jednotlivých položek na plánovanou aktivitu; součet položek A–F v aplikaci, max. 1 000 000 Kč"],
-    ["section_attachments","Povinné přílohy (sken / PDF)","section_header","","26","","",""],
-    ["attach_annex1","Příloha č. 1 – šablona žádosti vč. concept note","file","TRUE","27","","pdf,doc,docx","Vyplněná šablona dle výzvy"],
-    ["attach_annex2","Příloha č. 2 – rozpočet roku 1 + věcné odůvodnění","file","TRUE","28","","pdf,xlsx,xls",""],
-    ["attach_annex3","Příloha č. 3 – milníky","file","TRUE","29","","pdf,xlsx,xls,doc,docx",""],
-    ["attach_checklist6","Příloha č. 6 – checklist způsobilosti","file","TRUE","30","","pdf,doc,docx","ERC / Horizon Europe dle výzvy"],
+    ["section_attachments","Volitelné přílohy (pouze PDF)","section_header","","26","","","Údaje se primárně vyplňují přímo ve formuláři; přílohy jsou doplňkové."],
+    ["attach_annex1","Volitelná příloha – šablona žádosti","file","FALSE","27","","pdf","Nahrání je volitelné – informace lze vyplnit přímo ve formuláři."],
+    ["attach_annex2","Volitelná příloha – rozpočet + odůvodnění","file","FALSE","28","","pdf","Nahrání je volitelné – rozpočet se vyplňuje v rozpočtové části formuláře."],
+    ["attach_annex3","Volitelná příloha – milníky / plán prací","file","FALSE","29","","pdf","Nahrání je volitelné – milníky lze popsat v textu formuláře."],
+    ["attach_checklist6","Volitelná příloha – checklist způsobilosti","file","FALSE","30","","pdf","Nahrání je volitelné – způsobilost je popsána v textových polích formuláře."],
     ["declaration","Prohlášení","checkbox","TRUE","31","","","Beru na vědomí povinnost podání návrhu do cílové prestižní soutěže a dokladování, průběžnou zprávu k 30. 11. 2026 a podmínky výzvy UHK Prestige 1/2026."],
   ];
 
