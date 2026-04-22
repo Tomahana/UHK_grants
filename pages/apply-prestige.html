@@ -1264,6 +1264,19 @@
           showToast(tf("toastBudgetJust"), "err");
           return false;
         }
+        if (!IS_NO_COST_ENTRY) {
+          const personnel = parseFloat(String(formData.budget_personnel || "").replace(/\s/g, "").replace(",", ".")) || 0;
+          const personnelLimit = t * 0.4;
+          if (personnel > personnelLimit) {
+            const inpPers = document.getElementById("f-budget_personnel");
+            if (inpPers) inpPers.classList.add("error");
+            showToast(
+              "Osobní náklady (A) nesmí překročit 40 % rozpočtu 1. etapy (" + I18n.fmtMoney(Math.floor(personnelLimit)) + ").",
+              "err"
+            );
+            return false;
+          }
+        }
       }
       return ok;
     }
