@@ -1419,6 +1419,7 @@
       try {
         const session = Auth._getSession();
         formData.call_type = CALL_MODE;
+        if (!IS_NO_COST_ENTRY) delete formData.cutoff_cycle;
         const payload = {
           action: "saveDraft",
           token: session?.token || "",
@@ -1499,6 +1500,9 @@
         if (data.draft) {
           formData = data.draft.formData || {};
           draftId  = data.draft.id || data.draft.application_id || null;
+          // Sjednotit s aktuálním odkazem (?c=…); jinak zůstane v JSONu starý call_type z jiné výzvy a koordinátor / export se mýlí.
+          formData.call_type = CALL_MODE;
+          if (!IS_NO_COST_ENTRY) delete formData.cutoff_cycle;
           renderSection(currentSection);
           updateBudgetSidebarFromFormData();
           showToast(trf("draftLoadedToast"));
