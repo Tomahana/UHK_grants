@@ -1204,6 +1204,55 @@
     return String(v);
   }
 
+  function parseCoordinatorFormData_(raw, fallbackRow) {
+    function isCharIndexObject_(obj) {
+      if (!obj || typeof obj !== "object" || Array.isArray(obj)) return false;
+      const keys = Object.keys(obj);
+      if (!keys.length) return false;
+      // Pokud má objekt jen číselné indexy ("0","1",...), jde pravděpodobně o rozpadlý JSON string po znacích.
+      if (!keys.every((k) => /^\d+$/.test(k))) return false;
+      return true;
+    }
+
+    function charIndexObjectToString_(obj) {
+      return Object.keys(obj)
+        .sort((a, b) => Number(a) - Number(b))
+        .map((k) => String(obj[k] == null ? "" : obj[k]))
+        .join("");
+    }
+
+    function parseDeepJson_(value) {
+      let cur = value;
+      for (let i = 0; i < 3; i++) {
+        if (cur == null) return {};
+        if (typeof cur === "object") {
+          if (isCharIndexObject_(cur)) {
+            cur = charIndexObjectToString_(cur);
+            continue;
+          }
+          return cur;
+        }
+        const s = String(cur || "").trim();
+        if (!s) return {};
+        if (s.charAt(0) !== "{") return {};
+        try {
+          cur = JSON.parse(s);
+        } catch {
+          return {};
+        }
+      }
+      return typeof cur === "object" && cur ? cur : {};
+    }
+
+    const parsed = parseDeepJson_(raw);
+    if (parsed && typeof parsed === "object" && Object.keys(parsed).length) return parsed;
+    if (fallbackRow && typeof fallbackRow === "object") {
+      const alt = parseDeepJson_(fallbackRow.form_data);
+      if (alt && typeof alt === "object" && Object.keys(alt).length) return alt;
+    }
+    return {};
+  }
+
   function flattenApplicationForExport(a) {
     const form = a._form || {};
     const base = {
@@ -1417,11 +1466,15 @@
   }
 
   async function coordinatorFetchApplicationsForComp_(compId, token, timeoutMs) {
-    var url = new URL(API_URL);
-    url.searchParams.set("action", "getApplications");
-    url.searchParams.set("competitionId", compId);
-    url.searchParams.set("token", token || "");
-    var ft = await coordinatorFetchWithTimeout_(url.toString(), timeoutMs || 22000);
+    async function fetchApps_(draftMode) {
+      var url = new URL(API_URL);
+      url.searchParams.set("action", "getApplications");
+      url.searchParams.set("competitionId", compId);
+      url.searchParams.set("token", token || "");
+      if (draftMode) url.searchParams.set("statusFilter", "DRAFT");
+      return coordinatorFetchWithTimeout_(url.toString(), timeoutMs || 22000);
+    }
+    var ft = await fetchApps_(false);
     if (ft.aborted) {
       return {
         err: (COMP_NAMES[compId] || compId) + ": " + (typeof I18n !== "undefined" && I18n.t ? I18n.t("coordinator.fetchTimeout") : "časový limit odpovědi"),
@@ -1464,13 +1517,28 @@
       };
     }
     var appsList = Array.isArray(data) ? data : data.applications || [];
+    // Některá API vrací jen nedraftové žádosti; doplníme drafty explicitním dotazem.
+    var ftDraft = await fetchApps_(true);
+    if (ftDraft && ftDraft.ok && ftDraft.res && ftDraft.res.ok) {
+      try {
+        var rawDraft = ftDraft.raw || "";
+        var dataDraft = rawDraft ? JSON.parse(rawDraft) : {};
+        var draftList = Array.isArray(dataDraft) ? dataDraft : dataDraft.applications || [];
+        var byId = {};
+        appsList.forEach(function (x) { byId[String(x.application_id || "").trim()] = true; });
+        draftList.forEach(function (x) {
+          var id = String(x.application_id || "").trim();
+          if (!id || byId[id]) return;
+          byId[id] = true;
+          appsList.push(x);
+        });
+      } catch (_) {
+        /* ignore draft merge parse errors */
+      }
+    }
     var out = [];
     appsList.forEach(function (a) {
-      try {
-        a._form = JSON.parse(a.form_data_json || "{}");
-      } catch {
-        a._form = {};
-      }
+      a._form = parseCoordinatorFormData_(a.form_data_json, a);
       a.competition_id = compId;
       a.faculty = a._form.faculty || "—";
       a.project_title = a._form.project_title || "—";
@@ -1862,7 +1930,7 @@
     if (!currentApp) return;
 
     const a    = currentApp;
-    const form = a._form || {};
+    const form = parseCoordinatorFormData_(a._form, a);
     const comp = COMP_NAMES[a.competition_id] || a.competition_id;
     const status = a.status || "DRAFT";
 
