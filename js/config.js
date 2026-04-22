@@ -5,8 +5,19 @@
 
 // ── Apps Script Web App URL ────────────────────────────────────
 // Po nasazení Web App v Apps Script sem vlož URL:
-// Apps Script Web App – Gmail účet uhk.granty@gmail.com
-const API_URL = "https://script.google.com/macros/s/AKfycbxR6KGcrbi6pIkbtCaNOeFIXoS2fG1-QSnexYGSawciopu_FE6qrP4ZwognL3LpGjOE/exec";
+// Apps Script Web App – samostatné endpointy dle soutěže
+const API_URL_CONNECT = "https://script.google.com/macros/s/AKfycbyqwthk3rMxMSDQkaKCnwef5GsPBu4C40810zOhZUHEARhVbYb-vqbUMzlY5LfsQkNU/exec";
+const API_URL_PRESTIGE = "https://script.google.com/macros/s/AKfycbxR6KGcrbi6pIkbtCaNOeFIXoS2fG1-QSnexYGSawciopu_FE6qrP4ZwognL3LpGjOE/exec";
+// Zpětná kompatibilita pro stránky, které ještě nevolají competition-aware resolver.
+const API_URL = API_URL_CONNECT;
+
+function getApiUrlForCompetition(competitionId) {
+  var cid = String(competitionId || "").trim();
+  if (!cid) return API_URL;
+  if (cid === "uhk_prestige_2026" || cid === "no_cost_entry_2026_v2" || cid.toUpperCase() === "NO_COST_ENTRY")
+    return API_URL_PRESTIGE;
+  return API_URL_CONNECT;
+}
 
 /**
  * OP JAK Návraty: sdílená složka Google Disk s oponentními posudky externích hodnotitelů.

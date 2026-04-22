@@ -25,7 +25,7 @@ const API = {
 
   // ── GET požadavek ──────────────────────────────────────────
   async get(action, params = {}) {
-    const url = new URL(API_URL);
+    const url = new URL(getApiUrlForCompetition(params && params.competitionId ? params.competitionId : null));
     url.searchParams.set("action", action);
     // Přidej auth token
     const session = Auth._getSession();
@@ -42,7 +42,8 @@ const API = {
   // ── POST požadavek ─────────────────────────────────────────
   async post(action, data = {}) {
     const session = Auth._getSession();
-    const res = await fetch(API_URL, {
+    const endpoint = getApiUrlForCompetition(data && data.competitionId ? data.competitionId : null);
+    const res = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -152,7 +153,7 @@ const API = {
       checklist,
     };
     if (saveSection) payload.saveSection = saveSection;
-    await fetch(API_URL, {
+    await fetch(getApiUrlForCompetition(competitionId), {
       method: "POST",
       mode: "no-cors",
       headers: { "Content-Type": "text/plain;charset=UTF-8" },
@@ -219,7 +220,7 @@ const API = {
     params.set("competitionId", String(competitionId || ""));
     params.set("applicationId", String(applicationId || ""));
     try {
-      const res = await fetch(API_URL, {
+      const res = await fetch(getApiUrlForCompetition(competitionId), {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: params.toString(),
@@ -260,7 +261,9 @@ const API = {
           : "Pro tuto akci se přihlaste.";
       throw new Error(msg);
     }
-    const baseUrl = String(typeof API_URL !== "undefined" ? API_URL : "").trim();
+    const baseUrl = String(
+      getApiUrlForCompetition(params && params.competitionId ? params.competitionId : null)
+    ).trim();
     try {
       new URL(baseUrl);
     } catch (eUrl) {

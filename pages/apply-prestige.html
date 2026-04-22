@@ -1075,7 +1075,9 @@
       Object.keys(payload || {}).forEach(function (k) {
         if (payload[k] !== undefined && payload[k] !== null) p.set(k, String(payload[k]));
       });
-      const res = await fetch(API_URL, {
+      const res = await fetch((typeof getApiUrlForCompetition === "function"
+        ? getApiUrlForCompetition(COMPETITION_ID)
+        : API_URL), {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: p.toString(),
@@ -1363,7 +1365,9 @@
           if (v === undefined || v === null) return;
           p.set(k, typeof v === "string" ? v : JSON.stringify(v));
         });
-        const res = await fetch(API_URL, {
+        const res = await fetch((typeof getApiUrlForCompetition === "function"
+          ? getApiUrlForCompetition(COMPETITION_ID)
+          : API_URL), {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: p.toString(),
@@ -1393,7 +1397,9 @@
     async function loadDraft() {
       try {
         const session = Auth._getSession();
-        const url = new URL(API_URL);
+        const url = new URL((typeof getApiUrlForCompetition === "function"
+          ? getApiUrlForCompetition(COMPETITION_ID)
+          : API_URL));
         url.searchParams.set("action", "getDraft");
         url.searchParams.set("competitionId", COMPETITION_ID);
         url.searchParams.set("applicantEmail", user.email);
@@ -1472,7 +1478,9 @@
           const cycleDate = new Date(now.getFullYear(), now.getMonth() + (day > 10 ? 1 : 0), 10);
           formData.cutoff_cycle = cycleDate.toISOString().slice(0, 10);
         }
-        await fetch(API_URL, {
+        await fetch((typeof getApiUrlForCompetition === "function"
+          ? getApiUrlForCompetition(COMPETITION_ID)
+          : API_URL), {
           method: "POST", mode: "no-cors",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
