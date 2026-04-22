@@ -734,6 +734,22 @@ async function loadReviewConnectAttachments() {
 
 function renderDetail(){
   const f=cur._f;
+  const attachmentHints = Array.isArray(cur.file_fields) ? cur.file_fields : [];
+  const attachmentsHtml = attachmentHints.length
+    ? `<div class="dfull"><div class="dl">Přílohy z podacího formuláře</div><div class="dv">${attachmentHints.map(function (h) {
+        const links = typeof connectApplicationAttachmentLinksHtml_ === "function"
+          ? connectApplicationAttachmentLinksHtml_(h, CID, {
+              escapeHtml: esc,
+              drivePreviewLabel:
+                typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentDrivePreview") : "Náhled na Disku",
+              sheetDownloadLabel:
+                typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentSheetDownload") : "Stáhnout z aplikace",
+            })
+          : "";
+        const fallback = String(h.value || "").trim() ? esc(String(h.value || "").trim()) : "—";
+        return `<div style="margin-bottom:8px;"><code>${esc(String(h.field_id || ""))}</code>: ${links || fallback}</div>`;
+      }).join("")}</div></div>`
+    : "";
   const rows=[
     [tx("detailApplicant"),cur.applicant_name||"—"],
     [tx("detailFaculty"),(f.faculty||"—")+(f.department?" · "+f.department:"")],
@@ -760,7 +776,7 @@ function renderDetail(){
     f.recent_outputs?.trim()?[tx("detailOutputs5y"),f.recent_outputs]:null,
     f.budget_justification?[tx("detailBudgetJust"),f.budget_justification]:null,
   ].filter(Boolean).map(([k,v])=>`<div class="dfull"><div class="dl">${esc(k)}</div><div class="dv" style="white-space:pre-line;">${esc(v)}</div></div>`).join("");
-  document.getElementById("appDetail").innerHTML=`<div class="dgrid">${rows}${long}</div>`;
+  document.getElementById("appDetail").innerHTML=`<div class="dgrid">${rows}${long}${attachmentsHtml}</div>`;
 }
 
 function renderCovStrip(){

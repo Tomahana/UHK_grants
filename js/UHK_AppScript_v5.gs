@@ -363,10 +363,9 @@ function connectApplicationFileDownloadResolved_(competitionId, applicationId, f
   var cid = String(competitionId || "").trim();
   var aid = String(applicationId || "").trim();
   var fid = String(fieldId || "").trim();
-  if (cid !== CONNECT_COMPETITION_ID || !aid || !fid) throw new Error("Neplatné parametry.");
-  var allowed = isNoCost
-    ? { attach_template1: 1, attach_template2: 1, attach_engagement_proof: 1, attach_future_optional: 1, attach_annex1: 1, attach_annex2: 1 }
-    : { attach_invitation: 1, attach_annex1: 1, attach_annex2: 1, attach_annex3: 1, attach_checklist6: 1 };
+  if (!aid || !fid) throw new Error("Neplatné parametry.");
+  var allowed = connectAllowedApplicationFileFieldsByCompetition_(cid);
+  if (!allowed) throw new Error("Neplatná soutěž.");
   if (!allowed[fid]) throw new Error("Neplatné pole přílohy.");
   if (!connectCanDownloadApplicationBlob_(auth, cid, aid)) throw new Error("Soubor nelze stáhnout (oprávnění).");
   var ss = getSpreadsheet(cid);
@@ -1208,6 +1207,17 @@ function getApplications(competitionId, token, filters) {
     rows = rows.filter(function (r) {
       return String(r.status || "").trim() === String(filters.statusFilter).trim();
     });
+  rows = rows.map(function (r) {
+    var out = {};
+    for (var k in r) out[k] = r[k];
+    out.file_fields = connectApplicationFileFieldHints_(
+      connectParseFormDataObject_(r),
+      String(r.application_id || "").trim(),
+      getSpreadsheet(competitionId),
+      competitionId
+    );
+    return out;
+  });
   return { applications: rows };
 }
 
@@ -1978,7 +1988,7 @@ function connectReadPdfBlobFromSheet_(blobSheet, applicationId, fieldId) {
 
 function connectCanDownloadApplicationBlob_(auth, competitionId, applicationId) {
   if (!auth || !applicationId) return false;
-  if (String(competitionId || "").trim() !== CONNECT_COMPETITION_ID) return false;
+  if (!connectAllowedApplicationFileFieldsByCompetition_(competitionId)) return false;
   if (authHasAnyRole_(auth, ["ADMIN", "TESTER", "KOMISAR", "KOMISAŘ", "PROREKTOR", "READONLY"])) return true;
   var ss = getSpreadsheet(competitionId);
   var sheet = ss.getSheetByName(SHEETS.APPLICATIONS);
@@ -2395,7 +2405,9 @@ function connectApplicationBlobMetaByField_(ss, applicationId) {
  */
 function connectApplicationFileFieldHints_(fd, applicationIdOpt, ss) {
   if (!fd || typeof fd !== "object") return [];
-  var keys = ["attach_invitation", "attach_annex1", "attach_annex2", "attach_annex3"];
+  var competitionId = arguments.length > 3 ? arguments[3] : CONNECT_COMPETITION_ID;
+  var allowed = connectAllowedApplicationFileFieldsByCompetition_(competitionId) || {};
+  var keys = Object.keys(allowed);
   var out = [];
   var appId = String(applicationIdOpt || "").trim();
   var blobByField = appId && ss ? connectApplicationBlobMetaByField_(ss, appId) : {};
@@ -2432,6 +2444,39 @@ function connectApplicationFileFieldHints_(fd, applicationIdOpt, ss) {
     });
   });
   return out;
+}
+
+function connectAllowedApplicationFileFieldsByCompetition_(competitionId) {
+  var cid = String(competitionId || "").trim();
+  if (!cid) return null;
+  if (cid === CONNECT_COMPETITION_ID) {
+    return {
+      attach_invitation: 1,
+      attach_annex1: 1,
+      attach_annex2: 1,
+      attach_annex3: 1,
+      attach_checklist6: 1,
+    };
+  }
+  if (cid === "uhk_prestige_2026") {
+    return {
+      attach_annex1: 1,
+      attach_annex2: 1,
+      attach_annex3: 1,
+      attach_checklist6: 1,
+    };
+  }
+  if (cid.toUpperCase() === "NO_COST_ENTRY") {
+    return {
+      attach_template1: 1,
+      attach_template2: 1,
+      attach_engagement_proof: 1,
+      attach_future_optional: 1,
+      attach_annex1: 1,
+      attach_annex2: 1,
+    };
+  }
+  return null;
 }
 
 /** Aktivní pole formuláře z listu FORM_FIELDS (pořadí zobrazení). */
