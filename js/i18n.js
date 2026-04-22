@@ -498,7 +498,7 @@
           "Koncept se ukládá <strong>automaticky po 30 s</strong> nečinnosti; ručně použijte „Uložit draft“.",
         termsTitle: "Termíny výzvy (1/2026)",
         termsFootnoteHtml:
-          "Elektronické podání dle Vyhlášení výzvy č. 1/2026 UHK Prestige. Podvýzva <strong>Horizon No-Cost Entry</strong> (výzva 2/2026) bude v aplikaci doplněna – zatím viz samostatný dokument výzvy.",
+          "",
         budgetCardTitle: "Rozpočet",
         budgetOfMax: "z max. 500 000 Kč (1. etapa)",
         checklistTitle: "Kontrolní seznam",
