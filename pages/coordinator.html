@@ -1234,7 +1234,14 @@
             cur = charIndexObjectToString_(cur);
             continue;
           }
-          return cur;
+          // Pokud objekt obsahuje mix indexových klíčů ("0","1",...) i reálných polí,
+          // odfiltrujeme indexy, aby se v modalu nezobrazovaly řádky 0,1,2...
+          const cleaned = {};
+          Object.keys(cur).forEach((k) => {
+            if (/^\d+$/.test(String(k))) return;
+            cleaned[k] = cur[k];
+          });
+          return Object.keys(cleaned).length ? cleaned : cur;
         }
         const s = String(cur || "").trim();
         if (!s) return {};
@@ -1981,6 +1988,7 @@
       a.competition_id === CONNECT_EXPORT_ID &&
       CONNECT_APPLICATION_FILE_FIELD_IDS_.some((id) => Object.prototype.hasOwnProperty.call(form, id));
     const fieldRows = Object.entries(form)
+      .filter(([k]) => !/^\d+$/.test(String(k)))
       .filter(([k]) => !k.startsWith("budget_") || k === "budget_total")
       .filter(([k]) => !(hideAttachInGrid && CONNECT_APPLICATION_FILE_FIELD_IDS_.includes(k)))
       .map(([k, v]) => v ? `
