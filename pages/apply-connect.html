@@ -1607,58 +1607,59 @@
     }
 
     async function loadDraft() {
-      try {
-        const session = Auth._getSession();
-        const apiUrl = (typeof getApiUrlForCompetition === "function" ? getApiUrlForCompetition(COMPETITION_ID) : API_URL);
-        const url = new URL(apiUrl);
-        url.searchParams.set("action", "getDraft");
-        url.searchParams.set("competitionId", COMPETITION_ID);
-        url.searchParams.set("applicantEmail", user.email);
-        url.searchParams.set("token", session?.token || "");
-        const focusApp = new URLSearchParams(location.search).get("app");
-        if (focusApp) url.searchParams.set("applicationId", focusApp.trim());
-        const res  = await fetch(url.toString());
-        const data = await res.json();
-        if (data.error) return false;
+  try {
+    const session = Auth._getSession();
+    const apiUrl = (typeof getApiUrlForCompetition === "function" ? getApiUrlForCompetition(COMPETITION_ID) : API_URL);
+    const url = new URL(apiUrl);
+    url.searchParams.set("action", "getDraft");
+    url.searchParams.set("competitionId", COMPETITION_ID);
+    url.searchParams.set("applicantEmail", user.email);
+    url.searchParams.set("token", session?.token || "");
+    const focusApp = new URLSearchParams(location.search).get("app");
+    if (focusApp) url.searchParams.set("applicationId", focusApp.trim());
+    const res  = await fetch(url.toString());
+    const data = await res.json();
+    if (data.error) return false;
 
-        if (data.prorektorOutcome && data.prorektorOutcome.decision) {
-          fillProrektorOutcomeCard(data.prorektorOutcome, data.submittedApplication);
-        } else {
-          hideProrektorOutcomeCard();
-        }
-
-        if (data.submittedApplication && !data.draft) {
-          renderSubmittedApplicationView(
-            data.submittedApplication,
-            data.prorektorOutcome,
-            !!data.hasOtherDraft
-          );
-          const sid = data.submittedApplication.application_id;
-          const dec = data.prorektorOutcome && String(data.prorektorOutcome.decision || "").toUpperCase();
-          const postAwardDec =
-            dec === "SUPPORT" ||
-            dec === "CUT" ||
-            dec === "FUND" ||
-            dec === "FUND_REDUCED" ||
-            dec === "REDUCED";
-          if (sid && postAwardDec) void mountConnectPostAward(sid);
-          return true;
-        }
-
-        if (data.draft) {
-          formData = data.draft.formData || {};
-          draftId  = data.draft.id || data.draft.application_id || null;
-          syncPhdJuniorInternalNote_();
-          renderSection(currentSection);
-          updateBudget();
-          updateChecklist();
-          showToast(trf("draftLoadedToast"));
-        }
-        return false;
-      } catch {
-        return false;
-      }
+    if (data.prorektorOutcome && data.prorektorOutcome.decision) {
+      fillProrektorOutcomeCard(data.prorektorOutcome, data.submittedApplication);
+    } else {
+      hideProrektorOutcomeCard();
     }
+
+    // Submitted detail zobrazujeme jen při explicitním focusu přes ?app=<id>.
+    if (focusApp && data.submittedApplication && !data.draft) {
+      renderSubmittedApplicationView(
+        data.submittedApplication,
+        data.prorektorOutcome,
+        !!data.hasOtherDraft
+      );
+      const sid = data.submittedApplication.application_id;
+      const dec = data.prorektorOutcome && String(data.prorektorOutcome.decision || "").toUpperCase();
+      const postAwardDec =
+        dec === "SUPPORT" ||
+        dec === "CUT" ||
+        dec === "FUND" ||
+        dec === "FUND_REDUCED" ||
+        dec === "REDUCED";
+      if (sid && postAwardDec) void mountConnectPostAward(sid);
+      return true;
+    }
+
+    if (data.draft) {
+      formData = data.draft.formData || {};
+      draftId  = data.draft.id || data.draft.application_id || null;
+      syncPhdJuniorInternalNote_();
+      renderSection(currentSection);
+      updateBudget();
+      updateChecklist();
+      showToast(trf("draftLoadedToast"));
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
 
     // ── Odeslání přihlášky ──────────────────────────────────────
     async function submitApplication() {
