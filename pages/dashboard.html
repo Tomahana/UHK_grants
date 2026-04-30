@@ -122,16 +122,9 @@
       }
     } else {
 
-    /** Nejvyšší role z účtu pro akce na kartách (správce s maskou „Žadatel“ vidí stále admin odkazy). */
-    function effectiveDashboardRole() {
-      const order = ["ADMIN", "TESTER", "PROREKTOR", "KOMISAR", "RESITEL", "READONLY", "ZADATEL"];
-      for (const r of order) {
-        if (Auth.hasAnyRole([r])) return r;
-      }
-      return user.role;
-    }
-    const dashRole = effectiveDashboardRole();
     const activeRole = String(user.role || "").toUpperCase();
+    // Akce na kartách se řídí aktuálně zvolenou rolí (maskou), ne nejvyšší rolí účtu.
+    const dashRole = activeRole;
 
     // ── Zobraz info o uživateli ────────────────────────────────
     document.getElementById("userName").textContent    = user.name || user.email;
