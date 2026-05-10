@@ -150,7 +150,7 @@ const FALLBACK_COMPETITIONS = [
     type:        "prestige_large",
     status:      "OPEN",
     description: "Dvouetapový projekt s rozhodnutím o pokračování do etapy 2; povinné podání do externí soutěže.",
-    deadline:    "2026-05-11",
+    deadline:    "2026-05-13",
     allocation:  3000000,
     maxBudget:   500000,
   },
@@ -166,6 +166,38 @@ const FALLBACK_COMPETITIONS = [
     is_continuous: true,
   },
 ];
+
+/**
+ * Hlavní výzva UHK Prestige (výzva 1/2026), ne Horizon No-Cost Entry.
+ * @param {{ id?: string, type?: string }|string} compOrId
+ */
+function isUhkPrestigeMainCompetition(compOrId) {
+  const raw =
+    compOrId && typeof compOrId === "object"
+      ? compOrId
+      : { id: compOrId };
+  const id = String(raw.id || compOrId || "")
+    .toLowerCase()
+    .trim();
+  if (id.indexOf("no_cost") >= 0) return false;
+  let typeUpper = String(raw.type || "")
+    .toUpperCase()
+    .replace(/\s/g, "_");
+  if (
+    !typeUpper &&
+    typeof FALLBACK_COMPETITIONS !== "undefined" &&
+    Array.isArray(FALLBACK_COMPETITIONS)
+  ) {
+    const row = FALLBACK_COMPETITIONS.find(function (c) {
+      return c && String(c.id).toLowerCase() === id;
+    });
+    if (row && row.type)
+      typeUpper = String(row.type).toUpperCase().replace(/\s/g, "_");
+  }
+  if (typeUpper === "NO_COST_ENTRY") return false;
+  if (typeUpper === "UHK_PRESTIGE" || typeUpper === "PRESTIGE_LARGE") return true;
+  return id === "uhk_prestige_2026";
+}
 
 // ── Utility funkce ─────────────────────────────────────────────
 function formatDate(str) {
