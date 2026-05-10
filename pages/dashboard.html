@@ -374,13 +374,31 @@
         isPrestigeLike ? `apply-prestige.html?c=${id}` :
         null; // Návraty nemají přihlášku přes web
 
+      const prestigeNoticeHref = `prestige-podani-upozorneni.html?c=${encodeURIComponent(id)}`;
+      const prestigeAdminFormHref = `apply-prestige.html?c=${encodeURIComponent(id)}`;
+      const isMainPrestige =
+        typeof isUhkPrestigeMainCompetition === "function" &&
+        isPrestigeLike &&
+        isUhkPrestigeMainCompetition(comp);
+
+      const primarySubmitHref =
+        isMainPrestige && applyHref && applyHref.indexOf("apply-prestige") >= 0
+          ? prestigeNoticeHref
+          : applyHref;
+
+      const submitActionLabel = isMainPrestige
+        ? I18n.t("dashboard.actionPrestigeNotice")
+        : I18n.t("dashboard.actionSubmit");
+
       // Connect: přehled na my-connect; u uzavřené ReGa/Prestige nevést na formulář, ale na přehled projektů
       const myApplicationsHref =
         type === "UHK_CONNECT"
           ? `my-connect.html?c=${id}`
           : (typeUpper === "UHK_REGA" || isPrestigeLike) && !isOpen
             ? "my-projects.html"
-            : applyHref;
+            : isMainPrestige && isPrestigeLike && isOpen
+              ? "my-projects.html"
+              : applyHref;
       const myListLabel = type === "UHK_CONNECT" ? I18n.t("dashboard.actionMyProjects") : I18n.t("dashboard.actionMyApps");
 
       const actionMap = {
@@ -389,8 +407,13 @@
           { label: I18n.t("dashboard.actionManageUsers"), href: "admin-users.html",       style: "ghost",     icon: "👥" },
           { label: I18n.t("dashboard.actionSettings"),        href: "admin-competitions.html", style: "ghost",     icon: "⚙️" },
         ] : [
-          ...(applyHref
-            ? [{ label: I18n.t("dashboard.actionSubmit"), href: applyHref, style: "primary", icon: "📝" }]
+          ...(primarySubmitHref
+            ? isMainPrestige && ["ADMIN", "TESTER"].includes(role)
+              ? [
+                  { label: I18n.t("dashboard.actionPrestigeNotice"), href: primarySubmitHref, style: "primary", icon: "📌" },
+                  { label: I18n.t("dashboard.actionPrestigeAdminForm"), href: prestigeAdminFormHref, style: "ghost", icon: "🔧" },
+                ]
+              : [{ label: submitActionLabel, href: primarySubmitHref, style: "primary", icon: "📝" }]
             : []),
           { label: I18n.t("dashboard.actionManageApps"),href: "coordinator.html",         style: "secondary", icon: "📋" },
           { label: I18n.t("dashboard.actionReview"),       href: reviewHref,                 style: "ghost",     icon: "⭐" },
@@ -411,16 +434,21 @@
         ],
 
         TESTER: [
-          ...(applyHref
-            ? [{ label: I18n.t("dashboard.actionSubmit"), href: applyHref, style: "primary", icon: "📝" }]
+          ...(primarySubmitHref
+            ? isMainPrestige && ["ADMIN", "TESTER"].includes(role)
+              ? [
+                  { label: I18n.t("dashboard.actionPrestigeNotice"), href: primarySubmitHref, style: "primary", icon: "📌" },
+                  { label: I18n.t("dashboard.actionPrestigeAdminForm"), href: prestigeAdminFormHref, style: "ghost", icon: "🔧" },
+                ]
+              : [{ label: submitActionLabel, href: primarySubmitHref, style: "primary", icon: "📝" }]
             : []),
           { label: I18n.t("dashboard.actionManageApps"),href: "coordinator.html",         style: "secondary", icon: "📋" },
           { label: I18n.t("dashboard.actionReview"),       href: reviewHref,                 style: "ghost",     icon: "⭐" },
           { label: I18n.t("dashboard.actionSettings"),       href: "admin-competitions.html",  style: "ghost",     icon: "⚙️" },
         ],
 
-        ZADATEL: applyHref ? (isOpen ? [
-          { label: I18n.t("dashboard.actionSubmit"), href: applyHref,                  style: "primary",   icon: "📝" },
+        ZADATEL: primarySubmitHref ? (isOpen ? [
+          { label: submitActionLabel, href: primarySubmitHref,                  style: "primary",   icon: "📝" },
           { label: myListLabel,  href: myApplicationsHref,          style: "ghost",     icon: "📁" },
         ] : [
           { label: myListLabel,  href: myApplicationsHref,          style: "ghost",     icon: "📁" },
@@ -441,8 +469,8 @@
         ],
       };
 
-      return actionMap[role] || (applyHref ? (isOpen ? [
-        { label: I18n.t("dashboard.actionEnter"), href: applyHref, style: "primary", icon: "→" },
+      return actionMap[role] || (primarySubmitHref ? (isOpen ? [
+        { label: I18n.t("dashboard.actionEnter"), href: primarySubmitHref, style: "primary", icon: "→" },
       ] : [
         { label: myListLabel, href: myApplicationsHref, style: "ghost", icon: "📁" },
       ]) : [
