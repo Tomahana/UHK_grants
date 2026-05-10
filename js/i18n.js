@@ -486,6 +486,10 @@
           "Nejdřív musí vzniknout koncept přihlášky. Zkuste soubor znovu za chvíli nebo klepněte na „Uložit draft“.",
         fileExtRejected: "Pro tuto přílohu není povolený typ souboru (viz formát u pole).",
         storedFileOpen: "Stáhnout soubor",
+        fileStoredTitle: "Soubor je uložen v evidenci soutěže",
+        fileStoredReplaceHint:
+          "Níže můžete soubor kdykoli nahradit novým souborem. Pro kontrolu ho můžete stáhnout odkazem výše.",
+        fileStoredPendingDraft: "Uložte koncept („Uložit draft“), aby byl k dispozici odkaz ke stažení.",
         toastYear1SupportPositive: "Uveďte požadovanou podporu pro 1. etapu větší než 0 Kč.",
         toastYear1SupportMax: "Požadovaná podpora pro 1. etapu nesmí překročit {{amount}}.",
         toastYear2SupportMax: "Plánovaná podpora pro 2. etapu nesmí překročit {{amount}}.",
@@ -989,6 +993,10 @@
           "An application draft must exist first. Try again in a moment or click “Save draft”.",
         fileExtRejected: "This file type is not allowed for this attachment (see formats under the field).",
         storedFileOpen: "Download file",
+        fileStoredTitle: "File saved in the competition records",
+        fileStoredReplaceHint:
+          "You can replace it below with a new file at any time. Use the link above to download and verify.",
+        fileStoredPendingDraft: 'Save your draft ("Save draft") to enable the download link.',
         toastYear1SupportPositive: "Enter requested phase 1 support greater than CZK 0.",
         toastYear1SupportMax: "Requested phase 1 support must not exceed {{amount}}.",
         toastYear2SupportMax: "Planned phase 2 support must not exceed {{amount}}.",
