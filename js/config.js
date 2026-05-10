@@ -199,6 +199,14 @@ function isUhkPrestigeMainCompetition(compOrId) {
   return id === "uhk_prestige_2026";
 }
 
+/** Uzávěrka hlavní Prestige na kartě rozcestníku – platí do aktualizace CONFIG v tabulkách (API vrací starší datum). */
+const UHK_PRESTIGE_2026_DEADLINE_ISO = "2026-05-13";
+
+function patchUhkPrestige2026Dashboard_(comp) {
+  if (!comp || String(comp.id || "").trim() !== "uhk_prestige_2026") return comp;
+  return { ...comp, deadline: UHK_PRESTIGE_2026_DEADLINE_ISO };
+}
+
 // ── Utility funkce ─────────────────────────────────────────────
 function formatDate(str) {
   if (!str) return "–";

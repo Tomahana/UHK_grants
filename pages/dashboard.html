@@ -173,10 +173,12 @@
       const vis = getDashboardVisibility();
 
       // Okamžitě zobraz fallback – žádné čekání na API
-      let competitions = FALLBACK_COMPETITIONS.map(c => ({
-        ...c,
-        _visible: vis[c.id] !== undefined ? vis[c.id] : true,
-      }));
+      let competitions = FALLBACK_COMPETITIONS.map(c =>
+        patchUhkPrestige2026Dashboard_({
+          ...c,
+          _visible: vis[c.id] !== undefined ? vis[c.id] : true,
+        })
+      );
       if (!showHiddenCompetitions) competitions = competitions.filter(c => c._visible);
       renderCompetitions(competitions, showHiddenCompetitions);
       enrichConnectFunding(competitions);
@@ -192,10 +194,12 @@
           // Viditelnost z CONFIG (dashboard_visible v Sheets)
           let live = data
             .filter((c) => c && c.id != null && String(c.id).trim() !== "")
-            .map((c) => ({
-              ...c,
-              _visible: c.dashboardVisible !== false,
-            }));
+            .map((c) =>
+              patchUhkPrestige2026Dashboard_({
+                ...c,
+                _visible: c.dashboardVisible !== false,
+              })
+            );
           // Doplň Návraty pokud API nevrátí (musí mít _visible, jinak zmizí po filtru)
           if (!live.some(c => c.id === "uhk_navraty_2026")) {
             live.unshift({ ...NAVRATY_CARD, _visible: true });
@@ -350,17 +354,19 @@
     // Akce dle role a stavu soutěže
     function getActionsForRole(role, comp) {
       const id     = comp.id;
+      const idNorm = String(id || "").trim().toLowerCase();
       const isOpen = competitionAllowsApplications(comp);
       const type   = comp.type;
       const compIdNorm = String(id || "").toLowerCase();
+      const typeNorm = String(type || "").toUpperCase().replace(/\s/g, "_").replace(/-/g, "_");
 
       // Odkaz na hodnoticí formulář
       const reviewHref = type === "OP_JAK_NAVRATY"
         ? "review-navraty.html"
         : `review-connect.html?c=${id}`;
 
-      // Odkaz na podání přihlášky dle soutěže
-      const typeUpper = String(type || "").toUpperCase();
+      // Odkaz na podání přihlášky dle soutěže (typeNorm = API může vrátit mezery / varianty)
+      const typeUpper = typeNorm;
       const isPrestigeLike =
         typeUpper === "UHK_PRESTIGE" ||
         typeUpper === "PRESTIGE_LARGE" ||
@@ -375,10 +381,12 @@
 
       const prestigeNoticeHref = `prestige-podani-upozorneni.html?c=${encodeURIComponent(id)}`;
       const prestigeAdminFormHref = `apply-prestige.html?c=${encodeURIComponent(id)}`;
+      /* API ze Sheets (getCompetitions) musí sedět s logikou v config.js – id uhk_prestige_2026 vždy = náhradní stránka + termín z klienta */
       const isMainPrestige =
-        typeof isUhkPrestigeMainCompetition === "function" &&
-        isPrestigeLike &&
-        isUhkPrestigeMainCompetition(comp);
+        idNorm === "uhk_prestige_2026" ||
+        (typeof isUhkPrestigeMainCompetition === "function" &&
+          isPrestigeLike &&
+          isUhkPrestigeMainCompetition(comp));
 
       const primarySubmitHref =
         isMainPrestige && applyHref && applyHref.indexOf("apply-prestige") >= 0
