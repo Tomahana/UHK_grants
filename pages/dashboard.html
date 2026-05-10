@@ -381,12 +381,10 @@
 
       const prestigeNoticeHref = `prestige-podani-upozorneni.html?c=${encodeURIComponent(id)}`;
       const prestigeAdminFormHref = `apply-prestige.html?c=${encodeURIComponent(id)}`;
-      /* API ze Sheets (getCompetitions) musí sedět s logikou v config.js – id uhk_prestige_2026 vždy = náhradní stránka + termín z klienta */
       const isMainPrestige =
-        idNorm === "uhk_prestige_2026" ||
-        (typeof isUhkPrestigeMainCompetition === "function" &&
-          isPrestigeLike &&
-          isUhkPrestigeMainCompetition(comp));
+        typeof isUhkPrestigeMainCompetition === "function" &&
+        isPrestigeLike &&
+        isUhkPrestigeMainCompetition(comp);
 
       const primarySubmitHref =
         isMainPrestige && applyHref && applyHref.indexOf("apply-prestige") >= 0
