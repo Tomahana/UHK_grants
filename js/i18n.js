@@ -16,7 +16,11 @@
 
   var MESSAGES = {
     cs: {
-      common: { signedIn: "Přihlášen:" },
+      common: {
+        signedIn: "Přihlášen:",
+        epzLegacyNotice:
+          "Tyto stránky se dále nevyvíjejí. Postupně budou nahrazeny elektronickým podáním žádostí (EPZ), které dočasně suplovaly.",
+      },
       lang: { label: "Jazyk", switchCs: "CS", switchEn: "EN" },
       nav: {
         grantsHub: "Grantové soutěže",
@@ -514,7 +518,11 @@
       },
     },
     en: {
-      common: { signedIn: "Signed in:" },
+      common: {
+        signedIn: "Signed in:",
+        epzLegacyNotice:
+          "This web interface is no longer under active development. It will gradually be replaced by the electronic applications system (EPZ), which these pages temporarily supplemented.",
+      },
       lang: { label: "Language", switchCs: "CS", switchEn: "EN" },
       nav: {
         grantsHub: "Grant competitions",

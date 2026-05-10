@@ -233,7 +233,7 @@
         </div>
         <div class="sidebar-item">
           <span class="sidebar-key" data-i18n="applyPrestige.sidebarDeadlineApply">Uzávěrka přihlášek</span>
-          <span class="sidebar-val" id="sidebarDeadlineApply">11. května 2026</span>
+          <span class="sidebar-val" id="sidebarDeadlineApply">13. května 2026</span>
         </div>
         <div class="sidebar-item">
           <span class="sidebar-key" data-i18n="applyPrestige.sidebarMaxY1">Max. podpora (rok 1)</span>
@@ -304,7 +304,21 @@
       if (b && String(b.textContent).trim() === "DRAFT") b.textContent = I18n.t("appStatuses.DRAFT.label");
     })();
 
+    const COMPETITION_ID = new URLSearchParams(location.search).get("c") || "uhk_prestige_2026";
+
     const user = Auth.requireLogin(["ZADATEL","RESITEL","ADMIN","TESTER"]);
+    const redirectPrestigeNotice =
+      user &&
+      typeof isUhkPrestigeMainCompetition === "function" &&
+      isUhkPrestigeMainCompetition({ id: COMPETITION_ID }) &&
+      !Auth.hasAnyRole(["ADMIN", "TESTER"]);
+
+    if (redirectPrestigeNotice) {
+      const q = new URLSearchParams(location.search);
+      q.set("c", COMPETITION_ID);
+      window.location.replace("prestige-podani-upozorneni.html?" + q.toString());
+    } else if (user) {
+
     document.getElementById("topbarName").textContent = user.name || user.email;
 
     function tp(k) { return I18n.t("applyPrestige." + k); }
@@ -327,7 +341,11 @@
         .replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
     }
 
-    const COMPETITION_ID = new URLSearchParams(location.search).get("c") || "uhk_prestige_2026";
+    /** Musí odpovídat nasazení Apps Scriptu (`config.js` API_URL_PRESTIGE), jinak se zápis může dostat do jiného projektu / starší verze skriptu. */
+    const PRESTIGE_API_URL =
+      typeof getApiUrlForCompetition === "function"
+        ? getApiUrlForCompetition(COMPETITION_ID)
+        : API_URL;
     /** Součet rozpočtu A–F pro 1. etapu – max. 500 000 Kč dle výzvy č. 1/2026 */
     const MAX_BUDGET = 500000;
     const MAX_YEAR1_SUPPORT_REQUEST = 500000;
@@ -338,7 +356,7 @@
      * POST na Web App – JSON jako text/plain (čitelná odpověď; vlastní competitionId → tabulka Prestige).
      */
     async function prestigePostJson(body) {
-      const res = await fetch(API_URL, {
+      const res = await fetch(PRESTIGE_API_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=UTF-8" },
         body: JSON.stringify(body),
@@ -446,10 +464,10 @@
 
     /** Harmonogram dle Vyhlášení výzvy č. 1/2026 UHK Prestige */
     const PRESTIGE_VYZVA = {
-      DEADLINE_APPLY_ISO: "2026-05-11",
+      DEADLINE_APPLY_ISO: "2026-05-13",
       harmonogram: [
         { title: "Vyhlášení výzvy", dateLabel: "22. 4. 2026", note: "" },
-        { title: "Příjem žádostí", dateLabel: "do 11. 5. 2026 (do 8:00 hod.)", note: "elektronicky přes tuto aplikaci" },
+        { title: "Příjem žádostí", dateLabel: "do 13. 5. 2026 do 23:59 hod.", note: "náhradní podání e-mailem – viz upozornění na rozcestníku" },
         { title: "Formální kontrola a možnost doplnění", dateLabel: "do 2 pracovních dnů od ukončení příjmu žádostí", note: "" },
         { title: "Hodnocení hodnoticím panelem", dateLabel: "do 5 pracovních dnů od ukončení formální kontroly", note: "" },
         { title: "Zveřejnění výsledků", dateLabel: "21. 5. 2026", note: "" },
@@ -1316,7 +1334,7 @@
     async function loadDraft() {
       try {
         const session = Auth._getSession();
-        const url = new URL(API_URL);
+        const url = new URL(PRESTIGE_API_URL);
         url.searchParams.set("action", "getDraft");
         url.searchParams.set("competitionId", COMPETITION_ID);
         url.searchParams.set("applicantEmail", user.email);
@@ -1467,6 +1485,8 @@
     // ── SPUŠTĚNÍ ─────────────────────────────────────────────────
     renderPrestigeVyzvaSidebar();
     void loadFormFields();
+
+    }
   </script>
 </body>
 </html>
