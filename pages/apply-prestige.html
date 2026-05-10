@@ -220,11 +220,11 @@
         </div>
         <div class="sidebar-item">
           <span class="sidebar-key" data-i18n="applyPrestige.sidebarDeadlineApply">Uzávěrka přihlášek</span>
-          <span class="sidebar-val" id="sidebarDeadlineApply">4. 5. 2026</span>
+          <span class="sidebar-val" id="sidebarDeadlineApply">11. května 2026</span>
         </div>
         <div class="sidebar-item">
           <span class="sidebar-key" data-i18n="applyPrestige.sidebarMaxY1">Max. podpora (rok 1)</span>
-          <span class="sidebar-val" data-i18n="applyPrestige.sidebarMaxVal">1 000 000 Kč</span>
+          <span class="sidebar-val" data-i18n="applyPrestige.sidebarMaxVal">500 000 Kč</span>
         </div>
         <div class="sidebar-item">
           <span class="sidebar-key" data-i18n="applyPrestige.sidebarSaved">Uloženo</span>
@@ -252,7 +252,7 @@
       <div class="sidebar-card">
         <h3 data-i18n="applyPrestige.budgetCardTitle">Rozpočet</h3>
         <div class="budget-summary" id="budgetDisplay">0 Kč</div>
-        <div class="budget-limit" data-i18n="applyPrestige.budgetOfMax">z max. 1 000 000 Kč (rok 1)</div>
+        <div class="budget-limit" data-i18n="applyPrestige.budgetOfMax">z max. 500 000 Kč (rok 1)</div>
         <div class="budget-bar-wrap">
           <div class="budget-bar" id="budgetBar" style="width:0%"></div>
         </div>
@@ -301,12 +301,6 @@
     const PRESTIGE_STEP_I18N = { ident: "stepIdent", concept: "stepConcept", strategy: "stepStrategy", budget: "stepBudget", attachments: "stepAttachments" };
     function getPrestigeStepLabel(sid) { return I18n.t("applyPrestige." + (PRESTIGE_STEP_I18N[sid] || "stepIdent")); }
 
-    function formatUiDateFromIso(iso) {
-      if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
-      const p = iso.split("-").map(Number);
-      return new Date(p[0], p[1] - 1, p[2]).toLocaleDateString(I18n.numLocale(), { day: "numeric", month: "long", year: "numeric" });
-    }
-
     function optionDisplayLabel(f, optVal) {
       if (I18n.getLang() !== "en" || !f.options_en) return optVal;
       const a = (f.options || "").split(";").filter(Boolean);
@@ -321,7 +315,10 @@
     }
 
     const COMPETITION_ID = new URLSearchParams(location.search).get("c") || "uhk_prestige_2026";
-    const MAX_BUDGET = 1000000;
+    /** Součet rozpočtu A–F pro 1. etapu – max. 500 000 Kč dle výzvy č. 1/2026 */
+    const MAX_BUDGET = 500000;
+    const MAX_YEAR1_SUPPORT_REQUEST = 500000;
+    const MAX_YEAR2_SUPPORT_PLANNED = 1000000;
     const IRIS_UHK_URL = "https://tomahana.github.io/IRIS_UHK/";
 
     /**
@@ -383,18 +380,21 @@
       });
     }
 
-    /** Milníky dle výzvy UHK Prestige 1/2026 (příprava ERC / Horizon Europe). */
+    /** Harmonogram dle Vyhlášení výzvy č. 1/2026 UHK Prestige */
     const PRESTIGE_VYZVA = {
-      DEADLINE_APPLY_ISO: "2026-05-04",
-      milestones: [
-        { title: "Příjem žádostí", dateLabel: "do 4. 5. 2026 (8:00)", note: "elektronicky přes tuto aplikaci" },
-        { title: "Formální kontrola", dateLabel: "2 pracovní dny", note: "možnost doplnění" },
-        { title: "Hodnocení panelem", dateLabel: "10 pracovních dnů", note: "dle výzvy" },
-        { title: "Zahájení řešení – rok 1", dateLabel: "1. 6. 2026", note: "" },
-        { title: "Milník M1 – rozpracovaný draft", dateLabel: "30. 9. 2026", note: "" },
-        { title: "Ukončení čerpání r. 1 + průběžná zpráva", dateLabel: "30. 11. 2026", note: "rozhodnutí o pokračování do r. 2 do 20. 12. 2026" },
-        { title: "Milníky M3–M5 a podání do cílové soutěže", dateLabel: "2027", note: "dle výzvy a termínu ERC/HE" },
-        { title: "Závěrečná zpráva", dateLabel: "do 3 měsíců po podání návrhu", note: "dle výzvy" },
+      DEADLINE_APPLY_ISO: "2026-05-11",
+      harmonogram: [
+        { title: "Vyhlášení výzvy", dateLabel: "22. 4. 2026", note: "" },
+        { title: "Příjem žádostí", dateLabel: "do 11. 5. 2026 (do 8:00 hod.)", note: "elektronicky přes tuto aplikaci" },
+        { title: "Formální kontrola a možnost doplnění", dateLabel: "do 2 pracovních dnů od ukončení příjmu žádostí", note: "" },
+        { title: "Hodnocení hodnoticím panelem", dateLabel: "do 5 pracovních dnů od ukončení formální kontroly", note: "" },
+        { title: "Zveřejnění výsledků", dateLabel: "21. 5. 2026", note: "" },
+        { title: "Zahájení řešení – 1. etapa", dateLabel: "1. 6. 2026", note: "" },
+        { title: "Ukončení čerpání 1. etapy + průběžná zpráva (Zpráva o pokračování)", dateLabel: "30. 11. 2026", note: "vč. plánu dalšího roku řešení" },
+        { title: "Rozhodnutí o pokračování do 2. etapy", dateLabel: "do 20. 12. 2026", note: "" },
+        { title: "Zahájení řešení – 2. etapa", dateLabel: "1. 1. 2027", note: "" },
+        { title: "Podání návrhu do ERC / HE (konec čerpání 2. etapy)", dateLabel: "dle termínu cílové soutěže", note: "nejpozději do 30. 11. 2027, podle toho, co nastane dříve" },
+        { title: "Závěrečná zpráva", dateLabel: "nejpozději 2 měsíce po podání návrhu", note: "" },
       ],
     };
 
@@ -488,16 +488,16 @@
         </div>`;
     }
 
-    function getPrestigeMilestones() {
-      if (I18n.getLang() === "en" && typeof UhkApplyFlowEn !== "undefined" && UhkApplyFlowEn.prestige && UhkApplyFlowEn.prestige.milestones)
-        return UhkApplyFlowEn.prestige.milestones;
-      return PRESTIGE_VYZVA.milestones;
+    function getPrestigeHarmonogram() {
+      if (I18n.getLang() === "en" && typeof UhkApplyFlowEn !== "undefined" && UhkApplyFlowEn.prestige && UhkApplyFlowEn.prestige.harmonogram)
+        return UhkApplyFlowEn.prestige.harmonogram;
+      return PRESTIGE_VYZVA.harmonogram;
     }
 
     function renderPrestigeVyzvaSidebar() {
       const ul = document.getElementById("prestigeVyzvaList");
       if (!ul) return;
-      ul.innerHTML = getPrestigeMilestones().map((m) => `
+      ul.innerHTML = getPrestigeHarmonogram().map((m) => `
         <li>
           <strong>${escapeHtml(m.title)}</strong>
           <div class="vyzva-date">${escapeHtml(m.dateLabel)}</div>
@@ -505,7 +505,7 @@
         </li>
       `).join("");
       const sd = document.getElementById("sidebarDeadlineApply");
-      if (sd) sd.textContent = formatUiDateFromIso(PRESTIGE_VYZVA.DEADLINE_APPLY_ISO);
+      if (sd) sd.textContent = tp("sidebarDeadlineVal");
     }
 
     // Stav formuláře
@@ -517,11 +517,11 @@
     let currentSection = 0;
 
     const STEPS = [
-      { id: "ident", fields: ["section_ident","project_title","target_scheme","planned_submission_date","support_year1_request","faculty","department","section_iris","iris_case_id","iris_checklist_result"] },
+      { id: "ident", fields: ["section_ident","project_title","target_scheme","planned_submission_date","support_year1_request","support_year2_request","faculty","department","section_iris","iris_case_id","iris_checklist_result"] },
       { id: "concept", fields: ["section_concept","concept_note","excellence_top5","prev_erc_he"] },
-      { id: "strategy", fields: ["section_strategy","strategy_why_call","strategy_work_packages","strategy_external_review","section_milestones","milestones_summary"] },
+      { id: "strategy", fields: ["section_strategy","strategy_why_call","strategy_work_packages","strategy_external_review"] },
       { id: "budget", fields: ["section_budget","budget_personnel","budget_agency","budget_training","budget_travel","budget_material","budget_other","budget_justification"] },
-      { id: "attachments", fields: ["section_attachments","attach_annex1","attach_annex2","attach_annex3","attach_checklist6","declaration"] },
+      { id: "attachments", fields: ["section_attachments","attach_annex1","attach_annex2","attach_checklist6","declaration"] },
     ];
 
     function getLocalFields() {
@@ -557,7 +557,8 @@
         { field_id:"target_scheme", field_label:"Cílová soutěž a schéma", field_type:"select", required:"TRUE",
           options:"ERC Starting Grant;ERC Consolidator Grant;ERC Advanced Grant;ERC Synergy Grant;Horizon Europe – RIA;Horizon Europe – IA;Horizon Europe – IMDA;Jiná prestižní výzva (dle výzvy UHK Prestige)" },
         { field_id:"planned_submission_date", field_label:"Předpokládaný termín podání návrhu", field_type:"date", required:"TRUE", help_text:"Reálný termín cílové výzvy v rámci harmonogramu projektu" },
-        { field_id:"support_year1_request", field_label:"Požadovaná podpora – rok 1 (Kč)", field_type:"number", required:"TRUE", placeholder:"např. 450000", help_text:"Horní limit 1 000 000 Kč na projekt a rok (11 měsíců) dle výzvy – žádáte o částku v této výši, nikoli automaticky plný limit" },
+        { field_id:"support_year1_request", field_label:"Požadovaná podpora – 1. etapa (Kč)", field_type:"number", required:"TRUE", placeholder:"např. 350000", help_text:"Max. 500 000 Kč na 1. etapu (1. 6. – 30. 11. 2026) dle výzvy – uvedená částka je horní limit, nikoli automaticky přiznaná výše" },
+        { field_id:"support_year2_request", field_label:"Plánovaná podpora – 2. etapa (Kč)", field_type:"number", required:"FALSE", placeholder:"např. 600000", help_text:"Max. 1 000 000 Kč na 2. etapu dle výzvy; pokračování do 2. etapy není nárokové – pole je informativní" },
         { field_id:"faculty", field_label:"Součást UHK / pracoviště", field_type:"select", required:"TRUE", options:"PřF;PdF;FF;FIM;REKTORÁT" },
         { field_id:"department", field_label:"Katedra / ústav", field_type:"text", required:"TRUE" },
         { field_id:"section_iris", field_label:"IRIS UHK – formální údaje přihlášky", field_type:"section_header" },
@@ -585,9 +586,7 @@
         { field_id:"strategy_why_call", field_label:"Proč je zvolená cílová soutěž vhodná", field_type:"textarea", required:"TRUE" },
         { field_id:"strategy_work_packages", field_label:"Jaké části návrhu budou připravovány v projektu Prestige", field_type:"textarea", required:"TRUE" },
         { field_id:"strategy_external_review", field_label:"Plán externího review / agentury (pokud plánujete)", field_type:"textarea", required:"FALSE" },
-        { field_id:"section_milestones", field_label:"Milníky", field_type:"section_header" },
-        { field_id:"milestones_summary", field_label:"Stručný přehled klíčových milníků (M1–M5)", field_type:"textarea", required:"TRUE", placeholder:"Viz příloha č. 3 – zde stručný souhrn vazby na harmonogram", help_text:"Detailní tabulku doplňte v příloze č. 3 (soubor)" },
-        { field_id:"section_budget", field_label:"Rozpočet roku 1", field_type:"section_header" },
+        { field_id:"section_budget", field_label:"Rozpočet 1. etapy", field_type:"section_header" },
         { field_id:"budget_personnel", field_label:"A. Osobní náklady (max. 40 %, max. 0,3 FTE řešitele)", field_type:"number", required:"FALSE", help_text:"DPP/DPČ, odměna – dle přílohy č. 2" },
         { field_id:"budget_agency", field_label:"B. Agenturní / mentoringová podpora", field_type:"number", required:"FALSE" },
         { field_id:"budget_training", field_label:"C. Vzdělávání a školení", field_type:"number", required:"FALSE" },
@@ -596,10 +595,9 @@
         { field_id:"budget_other", field_label:"F. Ostatní způsobilé náklady", field_type:"number", required:"FALSE", help_text:"Např. publikační poplatky, jazyková korektura" },
         { field_id:"section_attachments", field_label:"Povinné přílohy (sken / PDF)", field_type:"section_header" },
         { field_id:"attach_annex1", field_label:"Příloha č. 1 – šablona žádosti vč. concept note", field_type:"file", required:"TRUE", options:"pdf,doc,docx", help_text:"Vyplněná šablona dle výzvy" },
-        { field_id:"attach_annex2", field_label:"Příloha č. 2 – rozpočet roku 1 + věcné odůvodnění", field_type:"file", required:"TRUE", options:"pdf,xlsx,xls", help_text:"Tabulka dle výzvy" },
-        { field_id:"attach_annex3", field_label:"Příloha č. 3 – milníky", field_type:"file", required:"TRUE", options:"pdf,xlsx,xls,doc,docx", help_text:"Tabulka milníků" },
-        { field_id:"attach_checklist6", field_label:"Příloha č. 6 – checklist způsobilosti", field_type:"file", required:"TRUE", options:"pdf,doc,docx", help_text:"ERC / Horizon Europe dle výzvy" },
-        { field_id:"declaration", field_label:"Prohlášení", field_type:"checkbox", required:"TRUE", help_text:"Beru na vědomí povinnost podání návrhu do cílové prestižní soutěže a dokladování, průběžnou zprávu k 30. 11. 2026 a podmínky výzvy UHK Prestige 1/2026. Potvrzuji správnost údajů." },
+        { field_id:"attach_annex2", field_label:"Příloha č. 2 – šablona rozpočtu + věcné odůvodnění (1. etapa)", field_type:"file", required:"TRUE", options:"pdf,xlsx,xls", help_text:"Dle přílohy č. 2 výzvy" },
+        { field_id:"attach_checklist6", field_label:"Příloha č. 5 – checklist způsobilosti (ERC / Horizon Europe)", field_type:"file", required:"TRUE", options:"pdf,doc,docx", help_text:"Vyplněný checklist dle výzvy (povinná příloha žádosti)" },
+        { field_id:"declaration", field_label:"Prohlášení", field_type:"checkbox", required:"TRUE", help_text:"Beru na vědomí povinnost podání návrhu do cílové prestižní soutěže a jeho doložení, Zprávu o pokračování k 30. 11. 2026 (Příloha č. 3 výzvy), podmínky výzvy č. 1/2026 UHK Prestige včetně možnosti pozastavení projektu a správnost uvedených údajů potvrzuji." },
       ];
     }
 
@@ -813,11 +811,11 @@
       const tableHelp = enBu ? enBu.tableHelp : "Vyplňte pouze položky které budete čerpat. Součet se počítá automaticky.";
       const yellowWarnHtml = enBu
         ? enBu.yellowWarn
-        : "⚠ Součet položek nesmí překročit <strong>1 000 000 Kč</strong> (rok 1). Osobní náklady max. <strong>40 %</strong> schválené podpory a max. <strong>0,3 FTE</strong> řešitele dle výzvy.";
+        : "⚠ Součet položek nesmí překročit <strong>500 000 Kč</strong> (1. etapa). Osobní náklady max. <strong>40 %</strong> schválené podpory na etapu dle výzvy.";
       const thLine = enBu ? enBu.thLine : "Položka";
       const thAmount = enBu ? enBu.thAmount : "Požadovaná částka";
       const totalLabel = enBu ? enBu.totalLabel : "Celkem";
-      const warnRed = enBu ? enBu.warnRed : "⚠ Celková podpora překračuje maximum 1 000 000 Kč (rok 1)";
+      const warnRed = enBu ? enBu.warnRed : "⚠ Celková podpora překračuje maximum 500 000 Kč (1. etapa)";
       const justLabel = enBu ? enBu.justLabel : "Odůvodnění rozpočtu";
       const justHelp = enBu ? enBu.justHelp : "Vazba jednotlivých položek na plánovanou aktivitu";
       const justPh = enBu ? enBu.justPh : "Jízdné: letenka Praha–Londýn zpátečně dle ceníku ČSA přibližně 8 000 Kč…";
@@ -1084,6 +1082,25 @@
         }
       });
       if (!ok) showToast(trf("validateRequiredAll"), "err");
+      if (ok && step.id === "ident") {
+        const y1 = parseFloat(String(formData.support_year1_request || "").replace(/\s/g, "").replace(",", ".")) || 0;
+        if (y1 <= 0) {
+          showToast(tp("toastYear1SupportPositive"), "err");
+          return false;
+        }
+        if (y1 > MAX_YEAR1_SUPPORT_REQUEST) {
+          showToast(I18n.tReplace("applyPrestige.toastYear1SupportMax", { amount: I18n.fmtMoney(MAX_YEAR1_SUPPORT_REQUEST) }), "err");
+          return false;
+        }
+        const y2raw = String(formData.support_year2_request || "").trim();
+        if (y2raw !== "") {
+          const y2 = parseFloat(y2raw.replace(/\s/g, "").replace(",", ".")) || 0;
+          if (y2 > MAX_YEAR2_SUPPORT_PLANNED) {
+            showToast(I18n.tReplace("applyPrestige.toastYear2SupportMax", { amount: I18n.fmtMoney(MAX_YEAR2_SUPPORT_PLANNED) }), "err");
+            return false;
+          }
+        }
+      }
       if (ok && step.id === "budget") {
         const t = parseFloat(String(formData.budget_total || "").replace(/\s/g, "").replace(",", ".")) || 0;
         if (t <= 0) {
@@ -1137,8 +1154,8 @@
         "Cílová soutěž",
         "Concept note (text)",
         "TOP výsledky",
-        "Rozpočet (součet)",
-        "Přílohy 1–3 a č. 6",
+        "Rozpočet (součet 1. etapa)",
+        "Přílohy č. 1, č. 2 a č. 5 (checklist)",
         "Prohlášení",
       ];
       const labelsEn =
@@ -1161,7 +1178,6 @@
           done: !!(
             prestigeAttachmentStored(formData.attach_annex1) &&
             prestigeAttachmentStored(formData.attach_annex2) &&
-            prestigeAttachmentStored(formData.attach_annex3) &&
             prestigeAttachmentStored(formData.attach_checklist6)
           ),
         },
@@ -1299,6 +1315,24 @@
       if (bt > MAX_BUDGET) {
         showToast(tf("toastBudgetOverMax"), "err");
         return;
+      }
+
+      const y1s = parseFloat(String(formData.support_year1_request || "").replace(/\s/g, "").replace(",", ".")) || 0;
+      if (y1s <= 0) {
+        showToast(tp("toastYear1SupportPositive"), "err");
+        return;
+      }
+      if (y1s > MAX_YEAR1_SUPPORT_REQUEST) {
+        showToast(I18n.tReplace("applyPrestige.toastYear1SupportMax", { amount: I18n.fmtMoney(MAX_YEAR1_SUPPORT_REQUEST) }), "err");
+        return;
+      }
+      const y2sr = String(formData.support_year2_request || "").trim();
+      if (y2sr !== "") {
+        const y2s = parseFloat(y2sr.replace(/\s/g, "").replace(",", ".")) || 0;
+        if (y2s > MAX_YEAR2_SUPPORT_PLANNED) {
+          showToast(I18n.tReplace("applyPrestige.toastYear2SupportMax", { amount: I18n.fmtMoney(MAX_YEAR2_SUPPORT_PLANNED) }), "err");
+          return;
+        }
       }
 
       if (formData.declaration !== "true") {
