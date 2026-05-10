@@ -483,7 +483,13 @@
         fileUploadedAppStorageLabel: "Soubor v evidenci Prestige (tabulka soutěže)",
         fileTooBig: "Soubor je větší než 18 MB.",
         fileNeedDraftRetry:
-          "Nejdřív musí vzniknout koncept přihlášky. Zkuste soubor znovu za chvíli nebo klepněte na „Uložit draft“.",
+          "Soubor se nepodařilo uložit k přihlášce (chybí potvrzení z uložiště). Klepněte na „Uložit draft“ a vyberte soubor znovu.",
+        toastDraftCreateFailed:
+          "Koncept přihlášky se nepodařilo založit (zkontrolujte připojení). Bez uloženého konceptu nelze přílohu nahrát — zkuste „Uložit draft“.",
+        toastSubmitNeedDraftSave:
+          "Přihlášku nelze odeslat bez uloženého konceptu. Použijte „Uložit draft“ a poté zkuste odeslat znovu.",
+        toastSubmitAttachmentsRequired:
+          "Podání není kompletní: chybí jedna nebo více povinných příloh (č. 1, č. 2 a checklist č. 5). Nahrajte je v posledním kroku.",
         fileExtRejected: "Pro tuto přílohu není povolený typ souboru (viz formát u pole).",
         storedFileOpen: "Stáhnout soubor",
         fileStoredTitle: "Soubor je uložen v evidenci soutěže",
@@ -990,7 +996,13 @@
         fileUploadedAppStorageLabel: "File in Prestige records (competition spreadsheet)",
         fileTooBig: "The file is larger than 18 MB.",
         fileNeedDraftRetry:
-          "An application draft must exist first. Try again in a moment or click “Save draft”.",
+          "The file could not be linked to your application (no confirmation from storage). Click “Save draft” and select the file again.",
+        toastDraftCreateFailed:
+          "Could not create an application draft (check your connection). Without a saved draft you cannot upload attachments — try “Save draft”.",
+        toastSubmitNeedDraftSave:
+          "You cannot submit without a saved draft. Use “Save draft”, then try submitting again.",
+        toastSubmitAttachmentsRequired:
+          "Submission is incomplete: one or more required attachments are missing (nos. 1, 2 and checklist no. 5). Upload them in the last step.",
         fileExtRejected: "This file type is not allowed for this attachment (see formats under the field).",
         storedFileOpen: "Download file",
         fileStoredTitle: "File saved in the competition records",

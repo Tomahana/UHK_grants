@@ -1043,6 +1043,12 @@
       showToast(tp("fileUploading"));
       if (wrap) wrap.style.opacity = "0.55";
       try {
+        const ensured = await ensurePrestigeDraftBeforeUpload();
+        if (!ensured || !draftId) {
+          showToast(tp("toastDraftCreateFailed"), "err");
+          input.value = "";
+          return;
+        }
         const dataUrl = await readFileAsDataUrl(file);
         const uploads = [
           {
@@ -1245,6 +1251,7 @@
       await saveDraft(true);
     }
 
+    /** @returns {Promise<boolean>} true při úspěchu (ne při výjimce u uploadu – ta se propaguje) */
     async function saveDraft(showMessage, fileUploads) {
       try {
         const session = Auth._getSession();
@@ -1282,6 +1289,7 @@
         const st = document.getElementById("saveStatusText");
         if (st) st.textContent = I18n.tReplace("applyRega.footerSavedAt", { time: now });
         if (showMessage) showToast(trf("toastDraftSaved"));
+        return true;
       } catch (e) {
         if (showMessage) {
           const raw = e && e.message ? String(e.message) : "";
@@ -1294,7 +1302,15 @@
         if (fileUploads && fileUploads.length) {
           throw e;
         }
+        return false;
       }
+    }
+
+    /** Bez řádku DRAFT v tabulce nelze přílohu uložit – nejdřív založíme koncept prázdným uložením. */
+    async function ensurePrestigeDraftBeforeUpload() {
+      if (draftId) return true;
+      const ok = await saveDraft(false);
+      return !!(ok && draftId);
     }
 
     async function loadDraft() {
@@ -1379,6 +1395,17 @@
       const irisRes = String(formData.iris_checklist_result || "").trim();
       if (!irisId || !irisRes) {
         showToast(tf("irisRequiredToast"), "err");
+        return;
+      }
+
+      if (!draftId) {
+        showToast(tp("toastSubmitNeedDraftSave"), "err");
+        return;
+      }
+      const prestigeAttachIds = ["attach_annex1", "attach_annex2", "attach_checklist6"];
+      const missingAtt = prestigeAttachIds.filter((k) => !prestigeAttachmentStored(formData[k]));
+      if (missingAtt.length) {
+        showToast(tp("toastSubmitAttachmentsRequired"), "err");
         return;
       }
 
