@@ -128,7 +128,7 @@
     },
     prestige: {
       milestones: [
-        { title: "Applications intake", dateLabel: "by 4 May 2026 (8:00)", note: "electronically via this application" },
+        { title: "Applications intake", dateLabel: "by 13 May 2026 (23:59)", note: "see submission notice; admin testing via online form" },
         { title: "Formal check", dateLabel: "2 working days", note: "possible supplementation" },
         { title: "Panel evaluation", dateLabel: "10 working days", note: "per call" },
         { title: "Project start – year 1", dateLabel: "1 Jun 2026", note: "" },

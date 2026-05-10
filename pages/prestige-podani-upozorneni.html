@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UHK Prestige 2026 – upozornění k podání</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #1C2E5A; --navy-mid: #2F4A8A; --navy-lite: #E8EDF8;
+      --gold: #C49A2A; --gold-lite: #FDF6E3;
+      --border: #E2E0D8; --muted: #6B6A63;
+      --bg: #F8F7F4; --r-lg: 12px;
+      --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--navy); min-height: 100vh; font-size: 15px; line-height: 1.65; }
+    .topbar { background: var(--navy); height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 100; }
+    .topbar__logo { display: flex; align-items: center; gap: 10px; }
+    .topbar__logo img { height: 26px; opacity: .9; }
+    .topbar__title { font-size: 14px; font-weight: 500; color: rgba(255,255,255,.85); }
+    .btn-back { background: none; border: 1px solid rgba(255,255,255,.2); color: rgba(255,255,255,.65); font-family: 'DM Mono', monospace; font-size: 11px; padding: 5px 12px; border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; transition: all .15s; }
+    .btn-back:hover { color: white; border-color: rgba(255,255,255,.4); }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 36px 24px 64px; }
+    .card {
+      background: white; border: 1px solid var(--border); border-radius: var(--r-lg);
+      box-shadow: var(--shadow); overflow: hidden;
+    }
+    .card__head {
+      background: var(--gold-lite); border-bottom: 1px solid #E8D88A;
+      padding: 18px 24px;
+    }
+    .card__head h1 { font-size: 18px; font-weight: 600; color: #7A5A10; line-height: 1.35; }
+    .card__body { padding: 24px 26px 28px; }
+    .card__body p { margin-bottom: 1rem; color: var(--navy); }
+    .card__body p:last-child { margin-bottom: 0; }
+    .lead { font-size: 15px; font-weight: 500; color: var(--navy-mid); }
+    .mailto {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-weight: 600; color: var(--navy-mid); word-break: break-all;
+    }
+    .mailto a { color: var(--navy-mid); }
+    .subject-box {
+      margin: 12px 0 18px; padding: 12px 14px; background: var(--navy-lite);
+      border-radius: 8px; font-family: 'DM Mono', monospace; font-size: 13px;
+      border: 1px solid #D0D8EE;
+    }
+    .foot-note { font-size: 13px; color: var(--muted); margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar__logo">
+      <img src="../img/uhk-abb-w.png" alt="UHK">
+      <span class="topbar__title">UHK Prestige 2026</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <a href="dashboard.html" class="btn-back">← Rozcestník</a>
+      <a href="#" id="prestigeAdminFormLink" class="btn-back" style="display:none;border-color:rgba(196,154,42,.6);color:rgba(253,246,227,.95);">Elektronický formulář (správce)</a>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <article class="card">
+      <div class="card__head">
+        <h1>Upozornění k podání žádostí do UHK Prestige 2026</h1>
+      </div>
+      <div class="card__body">
+        <p class="lead">
+          Z důvodu technického ověření systému pro elektronické podávání žádostí se termín pro podání žádostí <strong>prodlužuje do 13.&nbsp;5.&nbsp;2026 do 23:59&nbsp;hod.</strong>
+        </p>
+        <p>
+          Žádost je možné podat také <strong>náhradním způsobem</strong> prostřednictvím e-mailu na adresu
+          <span class="mailto"><a href="mailto:veronika.hruzova@uhk.cz">veronika.hruzova@uhk.cz</a></span>.
+        </p>
+        <p>Do předmětu e-mailu uveďte:</p>
+        <div class="subject-box">UHK Prestige 2026 – žádost – jméno žadatele</div>
+        <p>
+          Žádost musí obsahovat všechny povinné přílohy dle Výzvy, zejména vyplněnou šablonu žádosti, rozpočet, doklady excelence a checklist způsobilosti.
+          Pokud jste již žádost podali prostřednictvím webové aplikace, doporučujeme ji zaslat také e-mailem pro ověření úplnosti evidence.
+        </p>
+        <p class="foot-note">
+          Kontakt: Ing. Veronika Hrůzová · <a href="mailto:veronika.hruzova@uhk.cz">veronika.hruzova@uhk.cz</a> · +420&nbsp;777&nbsp;147&nbsp;670
+        </p>
+      </div>
+    </article>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/auth.js"></script>
+  <script>
+    (function () {
+      var c = new URLSearchParams(location.search).get("c") || "uhk_prestige_2026";
+      var link = document.getElementById("prestigeAdminFormLink");
+      if (
+        link &&
+        typeof Auth !== "undefined" &&
+        Auth.isLoggedIn() &&
+        Auth.hasAnyRole(["ADMIN", "TESTER"])
+      ) {
+        link.href = "apply-prestige.html?c=" + encodeURIComponent(c);
+        link.style.display = "inline-flex";
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -16,7 +16,11 @@
 
   var MESSAGES = {
     cs: {
-      common: { signedIn: "Přihlášen:" },
+      common: {
+        signedIn: "Přihlášen:",
+        epzLegacyNotice:
+          "Tyto stránky se dále nevyvíjejí. Postupně budou nahrazeny elektronickým podáním žádostí (EPZ), které dočasně suplovaly.",
+      },
       lang: { label: "Jazyk", switchCs: "CS", switchEn: "EN" },
       nav: {
         grantsHub: "Grantové soutěže",
@@ -39,6 +43,7 @@
         applyConnect: "UHK Connect – Přihláška",
         applyRega: "UHK ReGa – Přihláška",
         applyPrestige: "UHK Prestige – Přihláška",
+        prestigeNotice: "UHK Prestige 2026 – upozornění k podání",
         reviewNavraty: "Hodnocení — OP JAK Návraty",
         reviewConnect: "Hodnocení – UHK Connect",
         connectCloseoutDoc: "Část 2 – závěr a vyúčtování – UHK Connect",
@@ -129,6 +134,8 @@
         modalCancel: "Zrušit",
         roleCurrent: "Aktuální role",
         actionSubmit: "Podat přihlášku",
+        actionPrestigeNotice: "Upozornění k podání",
+        actionPrestigeAdminForm: "Elektronický formulář (správce)",
         actionMyApps: "Moje přihlášky",
         actionMyProjects: "Moje projekty",
         actionNoApply: "Soutěž nepřijímá přihlášky",
@@ -454,7 +461,7 @@
         sidebarCompetition: "Soutěž",
         sidebarCompetitionVal: "UHK Prestige",
         sidebarDeadlineApply: "Uzávěrka přihlášek",
-        sidebarDeadlineVal: "11. května 2026",
+        sidebarDeadlineVal: "13. května 2026",
         sidebarMaxY1: "Max. podpora (rok 1)",
         sidebarMaxVal: "500 000 Kč",
         sidebarSaved: "Uloženo",
@@ -511,7 +518,11 @@
       },
     },
     en: {
-      common: { signedIn: "Signed in:" },
+      common: {
+        signedIn: "Signed in:",
+        epzLegacyNotice:
+          "This web interface is no longer under active development. It will gradually be replaced by the electronic applications system (EPZ), which these pages temporarily supplemented.",
+      },
       lang: { label: "Language", switchCs: "CS", switchEn: "EN" },
       nav: {
         grantsHub: "Grant competitions",
@@ -534,6 +545,7 @@
         applyConnect: "UHK Connect – Application",
         applyRega: "UHK ReGa – Application",
         applyPrestige: "UHK Prestige – Application",
+        prestigeNotice: "UHK Prestige 2026 – submission notice",
         reviewNavraty: "Review — OP JAK Návraty",
         reviewConnect: "Review – UHK Connect",
         connectCloseoutDoc: "Part 2 – close-out and accounting – UHK Connect",
@@ -624,6 +636,8 @@
         modalCancel: "Cancel",
         roleCurrent: "Current role",
         actionSubmit: "Submit application",
+        actionPrestigeNotice: "Submission notice",
+        actionPrestigeAdminForm: "Online form (admin)",
         actionMyApps: "My applications",
         actionMyProjects: "My projects",
         actionNoApply: "Competition is not accepting applications",
@@ -967,7 +981,7 @@
         sidebarCompetition: "Competition",
         sidebarCompetitionVal: "UHK Prestige",
         sidebarDeadlineApply: "Application deadline",
-        sidebarDeadlineVal: "11 May 2026",
+        sidebarDeadlineVal: "13 May 2026",
         sidebarMaxY1: "Max. support (year 1)",
         sidebarMaxVal: "CZK 500,000",
         sidebarSaved: "Saved",
