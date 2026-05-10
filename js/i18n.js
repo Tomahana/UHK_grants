@@ -118,7 +118,6 @@
         budgetAssigned: "Přiděleno (prorektor)",
         budgetUsed: "Využito (žadatel)",
         budgetRemaining: "Zbývá z alokace",
-        budgetSupportedProjects: "Podpořené projekty",
         budgetFootConnect:
           "Přiděleno = schválené částky od prorektora. Využito (žadatel) = po uložení souhlasu s přidělením (část 1) u přihlášky – započítá se schválená podpora.",
         budgetFootOther:
@@ -157,8 +156,6 @@
       api: {
         fileReadError: "Soubor se nepodařilo načíst.",
         needLoginDownload: "Pro otevření PDF se přihlaste (session vypršela). Obnovte stránku a přihlaste se znovu.",
-        downloadNetworkError:
-          "Spojení při otevírání PDF selhalo (síť nebo blokovaný požadavek k serveru). Zkuste znovu; na firemní Wi‑Fi zkuste jiný prohlížeč nebo mobilní data. Pokud problém přetrvává, dejte vědět správci.",
       },
       roles: {
         ADMIN: { name: "Správce", desc: "Plný přístup – správa uživatelů a nastavení" },
@@ -174,18 +171,7 @@
         back: "← Zpět",
         logout: "Odhlásit",
       },
-      coordinator: {
-        signedInLabel: "Přihlášena:",
-        loadPartialErr:
-          "Část přihlášek se nepodařilo načíst z API. Zkuste Obnovit nebo se znovu přihlaste.",
-        loadDemoHint: " (zobrazena ukázková data – API nevrátilo žádné řádky)",
-        loadPartialNote: " · částečná chyba načtení",
-        connectExportTimeout:
-          "Přehled Connect (část 2) se nepodařilo včas načíst – seznam přihlášek je zobrazený; zkuste Obnovit pro doplnění semaforu.",
-        fetchTimeout: "časový limit odpovědi serveru (22 s)",
-        loadFatalErr: "Načtení seznamu přihlášek selhalo.",
-        loadErrorDetailPrefix: " Detaily: ",
-      },
+      coordinator: { signedInLabel: "Přihlášena:" },
       reviewConnect: {
         cnames: {
           uhk_connect_2026_v2: "UHK Connect – výzva č. 2",
@@ -247,8 +233,6 @@
         detailApplicant: "Žadatel",
         detailFaculty: "Součást / katedra",
         detailApplicantType: "Typ žadatele",
-        detailPhdYear: "Rok získání Ph.D.",
-        detailJuniorPhdCheck: "Kontrola Junior / Ph.D. (interní)",
         detailActivityType: "Typ aktivity",
         detailPartner: "Partner",
         detailTerm: "Termín",
@@ -356,7 +340,7 @@
         panelAttachSub: "Krok 5 z 5 · Nahrajte všechny povinné dokumenty",
         footerUnsaved: "Neuloženo",
         footerBack: "← Zpět",
-        footerSaveDraft: "💾 Uložit draft",
+        footerSaveDraft: "💾 Uložit rozdělaný",
         footerContinue: "Pokračovat →",
         footerSubmit: "Odeslat přihlášku →",
         footerSavedAt: "Uloženo {{time}}",
@@ -414,8 +398,6 @@
           "U příloh není v evidenci uložen název souboru ani odkaz (pole zůstalo prázdné nebo se data nepodařilo načíst).",
         submittedAttachmentOpenLink: "Otevřít odkaz",
         submittedAttachmentOpenPdf: "Otevřít PDF",
-        submittedAttachmentDrivePreview: "Náhled na Disku",
-        submittedAttachmentSheetDownload: "Stáhnout z aplikace",
         submittedAttachmentDriveStaleShort:
           "Údaj v přihlášce vypadá jako starý odkaz na Google Disk — ten už obvykle nefunguje. Nahrajte PDF znovu v aplikaci (koncept), nebo zkuste původní odkaz níže.",
         submittedAttachmentTryOriginalLink: "Zkusit původní odkaz",
@@ -423,13 +405,6 @@
         fileField_attach_annex1: "Příloha 1",
         fileField_attach_annex2: "Příloha 2",
         fileField_attach_annex3: "Příloha 3",
-        phdJuniorNoteMissingYear:
-          "Typ Junior/early-career: doplňte rok získání Ph.D. Interně se ověří vůči roku uzávěrky přihlášek ({{deadlineYear}}) — max. 7 let po Ph.D.",
-        phdJuniorNoteInvalidYear: "Zadejte platný rok získání Ph.D. (např. 2020).",
-        phdJuniorNoteWithin:
-          "Interní poznámka pro komisi / správce: od roku Ph.D. ({{phdYear}}) do uzávěrky přihlášek ({{deadlineYear}}) uplynulo {{years}} let — v limitu 7 let.",
-        phdJuniorNoteOver:
-          "Interní poznámka pro komisi / správce: od roku Ph.D. ({{phdYear}}) do uzávěrky přihlášek ({{deadlineYear}}) uplynulo {{years}} let (nad 7 let) — ověřte splnění kritéria junior/early-career.",
       },
       applyConnect: {
         loadingForm: "Načítám formulář…",
@@ -462,28 +437,16 @@
         stepAttachments: "Přílohy",
         fileUploading: "Nahrávám PDF…",
         fileUploadOk:
-          "Příloha je uložena do tabulky soutěže (záloha), protože upload na Disk se nepodařil. Otevřete ji tlačítkem „Otevřít PDF“ níže.",
-        fileUploadOkDrive:
-          "Příloha je uložena na Google Disk přes aplikaci (složka účtu webové aplikace). Otevřete ji tlačítkem „Otevřít PDF“ níže.",
-        fileUploadDriveFallbackDetail:
-          "Soubor je jen v tabulce (záloha). Disk: {{err}} — zkontrolujte sdílení složky s účtem Web App (Execute as) nebo oprávnění Disku.",
+          "Příloha je uložena do tabulky soutěže Google (list s binárními daty), ne na sdílený Google Disk. Otevřete ji tlačítkem „Otevřít PDF“ níže.",
         fileUploadErr: "Nahrání přílohy se nepodařilo.",
-        fileUploadBadResponse:
-          "Server po nahrání nevrátil platný JSON (prázdná nebo HTML odpověď). Zkuste menší PDF, obnovte stránku nebo zkontrolujte nasazení Web Appu.",
-        fileUploadHttpErr: "Server odpověděl chybou HTTP {{status}}. Zkuste znovu nebo kontaktujte správce.",
-        fileUploadOldScriptHint:
-          "Na Google pravděpodobně běží starší verze skriptu bez akce upload. Znovu nasaďte Web App z aktuálního kódu. Detail:",
-        fileUploadFormNotStored:
-          "Příloha je na Disku, ale nepodařilo se ji zapsat do přihlášky v tabulce. Obnovte stránku; pokud po obnovení chybí, znovu nasaďte Web App (aktuální skript zapisuje odkaz hned po nahrání).",
         fileUploadedDriveLabel: "PDF na Disku",
-        fileUploadedDriveApiLabel: "PDF na Disku (nahráno aplikací)",
-        fileUploadedAppStorageLabel: "PDF v tabulce (záloha)",
+        fileUploadedAppStorageLabel: "PDF v aplikaci (tabulka)",
         filePdfOnly: "Povolen je pouze soubor ve formátu PDF.",
         fileTooBig: "Soubor je větší než 18 MB.",
         fileNeedDraftRetry:
           "Nejdřív se musí vytvořit koncept přihlášky. Zkuste soubor znovu za chvíli (po automatickém uložení) nebo klepněte na „Uložit draft“.",
         attachmentsStorageNote:
-          "PDF z podacího formuláře se ukládá na Google Disk do složky nastavené pro webovou aplikaci (DriveApp). Volitelně lze v CONFIG zadat samostatné ID složky klíčem connect_application_attachments_folder_id; jinak se použije stejná složka jako u příloh části 2. Při výpadku Disku zůstane záloha v tabulce. Otevření je vždy přes „Otevřít PDF“ po přihlášení.",
+          "PDF z tohoto kroku se ukládá do tabulky soutěže Google (list s přílohami), ne do sdílené složky na Disku. Po uložení otevřete soubor přes „Otevřít PDF“ v této aplikaci (musíte být přihlášeni). Prázdná složka na Disku z textu výzvy u podacích příloh tedy neznamená, že soubor chybí.",
       },
       applyPrestige: {
         loadingForm: "Načítám formulář…",
@@ -492,15 +455,15 @@
         sidebarCompetitionVal: "UHK Prestige",
         sidebarDeadlineApply: "Uzávěrka přihlášek",
         sidebarMaxY1: "Max. podpora (rok 1)",
-        sidebarMaxVal: "500 000 Kč",
+        sidebarMaxVal: "1 000 000 Kč",
         sidebarSaved: "Uloženo",
         autosaveNoteHtml:
           "Koncept se ukládá <strong>automaticky po 30 s</strong> nečinnosti; ručně použijte „Uložit draft“.",
         termsTitle: "Termíny výzvy (1/2026)",
         termsFootnoteHtml:
-          "",
+          "Elektronické podání dle Vyhlášení výzvy č. 1/2026 UHK Prestige. Podvýzva <strong>Horizon No-Cost Entry</strong> (výzva 2/2026) bude v aplikaci doplněna – zatím viz samostatný dokument výzvy.",
         budgetCardTitle: "Rozpočet",
-        budgetOfMax: "z max. 500 000 Kč (1. etapa)",
+        budgetOfMax: "z max. 1 000 000 Kč (rok 1)",
         checklistTitle: "Kontrolní seznam",
         helpTitle: "Potřebujete pomoc?",
         submitSuccessTitle: "Přihláška odeslána!",
@@ -512,34 +475,16 @@
         stepStrategy: "Strategie & milníky",
         stepBudget: "Rozpočet",
         stepAttachments: "Přílohy",
-      },
-      postaward: {
-        saveConsent: "Uložit souhlas",
-        saveCompletion: "Uložit finální uzavření projektu",
-        saveZzDraft: "Uložit koncept nyní",
-        annex2Title: "Příloha 2 – závěrečná zpráva (struktura dle výzvy)",
-        annex2Help:
-          "Vyplňte podle znění výzvy / přílohy 2. Můžete použít jen tato pole, jen souvislý text níže, nebo obojí. Při <strong>finálním uzavření</strong> se text sloučí do jedné evidence (tabulka má omezenou velikost buňky). Soubory (Magion, výstupy) nahrávejte v sekci příloh níže.",
-        annex2Summary: "Shrnutí / výsledek aktivity",
-        annex2SummaryPh: "Stručně výsledek vůči cíli…",
-        annex2Activity: "Popis průběhu realizace",
-        annex2ActivityPh: "Průběh, milníky, případná omezení…",
-        annex2Outputs: "Dosažené výstupy vůči plánu",
-        annex2OutputsPh: "Co bylo dosaženo oproti plánovaným výstupům…",
-        annex2Coop: "Spolupráce a partneři",
-        annex2CoopPh: "Partneři, role, výsledky spolupráce…",
-        annex2BudgetText: "Čerpání podpory a hospodárnost (slovní doplnění)",
-        annex2BudgetTextPh: "Doplňte k tabulce skutečných částek výše…",
-        annex2Dissem: "Diseminace / sdílení výsledků",
-        annex2DissemPh: "Konference, publikace, interní přenos znalostí…",
-        annex2Other: "Ostatní / doplnění dle výzvy",
-        annex2OtherPh: "Cokoli dalšího požaduje příloha 2 nebo OVTZ…",
-        annex2ReadonlyEmpty:
-          "Strukturovaná pole přílohy 2 nebyla vyplněna odděleně; celý text může být v souvislé závěrečné zprávě níže.",
-        zzDraftTitle: "Závěrečná zpráva – koncept",
-        zzLabel: "Souvislý text závěrečné zprávy (doplnění k příloze 2)",
-        zzDraftHelp:
-          "Strukturovaná pole výše odpovídají příloze 2; níže můžete doplnit souvislý text. Koncept se ukládá automaticky (30 s) nebo tlačítkem. Při finálním uzavření musí být vyplněno <strong>celkem alespoň 80 znaků</strong> (součet polí + souvislý text).",
+        fileUploading: "Nahrávám přílohu…",
+        fileUploadOk:
+          "Příloha je uložena v tabulce soutěže UHK Prestige (odděleně od jiných soutěží). Stažení přes odkaz níže.",
+        fileUploadErr: "Nahrání přílohy se nepodařilo.",
+        fileUploadedAppStorageLabel: "Soubor v evidenci Prestige (tabulka soutěže)",
+        fileTooBig: "Soubor je větší než 18 MB.",
+        fileNeedDraftRetry:
+          "Nejdřív musí vzniknout koncept přihlášky. Zkuste soubor znovu za chvíli nebo klepněte na „Uložit draft“.",
+        fileExtRejected: "Pro tuto přílohu není povolený typ souboru (viz formát u pole).",
+        storedFileOpen: "Stáhnout soubor",
       },
       appStatuses: {
         DRAFT: { label: "Koncept" },
@@ -654,7 +599,6 @@
         budgetAssigned: "Assigned (Vice-Rector)",
         budgetUsed: "Used (applicant)",
         budgetRemaining: "Remaining from allocation",
-        budgetSupportedProjects: "Supported projects",
         budgetFootConnect:
           "Assigned = amounts approved by the Vice-Rector. Used (applicant) = after saving consent to assignment (Part 1) on the application — counts approved support.",
         budgetFootOther:
@@ -711,8 +655,6 @@
       api: {
         fileReadError: "Could not read the file.",
         needLoginDownload: "Sign in again to open the PDF (session expired). Refresh the page and log in.",
-        downloadNetworkError:
-          "The connection failed while opening the PDF (network or blocked request). Try again; on a corporate network try another browser or mobile data. Contact an administrator if it keeps happening.",
       },
       roles: {
         ADMIN: { name: "Administrator", desc: "Full access – users and settings" },
@@ -728,18 +670,7 @@
         back: "← Back",
         logout: "Log out",
       },
-      coordinator: {
-        signedInLabel: "Signed in:",
-        loadPartialErr:
-          "Some applications could not be loaded from the API. Try Refresh or sign in again.",
-        loadDemoHint: " (showing sample data — the API returned no rows)",
-        loadPartialNote: " · partial load error",
-        connectExportTimeout:
-          "Connect post-award export timed out — the application list is shown; use Refresh to retry the closeout column.",
-        fetchTimeout: "server response timed out (22s)",
-        loadFatalErr: "Could not load the application list.",
-        loadErrorDetailPrefix: " Details: ",
-      },
+      coordinator: { signedInLabel: "Signed in:" },
       reviewConnect: {
         cnames: {
           uhk_connect_2026_v2: "UHK Connect – call no. 2",
@@ -801,8 +732,6 @@
         detailApplicant: "Applicant",
         detailFaculty: "Faculty / department",
         detailApplicantType: "Applicant type",
-        detailPhdYear: "Ph.D. award year",
-        detailJuniorPhdCheck: "Junior / Ph.D. check (internal)",
         detailActivityType: "Activity type",
         detailPartner: "Partner",
         detailTerm: "Dates",
@@ -968,8 +897,6 @@
           "No file name or link is stored for attachments (the field was empty or data could not be loaded).",
         submittedAttachmentOpenLink: "Open link",
         submittedAttachmentOpenPdf: "Open PDF",
-        submittedAttachmentDrivePreview: "Preview on Drive",
-        submittedAttachmentSheetDownload: "Download from app",
         submittedAttachmentDriveStaleShort:
           "This looks like an old Google Drive link and usually no longer works. Re-upload the PDF in the app (draft), or try the original link below.",
         submittedAttachmentTryOriginalLink: "Try original link",
@@ -977,13 +904,6 @@
         fileField_attach_annex1: "Annex 1",
         fileField_attach_annex2: "Annex 2",
         fileField_attach_annex3: "Annex 3",
-        phdJuniorNoteMissingYear:
-          "Junior/early-career: enter your Ph.D. award year. For admin/commission review vs. the application deadline year ({{deadlineYear}}) — within 7 years after Ph.D.",
-        phdJuniorNoteInvalidYear: "Enter a valid Ph.D. year (e.g. 2020).",
-        phdJuniorNoteWithin:
-          "Note for panel/admin: from Ph.D. year ({{phdYear}}) to the application deadline year ({{deadlineYear}}) is {{years}} years — within the 7-year limit.",
-        phdJuniorNoteOver:
-          "Note for panel/admin: from Ph.D. year ({{phdYear}}) to the application deadline year ({{deadlineYear}}) is {{years}} years (over 7) — please verify junior/early-career eligibility.",
       },
       applyConnect: {
         loadingForm: "Loading form…",
@@ -1016,28 +936,16 @@
         stepAttachments: "Attachments",
         fileUploading: "Uploading PDF…",
         fileUploadOk:
-          "The file was saved in the competition spreadsheet (fallback) because the Drive upload failed. Open it with “Open PDF” below.",
-        fileUploadOkDrive:
-          "The file was saved on Google Drive via the app (web-app account folder). Open it with “Open PDF” below.",
-        fileUploadDriveFallbackDetail:
-          "The file was stored in the spreadsheet only (fallback). Drive: {{err}} — check folder sharing with the Web App account (Execute as) or Drive permissions.",
+          "The file was saved in the competition Google Sheet (binary storage), not on shared Drive. Open it with “Open PDF” below.",
         fileUploadErr: "Attachment upload failed.",
-        fileUploadBadResponse:
-          "The server did not return valid JSON after upload (empty or HTML). Try a smaller PDF, refresh, or check the Web App deployment.",
-        fileUploadHttpErr: "The server returned HTTP {{status}}. Try again or contact an administrator.",
-        fileUploadOldScriptHint:
-          "The deployed Apps Script may be missing the upload action. Redeploy the Web App from the current code. Detail:",
-        fileUploadFormNotStored:
-          "The file is on Drive but could not be written into the application row in the sheet. Refresh; if it is still missing, redeploy the Web App (current script writes the link right after upload).",
         fileUploadedDriveLabel: "PDF on Drive",
-        fileUploadedDriveApiLabel: "PDF on Drive (uploaded by the app)",
-        fileUploadedAppStorageLabel: "PDF in spreadsheet (fallback)",
+        fileUploadedAppStorageLabel: "PDF in app (spreadsheet)",
         filePdfOnly: "Only PDF files are allowed.",
         fileTooBig: "The file is larger than 18 MB.",
         fileNeedDraftRetry:
           "A draft application ID is required first. Try the file again in a moment (after autosave) or click “Save draft”.",
         attachmentsStorageNote:
-          "PDFs from the Connect application form are stored on Google Drive in the folder configured for the web app (DriveApp). Optionally set a separate folder ID in CONFIG as connect_application_attachments_folder_id; otherwise the same folder as Connect part 2 attachments is used. If Drive fails, a spreadsheet backup is kept. Opening is always via “Open PDF” while signed in.",
+          "PDFs from this step are stored in the competition Google Sheet (attachments list), not in a shared Drive folder. After saving, open the file via “Open PDF” in this app (you must be signed in). An empty Drive folder from the call text does not mean your file is missing.",
       },
       applyPrestige: {
         loadingForm: "Loading form…",
@@ -1046,7 +954,7 @@
         sidebarCompetitionVal: "UHK Prestige",
         sidebarDeadlineApply: "Application deadline",
         sidebarMaxY1: "Max. support (year 1)",
-        sidebarMaxVal: "CZK 500,000",
+        sidebarMaxVal: "CZK 1,000,000",
         sidebarSaved: "Saved",
         autosaveNoteHtml:
           "Your draft <strong>saves automatically after 30 s</strong> of inactivity; use <strong>Save draft</strong> to save manually.",
@@ -1054,7 +962,7 @@
         termsFootnoteHtml:
           "Electronic submission per UHK Prestige call announcement 1/2026. The <strong>Horizon No-Cost Entry</strong> sub-call (call 2/2026) will be added to the app – see the separate call document for now.",
         budgetCardTitle: "Budget",
-        budgetOfMax: "of max. CZK 500,000 (stage 1)",
+        budgetOfMax: "of max. CZK 1,000,000 (year 1)",
         checklistTitle: "Checklist",
         helpTitle: "Need help?",
         submitSuccessTitle: "Application submitted!",
@@ -1066,6 +974,16 @@
         stepStrategy: "Strategy & milestones",
         stepBudget: "Budget",
         stepAttachments: "Attachments",
+        fileUploading: "Uploading attachment…",
+        fileUploadOk:
+          "The file was saved in the UHK Prestige competition spreadsheet (separate from other competitions). Download via the link below.",
+        fileUploadErr: "Attachment upload failed.",
+        fileUploadedAppStorageLabel: "File in Prestige records (competition spreadsheet)",
+        fileTooBig: "The file is larger than 18 MB.",
+        fileNeedDraftRetry:
+          "An application draft must exist first. Try again in a moment or click “Save draft”.",
+        fileExtRejected: "This file type is not allowed for this attachment (see formats under the field).",
+        storedFileOpen: "Download file",
       },
       rolesPatch: {
         ADMIN: { label: "Administrator", description: "Full access – users, applications, settings" },
@@ -1095,29 +1013,6 @@
         saveConsent: "Save consent",
         saveCompletion: "Save final project closeout",
         saveZzDraft: "Save draft now",
-        annex2Title: "Annex 2 – final report (structure per call)",
-        annex2Help:
-          "Fill in per the call text / annex 2. You may use only these fields, only the continuous text below, or both. On <strong>final closeout</strong> the text is merged into one stored record (spreadsheet cell size is limited). Upload files (Magion, outputs) in the attachments section below.",
-        annex2Summary: "Summary / activity outcome",
-        annex2SummaryPh: "Brief outcome vs. objective…",
-        annex2Activity: "Implementation narrative",
-        annex2ActivityPh: "Progress, milestones, constraints…",
-        annex2Outputs: "Achieved outputs vs. plan",
-        annex2OutputsPh: "What was delivered compared to planned outputs…",
-        annex2Coop: "Cooperation and partners",
-        annex2CoopPh: "Partners, roles, collaboration results…",
-        annex2BudgetText: "Use of support and economy (narrative)",
-        annex2BudgetTextPh: "Add narrative to the actual-spend table above…",
-        annex2Dissem: "Dissemination / sharing results",
-        annex2DissemPh: "Conference, publications, internal knowledge transfer…",
-        annex2Other: "Other / per-call additions",
-        annex2OtherPh: "Anything else required by annex 2 or the R&D office…",
-        annex2ReadonlyEmpty:
-          "Annex 2 structured fields were not filled separately; the full text may be in the continuous final report below.",
-        zzDraftTitle: "Final report – draft",
-        zzLabel: "Continuous final report text (addition to annex 2)",
-        zzDraftHelp:
-          "Structured fields above follow annex 2; add continuous narrative below. Draft auto-saves (30 s) or via the button. Final closeout requires <strong>at least 80 characters in total</strong> (structured fields + continuous text).",
         part1Cut: "Part 1 – Consent to budget reduction",
         part1Alloc: "Part 1 – Consent to project allocation",
         agreeCut:
