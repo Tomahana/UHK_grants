@@ -109,6 +109,18 @@
     I18n.mountLangSwitch(document.querySelector(".topbar__right"), "first");
     const NAVRATY_CARD = FALLBACK_COMPETITIONS[0];
 
+    /* Bezpečnostní fallback – pokud z cache načtený starší config.js nemá nové utility,
+       dashboard se musí stejně vykreslit. Identita = beze změny. */
+    const __patchPrestigeCard = (typeof patchUhkPrestige2026Dashboard_ === "function")
+      ? patchUhkPrestige2026Dashboard_
+      : function (c) { return c; };
+    const __isMainPrestigeFn = (typeof isUhkPrestigeMainCompetition === "function")
+      ? isUhkPrestigeMainCompetition
+      : function (c) {
+          var id = String((c && c.id) || c || "").toLowerCase().trim();
+          return id === "uhk_prestige_2026";
+        };
+
     // ── Ochrana stránky ────────────────────────────────────────
     const user = Auth.requireLogin(); // přesměruje na login.html pokud není session
     if (!user) {
@@ -174,7 +186,7 @@
 
       // Okamžitě zobraz fallback – žádné čekání na API
       let competitions = FALLBACK_COMPETITIONS.map(c =>
-        patchUhkPrestige2026Dashboard_({
+        __patchPrestigeCard({
           ...c,
           _visible: vis[c.id] !== undefined ? vis[c.id] : true,
         })
@@ -195,7 +207,7 @@
           let live = data
             .filter((c) => c && c.id != null && String(c.id).trim() !== "")
             .map((c) =>
-              patchUhkPrestige2026Dashboard_({
+              __patchPrestigeCard({
                 ...c,
                 _visible: c.dashboardVisible !== false,
               })
@@ -382,9 +394,8 @@
       const prestigeNoticeHref = `prestige-podani-upozorneni.html?c=${encodeURIComponent(id)}`;
       const prestigeAdminFormHref = `apply-prestige.html?c=${encodeURIComponent(id)}`;
       const isMainPrestige =
-        typeof isUhkPrestigeMainCompetition === "function" &&
-        isPrestigeLike &&
-        isUhkPrestigeMainCompetition(comp);
+        idNorm === "uhk_prestige_2026" ||
+        (isPrestigeLike && __isMainPrestigeFn(comp));
 
       const primarySubmitHref =
         isMainPrestige && applyHref && applyHref.indexOf("apply-prestige") >= 0
@@ -490,7 +501,18 @@
     }
 
     // ── Spusť ──────────────────────────────────────────────────
-    loadCompetitions();
+    loadCompetitions().catch(function (err) {
+      console.error("loadCompetitions selhalo:", err);
+      try {
+        const grid = document.getElementById("competitionsGrid");
+        if (grid) {
+          grid.innerHTML = `<div class="empty-state">
+            <div class="empty-state__icon">⚠️</div>
+            <div class="empty-state__text">Načítání soutěží selhalo. Obnovte stránku (Ctrl+F5). Detail v konzoli.</div>
+          </div>`;
+        }
+      } catch (_) { /* noop */ }
+    });
 
     }
 
