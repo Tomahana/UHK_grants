@@ -306,11 +306,21 @@
 
     const COMPETITION_ID = new URLSearchParams(location.search).get("c") || "uhk_prestige_2026";
 
+    /* Když cache prohlížeče drží starší config.js bez nové utility, vrať bezpečné true jen pro id uhk_prestige_2026 */
+    function __isMainPrestigeSafe(compIdOrObj) {
+      if (typeof isUhkPrestigeMainCompetition === "function") {
+        return isUhkPrestigeMainCompetition(compIdOrObj);
+      }
+      var idStr = String((compIdOrObj && compIdOrObj.id) || compIdOrObj || "")
+        .toLowerCase()
+        .trim();
+      return idStr === "uhk_prestige_2026";
+    }
+
     const user = Auth.requireLogin(["ZADATEL","RESITEL","ADMIN","TESTER"]);
     const redirectPrestigeNotice =
       user &&
-      typeof isUhkPrestigeMainCompetition === "function" &&
-      isUhkPrestigeMainCompetition({ id: COMPETITION_ID }) &&
+      __isMainPrestigeSafe({ id: COMPETITION_ID }) &&
       !Auth.hasAnyRole(["ADMIN", "TESTER"]);
 
     if (redirectPrestigeNotice) {

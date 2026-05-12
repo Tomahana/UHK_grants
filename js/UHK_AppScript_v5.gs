@@ -5773,7 +5773,29 @@ function submitApplication(body) {
   if (eCol < 0 || sCol < 0 || fCol < 0 || subCol < 0)
     throw new Error("List APPLICATIONS: chybí potřebná záhlaví (applicant_email, status, form_data_json, submitted_at) na řádku " + HEADER_ROW + ".");
 
+  /* Pokud klient pošle konkrétní draftId (= jednu z více Connect přihlášek), podej právě ten řádek.
+     Bez tohoto by se submitnul první DRAFT v pořadí a žadatel s víc draftami by viděl staré údaje. */
+  const submitDraftIdReq = String(body.draftId || body.applicationId || "").trim();
+  let targetRow = -1;
+  if (submitDraftIdReq && idCol >= 0) {
+    for (let j = HEADER_ROW; j < data.length; j++) {
+      const rid = String(data[j][idCol] || "").trim();
+      if (rid !== submitDraftIdReq) continue;
+      const rowEmailJ = String(data[j][eCol] || "").toLowerCase();
+      const rowStatusJ = String(data[j][sCol] || "").toUpperCase();
+      if (rowEmailJ !== body.applicantEmail?.toLowerCase() || rowStatusJ !== "DRAFT") {
+        throw new Error("Koncept s tímto ID neexistuje, není DRAFT, nebo nepatří přihlášenému účtu.");
+      }
+      targetRow = j;
+      break;
+    }
+    if (targetRow < 0) {
+      throw new Error("Koncept s ID " + submitDraftIdReq + " v tabulce nenalezen.");
+    }
+  }
+
   for (let i = HEADER_ROW; i < data.length; i++) {
+    if (targetRow >= 0 && i !== targetRow) continue;
     const rowEmail  = String(data[i][eCol] || "").toLowerCase();
     const rowStatus = String(data[i][sCol] || "").toUpperCase();
     if (rowEmail === body.applicantEmail?.toLowerCase() && rowStatus === "DRAFT") {
