@@ -290,6 +290,9 @@ const user = Auth.requireLogin(["KOMISAR", "KOMISAŘ", "PROREKTOR", "ADMIN", "TE
 document.getElementById("topbarName").textContent = user.name||user.email;
 const params = new URLSearchParams(window.location.search);
 const CID = params.get("c")||"uhk_connect_2026_v2";
+function apiUrl() {
+  return typeof getApiUrlForCompetition === "function" ? getApiUrlForCompetition(CID) : API_URL;
+}
 const cname = I18n.competitionDisplayName(CID);
 function tx(k) { return I18n.t("reviewConnect." + k); }
 function getCrit() { return I18n.getReviewConnectCrit(); }
@@ -391,7 +394,7 @@ function buildProrektorCutBudgetRowsHtml(sid, f) {
  * Úspěch ověříme následným GET (getConnectReviews / getApplications).
  */
 async function postWebAppReliable(payload, verifyAsync) {
-  await fetch(API_URL, {
+  await fetch(apiUrl(), {
     method: "POST",
     mode: "no-cors",
     headers: { "Content-Type": "text/plain;charset=UTF-8" },
@@ -408,7 +411,7 @@ async function postWebAppReliable(payload, verifyAsync) {
 
 async function fetchConnectReviews() {
   const s = Auth._getSession(),
-    u = new URL(API_URL);
+    u = new URL(apiUrl());
   u.searchParams.set("action", "getConnectReviews");
   u.searchParams.set("competitionId", CID);
   u.searchParams.set("token", s?.token || "");
@@ -418,7 +421,7 @@ async function fetchConnectReviews() {
 
 async function fetchApplicationsList() {
   const s = Auth._getSession(),
-    u = new URL(API_URL);
+    u = new URL(apiUrl());
   u.searchParams.set("action", "getApplications");
   u.searchParams.set("competitionId", CID);
   u.searchParams.set("token", s?.token || "");
@@ -435,7 +438,7 @@ async function refreshFundingSummary() {
   if (!panel) return;
   try {
     const s = Auth._getSession(),
-      u = new URL(API_URL);
+      u = new URL(apiUrl());
     u.searchParams.set("action", "getConnectFundingSummary");
     u.searchParams.set("competitionId", CID);
     u.searchParams.set("token", s?.token || "");
@@ -449,7 +452,7 @@ async function refreshFundingSummary() {
     const assigned = Number(j.assignedCzk) || 0;
     const accepted = Number(j.acceptedCzk) || 0;
     if (!alloc) {
-      const u2 = new URL(API_URL);
+      const u2 = new URL(apiUrl());
       u2.searchParams.set("action", "getCompetitions");
       u2.searchParams.set("token", s?.token || "");
       const compsRaw = await (await fetch(u2.toString())).json();
@@ -471,7 +474,7 @@ async function loadData(){
   document.getElementById("listSub").innerHTML='<span class="spin"></span>'+esc(tx("loading"));
   document.getElementById("appList").innerHTML='<div class="empty"><span class="spin"></span></div>';
   try{
-    const s=Auth._getSession(),u=new URL(API_URL);
+    const s=Auth._getSession(),u=new URL(apiUrl());
     u.searchParams.set("action","getApplications");
     u.searchParams.set("competitionId",CID);
     u.searchParams.set("token",s?.token||"");
@@ -481,7 +484,7 @@ async function loadData(){
       .map(a=>{try{a._f=JSON.parse(a.form_data_json||"{}")}catch{a._f={}}return a});
   }catch{apps=demoApps()}
   try{
-    const s=Auth._getSession(),u=new URL(API_URL);
+    const s=Auth._getSession(),u=new URL(apiUrl());
     u.searchParams.set("action","getConnectReviews");
     u.searchParams.set("competitionId",CID);
     u.searchParams.set("token",s?.token||"");
@@ -556,25 +559,87 @@ function selApp(id){
   renderList();window.scrollTo({top:0,behavior:"smooth"});
 }
 
+function reviewConnectAttachmentHintHtml(h) {
+  if (!h) return "—";
+  const raw = String(h.raw_cell_value != null ? h.raw_cell_value : h.value || "").trim();
+  const disp = String(h.value || raw || "").trim();
+  const appAid = String(h.application_id || (cur && cur.application_id) || "").trim();
+  const canDl =
+  !!(appAid && h.field_id && (h.isSheetBlob || /^UHKAFILE\|/i.test(raw) || /^UHKDRIVE\|/i.test(raw)));
+  if (canDl) {
+    const hintR = Object.assign({}, h, { application_id: appAid, raw_cell_value: raw || h.raw_cell_value });
+    const links =
+      typeof connectApplicationAttachmentLinksHtml_ === "function"
+        ? connectApplicationAttachmentLinksHtml_(hintR, CID, {
+            escapeHtml: esc,
+            drivePreviewLabel:
+              typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentDrivePreview") : "Náhled na Disku",
+            sheetDownloadLabel:
+              typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentSheetDownload") : "Stáhnout z aplikace",
+          })
+        : "";
+    if (links) return links + (disp && disp !== raw ? ' · <span style="font-family:DM Mono,monospace;font-size:12px">' + esc(disp) + "</span>" : "");
+  }
+  if (h.isLikelyUrl && /^https?:\/\//i.test(raw)) {
+    if (h.staleGoogleDriveUrl || /^(https?:\/\/)?(drive|docs)\.google\.com\//i.test(raw)) {
+      return (
+        '<span style="color:#92400e;font-size:12px">Starý odkaz na Disk — </span>' +
+        '<a href="' +
+        escAttr(raw) +
+        '" target="_blank" rel="noopener">zkusit otevřít</a> · použijte „Stáhnout z aplikace“, pokud je k dispozici výše'
+      );
+    }
+    return '<a href="' + escAttr(raw) + '" target="_blank" rel="noopener">otevřít odkaz</a>';
+  }
+  return disp ? esc(disp) : "—";
+}
+
+function renderReviewConnectFormAttachmentsPanel(hints, extraHtml) {
+  const wrap = document.getElementById("panelConnectAttachments");
+  const body = document.getElementById("panelConnectAttachmentsBody");
+  if (!wrap || !body) return;
+  const list = Array.isArray(hints) ? hints.filter(function (h) { return h && String(h.field_id || "").trim(); }) : [];
+  if (!list.length && !extraHtml) {
+    wrap.style.display = "none";
+    return;
+  }
+  const parts = [];
+  if (list.length) {
+    parts.push("<strong>Dokumenty z podacího formuláře</strong><ul style=\"margin:6px 0 0 18px\">");
+    list.forEach(function (h) {
+      parts.push("<li><code>" + esc(String(h.field_id || "")) + "</code>: " + reviewConnectAttachmentHintHtml(h) + "</li>");
+    });
+    parts.push("</ul>");
+  }
+  if (extraHtml) parts.push(extraHtml);
+  body.innerHTML = parts.join("");
+  wrap.style.display = "block";
+}
+
 async function loadReviewConnectAttachments() {
   const wrap = document.getElementById("panelConnectAttachments");
   const body = document.getElementById("panelConnectAttachmentsBody");
   if (!wrap || !body || !cur) return;
   wrap.style.display = "none";
   body.innerHTML = '<span class="spin"></span> Načítám přílohy…';
+  const fallbackHints = Array.isArray(cur.file_fields) ? cur.file_fields : [];
   try {
     if (typeof API === "undefined" || !API.getConnectPostAward) {
-      body.innerHTML = "";
+      renderReviewConnectFormAttachmentsPanel(fallbackHints);
       return;
     }
     const data = await API.getConnectPostAward(CID, cur.application_id);
     if (!data || data.error || !data.applicable) {
+      if (fallbackHints.length) {
+        renderReviewConnectFormAttachmentsPanel(fallbackHints);
+        return;
+      }
       var why =
         data && data.reason
           ? data.reason
           : data && data.error
             ? String(data.error)
-            : "Přílohy části 2 nejsou k dispozici. Zkuste obnovit stránku po nasazení aktuálního skriptu.";
+            : "Přílohy nejsou k dispozici. Nasazený skript může být zastaralý — obnovte stránku po deployi Web App.";
       body.innerHTML = '<span style="color:var(--muted)">' + esc(why) + "</span>";
       wrap.style.display = "block";
       return;
@@ -585,49 +650,13 @@ async function loadReviewConnectAttachments() {
         '<p style="font-size:12px;color:#92400e;margin:0 0 10px;line-height:1.45;">Náhled: před finálním rozhodnutím prorektora mohou být u rozpočtu zobrazeny údaje z žádosti.</p>'
       );
     }
-    const hints = data.application_file_hints || [];
+    const hints = (data.application_file_hints && data.application_file_hints.length)
+      ? data.application_file_hints
+      : fallbackHints;
     if (hints.length) {
       parts.push("<strong>Dokumenty z podacího formuláře</strong><ul style=\"margin:6px 0 0 18px\">");
       hints.forEach(function (h) {
-        const v = String(h.value || "");
-        const vTrim = v.trim();
-        const appAid = String(h.application_id || (cur && cur.application_id) || "").trim();
-        var link;
-        if ((h.isSheetBlob || /^UHKAFILE\|/i.test(vTrim) || /^UHKDRIVE\|/i.test(vTrim)) && appAid && h.field_id) {
-          var hintR = Object.assign({}, h, { application_id: appAid });
-          var linksR =
-            typeof connectApplicationAttachmentLinksHtml_ === "function"
-              ? connectApplicationAttachmentLinksHtml_(hintR, CID, {
-                  escapeHtml: esc,
-                  drivePreviewLabel:
-                    typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentDrivePreview") : "Náhled na Disku",
-                  sheetDownloadLabel:
-                    typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentSheetDownload") : "Stáhnout z aplikace",
-                })
-              : "";
-          link =
-            linksR +
-            ' · <span style="font-family:DM Mono,monospace;font-size:12px">' +
-            esc(v) +
-            "</span>";
-        } else if (h.isLikelyUrl) {
-          var rawU = String(v || "").trim();
-          var staleG =
-            !!h.staleGoogleDriveUrl ||
-            /^(https?:\/\/)?(drive|docs)\.google\.com\//i.test(rawU);
-          if (staleG) {
-            link =
-              '<span style="color:#92400e;font-size:12px;line-height:1.45">Údaj vypadá jako starý odkaz na Google Disk (obvykle nefunguje). Soubor je v tabulce — použijte PDF z aplikace výše, nebo </span>' +
-              '<a href="' +
-              escAttr(rawU) +
-              '" target="_blank" rel="noopener">zkuste původní odkaz</a>';
-          } else {
-            link = '<a href="' + escAttr(v) + '" target="_blank" rel="noopener">otevřít odkaz</a>';
-          }
-        } else {
-          link = esc(v);
-        }
-        parts.push("<li><code>" + esc(h.field_id) + "</code>: " + link + "</li>");
+        parts.push("<li><code>" + esc(String(h.field_id || "")) + "</code>: " + reviewConnectAttachmentHintHtml(h) + "</li>");
       });
       parts.push("</ul>");
     }
@@ -727,6 +756,10 @@ async function loadReviewConnectAttachments() {
       });
     }
   } catch (e) {
+    if (fallbackHints.length) {
+      renderReviewConnectFormAttachmentsPanel(fallbackHints);
+      return;
+    }
     body.innerHTML = '<span style="color:#991B1B">' + esc(e.message || "Chyba") + "</span>";
     wrap.style.display = "block";
   }
@@ -747,7 +780,7 @@ function renderDetail(){
             })
           : "";
         const fallback = String(h.value || "").trim() ? esc(String(h.value || "").trim()) : "—";
-        return `<div style="margin-bottom:8px;"><code>${esc(String(h.field_id || ""))}</code>: ${links || fallback}</div>`;
+        return `<div style="margin-bottom:8px;"><code>${esc(String(h.field_id || ""))}</code>: ${reviewConnectAttachmentHintHtml(h)}</div>`;
       }).join("")}</div></div>`
     : "";
   const rows=[
@@ -839,12 +872,21 @@ async function submitReview(){
     comment_internal:document.getElementById("cInt").value,...notes};
   const pid=String(cur.application_id||"").trim();
   const expectRec=rec;
+  const expectNotes={};
+  ["K1","K2","K3","K4","K5"].forEach(function(k){
+    const el=document.getElementById("note-"+k);
+    if(el)expectNotes["comment_"+k.toLowerCase()]=String(el.value||"");
+  });
   try{
     await postWebAppReliable(payload, async () => {
       const list=await fetchConnectReviews();
       const em=String(user.email||"").toLowerCase();
       const row=list.find(r=>connectAppId(r)===pid&&!isProrektorDecisionRow(r)&&String(r.reviewer_email||"").toLowerCase()===em);
-      return !!(row&&String(row.recommendation||"").toUpperCase()===String(expectRec||"").toUpperCase()&&Number(row.score_total)===Number(tot));
+      if(!row||String(row.recommendation||"").toUpperCase()!==String(expectRec||"").toUpperCase()||Number(row.score_total)!==Number(tot))return false;
+      return ["comment_k1","comment_k2","comment_k3","comment_k4","comment_k5"].every(function(ck){
+        if(!Object.prototype.hasOwnProperty.call(expectNotes,ck))return true;
+        return String(row[ck]||"")===String(expectNotes[ck]||"");
+      });
     });
     revs=await fetchConnectReviews();
     showToast(I18n.tReplace("reviewConnect.toastReviewSaved",{tot:String(tot)}));
