@@ -25,7 +25,7 @@ const API = {
 
   // ── GET požadavek ──────────────────────────────────────────
   async get(action, params = {}) {
-    const url = new URL(API_URL);
+    const url = new URL(getApiUrlForCompetition(params && params.competitionId ? params.competitionId : null));
     url.searchParams.set("action", action);
     // Přidej auth token
     const session = Auth._getSession();
@@ -42,7 +42,8 @@ const API = {
   // ── POST požadavek ─────────────────────────────────────────
   async post(action, data = {}) {
     const session = Auth._getSession();
-    const res = await fetch(API_URL, {
+    const endpoint = getApiUrlForCompetition(data && data.competitionId ? data.competitionId : null);
+    const res = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -152,7 +153,7 @@ const API = {
       checklist,
     };
     if (saveSection) payload.saveSection = saveSection;
-    await fetch(API_URL, {
+    await fetch(getApiUrlForCompetition(competitionId), {
       method: "POST",
       mode: "no-cors",
       headers: { "Content-Type": "text/plain;charset=UTF-8" },
@@ -219,7 +220,7 @@ const API = {
     params.set("competitionId", String(competitionId || ""));
     params.set("applicationId", String(applicationId || ""));
     try {
-      const res = await fetch(API_URL, {
+      const res = await fetch(getApiUrlForCompetition(competitionId), {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: params.toString(),
@@ -244,71 +245,180 @@ const API = {
   },
 
   /**
-   * Stažení binárního souboru z Web Appu (POST + token v těle).
-   * Otevře PDF v novém panelu jako blob: URL (obchází nešťastné přesměrování / chyby u GET na script.google.com).
+   * Otevře GET na Web App v novém tabu (PDF, adminExportConnectProjectDossierPdf, …) — bez fetch(), stejná logika jako u příloh.
+   * @param {string} action
+   * @param {Record<string,string>} params  další query parametry (kromě action/token)
+   * @param {{ requireAuth?: boolean }} opts  výchozí requireAuth: true → doplní token ze session
    */
-  async openConnectBinaryDownload(action, fields) {
-    const session = Auth._getSession();
-    if (!session?.token) {
+  openWebAppGetInNewTab(action, params, opts) {
+    const o = opts || {};
+    const requireAuth = o.requireAuth !== false;
+    const session = typeof Auth !== "undefined" && Auth._getSession ? Auth._getSession() : null;
+    if (requireAuth && !session?.token) {
       const msg =
         typeof I18n !== "undefined" && I18n.t
           ? I18n.t("api.needLoginDownload")
-          : "Pro stažení souboru se přihlaste.";
+          : "Pro tuto akci se přihlaste.";
       throw new Error(msg);
     }
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=UTF-8" },
-      body: JSON.stringify({
-        action,
-        token: session.token,
-        ...fields,
-      }),
-    });
-    const ct = (res.headers.get("content-type") || "").toLowerCase();
-    if (!res.ok) {
-      const t = await res.text().catch(() => "");
-      throw new Error((t && t.slice(0, 500)) || "HTTP " + res.status);
+    const baseUrl = String(
+      getApiUrlForCompetition(params && params.competitionId ? params.competitionId : null)
+    ).trim();
+    try {
+      new URL(baseUrl);
+    } catch (eUrl) {
+      throw new Error(
+        typeof I18n !== "undefined" && I18n.t ? I18n.t("api.downloadNetworkError") : "Neplatná adresa API."
+      );
     }
-    if (
-      ct.indexOf("application/pdf") >= 0 ||
-      ct.indexOf("application/octet-stream") >= 0 ||
-      ct.indexOf("binary/octet-stream") >= 0
-    ) {
-      const blob = await res.blob();
-      const u = URL.createObjectURL(blob);
-      const w = window.open(u, "_blank", "noopener,noreferrer");
+
+    let getUrl = "";
+    try {
+      const u = new URL(baseUrl);
+      u.searchParams.set("action", action);
+      if (session?.token) u.searchParams.set("token", session.token);
+      Object.entries(params || {}).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && String(v) !== "") u.searchParams.set(k, String(v));
+      });
+      getUrl = u.toString();
+    } catch (eBuild) {
+      throw new Error(
+        typeof I18n !== "undefined" && I18n.t ? I18n.t("api.downloadNetworkError") : "Neplatná adresa API."
+      );
+    }
+
+    const openInNewTab = (href) => {
+      let w = null;
+      try {
+        w = window.open(href, "_blank", "noopener,noreferrer");
+      } catch (e0) {
+        w = null;
+      }
       if (!w) {
         const a = document.createElement("a");
-        a.href = u;
+        a.href = href;
         a.target = "_blank";
-        a.rel = "noopener";
-        a.download = "dokument.pdf";
+        a.rel = "noopener noreferrer";
         document.body.appendChild(a);
         a.click();
         a.remove();
       }
-      setTimeout(() => {
-        try {
-          URL.revokeObjectURL(u);
-        } catch (e) {
-          /* ignore */
-        }
-      }, 300000);
+    };
+
+    if (getUrl.length <= 120000) {
+      openInNewTab(getUrl);
       return;
     }
-    if (ct.indexOf("application/json") >= 0) {
-      const j = await res.json().catch(() => ({}));
-      throw new Error(j.error || "Stažení se nepodařilo.");
-    }
-    const t = await res.text().catch(() => "");
-    throw new Error(t.slice(0, 500) || "Neočekávaná odpověď serveru.");
+
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = baseUrl;
+    form.enctype = "application/x-www-form-urlencoded";
+    form.target = "_blank";
+    form.acceptCharset = "UTF-8";
+    form.style.display = "none";
+    const addField = (name, val) => {
+      const inp = document.createElement("input");
+      inp.type = "hidden";
+      inp.name = name;
+      inp.value = String(val);
+      form.appendChild(inp);
+    };
+    addField("action", action);
+    if (session?.token) addField("token", session.token);
+    Object.entries(params || {}).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && String(v) !== "") addField(k, v);
+    });
+    document.body.appendChild(form);
+    form.submit();
+    setTimeout(() => {
+      try {
+        form.remove();
+      } catch (eR) {
+        /* ignore */
+      }
+    }, 500);
+  },
+
+  /**
+   * Otevře PDF z Web Appu v novém tabu — bez fetch() (u script.google.com často „Failed to fetch“ kvůli CORS).
+   * Preferujeme GET → doGet vrací PDF přímo. Token u účtů s více rolemi je dlouhý; limit musí být vysoký,
+   * jinak se použije POST + HtmlService a u štábu často prázdný náhled. Jinak POST (token v těle).
+   */
+  async openConnectBinaryDownload(action, fields) {
+    this.openWebAppGetInNewTab(action, fields, { requireAuth: true });
   },
 };
+
+/**
+ * HTML akcí u přílohy Connect z API (`file_fields` / `application_file_hints`):
+ * jen „Náhled na Disku“ u UHKDRIVE; u zálohy v tabulce (UHKAFILE / jen tabulka) odkaz stažení přes Web App.
+ * Spoléhá na `raw_cell_value` + `drive_file_id` ze skriptu; zpětně parsuje UHKDRIVE z `value`, pokud chybí.
+ */
+function connectApplicationAttachmentLinksHtml_(hint, competitionId, opts) {
+  const o = opts || {};
+  const esc =
+    typeof o.escapeHtml === "function"
+      ? o.escapeHtml
+      : function (s) {
+          return String(s == null ? "" : s)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+        };
+  const escAttr = function (s) {
+    return esc(String(s == null ? "" : s)).replace(/"/g, "&quot;");
+  };
+  const driveLab = o.drivePreviewLabel != null ? String(o.drivePreviewLabel) : "Náhled na Disku";
+  const sheetLab = o.sheetDownloadLabel != null ? String(o.sheetDownloadLabel) : "Stáhnout z aplikace";
+  const h = hint || {};
+  const raw = String(h.raw_cell_value != null ? h.raw_cell_value : "").trim() || String(h.value || "").trim();
+  const vTrim = raw;
+  const mDrive = /^UHKDRIVE\|([^|]+)\|/i.exec(vTrim);
+  const driveId = String(h.drive_file_id || "").trim() || (mDrive ? String(mDrive[1] || "").trim() : "");
+  const appAid = String(h.application_id || "").trim();
+  const fid = String(h.field_id || "").trim();
+  const cid = String(competitionId || "").trim();
+  const isStored =
+    !!(
+      appAid &&
+      fid &&
+      cid &&
+      (h.downloadable ||
+        h.isSheetBlob ||
+        /^UHKAFILE\|/i.test(vTrim) ||
+        /^UHKDRIVE\|/i.test(vTrim) ||
+        String(h.drive_file_id || "").trim())
+    );
+  if (!isStored) return "";
+  if (driveId) {
+    return (
+      '<a href="https://drive.google.com/file/d/' +
+      encodeURIComponent(driveId) +
+      '/preview" target="_blank" rel="noopener noreferrer">' +
+      esc(driveLab) +
+      "</a>"
+    );
+  }
+  return (
+    '<a href="#" class="uhk-blob-dl" data-dl-action="downloadConnectApplicationFile" ' +
+    'data-dl-competition-id="' +
+    escAttr(cid) +
+    '" data-dl-application-id="' +
+    escAttr(appAid) +
+    '" data-dl-field-id="' +
+    escAttr(fid) +
+    '">' +
+    esc(sheetLab) +
+    "</a>"
+  );
+}
 
 /** Dostupné i pro skripty v jiném lexikálním oboru (např. IIFE v connect-postaward-panel.js). */
 if (typeof globalThis !== "undefined") {
   globalThis.API = API;
+  globalThis.connectApplicationAttachmentLinksHtml_ = connectApplicationAttachmentLinksHtml_;
 }
 
 /** Delegace kliku na <a class="uhk-blob-dl" data-dl-action="…" …> (Connect PDF z tabulky). */
