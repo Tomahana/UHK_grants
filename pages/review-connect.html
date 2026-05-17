@@ -564,8 +564,19 @@ function reviewConnectAttachmentHintHtml(h) {
   const raw = String(h.raw_cell_value != null ? h.raw_cell_value : h.value || "").trim();
   const disp = String(h.value || raw || "").trim();
   const appAid = String(h.application_id || (cur && cur.application_id) || "").trim();
-  const canDl =
-  !!(appAid && h.field_id && (h.isSheetBlob || /^UHKAFILE\|/i.test(raw) || /^UHKDRIVE\|/i.test(raw)));
+  const fid = String(h.field_id || "").trim();
+  const hasValue = !!(raw || disp);
+  const canDl = !!(
+    appAid &&
+    fid &&
+    hasValue &&
+    (h.downloadable ||
+      h.isSheetBlob ||
+      h.drive_file_id ||
+      /^UHKAFILE\|/i.test(raw) ||
+      /^UHKDRIVE\|/i.test(raw) ||
+      /^(attach_|attach)/i.test(fid))
+  );
   if (canDl) {
     const hintR = Object.assign({}, h, { application_id: appAid, raw_cell_value: raw || h.raw_cell_value });
     const links =
@@ -579,6 +590,19 @@ function reviewConnectAttachmentHintHtml(h) {
           })
         : "";
     if (links) return links + (disp && disp !== raw ? ' · <span style="font-family:DM Mono,monospace;font-size:12px">' + esc(disp) + "</span>" : "");
+    return (
+      '<a href="#" class="uhk-blob-dl" data-dl-action="downloadConnectApplicationFile" ' +
+      'data-dl-competition-id="' +
+      escAttr(CID) +
+      '" data-dl-application-id="' +
+      escAttr(appAid) +
+      '" data-dl-field-id="' +
+      escAttr(fid) +
+      '">' +
+      esc(typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentSheetDownload") : "Stáhnout z aplikace") +
+      "</a>" +
+      (disp ? ' · <span style="font-family:DM Mono,monospace;font-size:12px">' + esc(disp) + "</span>" : "")
+    );
   }
   if (h.isLikelyUrl && /^https?:\/\//i.test(raw)) {
     if (h.staleGoogleDriveUrl || /^(https?:\/\/)?(drive|docs)\.google\.com\//i.test(raw)) {
@@ -659,6 +683,14 @@ async function loadReviewConnectAttachments() {
         parts.push("<li><code>" + esc(String(h.field_id || "")) + "</code>: " + reviewConnectAttachmentHintHtml(h) + "</li>");
       });
       parts.push("</ul>");
+    }
+    const appFolder = String(data.application_attachments_drive_folder_url || "").trim();
+    if (appFolder.indexOf("https://drive.google.com/") === 0) {
+      parts.push(
+        '<p style="margin-top:8px;font-size:12px"><a href="' +
+          escAttr(appFolder) +
+          '" target="_blank" rel="noopener">Složka příloh podacího formuláře na Disku</a> (soubory <code>ID_apply_attach_invitation_…</code>)</p>'
+      );
     }
     const man = data.checklist && data.checklist.attachments_manifest ? String(data.checklist.attachments_manifest).trim() : "";
     if (man) {
@@ -750,6 +782,7 @@ async function loadReviewConnectAttachments() {
             { competitionId: CID, applicationId: String(cur.application_id || "").trim() },
             { requireAuth: true }
           );
+          showToast("Otevírám přehled v novém okně…", "ok");
         } catch (err) {
           showToast((err && err.message) || String(err), "err");
         }
