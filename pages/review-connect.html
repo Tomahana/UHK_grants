@@ -295,6 +295,14 @@ function apiUrl() {
 }
 const cname = I18n.competitionDisplayName(CID);
 function tx(k) { return I18n.t("reviewConnect." + k); }
+function txAttachDl() {
+  var k = "applyFlow.submittedAttachmentSheetDownload";
+  if (typeof I18n !== "undefined" && typeof I18n.t === "function") {
+    var v = I18n.t(k);
+    if (v && v !== k) return v;
+  }
+  return "Stáhnout z aplikace";
+}
 function getCrit() { return I18n.getReviewConnectCrit(); }
 document.getElementById("topbarTitle").textContent = I18n.t("reviewConnectUi.titlePrefix") + cname;
 document.getElementById("sName").textContent = cname;
@@ -584,9 +592,12 @@ function reviewConnectAttachmentHintHtml(h) {
         ? connectApplicationAttachmentLinksHtml_(hintR, CID, {
             escapeHtml: esc,
             drivePreviewLabel:
-              typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentDrivePreview") : "Náhled na Disku",
-            sheetDownloadLabel:
-              typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentSheetDownload") : "Stáhnout z aplikace",
+              typeof I18n !== "undefined" && typeof I18n.t === "function"
+                ? (I18n.t("applyFlow.submittedAttachmentDrivePreview") !== "applyFlow.submittedAttachmentDrivePreview"
+                    ? I18n.t("applyFlow.submittedAttachmentDrivePreview")
+                    : "Náhled na Disku")
+                : "Náhled na Disku",
+            sheetDownloadLabel: txAttachDl(),
           })
         : "";
     if (links) return links + (disp && disp !== raw ? ' · <span style="font-family:DM Mono,monospace;font-size:12px">' + esc(disp) + "</span>" : "");
@@ -599,7 +610,7 @@ function reviewConnectAttachmentHintHtml(h) {
       '" data-dl-field-id="' +
       escAttr(fid) +
       '">' +
-      esc(typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentSheetDownload") : "Stáhnout z aplikace") +
+      esc(txAttachDl()) +
       "</a>" +
       (disp ? ' · <span style="font-family:DM Mono,monospace;font-size:12px">' + esc(disp) + "</span>" : "")
     );
@@ -807,9 +818,12 @@ function renderDetail(){
           ? connectApplicationAttachmentLinksHtml_(h, CID, {
               escapeHtml: esc,
               drivePreviewLabel:
-                typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentDrivePreview") : "Náhled na Disku",
-              sheetDownloadLabel:
-                typeof I18n !== "undefined" && I18n.t ? I18n.t("applyFlow.submittedAttachmentSheetDownload") : "Stáhnout z aplikace",
+                typeof I18n !== "undefined" && typeof I18n.t === "function"
+                  ? (I18n.t("applyFlow.submittedAttachmentDrivePreview") !== "applyFlow.submittedAttachmentDrivePreview"
+                      ? I18n.t("applyFlow.submittedAttachmentDrivePreview")
+                      : "Náhled na Disku")
+                  : "Náhled na Disku",
+              sheetDownloadLabel: txAttachDl(),
             })
           : "";
         const fallback = String(h.value || "").trim() ? esc(String(h.value || "").trim()) : "—";
