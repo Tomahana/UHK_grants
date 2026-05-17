@@ -371,7 +371,8 @@ function connectApplicationAttachmentLinksHtml_(hint, competitionId, opts) {
     return esc(String(s == null ? "" : s)).replace(/"/g, "&quot;");
   };
   const driveLab = o.drivePreviewLabel != null ? String(o.drivePreviewLabel) : "Náhled na Disku";
-  const sheetLab = o.sheetDownloadLabel != null ? String(o.sheetDownloadLabel) : "Stáhnout z aplikace";
+  var sheetLab = o.sheetDownloadLabel != null ? String(o.sheetDownloadLabel) : "Stáhnout z aplikace";
+  if (/^applyFlow\./.test(sheetLab)) sheetLab = "Stáhnout z aplikace";
   const h = hint || {};
   const raw = String(h.raw_cell_value != null ? h.raw_cell_value : "").trim() || String(h.value || "").trim();
   const vTrim = raw;
