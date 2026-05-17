@@ -2321,9 +2321,8 @@ function getConnectPostAward(competitionId, applicationId, token) {
     budget_justification: String(fd.budget_justification || "").slice(0, 3000),
   };
 
-  var appFileHints = connectApplicationFileFieldHints_(fd, aid, ss);
-
   var cid = String(competitionId || "").trim();
+  var appFileHints = connectApplicationFileFieldHints_(fd, aid, ss, cid);
   var adminTesterConnectEdit =
     priv &&
     authHasAnyRole_(auth, ["ADMIN", "TESTER"]) &&
@@ -3754,10 +3753,7 @@ function getConnectReviews(competitionId, token) {
   if (!sheet) return { success: true, reviews: [] };
   const rows = sheetToObjects(sheet);
   const reviews = rows.map(function (r) {
-    const o = {};
-    for (var k in r) if (Object.prototype.hasOwnProperty.call(r, k)) o[k] = r[k];
-    o.project_id = connectReviewAppId_(r);
-    return o;
+    return normalizeConnectReviewRowForApi_(r);
   });
   return { success: true, reviews: reviews };
 }
@@ -4085,7 +4081,93 @@ function ensureConnectProrektorBudgetLinesColumn_(sheet) {
   sheet.getRange(HEADER_ROW, sheet.getLastColumn() + 1).setValue("prorektor_budget_lines_json");
 }
 
+/** Sloupce pro komentáře ke kritériím K1–K5 (review-connect); bez nich se text při uložení ztratí. */
+function ensureConnectReviewsCommentColumns_(sheet) {
+  if (!sheet) return;
+  var data = sheet.getDataRange().getValues();
+  if (data.length < HEADER_ROW) return;
+  var hdrs = data[HEADER_ROW - 1];
+  var COL = mapColumns(hdrs);
+  ["comment_k1", "comment_k2", "comment_k3", "comment_k4", "comment_k5"].forEach(function (name) {
+    if (findCol(COL, name, name.replace("comment_", "") + "_comment") >= 0) return;
+    var col = sheet.getLastColumn() + 1;
+    sheet.getRange(HEADER_ROW, col).setValue(name);
+    COL[name] = col - 1;
+  });
+}
+
+/** Hodnota z řádku REVIEWS – více možných názvů sloupců (CZ/EN). */
+function connectReviewPick_(row, names, defaultVal) {
+  if (!row) return defaultVal !== undefined ? defaultVal : "";
+  var i, n, v;
+  for (i = 0; i < names.length; i++) {
+    n = names[i];
+    if (!Object.prototype.hasOwnProperty.call(row, n)) continue;
+    v = row[n];
+    if (v !== undefined && v !== null && String(v).trim() !== "") return v;
+  }
+  var norm = {};
+  for (var k in row) {
+    if (!Object.prototype.hasOwnProperty.call(row, k)) continue;
+    var nk = String(k)
+      .trim()
+      .toLowerCase()
+      .replace(/[áä]/g, "a")
+      .replace(/[čç]/g, "c")
+      .replace(/[éě]/g, "e")
+      .replace(/[íï]/g, "i")
+      .replace(/[óö]/g, "o")
+      .replace(/[úůü]/g, "u")
+      .replace(/[ýy]/g, "y")
+      .replace(/[žz]/g, "z")
+      .replace(/[šs]/g, "s")
+      .replace(/[řr]/g, "r")
+      .replace(/\s+/g, "_");
+    norm[nk] = row[k];
+  }
+  for (i = 0; i < names.length; i++) {
+    var nk = String(names[i])
+      .trim()
+      .toLowerCase()
+      .replace(/[áä]/g, "a")
+      .replace(/[čç]/g, "c")
+      .replace(/[éě]/g, "e")
+      .replace(/[íï]/g, "i")
+      .replace(/[óö]/g, "o")
+      .replace(/[úůü]/g, "u")
+      .replace(/[ýy]/g, "y")
+      .replace(/[žz]/g, "z")
+      .replace(/[šs]/g, "s")
+      .replace(/[řr]/g, "r")
+      .replace(/\s+/g, "_");
+    if (norm[nk] !== undefined && norm[nk] !== null && String(norm[nk]).trim() !== "") return norm[nk];
+  }
+  return defaultVal !== undefined ? defaultVal : "";
+}
+
+/** Sjednocená pole pro frontend review-connect (skóre, komentáře K1–K5). */
+function normalizeConnectReviewRowForApi_(r) {
+  var o = {};
+  var k;
+  for (k in r) if (Object.prototype.hasOwnProperty.call(r, k)) o[k] = r[k];
+  o.project_id = connectReviewAppId_(r);
+  o.application_id = o.project_id;
+  o.score_clarity = Number(connectReviewPick_(r, ["score_clarity", "clarity", "k1"], 0)) || 0;
+  o.score_quality = Number(connectReviewPick_(r, ["score_quality", "quality", "k2"], 0)) || 0;
+  o.score_budget = Number(connectReviewPick_(r, ["score_budget", "budget", "k3"], 0)) || 0;
+  o.score_profile = Number(connectReviewPick_(r, ["score_profile", "profile", "k4"], 0)) || 0;
+  o.score_outputs = Number(connectReviewPick_(r, ["score_outputs", "outputs", "k5"], 0)) || 0;
+  o.score_total = Number(connectReviewPick_(r, ["score_total", "total", "celkem"], 0)) || 0;
+  o.comment_k1 = String(connectReviewPick_(r, ["comment_k1", "k1_comment", "komentar_k1"], "") || "");
+  o.comment_k2 = String(connectReviewPick_(r, ["comment_k2", "k2_comment", "komentar_k2"], "") || "");
+  o.comment_k3 = String(connectReviewPick_(r, ["comment_k3", "k3_comment", "komentar_k3"], "") || "");
+  o.comment_k4 = String(connectReviewPick_(r, ["comment_k4", "k4_comment", "komentar_k4"], "") || "");
+  o.comment_k5 = String(connectReviewPick_(r, ["comment_k5", "k5_comment", "komentar_k5"], "") || "");
+  return o;
+}
+
 function appendReviewsRowFromMap_(sheet, map) {
+  ensureConnectReviewsCommentColumns_(sheet);
   const data = sheet.getDataRange().getValues();
   const hdrs = data[HEADER_ROW - 1];
   const width = Math.max(hdrs.length, 1);
@@ -5683,24 +5765,10 @@ function getDraft(competitionId, applicantEmail, token, focusApplicationId) {
     }
   }
 
-  const nonDraft = rows.filter(function (r) {
-    return String(r.applicant_email || "").toLowerCase().trim() === applicant && r.status !== "DRAFT";
-  });
-  const latestSub = pickLatestApplicationRow_(nonDraft);
-  let prorektorOutcome = null;
-  let submittedSummary = null;
-  if (latestSub && latestSub.application_id) {
-    prorektorOutcome = findProrektorOutcomeForApp_(ss, latestSub.application_id, latestSub);
-    submittedSummary = {
-      application_id: latestSub.application_id,
-      status: latestSub.status,
-      project_title: applicationRowTitle_(latestSub),
-      file_fields: connectApplicationFileFieldHints_(connectParseFormDataObject_(latestSub), latestSub.application_id, ss),
-    };
-  }
-
+  // Bez focusApplicationId nevracíme "poslední podanou" do apply formuláře.
+  // Uživatel tak může založit další žádost i po dřívějším podání.
   if (!draft) {
-    return { success: true, draft: null, submittedApplication: submittedSummary, prorektorOutcome: prorektorOutcome };
+    return { success: true, draft: null, submittedApplication: null, prorektorOutcome: null };
   }
 
   // JSON dat formuláře (správně ve form_data_json; fallback kvůli starým řádkům zapsaným do špatného sloupce)
@@ -5722,8 +5790,8 @@ function getDraft(competitionId, applicantEmail, token, focusApplicationId) {
   return {
     success: true,
     draft: draft,
-    submittedApplication: submittedSummary,
-    prorektorOutcome: prorektorOutcome,
+    submittedApplication: null,
+    prorektorOutcome: null,
   };
 }
 
@@ -5773,29 +5841,7 @@ function submitApplication(body) {
   if (eCol < 0 || sCol < 0 || fCol < 0 || subCol < 0)
     throw new Error("List APPLICATIONS: chybí potřebná záhlaví (applicant_email, status, form_data_json, submitted_at) na řádku " + HEADER_ROW + ".");
 
-  /* Pokud klient pošle konkrétní draftId (= jednu z více Connect přihlášek), podej právě ten řádek.
-     Bez tohoto by se submitnul první DRAFT v pořadí a žadatel s víc draftami by viděl staré údaje. */
-  const submitDraftIdReq = String(body.draftId || body.applicationId || "").trim();
-  let targetRow = -1;
-  if (submitDraftIdReq && idCol >= 0) {
-    for (let j = HEADER_ROW; j < data.length; j++) {
-      const rid = String(data[j][idCol] || "").trim();
-      if (rid !== submitDraftIdReq) continue;
-      const rowEmailJ = String(data[j][eCol] || "").toLowerCase();
-      const rowStatusJ = String(data[j][sCol] || "").toUpperCase();
-      if (rowEmailJ !== body.applicantEmail?.toLowerCase() || rowStatusJ !== "DRAFT") {
-        throw new Error("Koncept s tímto ID neexistuje, není DRAFT, nebo nepatří přihlášenému účtu.");
-      }
-      targetRow = j;
-      break;
-    }
-    if (targetRow < 0) {
-      throw new Error("Koncept s ID " + submitDraftIdReq + " v tabulce nenalezen.");
-    }
-  }
-
   for (let i = HEADER_ROW; i < data.length; i++) {
-    if (targetRow >= 0 && i !== targetRow) continue;
     const rowEmail  = String(data[i][eCol] || "").toLowerCase();
     const rowStatus = String(data[i][sCol] || "").toUpperCase();
     if (rowEmail === body.applicantEmail?.toLowerCase() && rowStatus === "DRAFT") {
